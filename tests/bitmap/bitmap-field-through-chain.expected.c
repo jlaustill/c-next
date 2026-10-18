@@ -12,6 +12,8 @@
 // test-adr: 034
 // Tests: Issue 1749 - a bitmap field written through a struct member, an array
 // element, a scope member or this. is a bit write on the bitmap value it reaches.
+// The same holds through a `mut` parameter (a pointer in C), an array
+// parameter, and a scope member that shadows a global of the same name.
 Holder gs = {0};
 
 Holder gss[2] = {0};
@@ -22,6 +24,15 @@ Flags shadowed = {0};
 Flags Sc__pfl = {0};
 Holder Sc__ps = {0};
 static Flags Sc__fl = {0};
+static Holder Sc__gs = {0};
+
+void Sc__setC(void) {
+    Sc__gs.fls[0] = (uint8_t)((Sc__gs.fls[0] & ~(1U << 5)) | (1U << 5));
+}
+
+bool Sc__getC(void) {
+    return ((((Sc__gs.fls[0U] >> 5) & 1)) != 0U);
+}
 
 void Sc__setA(void) {
     Sc__fl = (uint8_t)((Sc__fl & ~(1U << 0)) | (1U << 0));
@@ -29,6 +40,14 @@ void Sc__setA(void) {
 
 bool Sc__getA(void) {
     return ((((Sc__fl >> 0) & 1)) != 0U);
+}
+
+void viaParam(Holder* h) {
+    h->fls[1] = (uint8_t)((h->fls[1] & ~(0x7U << 2)) | ((3U & 0x7U) << 2));
+}
+
+void viaParamArray(Holder hs[2]) {
+    hs[1].fl = (uint8_t)((hs[1].fl & ~(1U << 1)) | (1U << 1));
 }
 
 uint8_t writeShadow(void) {
@@ -99,6 +118,34 @@ int main(void) {
     }
     if (((shadowed >> 2) & 0x7) != 0) {
         return 17U;
+    }
+    viaParam(&gs);
+    if (((gs.fls[1U] >> 2) & 0x7) != 3) {
+        return 18U;
+    }
+    if (((gs.fls[1U] >> 0) & 1) != true) {
+        return 19U;
+    }
+    if (((gs.fls[0U] >> 2) & 0x7) != 0) {
+        return 20U;
+    }
+    viaParamArray(gss);
+    if (((gss[1U].fl >> 1) & 1) != true) {
+        return 21U;
+    }
+    if (((gss[1U].fl >> 2) & 0x7) != 5) {
+        return 22U;
+    }
+    if (((gss[0U].fl >> 1) & 1) != false) {
+        return 23U;
+    }
+    Sc__setC();
+    const bool scopeC = Sc__getC();
+    if (scopeC != true) {
+        return 24U;
+    }
+    if (((gs.fls[0U] >> 5) & 1) != false) {
+        return 25U;
     }
     return 0U;
 }

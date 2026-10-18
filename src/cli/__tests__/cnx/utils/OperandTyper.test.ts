@@ -861,6 +861,56 @@ void main() {
     expect(chain.steps.at(-1)?.subscript).toBe("bit_single");
   });
 
+  // #2158/#2185: the register member a step's prefix is, however the
+  // register is spelled -- the one answer the classifier and handlers read
+  describe("the register member a step reads from", () => {
+    const declarations = `register MOTOR @ 0x40000000 {
+    CTRL: u8 rw @ 0x00,
+}
+scope Drive {
+    register PWM @ 0x40001000 {
+        FLAGS: u8 w1c @ 0x04,
+    }
+    public void bare() { %BODY% }
+}
+`;
+    const lastOf = (body: string) =>
+      targetOf(declarations.replace("%BODY%", body)).steps.at(-1);
+
+    it.each([
+      [
+        "a scope's own bare register",
+        "PWM.FLAGS[0] <- true;",
+        "Drive__PWM__FLAGS",
+      ],
+      ["this.", "this.PWM.FLAGS[0] <- true;", "Drive__PWM__FLAGS"],
+      ["a global register", "MOTOR.CTRL[1] <- true;", "MOTOR__CTRL"],
+      ["global.", "global.MOTOR.CTRL[1] <- true;", "MOTOR__CTRL"],
+    ])("names the member through %s", (_, body, member) => {
+      const step = lastOf(body);
+      expect(step?.beforeRegisterMember).toBe(member);
+      expect(step?.subscript).toBe("bit_single");
+    });
+
+    it("names no member for a struct's field", () => {
+      const step = targetOf(`struct P { u8 word; }
+void main() {
+    mut P p;
+    p.word[3] <- true;
+}`).steps.at(-1);
+      expect(step?.beforeRegisterMember).toBeNull();
+    });
+
+    it("records the name a member step reads", () => {
+      const steps = targetOf(`struct P { u8 word; }
+void main() {
+    mut P p;
+    p.word <- 1;
+}`).steps;
+      expect(steps.map((step) => step.member)).toEqual(["word"]);
+    });
+  });
+
   describe("a subscript's kind on a C or C++ header's value (S25)", () => {
     /** The subscript kind of `r`'s initializer, a postfix chain */
     function subscriptOf(

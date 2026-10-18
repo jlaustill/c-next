@@ -130,7 +130,27 @@ function typedLast(
         beforeNamesType: false,
         beforeIsBitField: false,
         beforeRegisterMember: null,
+        member: null,
       },
+    },
+  };
+}
+
+/**
+ * #2185: the typer's step for a register member's bit -- which member the
+ * prefix is, is the typer's answer, the case's INPUT
+ */
+function registerStep(
+  ctx: IAssignmentContext,
+  member: string,
+  subscript: "bit_single" | "bit_range",
+): IAssignmentContext {
+  const typed = typedLast(ctx, subscript);
+  return {
+    ...typed,
+    target: {
+      ...typed.target,
+      last: { ...typed.target.last!, beforeRegisterMember: member },
     },
   };
 }
@@ -144,6 +164,7 @@ function typedStep(
   ctx: IAssignmentContext,
   step: { before?: IOperandType; after?: IOperandType },
   subscript: TSubscriptKind | null = null,
+  member: string | null = null,
 ): IAssignmentContext {
   return {
     ...ctx,
@@ -158,6 +179,7 @@ function typedStep(
         beforeNamesType: false,
         beforeIsBitField: false,
         beforeRegisterMember: null,
+        member,
       },
     },
   };
@@ -257,6 +279,8 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
         ...overrides,
       }),
       { before },
+      null,
+      identifiers.at(-1)!,
     );
   const bitmapOperand = (dimensions: number[] = []): IOperandType => ({
     ...HandlerTestUtils.operandOf("StatusFlags", false, false),
@@ -334,17 +358,25 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
         ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
       ]),
     });
-    const ctx = fieldOf(["flags", "Running"], bitmapOperand(), {
-      postfixOps: [
-        { kind: "member", name: "Running" },
-        {
-          kind: "subscript",
-          indexCount: 1,
-          renderIndexes: () => ["0"],
-          foldWidth: () => undefined,
-        },
-      ],
-    });
+    // The typer's last step is the subscript, which reads no field
+    const ctx = typedStep(
+      createMockContext(state, {
+        identifiers: ["flags", "Running"],
+        hasMemberAccess: true,
+        isSimpleIdentifier: false,
+        postfixOps: [
+          { kind: "member", name: "Running" },
+          {
+            kind: "subscript",
+            indexCount: 1,
+            renderIndexes: () => ["0"],
+            foldWidth: () => undefined,
+          },
+        ],
+      }),
+      { before: bitmapOperand() },
+      "bit_single",
+    );
 
     expect(AssignmentClassifier.classify(ctx)).not.toBe(
       AssignmentKind.BITMAP_FIELD,
@@ -371,47 +403,42 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     };
   };
 
-  // ADR-004: the register keeps its own write, whatever spelled it -- the
-  // typer names the member; #2158's bare in-scope `PWM` is not a known
-  // register under its spelling and reached the bitmap-value rule
-  it.each([
-    ["MOTOR.CTRL.Enable", ["MOTOR", "CTRL", "Enable"], "MOTOR__CTRL", {}],
-    [
-      "PWM.FLAGS.Enable inside scope Drive",
-      ["PWM", "FLAGS", "Enable"],
-      "Drive__PWM__FLAGS",
-      { scopePath: "Drive" },
-    ],
-    [
-      "this.PWM.FLAGS.Enable",
-      ["PWM", "FLAGS", "Enable"],
-      "Drive__PWM__FLAGS",
-      { hasThis: true, scopePath: "Drive" },
-    ],
-    [
-      "Drive.PWM.FLAGS.Enable",
-      ["Drive", "PWM", "FLAGS", "Enable"],
-      "Drive__PWM__FLAGS",
-      {},
-    ],
-  ] as const)(
-    "classifies %s as REGISTER_MEMBER_BITMAP_FIELD",
-    (_, identifiers, member, overrides) => {
-      setupSymbols({
-        bitmapFields: new Map([
-          ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
-        ]),
-        knownRegisters: new Set(["MOTOR", "Drive__PWM"]),
-        registerMemberTypes: new Map([[member, "ControlBits"]]),
-      });
+  const controlBits = new Map([
+    ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
+  ]);
 
-      expect(
-        AssignmentClassifier.classify(
-          registerFieldOf([...identifiers], member, overrides),
-        ),
-      ).toBe(AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD);
-    },
-  );
+  // ADR-004: the register keeps its own write. Which member the prefix is,
+  // under each spelling, is the typer's answer (OperandTyper.chainOf's tests)
+  it("classifies a field of the member the typer names as REGISTER_MEMBER_BITMAP_FIELD", () => {
+    setupSymbols({ bitmapFields: controlBits });
+
+    expect(
+      AssignmentClassifier.classify(
+        registerFieldOf(["PWM", "FLAGS", "Enable"], "Drive__PWM__FLAGS", {
+          scopePath: "Drive",
+        }),
+      ),
+    ).toBe(AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD);
+  });
+
+  // #2158: the spelling does not decide. `MOTOR` spells a known register, but
+  // a step the typer names no member for is a bitmap value's field.
+  it("does not classify a field as a register member's by its spelling", () => {
+    setupSymbols({
+      bitmapFields: controlBits,
+      knownRegisters: new Set(["MOTOR"]),
+      registerMemberTypes: new Map([["MOTOR__CTRL", "ControlBits"]]),
+    });
+
+    expect(
+      AssignmentClassifier.classify(
+        fieldOf(["MOTOR", "CTRL", "Enable"], {
+          ...bitmapOperand(),
+          bitmapTypeName: "ControlBits",
+        }),
+      ),
+    ).toBe(AssignmentKind.BITMAP_FIELD);
+  });
 
   it("does not classify a register member's unknown field", () => {
     setupSymbols({
@@ -910,9 +937,11 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.REGISTER_BIT,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "GPIO7__DR_SET", "bit_single"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT);
   });
 
   it("classifies register bit range", () => {
@@ -927,9 +956,11 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.REGISTER_BIT_RANGE,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "GPIO7__DR_SET", "bit_range"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT_RANGE);
   });
 
   it("classifies scoped register bit", () => {
@@ -948,30 +979,11 @@ describe("AssignmentClassifier - Register Bit Access", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.SCOPED_REGISTER_BIT,
-    );
-  });
-});
-
-// ========================================================================
-// Scoped Register Bitmap Field (4-id pattern)
-// ========================================================================
-describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
-  it("returns null for unknown scope in 4-id pattern", () => {
-    setupSymbols();
-
-    const ctx = createMockContext(state, {
-      identifiers: ["UnknownScope", "REG", "MEMBER", "field"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
-    });
-
-    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "Teensy4__GPIO7__DR_SET", "bit_single"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT);
   });
 });
 
@@ -1039,7 +1051,7 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
     state = new TranspileState();
   });
 
-  it("classifies this.reg[start, width] as SCOPED_REGISTER_BIT_RANGE", () => {
+  it("classifies this.reg[start, width] as REGISTER_BIT_RANGE", () => {
     const knownRegisters = new Set(["Teensy4__GPIO7"]);
     setupSymbols({ knownRegisters });
     enterScope(state, RENDER_SCOPE);
@@ -1065,9 +1077,11 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "Teensy4__GPIO7__ICR1", "bit_range"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT_RANGE);
   });
 });
 
@@ -1091,9 +1105,11 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.REGISTER_BIT,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "TIMER__CTRL", "bit_single"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT);
   });
 
   it("classifies REG.MEMBER[start, width] as REGISTER_BIT_RANGE (non-this)", () => {
@@ -1113,9 +1129,11 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.REGISTER_BIT_RANGE,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "TIMER__CTRL", "bit_range"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT_RANGE);
   });
 
   it("classifies Scope.REG.MEMBER[bit] as REGISTER_BIT via memberWithSubscript", () => {
@@ -1131,9 +1149,11 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.REGISTER_BIT,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerStep(ctx, "Teensy4__GPIO7__DR_SET", "bit_single"),
+      ),
+    ).toBe(AssignmentKind.REGISTER_BIT);
   });
 });
 
@@ -1175,7 +1195,15 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
         isSimpleIdentifier: false,
       });
 
-      expect(AssignmentClassifier.classify(ctx)).toBe(expected);
+      const subscript =
+        expected === AssignmentKind.REGISTER_BIT_RANGE
+          ? "bit_range"
+          : "bit_single";
+      expect(
+        AssignmentClassifier.classify(
+          registerStep(ctx, "Hw__GPIO__Mode", subscript),
+        ),
+      ).toBe(expected);
     },
   );
 

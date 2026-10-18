@@ -1,0 +1,7 @@
+// Included by bitmap-field-compound.test.cnx: a bitmap declared one file away
+bitmap8 SharedFlags {
+    On,
+    Level[7]
+}
+
+mut SharedFlags shared;

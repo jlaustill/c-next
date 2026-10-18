@@ -3,7 +3,7 @@
  *
  * `+<-` and friends are read-modify-write. C-Next implements them where the
  * target names one location it can read and write back, and rejects them on a
- * bit index, a bit range, a slice or a string.
+ * bit index, a bit range, a slice, a bitmap field or a string.
  *
  * #1322. This was the audit's largest duplicate group: **six** throws with four
  * message variants, across `AccessPatternHandlers`, `BitAccessHandlers`,
@@ -101,11 +101,10 @@ class CompoundAssignmentCheck {
     }
     // #2159: a bitmap field is a bit or a run of bits of its backing value,
     // as a bit index is (ADR-007, ADR-034) -- whatever spells its prefix
-    const lastOp = target.kind === "postfix" ? target.ops.at(-1) : undefined;
     if (
-      BitmapFieldStep.bitmapOf(
+      BitmapFieldStep.fieldOf(
         typing.steps.at(-1),
-        lastOp?.kind === "member",
+        this.context.symbols.bitmapFields,
       ) !== null
     ) {
       return "bitmap field";

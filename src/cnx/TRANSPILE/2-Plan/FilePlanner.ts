@@ -60,7 +60,6 @@ import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
-import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import StatementChildren from "../../utils/StatementChildren";
 import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
@@ -1450,29 +1449,26 @@ class FilePlanner {
       StatementNodes.assignments(entry.declaration),
     );
     for (const site of sites) {
-      const parts = AssignmentTarget.parts(site.target);
-      const range = parts.ops.at(-1);
+      const range = AssignmentTarget.parts(site.target).ops.at(-1);
+      // The register member the typer names, however it is spelled (#2185)
+      const step = this.targetDeclaration(site.target).last;
+      const member =
+        step?.subscript === "bit_range" ? step.beforeRegisterMember : null;
       if (
-        parts.identifier === null ||
+        !member ||
         range?.kind !== "subscript" ||
         range.indexes.length !== 2
       ) {
         continue;
       }
-      const members = parts.ops.slice(0, -1);
-      if (!members.every((op) => op.kind === "member")) continue;
-      const names = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-        [parts.identifier, ...members.map((op) => op.name)],
-        (name) => this.state.isKnownScope(name),
+      const base = symbols.registerBaseAddresses.get(
+        QualifiedCName.parentOf(member),
       );
-      const base = symbols.registerBaseAddresses.get(names.regName);
-      const offset = symbols.registerMemberOffsets.get(names.fullName);
+      const offset = symbols.registerMemberOffsets.get(member);
       if (
         base === undefined ||
         offset === undefined ||
-        !RegisterAccessMode.isWriteOne(
-          symbols.registerMemberAccess.get(names.fullName),
-        )
+        !RegisterAccessMode.isWriteOne(symbols.registerMemberAccess.get(member))
       ) {
         continue;
       }
@@ -1902,32 +1898,13 @@ class FilePlanner {
       if (parts.identifier === null || parts.ops.at(-1)?.kind !== "member") {
         continue;
       }
-      const bitmap =
-        this.targetDeclaration(site.target).last?.before?.bitmapTypeName ??
-        this.registerMemberBitmap(parts.identifier, parts.ops.slice(0, -1));
-      const backing =
-        bitmap === undefined
-          ? undefined
-          : symbols.bitmapBackingType.get(bitmap);
+      const bitmap = this.targetDeclaration(site.target).last?.before
+        ?.bitmapTypeName;
+      const backing = bitmap
+        ? symbols.bitmapBackingType.get(bitmap)
+        : undefined;
       if (backing !== undefined) cTypes.add(backing);
     }
-  }
-
-  /** The bitmap type of the register member `identifier.ops` names, if it is one */
-  private registerMemberBitmap(
-    identifier: string,
-    ops: ReturnType<typeof AssignmentTarget.parts>["ops"],
-  ): string | undefined {
-    const names: string[] = [identifier];
-    for (const op of ops) {
-      if (op.kind !== "member") return undefined;
-      names.push(op.name);
-    }
-    const member = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-      names,
-      (name) => this.state.isKnownScope(name),
-    ).fullName;
-    return this.state.symbols!.registerMemberTypes.get(member);
   }
 
   /**

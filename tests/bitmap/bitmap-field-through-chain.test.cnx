@@ -2,6 +2,8 @@
 // test-adr: 034
 // Tests: Issue 1749 - a bitmap field written through a struct member, an array
 // element, a scope member or this. is a bit write on the bitmap value it reaches.
+// The same holds through a `mut` parameter (a pointer in C), an array
+// parameter, and a scope member that shadows a global of the same name.
 bitmap8 Flags {
     A,
     B,
@@ -24,6 +26,15 @@ scope Sc {
     public mut Flags pfl;
     public mut Holder ps;
     mut Flags fl;
+    mut Holder gs;
+
+    public void setC() {
+        gs.fls[0].C <- true;
+    }
+
+    public bool getC() {
+        return gs.fls[0].C;
+    }
 
     public void setA() {
         this.fl.A <- true;
@@ -32,6 +43,14 @@ scope Sc {
     public bool getA() {
         return this.fl.A;
     }
+}
+
+void viaParam(mut Holder h) {
+    h.fls[1].Mode <- 3;
+}
+
+void viaParamArray(mut Holder[2] hs) {
+    hs[1].fl.B <- true;
 }
 
 u8 writeShadow() {
@@ -108,6 +127,37 @@ u32 main() {
     }
     if (shadowed.Mode != 0) {
         return 17;
+    }
+
+    viaParam(gs);
+    if (gs.fls[1].Mode != 3) {
+        return 18;
+    }
+    if (gs.fls[1].A != true) {
+        return 19;
+    }
+    if (gs.fls[0].Mode != 0) {
+        return 20;
+    }
+
+    viaParamArray(gss);
+    if (gss[1].fl.B != true) {
+        return 21;
+    }
+    if (gss[1].fl.Mode != 5) {
+        return 22;
+    }
+    if (gss[0].fl.B != false) {
+        return 23;
+    }
+
+    Sc.setC();
+    bool scopeC <- Sc.getC();
+    if (scopeC != true) {
+        return 24;
+    }
+    if (gs.fls[0].C != false) {
+        return 25;
     }
 
     return 0;

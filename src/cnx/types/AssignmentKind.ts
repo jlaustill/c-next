@@ -22,12 +22,6 @@ enum AssignmentKind {
   /** GPIO7.DR_SET[0, 8] <- value (bit range, includes MMIO optimization) */
   REGISTER_BIT_RANGE,
 
-  /** this.GPIO7.DR_SET[LED_BIT] <- true (scoped register bit) */
-  SCOPED_REGISTER_BIT,
-
-  /** this.GPIO7.ICR1[6, 2] <- value (scoped register bit range) */
-  SCOPED_REGISTER_BIT_RANGE,
-
   // === Integer bit operations ===
 
   /** flags[3] <- true (single bit on integer variable) */

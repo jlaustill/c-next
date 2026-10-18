@@ -12,6 +12,23 @@ import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../__tests__/enterScope";
 import TestExpression from "../../../../../../types/__testUtils__/testExpression";
 
+/** The typer's step for a register member's bit: the member it names (#2185) */
+function registerTarget(member: string): IAssignmentContext["target"] {
+  return {
+    last: {
+      before: null,
+      subscript: null,
+      after: null,
+      property: null,
+      callee: null,
+      beforeNamesType: false,
+      beforeIsBitField: false,
+      beforeRegisterMember: member,
+      member: null,
+    },
+  } as IAssignmentContext["target"];
+}
+
 /**
  * Create mock context for testing.
  */
@@ -66,6 +83,7 @@ function createMockContext(
     // it is handed, so the mock context carries the same instance the test
     // set its facts up on.
     state,
+    target: registerTarget(identifiers.join("__")),
     ...overrides,
   } as IAssignmentContext;
 }
@@ -85,12 +103,10 @@ describe("RegisterHandlers", () => {
 
       expect(kinds).toContain(AssignmentKind.REGISTER_BIT);
       expect(kinds).toContain(AssignmentKind.REGISTER_BIT_RANGE);
-      expect(kinds).toContain(AssignmentKind.SCOPED_REGISTER_BIT);
-      expect(kinds).toContain(AssignmentKind.SCOPED_REGISTER_BIT_RANGE);
     });
 
-    it("exports exactly 4 handlers", () => {
-      expect(registerHandlers).toHaveLength(4);
+    it("exports exactly 2 handlers", () => {
+      expect(registerHandlers).toHaveLength(2);
     });
   });
 
@@ -325,10 +341,10 @@ describe("RegisterHandlers", () => {
     });
   });
 
-  describe("handleScopedRegisterBit (SCOPED_REGISTER_BIT)", () => {
+  describe("handleRegisterBit on a scope's own register (this.GPIO7)", () => {
     const getHandler = () =>
       registerHandlers.find(
-        ([kind]) => kind === AssignmentKind.SCOPED_REGISTER_BIT,
+        ([kind]) => kind === AssignmentKind.REGISTER_BIT,
       )?.[1];
 
     it("generates read-modify-write for scoped register bit", () => {
@@ -338,6 +354,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
+        target: registerTarget("Motor__GPIO7__DR_SET"),
         hasThis: true,
       });
 
@@ -357,6 +374,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
+        target: registerTarget("Motor__GPIO7__DR_SET"),
         hasThis: true,
       });
 
@@ -381,6 +399,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
+        target: registerTarget("Motor__GPIO7__DR_SET"),
         hasThis: true,
         generatedValue: "false",
       });
@@ -389,10 +408,10 @@ describe("RegisterHandlers", () => {
     });
   });
 
-  describe("handleScopedRegisterBitRange (SCOPED_REGISTER_BIT_RANGE)", () => {
+  describe("handleRegisterBitRange on a scope's own register (this.GPIO7)", () => {
     const getHandler = () =>
       registerHandlers.find(
-        ([kind]) => kind === AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
+        ([kind]) => kind === AssignmentKind.REGISTER_BIT_RANGE,
       )?.[1];
 
     it("generates read-modify-write for scoped register bit range", () => {
@@ -405,6 +424,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
@@ -433,6 +453,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
@@ -469,6 +490,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
           { mockValue: "32" } as never,
@@ -504,6 +526,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,

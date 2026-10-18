@@ -38,8 +38,12 @@ extern Flags Sc__pfl;
 extern Holder Sc__ps;
 
 /* Function prototypes */
+void Sc__setC(void);
+bool Sc__getC(void);
 void Sc__setA(void);
 bool Sc__getA(void);
+void viaParam(Holder* h);
+void viaParamArray(Holder hs[2]);
 uint8_t writeShadow(void);
 
 #ifdef __cplusplus

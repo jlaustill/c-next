@@ -5,10 +5,7 @@
  * Issue #707: Extracted from RegisterHandlers.ts and AccessPatternHandlers.ts.
  */
 
-import IRegisterNameResult from "./types/IRegisterNameResult";
-import QualifiedCName from "../../utils/QualifiedCName";
 import invariant from "../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitUtils from "../../utils/BitUtils";
 import type IAssignmentContext from "./types/IAssignmentContext";
 
@@ -20,7 +17,7 @@ import type IAssignmentContext from "./types/IAssignmentContext";
  * @throws Error if compound operator is used with bit fields
  */
 // #1322: `validateNoCompoundForBitAccess` is gone. Compound assignment on a
-// bit index, bit range, slice or string is E0857 in pass 2.1 -- one decision
+// bit index, bit range, slice, bitmap field (#2159) or string is E0857 in pass 2.1 -- one decision
 // where this was six throws with four message variants, and where this very
 // helper was defined a second time, verbatim, in `BitAccessHandlers`.
 
@@ -50,53 +47,6 @@ function validateWriteOnlyValue(
     `a write-1 register bit takes a non-zero value -- E0872 rejects ` +
       `'${value}' on ${targetName}[${bitIndex}] in pass 2.1, before this runs`,
   );
-}
-
-/**
- * Build a scoped register name from scope and identifier parts.
- *
- * @param scopeName - The scope name prefix
- * @param parts - The identifier parts (register name, member name)
- * @returns The full scoped register name (e.g., "Scope_Register_Member")
- */
-function buildScopedRegisterName(
-  declaringScopePath: string,
-  parts: readonly string[],
-): string {
-  // #1285: the accumulator loop was a hand-rolled join -- each turn fed the
-  // PREVIOUS result back in as if it were a scope, which is why `forMember` had to
-  // accept an arbitrary string. The scope qualifies the head; the remaining parts
-  // are register/member components joined textually.
-  return QualifiedCName.fromParts([
-    QualifiedNameGenerator.forMember(declaringScopePath, parts[0]),
-    ...parts.slice(1),
-  ]);
-}
-
-/**
- * Build register name with automatic scope detection.
- *
- * @param identifiers - The identifier chain
- * @param isKnownScope - Function to check if an identifier is a known scope
- * @returns Object with fullName, regName, and isScoped flag
- */
-function buildRegisterNameWithScopeDetection(
-  identifiers: readonly string[],
-  isKnownScope: (name: string) => boolean,
-): IRegisterNameResult {
-  const leadingId = identifiers[0];
-
-  if (isKnownScope(leadingId) && identifiers.length >= 3) {
-    // Scoped: Scope.Register.Member
-    const regName = QualifiedCName.fromParts([leadingId, identifiers[1]]);
-    const fullName = QualifiedCName.fromParts([regName, identifiers[2]]);
-    return { fullName, regName, isScoped: true };
-  } else {
-    // Non-scoped: Register.Member
-    const regName = leadingId;
-    const fullName = QualifiedCName.fromParts([leadingId, identifiers[1]]);
-    return { fullName, regName, isScoped: false };
-  }
 }
 
 /**
@@ -163,9 +113,6 @@ function writeBits(ctx: IAssignmentContext): string {
 class AssignmentHandlerUtils {
   static readonly writeBits = writeBits;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
-  static readonly buildScopedRegisterName = buildScopedRegisterName;
-  static readonly buildRegisterNameWithScopeDetection =
-    buildRegisterNameWithScopeDetection;
 }
 
 export default AssignmentHandlerUtils;

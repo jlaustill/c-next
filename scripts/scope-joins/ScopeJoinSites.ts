@@ -196,22 +196,6 @@ class ScopeJoinSites {
       movesWith: null,
       why: "callee chain `Scope.method()`; `resolvedName` is source text, and the `isScope` guard only confirms the author named a scope",
     },
-    {
-      file: "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts",
-      element: "firstId",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`ids[0]` of `Scope.REG.MEMBER[bit]`, guarded by `isKnownScope`",
-    },
-    {
-      file: "src/cnx/TRANSPILE/2-Plan/AssignmentHandlerUtils.ts",
-      element: "leadingId",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`identifiers[0]` of `Scope.Register.Member`, guarded by the injected `isKnownScope`",
-    },
   ];
 
   /**

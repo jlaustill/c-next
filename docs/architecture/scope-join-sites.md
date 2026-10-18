@@ -51,13 +51,11 @@ lands.
 | File                                                        | First element      | Sites | Kind    | Moves with |
 | ----------------------------------------------------------- | ------------------ | ----- | ------- | ---------- |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts` | `resolvedName`     | 1     | path    | --         |
-| `src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts`          | `firstId`          | 1     | path    | --         |
-| `src/cnx/TRANSPILE/2-Plan/AssignmentHandlerUtils.ts`        | `leadingId`        | 1     | path    | --         |
 | `src/cnx/utils/ScopeUtils.ts`                               | `scopePath`        | 1     | encoder | --         |
 | `src/cnx/utils/ScopeUtils.ts`                               | `symbol.scopePath` | 1     | encoder | --         |
-| **total**                                                   |                    | **5** |         |            |
+| **total**                                                   |                    | **3** |         |            |
 
-5 site(s) across 4 file(s).
+3 site(s) across 2 file(s).
 
 ## What must move, and with what
 

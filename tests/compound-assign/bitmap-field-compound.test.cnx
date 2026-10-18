@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 034
 // E0857 on a compound operator to a bitmap field, whatever spells its prefix.
 //
 // #2159: `flat.Mode +<- 1` was lowered as the plain write `flat.Mode <- 1` --
@@ -6,7 +7,10 @@
 // of its backing value, as a bit index is (ADR-007), so it is rejected the same
 // way. The rule reads the chain's typed final step, so a field reached through
 // an array element, a struct member, `this.` or a register member is the same
-// rule as a bare variable's.
+// rule as a bare variable's. `shared.Level` is a bitmap declared in an included
+// file (ADR-034's imported-direct cell).
+
+#include "lib/compound-flags.cnx"
 
 bitmap8 Flags {
     A,
@@ -50,6 +54,7 @@ u32 main() {
     flat.Mode +<- 1;
     gss[1].fl.Mode +<- 1;
     MOTOR.CTRL.Mode +<- 1;
+    shared.Level +<- 1;
 
     return 0;
 }

@@ -7,42 +7,26 @@
  */
 import invariant from "../../../../../utils/invariant";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
-import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
+import type IBitmapFieldTarget from "../../../../../types/IBitmapFieldTarget";
+import BitmapFieldStep from "../../../../../utils/BitmapFieldStep";
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
-import type TranspileState from "../../../../TranspileState";
 
 /**
- * Validate and get bitmap field info, throwing appropriate errors.
+ * The field the classifier routed here, as the typer typed the target's final
+ * step. A compound operator on it never reaches here: pass 2.1 rejects it as
+ * E0857 (#2159), and a literal too wide for the field as E0881 (#1322).
  */
-function getBitmapFieldInfo(
-  bitmapType: string,
-  fieldName: string,
-  state: TranspileState,
-): IBitmapFieldLayout {
-  const fields = state.symbols!.bitmapFields.get(bitmapType);
-  // Two statements, because `asserts condition` narrows a REFERENCE, not an
-  // arbitrary expression: asserting `fields?.has(...)` leaves `fields` itself
-  // possibly-undefined for the line below.
-  invariant(
-    fields,
-    `every bitmap the classifier routed here was collected by the resolver (missing type '${bitmapType}')`,
+function fieldOfTarget(ctx: IAssignmentContext): IBitmapFieldTarget {
+  const field = BitmapFieldStep.fieldOf(
+    ctx.target.last,
+    ctx.state.symbols!.bitmapFields,
   );
-  invariant(
-    fields.has(fieldName),
-    `the classifier and this handler agree on the bitmap field key ('${fieldName}' on '${bitmapType}')`,
-  );
-
-  const fieldInfo = fields.get(fieldName)!;
-
-  // A compound operator on a bitmap field never reaches here: pass 2.1 rejects
-  // it as E0857 on the chain's typed final step (#2159), and a literal too
-  // wide for the field as E0881 from the bitmap's layouts (#1322).
-
-  return fieldInfo;
+  invariant(field, "the classifier routes a field of a bitmap here");
+  return field;
 }
 
 /**
@@ -53,52 +37,36 @@ function getBitmapFieldInfo(
  */
 function writeBitmapField(
   target: string,
-  bitmapType: string,
-  fieldName: string,
+  { bitmapType, layout }: IBitmapFieldTarget,
   ctx: IAssignmentContext,
   writeOnly: boolean,
 ): string {
-  const field = getBitmapFieldInfo(bitmapType, fieldName, ctx.state);
   const storage = ctx.state.symbols!.bitmapBackingType.get(bitmapType);
   invariant(
     storage,
     `a bitmap the resolver collected has a backing type ('${bitmapType}')`,
   );
   const value = ctx.generatedValue;
-  if (field.width === 1) {
+  if (layout.width === 1) {
     return writeOnly
-      ? BitUtils.writeOnlySingleBit(target, field.offset, value, storage)
-      : BitUtils.singleBitWrite(target, field.offset, value, storage);
+      ? BitUtils.writeOnlySingleBit(target, layout.offset, value, storage)
+      : BitUtils.singleBitWrite(target, layout.offset, value, storage);
   }
   return writeOnly
     ? BitUtils.writeOnlyMultiBit(
         target,
-        field.offset,
-        field.width,
+        layout.offset,
+        layout.width,
         value,
         storage,
       )
-    : BitUtils.multiBitWrite(target, field.offset, field.width, value, storage);
-}
-
-/**
- * A bitmap field of a register member, which is write-1 when the member's
- * access says so -- however the member is spelled.
- */
-function writeRegisterMemberBitmapField(
-  fullRegMember: string,
-  fieldName: string,
-  ctx: IAssignmentContext,
-): string {
-  const bitmapType = ctx.state.symbols!.registerMemberTypes.get(fullRegMember)!;
-  const accessMod = ctx.state.symbols!.registerMemberAccess.get(fullRegMember);
-  return writeBitmapField(
-    fullRegMember,
-    bitmapType,
-    fieldName,
-    ctx,
-    RegisterAccessMode.isWriteOne(accessMod),
-  );
+    : BitUtils.multiBitWrite(
+        target,
+        layout.offset,
+        layout.width,
+        value,
+        storage,
+      );
 }
 
 /**
@@ -110,14 +78,9 @@ function writeRegisterMemberBitmapField(
  * dereferenced.
  */
 function handleBitmapField(ctx: IAssignmentContext): string {
-  const bitmapType = ctx.target.last?.before?.bitmapTypeName;
-  invariant(bitmapType, "the classifier routes a field of a bitmap value here");
-  const fieldName = ctx.identifiers.at(-1);
-  invariant(fieldName, "a bitmap field write names its field");
   return writeBitmapField(
     ctx.renderBitTarget(),
-    bitmapType,
-    fieldName,
+    fieldOfTarget(ctx),
     ctx,
     false,
   );
@@ -130,9 +93,13 @@ function handleBitmapField(ctx: IAssignmentContext): string {
 function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const member = ctx.target.last?.beforeRegisterMember;
   invariant(member, "the classifier routes a field of a register member here");
-  const fieldName = ctx.identifiers.at(-1);
-  invariant(fieldName, "a bitmap field write names its field");
-  return writeRegisterMemberBitmapField(member, fieldName, ctx);
+  const access = ctx.state.symbols!.registerMemberAccess.get(member);
+  return writeBitmapField(
+    member,
+    fieldOfTarget(ctx),
+    ctx,
+    RegisterAccessMode.isWriteOne(access),
+  );
 }
 
 /**

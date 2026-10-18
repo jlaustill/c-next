@@ -222,6 +222,7 @@ describe("StringHandlers", () => {
             beforeNamesType: false,
             beforeIsBitField: false,
             beforeRegisterMember: null,
+            member: null,
           },
         },
       };
@@ -287,6 +288,7 @@ describe("StringHandlers", () => {
             beforeNamesType: false,
             beforeIsBitField: false,
             beforeRegisterMember: null,
+            member: null,
           },
         },
       };

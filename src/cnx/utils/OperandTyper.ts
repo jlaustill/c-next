@@ -310,6 +310,7 @@ class OperandTyper {
         subscript,
         after: next.k === "value" ? next.t : null,
         callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,
+        member,
         property:
           before !== null &&
           member !== null &&

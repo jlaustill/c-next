@@ -13,6 +13,12 @@ interface IChainStep {
    * other step. The typer decides it, once (#1760 review).
    */
   readonly property: string | null;
+  /**
+   * For a `.name` step, the name it reads -- a field, a member, a property;
+   * null for a subscript or a call. The typer records it, so a rule asking
+   * which field a step writes reads it here, not from the source's spelling.
+   */
+  readonly member: string | null;
   /** ADR-058: the prefix names a type (`u32`, `Point`), not a value */
   readonly beforeNamesType: boolean;
   /** ADR-058: the prefix is a bitmap field or a header bit-field, with no storage of its own */

@@ -1,28 +1,33 @@
 import type IChainStep from "../types/IChainStep";
+import type IBitmapFieldLayout from "../types/IBitmapFieldLayout";
+import type IBitmapFieldTarget from "../types/IBitmapFieldTarget";
 
 /**
- * ADR-034: whether an assignment target's final step is a field of a bitmap
- * -- a `.field` read off a bitmap value, or off a register member a bitmap
- * types -- as the one operand typer typed the chain. The one answer for every
- * rule that asks: the classifier routing the write, and E0857 rejecting a
- * compound operator on it (#2159), so the two cannot disagree about which
- * targets are fields.
+ * ADR-034: whether an assignment target's final step is a field the bitmap
+ * declares -- a `.field` read off a bitmap value, or off a register member a
+ * bitmap types -- as the one operand typer typed the chain. The one answer for
+ * every rule that asks: the classifier routing the write, its handlers, and
+ * E0857 rejecting a compound operator on it (#2159). A field the bitmap does
+ * not declare is no field of it, so E0882 reports it, not E0857.
  */
 class BitmapFieldStep {
-  /** The bitmap a final `.field` step reads its field from, or null */
-  static bitmapOf(
+  /** The bitmap field a final step names, or null when it names none */
+  static fieldOf(
     step: IChainStep | undefined,
-    lastOpIsMember: boolean,
-  ): string | null {
-    if (!lastOpIsMember || step?.property !== null) {
+    bitmapFields: ReadonlyMap<string, ReadonlyMap<string, IBitmapFieldLayout>>,
+  ): IBitmapFieldTarget | null {
+    const fieldName = step?.member;
+    if (!fieldName || step.property !== null) {
       return null;
     }
     const before = step.before;
-    const bitmapType = before?.bitmapTypeName;
-    if (!bitmapType || before!.dimensions.length !== 0) {
+    if (!before?.bitmapTypeName || before.dimensions.length !== 0) {
       return null;
     }
-    return bitmapType;
+    const layout = bitmapFields.get(before.bitmapTypeName)?.get(fieldName);
+    return layout === undefined
+      ? null
+      : { bitmapType: before.bitmapTypeName, fieldName, layout };
   }
 }
 

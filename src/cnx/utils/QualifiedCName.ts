@@ -90,6 +90,16 @@ class QualifiedCName {
   }
 
   /**
+   * The name a qualified C name's last component belongs to: `Drive__PWM` for
+   * the register member `Drive__PWM__FLAGS`.
+   */
+  static parentOf(qualifiedName: string): string {
+    return QualifiedCName.fromParts(
+      QualifiedCName.split(qualifiedName).slice(0, -1),
+    );
+  }
+
+  /**
    * Whether a generated C identifier carries a scope qualification.
    *
    * Use instead of testing for a bare underscore: a plain identifier is allowed to

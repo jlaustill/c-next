@@ -127,6 +127,7 @@ describe("BitmapHandlers", () => {
             beforeNamesType: false,
             beforeIsBitField: false,
             beforeRegisterMember: null,
+            member: identifiers.at(-1)!,
           },
         },
       };
@@ -176,7 +177,7 @@ describe("BitmapHandlers", () => {
 
       expect(() =>
         write(fieldWrite("flags", "StatusFlags", ["flags", "Unknown"])),
-      ).toThrow("agree on the bitmap field key");
+      ).toThrow("the classifier routes a field of a bitmap here");
     });
 
     it("masks a multi-bit field", () => {
@@ -223,8 +224,12 @@ describe("BitmapHandlers", () => {
         ...ctx,
         target: {
           ...ctx.target,
+          // The typer types a bitmap-typed member as its bitmap
           last: {
-            before: HandlerTestUtils.operandOf("u8", false, false),
+            before: {
+              ...HandlerTestUtils.operandOf("u8", false, false),
+              bitmapTypeName: "Bits",
+            },
             subscript: null,
             property: null,
             after: null,
@@ -232,6 +237,7 @@ describe("BitmapHandlers", () => {
             beforeNamesType: false,
             beforeIsBitField: false,
             beforeRegisterMember: member,
+            member: identifiers.at(-1)!,
           },
         },
       };

@@ -65,15 +65,18 @@ class BitUtils {
 
   /**
    * Convert a boolean expression to an unsigned integer (0U or 1U).
-   * Handles literal "true"/"false" and generates ternary for expressions.
+   * Folds a literal (`true`, `false`, `1`, `0`) and generates a ternary for
+   * any other expression.
    * Uses unsigned literals for MISRA C:2012 Rule 10.1 compliance.
    *
    * @param expr - The expression to convert
    * @returns C code string representing the unsigned integer value
    */
   static boolToInt(expr: string): string {
-    if (expr === "true") return "1U";
-    if (expr === "false") return "0U";
+    // A literal is folded: `(1 ? 1U : 0U)` is a controlling expression that is
+    // invariant, MISRA C:2012 Rule 14.3, and one branch of it is dead code
+    if (expr === "true" || expr === "1" || expr === "1U") return "1U";
+    if (expr === "false" || expr === "0" || expr === "0U") return "0U";
     return `(${expr} ? 1U : 0U)`;
   }
 
