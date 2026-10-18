@@ -24,7 +24,7 @@ Holder Sc__ps = {};
 static Flags Sc__fl = {};
 
 void Sc__setA(void) {
-    Sc__fl.A = true;
+    Sc__fl = (uint8_t)((Sc__fl & ~(1U << 0)) | (1U << 0));
 }
 
 bool Sc__getA(void) {
@@ -34,13 +34,13 @@ bool Sc__getA(void) {
 uint8_t writeShadow(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `shadowed` emitted as `writeShadow__shadowed` (a plain `shadowed` would hide the file-scope `shadowed` for the rest of its scope, so `global.shadowed` would reach the local). */
     Flags writeShadow__shadowed = {};
-    writeShadow__shadowed.A = true;
-    writeShadow__shadowed.Mode = 6U;
+    writeShadow__shadowed = (uint8_t)((writeShadow__shadowed & ~(1U << 0)) | (1U << 0));
+    writeShadow__shadowed = (uint8_t)((writeShadow__shadowed & ~(0x7U << 2)) | ((6U & 0x7U) << 2));
     return static_cast<uint8_t>(((writeShadow__shadowed >> 2) & 0x7));
 }
 
 int main(void) {
-    gss[1].fl.Mode = 5U;
+    gss[1].fl = (uint8_t)((gss[1].fl & ~(0x7U << 2)) | ((5U & 0x7U) << 2));
     if (((gss[1U].fl >> 2) & 0x7) != 5) {
         return 1U;
     }
@@ -50,7 +50,7 @@ int main(void) {
     if (((gss[1U].fl >> 0) & 1) != false) {
         return 3U;
     }
-    gs.fls[1].A = true;
+    gs.fls[1] = (uint8_t)((gs.fls[1] & ~(1U << 0)) | (1U << 0));
     if (((gs.fls[1U] >> 0) & 1) != true) {
         return 4U;
     }
@@ -60,25 +60,25 @@ int main(void) {
     if (((gs.fls[1U] >> 1) & 1) != false) {
         return 6U;
     }
-    gs.fl.B = true;
+    gs.fl = (uint8_t)((gs.fl & ~(1U << 1)) | (1U << 1));
     if (((gs.fl >> 1) & 1) != true) {
         return 7U;
     }
-    Sc__pfl.B = true;
+    Sc__pfl = (uint8_t)((Sc__pfl & ~(1U << 1)) | (1U << 1));
     if (((Sc__pfl >> 1) & 1) != true) {
         return 8U;
     }
     if (((Sc__pfl >> 0) & 1) != false) {
         return 9U;
     }
-    Sc__ps.fl.Mode = 2U;
+    Sc__ps.fl = (uint8_t)((Sc__ps.fl & ~(0x7U << 2)) | ((2U & 0x7U) << 2));
     if (((Sc__ps.fl >> 2) & 0x7) != 2) {
         return 10U;
     }
     if (((Sc__ps.fl >> 5) & 1) != false) {
         return 11U;
     }
-    Sc__ps.fls[1].Mode = 7U;
+    Sc__ps.fls[1] = (uint8_t)((Sc__ps.fls[1] & ~(0x7U << 2)) | ((7U & 0x7U) << 2));
     if (((Sc__ps.fls[1U] >> 2) & 0x7) != 7) {
         return 12U;
     }
