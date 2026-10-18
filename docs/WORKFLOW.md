@@ -9,10 +9,11 @@ says where the work is.
 This document is the single source of truth for how work moves. `CONTRIBUTING.md`
 covers _how to write the change_; this covers _how the change travels_.
 
-The board: **[C-Next project](https://github.com/users/jlaustill/projects/1)** —
-it spans [`c-next`](https://github.com/jlaustill/c-next) and
-[`vscode-c-next`](https://github.com/jlaustill/vscode-c-next), because a release
-that touches the grammar touches the extension too.
+The board: **[cnx](https://github.com/orgs/smeltworks/projects/1)**, owned by the
+`smeltworks` organization — it spans [`cnx`](https://github.com/smeltworks/cnx) and
+[`vscode-cnx`](https://github.com/smeltworks/vscode-cnx), because a release
+that touches the grammar touches the extension too. Until #2189 it lived on the
+`jlaustill` account; [Board setup](#board-setup) says why it moved.
 
 ---
 
@@ -259,12 +260,36 @@ gh auth refresh -s project   # one-time; the default token cannot read Projects
 npm run project:setup
 ```
 
-This creates the project if absent, makes it public, links both repositories,
-and seeds every open issue into Grooming and every
-open PR into PR Review. It is idempotent — re-running reports zero changes and
-never moves a card that has advanced.
+This creates the project if absent, makes it public with its title and
+description, links both repositories, and seeds every open issue into Grooming
+and every open PR into PR Review. It is idempotent — re-running reports zero
+changes and never moves a card that has advanced.
 
 `npm run project:check` reports drift without writing anything.
+
+The board is named by owner and **number** — `ProjectBoard.OWNER` /
+`ProjectBoard.NUMBER` in `scripts/utils/ProjectBoard.ts` — not by title, which
+anyone can rename in the UI. GitHub numbers a new board itself, so if setup ever
+creates one under a different number it stops and names the constant to change.
+`project-sync.yml` and the `start-issue` / `issue-check` skills cannot import that
+file; `scripts/__tests__/board-identity.test.ts` holds their copies to it.
+
+#### Moving to a new board
+
+```bash
+npm run project:migrate -- user jlaustill 1        # copy, then verify
+npm run project:migrate:check -- user jlaustill 1  # verify only; exit 1 while anything differs
+```
+
+This copies every card from another board (here the pre-#2189 one) onto this one:
+in the source's order, with each card's Status unchanged. Order is data —
+`BacklogOrder` is a stable sort that keeps whatever order a human set — so a
+migration that scrambled it would discard that ordering for good. It is
+idempotent and resumes where an interrupted run stopped. Run it before
+`project:setup` seeds anything, so seeded cards do not sit between copied ones, and
+turn the built-in workflows below off first: `Item added to project` would
+overwrite every copied Status, and `Auto-close issue` would close the open issues
+that sit in Done on purpose.
 
 ### 3. Board view (UI)
 
@@ -277,39 +302,62 @@ Turn **on**:
 - `Item closed` → Done
 - `Pull request merged` → Done
 
-Leave **off**, and here is why each one:
+Leave **off**, and here is why each one. A new project ships with **all** of
+`Item added to project`, `Item closed`, `Pull request merged`, `Pull request linked
+to issue`, `Auto-close issue` and `Auto-add sub-issues to project` turned on
+(measured 2026-10-18, #2189), so turning these off is a step, not a default.
 
-| Workflow                       | Why off                                                                                                                                                                                                                          |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Item reopened`                | Fires on issues _and_ pull requests. Reopening an issue is not a supported transition (see [Closed is closed](#closed-is-closed)), and for PRs it would race `project-sync.yml`, which already sends a reopened PR to PR Review. |
-| `Pull request linked to issue` | Forces a linked issue to WIP. WIP here means _you picked it up_, which is self-assignment, not "a PR exists".                                                                                                                    |
-| `Code changes requested`       | Cannot fire — see "Why two transitions are manual".                                                                                                                                                                              |
-| `Code review approved`         | Cannot fire — same reason.                                                                                                                                                                                                       |
-| `Auto-add to project`          | `project-sync.yml` owns adding, so both repositories behave identically regardless of GitHub plan (Free allows only one auto-add workflow, watching one repository).                                                             |
+| Workflow                         | Why off                                                                                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Item reopened`                  | Fires on issues _and_ pull requests. Reopening an issue is not a supported transition (see [Closed is closed](#closed-is-closed)), and for PRs it would race `project-sync.yml`, which already sends a reopened PR to PR Review.                             |
+| `Pull request linked to issue`   | Forces a linked issue to WIP. WIP here means _you picked it up_, which is self-assignment, not "a PR exists". It would also drag a paused card back into WIP.                                                                                                |
+| `Item added to project`          | Writes a Status on every card added. `project-sync.yml` owns the first Status, and during a [migration](#moving-to-a-new-board) it would overwrite every copied one.                                                                                         |
+| `Auto-close issue`               | Closes an issue when its card reaches Done — the opposite direction from `Item closed`. The board mirrors issues and never drives them, and this would close the open issues deliberately left stranded in Done (see [Closed is closed](#closed-is-closed)). |
+| `Auto-add sub-issues to project` | `project-sync.yml` owns adding.                                                                                                                                                                                                                              |
+| `Code changes requested`         | Cannot fire — see "Why two transitions are manual".                                                                                                                                                                                                          |
+| `Code review approved`           | Cannot fire — same reason.                                                                                                                                                                                                                                   |
+| `Auto-add to project`            | `project-sync.yml` owns adding, so both repositories behave identically regardless of GitHub plan (Free allows only one auto-add workflow, watching one repository).                                                                                         |
 
-### 5. The `PROJECT_TOKEN` secret
+### 5. The board's GitHub App
 
-`GITHUB_TOKEN` is scoped to the repository and **cannot write Projects v2**.
-Fine-grained PATs cannot either — there is no Projects permission for
-user-owned projects, and GitHub documents this as a known gap. GitHub Apps need
-_organization_ projects permission, which a user-owned project does not have.
+`GITHUB_TOKEN` is scoped to the repository and **cannot write Projects v2**. The
+board is owned by the `smeltworks` organization, so a GitHub App holding the
+organization's Projects permission can write it, and the workflows mint a
+short-lived token from it on every run (`actions/create-github-app-token`).
+Nothing expires, and nothing belongs to one person.
 
-That leaves one option: a **classic PAT with the `project` scope**, stored as
-`PROJECT_TOKEN` in both repositories.
+The app is owned by `smeltworks`, installed on `smeltworks` (all repositories),
+with no webhook and these permissions:
+
+| Permission                         | Access         | Why                                                   |
+| ---------------------------------- | -------------- | ----------------------------------------------------- |
+| Organization → Projects            | Read and write | Add cards, write Status, reposition the Backlog       |
+| Repository → Issues, Pull requests | Read-only      | Read what a card holds, and each issue's "Blocked by" |
+| Repository → Metadata              | Read-only      | Required by GitHub for every app                      |
+
+Its ID is the organization variable `BOARD_APP_ID`, and a private key generated in
+the app's settings is the organization secret `BOARD_APP_PRIVATE_KEY`, both visible
+to all repositories:
 
 ```bash
-gh secret set PROJECT_TOKEN --repo jlaustill/c-next
-gh secret set PROJECT_TOKEN --repo jlaustill/vscode-c-next
+gh auth refresh -s admin:org   # one-time; organization variables and secrets need it
+gh variable set BOARD_APP_ID --org smeltworks --visibility all --body <app id>
+gh secret set BOARD_APP_PRIVATE_KEY --org smeltworks --visibility all < key.pem
 ```
 
 Two things to know:
 
-- **Fork pull requests get no secrets.** `project-sync.yml` skips cleanly rather
-  than failing; add a fork PR to the board by hand.
-- **Classic PATs expire.** When one does, the workflow fails with a message
-  naming the secret rather than a raw GraphQL error. Rotate and re-set it.
+- **Fork pull requests get no secrets.** Both workflows skip cleanly rather than
+  failing; add a fork PR to the board by hand.
+- **Rotating the key** is generating a new one in the app's settings, re-setting
+  the secret, then deleting the old key there.
 
-### 6. `vscode-c-next`
+Until #2189 the board lived on the `jlaustill` account, where no app can write a
+project, so this was `PROJECT_TOKEN`: a classic PAT stored separately in each
+repository. The copies drifted apart, and smeltworks/vscode-cnx's had failed every
+run since 2026-09-13 before anyone noticed (smeltworks/vscode-cnx#14).
+
+### 6. `vscode-cnx`
 
 `project-sync.yml` is a reusable workflow. The extension repository calls it
 rather than copying it:
@@ -323,15 +371,19 @@ on:
     types: [opened, reopened, ready_for_review]
 jobs:
   sync:
-    uses: jlaustill/c-next/.github/workflows/project-sync.yml@main
-    secrets: inherit
+    uses: smeltworks/cnx/.github/workflows/project-sync.yml@main
+    secrets:
+      BOARD_APP_PRIVATE_KEY: ${{ secrets.BOARD_APP_PRIVATE_KEY }}
 ```
+
+A called workflow reads the **caller's** variables, so `BOARD_APP_ID` resolves from
+the organization either way; the private key is a secret and is passed by name.
 
 **A reusable workflow does not inherit the caller's `on:`** — the caller's own `types:`
 decides which events ever reach it, so this list is a second copy and it rots. Measured
 2026-09-12, the live caller carried `[opened, assigned, reopened]` while this block said
 `[opened, assigned]`: already disagreeing, with `reopened` subscribed there and refused
-here, and neither carrying `unassigned`. Tracked as jlaustill/vscode-c-next#11.
+here, and neither carrying `unassigned`. Tracked as smeltworks/vscode-cnx#11.
 
 Subscribe the caller to the **union** of what the shared file handles and let its `case`
 statement be the only thing that decides — otherwise a new transition is three edits across

@@ -42,8 +42,20 @@ jobs:
     name: Order Backlog by Blocked by
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      # A boolean, never the key itself: the steps only ask whether it exists.
+      HAS_BOARD_KEY: ${{ secrets.BOARD_APP_PRIVATE_KEY != '' }}
     steps:
+      # The board is written with a short-lived token from the smeltworks board
+      # GitHub App, the same way project-sync.yml does (#2189).
+      - name: Mint the board token
+        id: board-token
+        if: env.HAS_BOARD_KEY == 'true'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.BOARD_APP_ID }}
+          private-key: ${{ secrets.BOARD_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -64,5 +76,7 @@ jobs:
       - name: Order the Backlog column
         # Skips cleanly rather than failing when the secret is absent, matching
         # project-sync.yml: a fork's scheduled run receives no secrets.
-        if: env.GH_TOKEN != ''
+        if: env.HAS_BOARD_KEY == 'true'
+        env:
+          GH_TOKEN: ${{ steps.board-token.outputs.token }}
         run: npm run backlog:order

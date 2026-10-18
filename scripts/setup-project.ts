@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * C-Next project board provisioning (Issue #1247)
+ * cnx project board provisioning (Issues #1247, #2189)
  *
- * Creates and seeds the GitHub Project that tracks c-next work, so a release is
+ * Creates and seeds the GitHub Project that tracks cnx work, so a release is
  * managed as ordinary work rather than through a separate release process.
  *
  * Usage:
@@ -27,12 +27,14 @@
 
 import chalk from "chalk";
 
+import type IProjectRef from "./types/IProjectRef";
 import ProjectBoard from "./utils/ProjectBoard";
 import Repo from "./utils/Repo";
 
 const PROJECT_DESCRIPTION =
-  "Issue, PR and release tracking for C-Next. Workflow: docs/WORKFLOW.md";
-const LINKED_REPOSITORIES = ["c-next", "vscode-c-next"] as const;
+  "Issue, PR and release tracking for cnx. Workflow: docs/WORKFLOW.md";
+/** This repository and the VS Code extension, both under `Repo.OWNER`. */
+const LINKED_REPOSITORIES = [Repo.NAME, "vscode-cnx"] as const;
 
 const GROOMING = "Grooming";
 const BACKLOG = "Backlog";
@@ -70,11 +72,6 @@ interface IStatusOption {
   name: string;
 }
 
-interface IProjectFields {
-  statusFieldId: string;
-  statusOptions: IStatusOption[];
-}
-
 interface IExistingItem {
   itemId: string;
   status: string | undefined;
@@ -101,38 +98,30 @@ class SetupProject {
     console.log(chalk.dim(`  = ${reason}`));
   }
 
-  /** Finds the project by title, creating it only when absent. */
-  private static resolveProject(): { id: string; number: number; url: string } {
-    const data = ProjectBoard.graphql(`
-      query {
-        viewer {
-          id
-          projectsV2(first: 100) {
-            nodes { id title number url }
-          }
-        }
-      }
-    `) as unknown as {
-      viewer: {
-        id: string;
-        projectsV2: {
-          nodes: { id: string; title: string; number: number; url: string }[];
-        };
-      };
-    };
-
-    const existing = data.viewer.projectsV2.nodes.find(
-      (node) => node.title === ProjectBoard.TITLE,
-    );
+  /**
+   * Finds the board, creating it only when absent. The lookup is
+   * `ProjectBoard.findProject`, the one every consumer uses -- this file kept a
+   * private copy of it until #2189, which is how the two could disagree about
+   * whose boards to search.
+   *
+   * GitHub assigns a new board the owner's next number, and the board is named
+   * by `ProjectBoard.NUMBER` everywhere else. A board created under any other
+   * number would be invisible to the workflow and the skills, so that is an
+   * error naming the one constant to change, not a silent success.
+   */
+  private static resolveProject(): IProjectRef {
+    const existing = ProjectBoard.findProject();
     if (existing !== undefined) {
       SetupProject.skip(
-        `project "${ProjectBoard.TITLE}" exists (${existing.url})`,
+        `project ${ProjectBoard.OWNER}/${ProjectBoard.NUMBER} exists (${existing.url})`,
       );
       return existing;
     }
 
     if (SetupProject.dryRun) {
-      throw new Error(`Project "${ProjectBoard.TITLE}" does not exist yet.`);
+      throw new Error(
+        `Project ${ProjectBoard.OWNER}/${ProjectBoard.NUMBER} does not exist yet.`,
+      );
     }
 
     const created = ProjectBoard.graphql(
@@ -143,59 +132,75 @@ class SetupProject {
         }
       }
     `,
-      { ownerId: data.viewer.id, title: ProjectBoard.TITLE },
+      { ownerId: ProjectBoard.ownerId(), title: ProjectBoard.TITLE },
     ) as unknown as {
-      createProjectV2: {
-        projectV2: { id: string; number: number; url: string };
-      };
+      createProjectV2: { projectV2: IProjectRef };
     };
 
-    SetupProject.record(`created project "${ProjectBoard.TITLE}"`);
-    return created.createProjectV2.projectV2;
+    const board = created.createProjectV2.projectV2;
+    SetupProject.record(
+      `created project "${ProjectBoard.TITLE}" (${board.url})`,
+    );
+    if (board.number !== ProjectBoard.NUMBER) {
+      throw new Error(
+        `GitHub numbered the new board ${board.number}, but ProjectBoard.NUMBER is ` +
+          `${ProjectBoard.NUMBER}. Set ProjectBoard.NUMBER to ${board.number} ` +
+          "(scripts/utils/ProjectBoard.ts), then re-run.",
+      );
+    }
+    return board;
   }
 
-  /** Makes the project public and gives it a description. */
+  /** Makes the project public, titled and described. */
   private static configureProject(projectId: string): void {
     const current = ProjectBoard.graphql(
       `
       query($projectId: ID!) {
         node(id: $projectId) {
-          ... on ProjectV2 { public shortDescription }
+          ... on ProjectV2 { public title shortDescription }
         }
       }
     `,
       { projectId },
     ) as unknown as {
-      node: { public: boolean; shortDescription: string | null };
+      node: { public: boolean; title: string; shortDescription: string | null };
     };
 
     const needsPublic = !current.node.public;
+    const needsTitle = current.node.title !== ProjectBoard.TITLE;
     const needsDescription =
       current.node.shortDescription !== PROJECT_DESCRIPTION;
-    if (!needsPublic && !needsDescription) {
-      SetupProject.skip("project is public and described");
+    if (!needsPublic && !needsTitle && !needsDescription) {
+      SetupProject.skip("project is public, titled and described");
       return;
     }
     if (SetupProject.dryRun) {
-      SetupProject.record("would set project visibility/description");
+      SetupProject.record("would set project visibility/title/description");
       return;
     }
 
     ProjectBoard.graphql(
       `
-      mutation($projectId: ID!, $description: String!) {
+      mutation($projectId: ID!, $title: String!, $description: String!) {
         updateProjectV2(
           input: {
             projectId: $projectId
             public: true
+            title: $title
             shortDescription: $description
           }
         ) { projectV2 { id } }
       }
     `,
-      { projectId, description: PROJECT_DESCRIPTION },
+      {
+        projectId,
+        title: ProjectBoard.TITLE,
+        description: PROJECT_DESCRIPTION,
+      },
     );
-    SetupProject.record("set project to public with a description");
+    SetupProject.record(
+      "set project to public, with its title and description",
+    );
   }
 
   /** Links the project to every repository whose work it tracks. */
@@ -239,55 +244,6 @@ class SetupProject {
       );
       SetupProject.record(`linked ${Repo.OWNER}/${name}`);
     }
-  }
-
-  /** Reads the field set, asserting the Status options the board depends on. */
-  private static resolveFields(projectId: string): IProjectFields {
-    const data = ProjectBoard.graphql(
-      `
-      query($projectId: ID!) {
-        node(id: $projectId) {
-          ... on ProjectV2 {
-            fields(first: 100) {
-              nodes {
-                ... on ProjectV2FieldCommon { id name dataType }
-                ... on ProjectV2SingleSelectField {
-                  id name options { id name }
-                }
-              }
-            }
-          }
-        }
-      }
-    `,
-      { projectId },
-    ) as unknown as {
-      node: {
-        fields: {
-          nodes: {
-            id: string;
-            name: string;
-            dataType?: string;
-            options?: IStatusOption[];
-          }[];
-        };
-      };
-    };
-
-    const fields = data.node.fields.nodes;
-    const status = fields.find(
-      (field) => field.name === ProjectBoard.STATUS_FIELD,
-    );
-    if (status?.options === undefined) {
-      throw new Error(
-        `The project has no ${ProjectBoard.STATUS_FIELD} single-select field.`,
-      );
-    }
-
-    return {
-      statusFieldId: status.id,
-      statusOptions: status.options,
-    };
   }
 
   /**
@@ -362,72 +318,21 @@ class SetupProject {
     return collected;
   }
 
-  /** Content id -> the item already on the board, with its current Status. */
-  private static collectExistingItems(
-    projectId: string,
-  ): Map<string, IExistingItem> {
-    const existing = new Map<string, IExistingItem>();
-    let cursor = "";
-    for (;;) {
-      const page = ProjectBoard.graphql(
-        `
-        query($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo { hasNextPage endCursor }
-                nodes {
-                  id
-                  content {
-                    ... on Issue { id }
-                    ... on PullRequest { id }
-                  }
-                  fieldValueByName(name: "${ProjectBoard.STATUS_FIELD}") {
-                    ... on ProjectV2ItemFieldSingleSelectValue { name }
-                  }
-                }
-              }
-            }
-          }
-        }
-      `,
-        cursor === "" ? { projectId } : { projectId, cursor },
-      ) as unknown as {
-        node: {
-          items: {
-            pageInfo: { hasNextPage: boolean; endCursor: string };
-            nodes: {
-              id: string;
-              content: { id?: string } | null;
-              fieldValueByName: { name?: string } | null;
-            }[];
-          };
-        };
-      };
-
-      for (const node of page.node.items.nodes) {
-        if (node.content?.id === undefined) {
-          continue;
-        }
-        existing.set(node.content.id, {
-          itemId: node.id,
-          status: node.fieldValueByName?.name,
-        });
-      }
-      if (!page.node.items.pageInfo.hasNextPage) {
-        break;
-      }
-      cursor = page.node.items.pageInfo.endCursor;
-    }
-    return existing;
-  }
-
   /** Seeds open work, never disturbing a card that has already advanced. */
-  private static seedItems(projectId: string, fields: IProjectFields): void {
+  private static seedItems(
+    projectId: string,
+    field: { fieldId: string; options: IStatusOption[] },
+  ): void {
     const content = SetupProject.collectContent();
-    const existing = SetupProject.collectExistingItems(projectId);
+    // Content id -> the card already on the board, with its current Status.
+    const existing = new Map<string, IExistingItem>(
+      ProjectBoard.items(projectId).map((entry) => [
+        entry.contentId,
+        { itemId: entry.itemId, status: entry.status },
+      ]),
+    );
     const optionId = (name: string): string => {
-      const option = fields.statusOptions.find((entry) => entry.name === name);
+      const option = field.options.find((entry) => entry.name === name);
       if (option === undefined) {
         throw new Error(
           `${ProjectBoard.STATUS_FIELD} option "${name}" vanished mid-run`,
@@ -452,18 +357,8 @@ class SetupProject {
           added += 1;
           continue;
         }
-        const result = ProjectBoard.graphql(
-          `
-          mutation($projectId: ID!, $contentId: ID!) {
-            addProjectV2ItemById(
-              input: { projectId: $projectId, contentId: $contentId }
-            ) { item { id } }
-          }
-        `,
-          { projectId, contentId: entry.id },
-        ) as unknown as { addProjectV2ItemById: { item: { id: string } } };
         item = {
-          itemId: result.addProjectV2ItemById.item.id,
+          itemId: ProjectBoard.addItem(projectId, entry.id),
           status: undefined,
         };
         added += 1;
@@ -480,25 +375,11 @@ class SetupProject {
         continue;
       }
 
-      ProjectBoard.graphql(
-        `
-        mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-          updateProjectV2ItemFieldValue(
-            input: {
-              projectId: $projectId
-              itemId: $itemId
-              fieldId: $fieldId
-              value: { singleSelectOptionId: $optionId }
-            }
-          ) { projectV2Item { id } }
-        }
-      `,
-        {
-          projectId,
-          itemId: item.itemId,
-          fieldId: fields.statusFieldId,
-          optionId: optionId(target),
-        },
+      ProjectBoard.setStatus(
+        projectId,
+        item.itemId,
+        field.fieldId,
+        optionId(target),
       );
       positioned += 1;
       if (positioned % 25 === 0) {
@@ -525,17 +406,17 @@ class SetupProject {
     console.log(
       chalk.bold(
         SetupProject.dryRun
-          ? "Checking the C-Next project board\n"
-          : "Provisioning the C-Next project board\n",
+          ? "Checking the cnx project board\n"
+          : "Provisioning the cnx project board\n",
       ),
     );
 
     const project = SetupProject.resolveProject();
     SetupProject.configureProject(project.id);
     SetupProject.linkRepositories(project.id);
-    const fields = SetupProject.resolveFields(project.id);
-    SetupProject.assertStatusOptions(fields.statusOptions);
-    SetupProject.seedItems(project.id, fields);
+    const field = ProjectBoard.statusField(project.id);
+    SetupProject.assertStatusOptions(field.options);
+    SetupProject.seedItems(project.id, field);
 
     console.log(`\n${chalk.bold("Project:")} ${project.url}`);
     if (SetupProject.changes.length === 0) {

@@ -37,8 +37,8 @@ This guide covers the development workflow for contributing to C-Next. We use a 
 sudo apt install default-jdk
 
 # Clone the repository
-git clone https://github.com/jlaustill/c-next.git
-cd c-next
+git clone https://github.com/smeltworks/cnx.git
+cd cnx
 
 # Install the cross toolchains (Ubuntu/Debian)
 xargs sudo apt-get install -y < scripts/cross-toolchain-packages.txt
