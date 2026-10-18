@@ -285,6 +285,22 @@ class OperandTyper {
     return OperandTyper.walkChain(target, ctx).last;
   }
 
+  /**
+   * The dimensions an assignment target takes a whole array of (#1782):
+   * none for a scalar, an element, or an ADR-007 slice, which writes a
+   * value's bytes rather than an array.
+   */
+  static wholeArrayDimensions(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): ReadonlyArray<number | string> {
+    const { typing, last } = OperandTyper.walkChain(target, ctx);
+    if (last === null || typing.steps.at(-1)?.subscript === "array_slice") {
+      return [];
+    }
+    return last.dimensions;
+  }
+
   /** The chain typed, and the value it ends on */
   private static walkChain(
     chain: TExpression,

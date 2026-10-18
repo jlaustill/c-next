@@ -11,6 +11,7 @@ struct H {
 
 u8[4] source <- [1, 2, 3, 4];
 u8[8] wide <- [0*];
+u16 word <- 0x0102;
 
 void assignments() {
     mut u8[4] a <- [0*];
@@ -27,6 +28,7 @@ void assignments() {
     grid[0] <- [1, 2];
     a[0] <- source[1];
     h.buf[1] <- 2;
+    a[0, 2] <- word;
     text <- "Hello";
 
     // ASSERTION 1 -- another array of the same type.

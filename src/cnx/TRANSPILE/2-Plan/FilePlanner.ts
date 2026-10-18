@@ -1711,8 +1711,9 @@ class FilePlanner {
     );
     for (const site of sites) {
       if (site.operator !== "<-") continue;
+      const dimensions = OperandTyper.wholeArrayDimensions(site.target, typing);
       const written = OperandTyper.typeOfTarget(site.target, typing);
-      if (written === null || written.dimensions.length === 0) continue;
+      if (written === null || dimensions.length === 0) continue;
       if (!ExpressionShape.givesWholeArray(site.value, written.typeName)) {
         continue;
       }
@@ -1725,8 +1726,8 @@ class FilePlanner {
       planned.set(site, {
         elementCType,
         dimensions: isString
-          ? [...written.dimensions, written.stringCapacity! + 1]
-          : written.dimensions,
+          ? [...dimensions, written.stringCapacity! + 1]
+          : dimensions,
         fromList: site.value.kind === "arrayInitializer",
       });
       cTypes.add("uint32_t");

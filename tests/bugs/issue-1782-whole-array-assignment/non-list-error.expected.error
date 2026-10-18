@@ -1,28 +1,28 @@
-33:9 error[E0866]: An array must be given a list, not 'source'
+35:9 error[E0866]: An array must be given a list, not 'source'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-35:9 error[E0866]: An array must be given a list, not 'wide'
+37:9 error[E0866]: An array must be given a list, not 'wide'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-37:9 error[E0866]: An array must be given a list, not '5'
+39:9 error[E0866]: An array must be given a list, not '5'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-39:13 error[E0866]: An array must be given a list, not 'source'
+41:13 error[E0866]: An array must be given a list, not 'source'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-41:15 error[E0866]: An array must be given a list, not 'source'
+43:15 error[E0866]: An array must be given a list, not 'source'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-43:13 error[E0866]: An array must be given a list, not 'others'
+45:13 error[E0866]: An array must be given a list, not 'others'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-45:17 error[E0866]: An array must be given a list, not 'source'
+47:17 error[E0866]: An array must be given a list, not 'source'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-47:18 error[E0866]: An array must be given a list, not 'source'
+49:18 error[E0866]: An array must be given a list, not 'source'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-49:9 error[E0866]: Array size mismatch: declared [4] but the initializer has 3 element(s)
+51:9 error[E0866]: Array size mismatch: declared [4] but the initializer has 3 element(s)
        help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
-51:9 error[E0866]: Array size mismatch: declared [4] but the initializer has 5 element(s)
+53:9 error[E0866]: Array size mismatch: declared [4] but the initializer has 5 element(s)
        help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
-53:13 error[E0866]: Array size mismatch: declared [2] but the initializer has 3 element(s) at nesting level 2
+55:13 error[E0866]: Array size mismatch: declared [2] but the initializer has 3 element(s) at nesting level 2
        help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
-55:13 error[E0866]: Array size mismatch: declared [4] but the initializer has 2 element(s)
+57:13 error[E0866]: Array size mismatch: declared [4] but the initializer has 2 element(s)
        help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
-57:26 error[E0866]: An array must be given a list, not 'source'
+59:26 error[E0866]: An array must be given a list, not 'source'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-59:26 error[E0866]: Array size mismatch: declared [4] but the initializer has 2 element(s)
+61:26 error[E0866]: Array size mismatch: declared [4] but the initializer has 2 element(s)
        help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).

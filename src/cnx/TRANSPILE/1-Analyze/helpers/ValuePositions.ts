@@ -142,7 +142,10 @@ class ValuePositionWalk {
       return;
     }
     const target = OperandTyper.typeOfTarget(site.target, this.context);
-    const dimensions = target?.dimensions ?? [];
+    const dimensions = OperandTyper.wholeArrayDimensions(
+      site.target,
+      this.context,
+    );
     this.place(site.target, NOWHERE, TARGET);
     this.place(
       site.value,
