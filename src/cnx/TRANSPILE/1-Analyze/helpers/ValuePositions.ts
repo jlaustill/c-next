@@ -19,6 +19,7 @@ import type IFunctionDeclarationSyntax from "../../../types/syntax/IFunctionDecl
 const NOWHERE: IValuePosition = {
   typeText: null,
   isArray: false,
+  dimensions: [],
   isDeclaration: false,
   inList: false,
   supplied: false,
@@ -141,13 +142,15 @@ class ValuePositionWalk {
       return;
     }
     const target = OperandTyper.typeOfTarget(site.target, this.context);
+    const dimensions = target?.dimensions ?? [];
     this.place(site.target, NOWHERE, TARGET);
     this.place(
       site.value,
       {
         ...NO_TYPE,
         typeText: target?.typeName ?? null,
-        isArray: (target?.dimensions.length ?? 0) > 0,
+        isArray: dimensions.length > 0,
+        dimensions,
       },
       ValuePositionWalk.assigned(site),
     );
@@ -251,6 +254,7 @@ class ValuePositionWalk {
           ...NO_TYPE,
           typeText: TypeResolver.getTypeName(param.type),
           isArray: param.isArray,
+          dimensions: param.arrayDimensions ?? [],
         };
   }
 
@@ -280,6 +284,10 @@ class ValuePositionWalk {
               isArray:
                 symbols.structFieldArrays.get(structName)?.has(field.name) ??
                 false,
+              dimensions:
+                symbols.structFieldDimensions
+                  .get(structName)
+                  ?.get(field.name) ?? [],
             },
         {
           site: { kind: "field", initializer: init, field: field.name },

@@ -60,6 +60,7 @@ import BitAccessAnalyzer from "./BitAccessAnalyzer";
 import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
 import SizeofAnalyzer from "./SizeofAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
+import WholeArrayValueAnalyzer from "./WholeArrayValueAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import type IMutSite from "../../types/IMutSite";
 import LoopAnalyzer from "./LoopAnalyzer";
@@ -461,6 +462,10 @@ function runAnalyzers(
           parsed.program,
           positions().positions,
         ),
+    },
+    {
+      label: "whole-array values (ADR-014/ADR-035, E0866)",
+      run: () => new WholeArrayValueAnalyzer().analyze(positions()),
     },
     {
       label: "struct initializers (ADR-014, E0357/E0358)",

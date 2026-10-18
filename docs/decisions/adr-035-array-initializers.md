@@ -227,6 +227,18 @@ array is rejected, since C has no such initializer and the generated code did
 not compile. Each rule is decided during analysis, at the initializer's own
 position, and every offense in a file is reported.
 
+The same rules hold for an array assigned a whole value (`a <- [1, 2]`), since
+ADR-014 makes the list the whole value at an assignment target and at a field
+as well (#1782). Another array, a scalar, or a list of the wrong length there
+is E0866. These had been emitted as a C array assignment (`a = b;`,
+`a = {1U, 2U};`), which C rejects, at exit 0. An accepted list cannot be
+assigned in C either, so it fills a temporary of the target's own type, written
+as a declaration's initializer is (fill-all expanded, struct elements
+designated), and the temporary is copied element by element. Every element is
+read before any is written, so `pair <- [pair[1], pair[0]]` swaps. A target
+whose subscripts call a function is reached through a pointer, so the call is
+made once. Fixtures: `tests/bugs/issue-1782-whole-array-assignment/`.
+
 ## Scope-Context Matrix (#1219)
 
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
@@ -257,8 +269,9 @@ columns are `off`. (A dimension named by a const from an include is sized
 through the program's const table; the count itself is local.)
 
 This table covers a declaration's initializer. A whole array is also taken at a
-field, at an assignment target, and at a parameter, and a struct initializer
-there is E0866 as well. Whether that field is an array is read from its
+field, at an assignment target, and at a parameter. At a field and an
+assignment target the rules above apply as they do here (#1782); at a parameter
+a struct initializer is E0866, and the rest is #2157's. Whether that field is an array is read from its
 struct, which an include can declare. Those positions are ADR-014's rule, and
 their imported cells are ADR-014's to declare and occupy (#1760 review,
 2026-09-28).

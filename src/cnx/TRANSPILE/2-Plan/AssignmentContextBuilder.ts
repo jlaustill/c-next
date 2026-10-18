@@ -22,6 +22,7 @@
  */
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
+import type IPlannedWholeArrayWrite from "./types/IPlannedWholeArrayWrite";
 import type TAtomicForm from "../types/TAtomicForm";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
@@ -50,6 +51,8 @@ interface IContextBuilderDeps {
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
+  /** 2.2's decision: the shape a whole array is copied in (#1782), or null */
+  readonly plannedWholeArray: IPlannedWholeArrayWrite | null;
   readonly plannedCompoundCast: string | null;
   readonly plannedRegisterAccess: string | null;
 
@@ -286,6 +289,7 @@ function buildAssignmentContext(
     atomicForm: deps.atomicForm,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
+    plannedWholeArray: deps.plannedWholeArray,
     plannedCompoundCast: deps.plannedCompoundCast,
     plannedRegisterAccess: deps.plannedRegisterAccess,
     hasValue: valueExpr.kind !== "missing",

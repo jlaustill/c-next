@@ -23,11 +23,13 @@ typedef struct H {
 
 /* External variables */
 extern uint8_t globalBuf[4];
+extern uint32_t rowCalls;
 extern uint8_t grid[2][2];
 
 /* Function prototypes */
 void Lab__set(void);
 uint8_t Lab__row(const uint32_t i);
+uint32_t nextRow(void);
 void put(uint8_t p[4]);
 
 #ifdef __cplusplus

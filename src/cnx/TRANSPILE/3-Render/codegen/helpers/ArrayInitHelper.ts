@@ -81,7 +81,7 @@ class ArrayInitHelper {
       ? ArrayInitHelper._processSizeInference(name, declaredSize, state)
       : ArrayInitHelper._processExplicitSize(declaredSize, callbacks, state);
 
-    const finalInitValue = ArrayInitHelper._expandFillAllSyntax(
+    const finalInitValue = ArrayInitHelper.expandFillAll(
       initValue,
       declaredSize,
       state,
@@ -164,9 +164,11 @@ class ArrayInitHelper {
   }
 
   /**
-   * Expand fill-all syntax (e.g., [0*] with size 5 -> {0, 0, 0, 0, 0})
+   * Expand fill-all syntax (e.g., [0*] with size 5 -> {0, 0, 0, 0, 0}), read
+   * off the list's render just before. A declaration's list and a whole-array
+   * assignment's temporary (#1782) are both expanded here.
    */
-  private static _expandFillAllSyntax(
+  static expandFillAll(
     initValue: string,
     declaredSize: number | null,
     state: TranspileState,

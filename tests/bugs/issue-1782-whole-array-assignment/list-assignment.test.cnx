@@ -26,6 +26,12 @@ scope Lab {
 }
 
 mut u8[4] globalBuf <- [0*];
+mut u32 rowCalls <- 0;
+
+u32 nextRow() {
+    rowCalls +<- 1;
+    return 1;
+}
 mut u8[2][2] grid <- [[0, 0], [0, 0]];
 
 void put(mut u8[4] p) {
@@ -107,6 +113,17 @@ u32 main() {
     }
     if (grid[0][0] != 1) {
         return 17;
+    }
+    // A row named by a call: the call is made once.
+    grid[nextRow()] <- [5, 6];
+    if (rowCalls != 1) {
+        return 32;
+    }
+    if (grid[1][0] != 5) {
+        return 33;
+    }
+    if (grid[1][1] != 6) {
+        return 34;
     }
 
     // A parameter.

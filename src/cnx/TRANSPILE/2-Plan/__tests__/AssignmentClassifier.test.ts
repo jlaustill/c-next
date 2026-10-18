@@ -74,6 +74,7 @@ function createMockContext(
     isSimpleIdentifier: true,
     isSimpleThisAccess: false,
     isSimpleGlobalAccess: false,
+    plannedWholeArray: null,
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
@@ -407,6 +408,18 @@ describe("AssignmentClassifier - Array Access", () => {
     expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.ARRAY_ELEMENT,
     );
+  });
+
+  it("classifies a whole array given its list (#1782)", () => {
+    const ctx = createMockContext(state, {
+      identifiers: ["buffer"],
+      plannedWholeArray: {
+        elementCType: "uint8_t",
+        dimensions: [4],
+        fromList: true,
+      },
+    });
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.WHOLE_ARRAY);
   });
 
   it("classifies array slice", () => {

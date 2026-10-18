@@ -164,11 +164,15 @@ class ArrayFormListener extends CNextListener {
     const written = SyntaxLowering.node(expression).written;
     const initializer = ArrayFormListener.arrayInitializerOf(expression);
     if (initializer === null) {
-      const isStringLiteral = ExpressionShape.isStringLiteral(
-        SyntaxLowering.expression(expression),
-      );
-      const isByteArray = arrayType.primitiveType()?.getText() === "u8";
-      if (isStringLiteral && isByteArray) return; // `u8[] s <- "Hello"` (ADR-035)
+      const element = arrayType.primitiveType()?.getText() ?? null;
+      if (
+        ExpressionShape.givesWholeArray(
+          SyntaxLowering.expression(expression),
+          element,
+        )
+      ) {
+        return; // `u8[] s <- "Hello"` (ADR-035)
+      }
       this.report(
         expression,
         "E0866",

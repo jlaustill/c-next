@@ -1,6 +1,6 @@
 /**
- * ADR-014 struct initializers: E0357, E0358, and E0866 where a whole array is
- * taken.
+ * ADR-014 struct initializers: E0357 and E0358. Where a whole array is taken,
+ * a struct initializer is E0866, `WholeArrayValueAnalyzer`'s (#1782).
  *
  * #1322. Two throws in `CodeGenerator._resolveStructInitializerTypeName`, both
  * reported as `1:0`, and one of them fired on valid code (#1277).
@@ -84,20 +84,9 @@ class StructLiteralCheck {
       return;
     }
 
-    // ADR-014: an array's whole initializer is ADR-035's list (E0866). A
-    // declaration's is checked by that rule; a field, an assignment target
-    // or a parameter that is an array is checked here (#1760 second review:
-    // each typed the element, so the struct form passed for an array of
-    // structs and was E0358's for an array of scalars).
-    if (StructInitializerType.takesWholeArrayAt(at)) {
-      this.report(
-        init,
-        "E0866",
-        `An array must be given a list, not '${init.written}'`,
-        "Write the elements out in brackets, or set them one at a time (ADR-035).",
-      );
-      return;
-    }
+    // ADR-014: where a whole array is taken, a struct initializer is not a
+    // list -- E0866, `WholeArrayValueAnalyzer`'s, which ran before this.
+    // `nonStructTypeOf` answers null there.
 
     // #1802: only a struct takes `{ field: value }`. A bitmap is its backing
     // integer wherever it is written, inside a struct or not (owner ruling

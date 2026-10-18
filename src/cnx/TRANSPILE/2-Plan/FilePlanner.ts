@@ -98,6 +98,7 @@ import type IPlannedExpectedType from "./types/IPlannedExpectedType";
 import type IFilePlan from "./types/IFilePlan";
 import type IPlannedClamp from "./types/IPlannedClamp";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
+import type IPlannedWholeArrayWrite from "./types/IPlannedWholeArrayWrite";
 import SliceSource from "./SliceSource";
 import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import invariant from "../../utils/invariant";
@@ -629,12 +630,14 @@ class FilePlanner {
    * expression and fails at file scope on GCC < 13. So is one outside any
    * function, and in C++ one of an anonymous struct or union, since each
    * `struct { ... }` is its own type there (#882). Any other is a compound
-   * literal.
+   * literal. A whole array's list is its temporary's declaration initializer
+   * (#1782), so its elements are plain too.
    */
   private planStructInitializers(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
+    wholeArrayValues: ReadonlySet<TExpression>,
   ): ReadonlyMap<TExpressionOf<"structInitializer">, TStructInitializerForm> {
     const { declarationInits, inFunctions } =
       FilePlanner.initializerPositions(program);
@@ -670,7 +673,8 @@ class FilePlanner {
       if (part.kind !== "expression" || part.constant) continue;
       visit(
         part.expression,
-        declarationInits.has(part.expression),
+        declarationInits.has(part.expression) ||
+          wholeArrayValues.has(part.expression),
         inFunctions.has(part.expression),
       );
     }
@@ -1003,10 +1007,12 @@ class FilePlanner {
       ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
+    const wholeArrayWrites = this.planWholeArrayWrites(program, decidedCTypes);
     const structInitializers = this.planStructInitializers(
       program,
       inlinedConsts,
       expectedTypes,
+      new Set([...wholeArrayWrites.keys()].map((site) => site.value)),
     );
     const argumentPlans = this.planArguments(
       valuePositions,
@@ -1060,6 +1066,7 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
+      wholeArrayWrites,
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1686,6 +1693,45 @@ class FilePlanner {
       compound.set(site, clamp);
     }
     return { chains, compound, ops };
+  }
+
+  /**
+   * #1782: each `<-` that writes a whole array -- a target with dimensions
+   * left, given what ADR-035 gives one, which 2.1's E0866 has checked -- and
+   * the element type and dimensions its copy walks.
+   */
+  private planWholeArrayWrites(
+    program: IProgramSyntax,
+    cTypes: Set<string>,
+  ): ReadonlyMap<IAssignmentSyntax, IPlannedWholeArrayWrite> {
+    const typing = this.state.typingContext();
+    const planned = new Map<IAssignmentSyntax, IPlannedWholeArrayWrite>();
+    const sites = program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+    for (const site of sites) {
+      if (site.operator !== "<-") continue;
+      const written = OperandTyper.typeOfTarget(site.target, typing);
+      if (written === null || written.dimensions.length === 0) continue;
+      if (!ExpressionShape.givesWholeArray(site.value, written.typeName)) {
+        continue;
+      }
+      const isString = written.stringCapacity !== null;
+      const typeName = written.typeName;
+      invariant(typeName !== null, "a whole array's element type is named");
+      const elementCType = isString
+        ? "char"
+        : (written.cType ?? TYPE_MAP[typeName] ?? typeName);
+      planned.set(site, {
+        elementCType,
+        dimensions: isString
+          ? [...written.dimensions, written.stringCapacity! + 1]
+          : written.dimensions,
+        fromList: site.value.kind === "arrayInitializer",
+      });
+      cTypes.add("uint32_t");
+    }
+    return planned;
   }
 
   /**

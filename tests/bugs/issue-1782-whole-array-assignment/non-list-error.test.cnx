@@ -53,4 +53,8 @@ void assignments() {
     grid <- [[1, 2, 3], [4, 5]];
     // ASSERTION 12 -- a field's list with the wrong count.
     h.buf <- [1, 2];
+    // ASSERTION 13 -- a struct initializer's array field from another array.
+    H fromArray <- { buf: source };
+    // ASSERTION 14 -- a struct initializer's array field with the wrong count.
+    H shortList <- { buf: [1, 2] };
 }
