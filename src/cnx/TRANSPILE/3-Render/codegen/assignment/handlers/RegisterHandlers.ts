@@ -15,7 +15,6 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
 
 /**
@@ -130,8 +129,9 @@ function handleRegisterBit(ctx: IAssignmentContext): string {
  * Handle register bit range: GPIO7.DR_SET[0, 8] <- value
  */
 function handleRegisterBitRange(ctx: IAssignmentContext): string {
-  const member = memberOf(ctx);
-  return writeRegisterBitRange(ctx, member, QualifiedCName.parentOf(member));
+  const register = ctx.target.last?.beforeRegister;
+  invariant(register, "the typer names a register member's register");
+  return writeRegisterBitRange(ctx, memberOf(ctx), register);
 }
 
 /**

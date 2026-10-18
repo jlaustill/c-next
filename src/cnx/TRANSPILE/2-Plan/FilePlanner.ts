@@ -1456,16 +1456,16 @@ class FilePlanner {
       const step = this.targetDeclaration(site.target).last;
       const member =
         step?.subscript === "bit_range" ? step.beforeRegisterMember : null;
+      const register = step?.beforeRegister ?? null;
       if (
         !member ||
+        !register ||
         range?.kind !== "subscript" ||
         range.indexes.length !== 2
       ) {
         continue;
       }
-      const base = symbols.registerBaseAddresses.get(
-        QualifiedCName.parentOf(member),
-      );
+      const base = symbols.registerBaseAddresses.get(register);
       const offset = symbols.registerMemberOffsets.get(member);
       if (
         base === undefined ||

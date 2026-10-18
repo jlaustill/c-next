@@ -29,6 +29,8 @@ interface IChainStep {
    * a field of it is written per the member's access. Null otherwise.
    */
   readonly beforeRegisterMember: string | null;
+  /** The register `beforeRegisterMember` is a member of, by its C name (`Drive__PWM`) */
+  readonly beforeRegister: string | null;
   readonly after: IOperandType | null;
   /** A call's: the C name of the function it calls, when the chain names one (#1991) */
   readonly callee: string | null;

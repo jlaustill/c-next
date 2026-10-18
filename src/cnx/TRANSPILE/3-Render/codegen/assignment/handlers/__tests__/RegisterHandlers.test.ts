@@ -12,8 +12,14 @@ import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../__tests__/enterScope";
 import TestExpression from "../../../../../../types/__testUtils__/testExpression";
 
-/** The typer's step for a register member's bit: the member it names (#2185) */
-function registerTarget(member: string): IAssignmentContext["target"] {
+/**
+ * The typer's step for a register member's bit: the member it names and its
+ * register (#2185)
+ */
+function registerTarget(
+  member: string,
+  register: string = member.slice(0, member.lastIndexOf("__")),
+): IAssignmentContext["target"] {
   return {
     last: {
       before: null,
@@ -24,6 +30,7 @@ function registerTarget(member: string): IAssignmentContext["target"] {
       beforeNamesType: false,
       beforeIsBitField: false,
       beforeRegisterMember: member,
+      beforeRegister: register,
       member: null,
     },
   } as IAssignmentContext["target"];

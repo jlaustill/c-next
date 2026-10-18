@@ -56,10 +56,14 @@ type TChainValue =
       readonly k: "value";
       readonly t: IOperandType;
       /**
-       * A register member's C name (ADR-004): its subscripts are bits, and a
-       * field of it is written per the member's access. Null for any other value.
+       * A register member (ADR-004), by its C name and its register's: its
+       * subscripts are bits, and a field of it is written per the member's
+       * access. Null for any other value.
        */
-      readonly registerMember: string | null;
+      readonly registerMember: {
+        readonly register: string;
+        readonly cName: string;
+      } | null;
     }
   | { readonly k: "scope"; readonly scopePath: string }
   /**
@@ -306,7 +310,11 @@ class OperandTyper {
         beforeNamesType: current.k === "type" || current.k === "enumType",
         beforeIsBitField: bitField,
         beforeRegisterMember:
-          current.k === "value" ? current.registerMember : null,
+          current.k === "value" ? (current.registerMember?.cName ?? null) : null,
+        beforeRegister:
+          current.k === "value"
+            ? (current.registerMember?.register ?? null)
+            : null,
         subscript,
         after: next.k === "value" ? next.t : null,
         callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,
@@ -1371,7 +1379,10 @@ class OperandTyper {
           };
           return {
             k: "value",
-            registerMember: QualifiedCName.fromParts([current.name, member]),
+            registerMember: {
+              register: current.name,
+              cName: QualifiedCName.fromParts([current.name, member]),
+            },
             t,
           };
         }
@@ -1385,7 +1396,10 @@ class OperandTyper {
         const t = { ...foreign, form: DECLARED };
         return {
           k: "value",
-          registerMember: QualifiedCName.fromParts([current.name, member]),
+          registerMember: {
+              register: current.name,
+              cName: QualifiedCName.fromParts([current.name, member]),
+            },
           t,
         };
       }
