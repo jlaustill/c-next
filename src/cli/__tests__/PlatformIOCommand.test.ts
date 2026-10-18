@@ -454,6 +454,9 @@ describe("PlatformIOCommand", () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("integration removed"),
       );
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        "To re-enable integration: cnx --pio-install",
+      );
     });
   });
 });
