@@ -185,6 +185,9 @@ describe("Cli", () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Error: Directory input not supported. Specify an entry point file.",
       );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/^Example: cnx \S+\/main\.cnx$/),
+      );
     });
 
     it("returns error when no input file specified", () => {
@@ -198,6 +201,7 @@ describe("Cli", () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Error: No input file specified",
       );
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Usage: cnx <file.cnx>");
     });
 
     it("loads config from input file directory", () => {

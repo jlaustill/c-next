@@ -8,12 +8,14 @@ import CNextSourceParser from "../CNextSourceParser";
  */
 const errors = (source: string) =>
   CNextSourceParser.parse(source)
-    .formErrors.filter((e) => /^error\[E08(66|7[456]|92)\]/.test(e.message))
+    .formErrors.filter((e) =>
+      /^error\[E0(8(66|7[456]|92)|917)\]/.test(e.message),
+    )
     .map((e) => ({
-      code: /E08\d\d/.exec(e.message)![0],
+      code: /E0\d{3}/.exec(e.message)![0],
       line: e.line,
       column: e.column,
-      message: e.message.replace(/^error\[E08\d\d\]: /, ""),
+      message: e.message.replace(/^error\[E0\d{3}\]: /, ""),
     }));
 
 describe("ArrayForm", () => {
@@ -146,5 +148,56 @@ describe("ArrayForm", () => {
     expect(errors("u8 N <- 2;\nu16 arr[N + 1];")[0].message).toContain(
       "Use 'u16[N + 1] arr' instead of 'u16 arr[N + 1]'",
     );
+  });
+
+  describe("E0917 -- an array or a string declared in a for header (#1823)", () => {
+    it("rejects the prefix and the C-style spelling alike, naming the array", () => {
+      const found = errors(
+        [
+          "void f() {",
+          "    mut u32 n <- 0;",
+          "    for (u8[3] v <- [1, 2, 3]; n < 3; n <- n + 1) {}",
+          "    for (u32 c[2]; n < 6; n <- n + 1) {}",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0917", 3, 9],
+        ["E0917", 4, 9],
+      ]);
+      expect(found[0].message).toBe(
+        "An array is not a for loop variable: declare 'v' before the loop",
+      );
+    });
+
+    it("rejects a sized and an unsized string, naming the string", () => {
+      const found = errors(
+        [
+          "void f() {",
+          "    mut u32 n <- 0;",
+          '    for (string<8> s <- "ab"; n < 3; n <- n + 1) {}',
+          '    for (string t <- "ab"; n < 6; n <- n + 1) {}',
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0917", 3, 9],
+        ["E0917", 4, 9],
+      ]);
+      expect(found.map((e) => e.message)).toEqual([
+        "A string is not a for loop variable: declare 's' before the loop",
+        "A string is not a for loop variable: declare 't' before the loop",
+      ]);
+    });
+
+    it("accepts a scalar loop variable, with its modifiers", () => {
+      const source = [
+        "void f() {",
+        "    for (mut u32 i <- 0; i < 3; i <- i + 1) {}",
+        "    for (volatile mut u8 k <- 0; k < 3; k <- k + 1) {}",
+        "}",
+      ].join("\n");
+      expect(errors(source)).toEqual([]);
+    });
   });
 });

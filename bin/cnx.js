@@ -25,7 +25,7 @@ if (existsSync(distEntry)) {
 }
 
 child.on("error", (err) => {
-  console.error("Failed to start cnext:", err.message);
+  console.error("Failed to start cnx:", err.message);
   process.exit(1);
 });
 

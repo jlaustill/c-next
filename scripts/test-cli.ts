@@ -2,7 +2,7 @@
 /**
  * C-Next CLI Integration Tests
  *
- * Tests the cnext CLI binary for correct behavior:
+ * Tests the cnx CLI binary for correct behavior:
  * - Flag parsing (--version, --help, etc.)
  * - Exit codes (0 for success, 1 for errors)
  * - Default output path behavior
@@ -71,7 +71,7 @@ interface IIncludePathOutcome {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
-const cliPath = join(rootDir, "bin", "cnext.js");
+const cliPath = join(rootDir, "bin", "cnx.js");
 
 let passed = 0;
 let failed = 0;
@@ -161,7 +161,7 @@ test("--version returns version string and exits 0", () => {
   const result = runCli(["--version"]);
   assert(result.success, "Command should succeed");
   assert(
-    result.output.includes("cnext v"),
+    result.output.startsWith("cnx v"),
     `Output should contain version: ${result.output}`,
   );
   assert(result.exitCode === 0, "Exit code should be 0");
@@ -171,7 +171,7 @@ test("-v returns version string and exits 0", () => {
   const result = runCli(["-v"]);
   assert(result.success, "Command should succeed");
   assert(
-    result.output.includes("cnext v"),
+    result.output.startsWith("cnx v"),
     `Output should contain version: ${result.output}`,
   );
   assert(result.exitCode === 0, "Exit code should be 0");
@@ -200,6 +200,23 @@ test("-h shows help text and exits 0", () => {
     `Output should contain usage: ${result.output}`,
   );
   assert(result.exitCode === 0, "Exit code should be 0");
+});
+
+// Issue #2164: the command is `cnx`, with no `cnext` alias. The pattern skips
+// the config file names (`cnext.config.json`, `.cnext.json`, `.cnextrc`),
+// which stay until #2165 renames them; they name files, not the command.
+test("--help names the command cnx, never cnext", () => {
+  const result = runCli(["--help"]);
+  assert(result.success, "Command should succeed");
+  assert(
+    result.output.includes("cnx <file.cnx>"),
+    `Usage should name cnx: ${result.output}`,
+  );
+  const oldCommand = /(?<![\w.-])cnext(?![\w.-])/.exec(result.output);
+  assert(
+    oldCommand === null,
+    `Help should not name the cnext command: ${result.output}`,
+  );
 });
 
 // No arguments shows help (user-friendly behavior)

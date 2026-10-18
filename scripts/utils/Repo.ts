@@ -3,12 +3,13 @@
  *
  * `scripts/setup-project.ts` declared the owner separately, so changing it was
  * a two-file edit -- the shape `CLAUDE.md` calls the worst anti-pattern in the
- * project. One declaration, both callers.
+ * project. One declaration, both callers. The repository moved to
+ * smeltworks/cnx in #2180.
  */
 class Repo {
-  static readonly OWNER = "jlaustill";
+  static readonly OWNER = "smeltworks";
 
-  static readonly NAME = "c-next";
+  static readonly NAME = "cnx";
 
   /** `owner/name`, the form the REST paths and `gh` take. */
   static slug(): string {

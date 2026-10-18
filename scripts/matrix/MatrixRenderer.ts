@@ -19,7 +19,7 @@ const BANNER = `<!-- GENERATED FILE - DO NOT EDIT.
      Regenerate: npm run coverage:matrix -->`;
 
 /** Column headings, shortened so the grid stays readable. */
-const COLUMN_LABELS: Record<string, string> = {
+const COLUMN_LABELS: Record<TMatrixRelationship, string> = {
   "same-file": "same file",
   "imported-direct": "direct",
   "imported-transitive": "transitive",
@@ -27,11 +27,12 @@ const COLUMN_LABELS: Record<string, string> = {
   "exercised-through-chain": "thru chain",
 };
 
-const ROW_LABELS: Record<string, string> = {
+const ROW_LABELS: Record<TMatrixContext, string> = {
   "global-variable": "global variable",
   "top-level-function": "top-level function",
   "scope-member": "scope member",
   "scope-method": "scope method",
+  "for-header": "for header",
 };
 
 /**

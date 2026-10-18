@@ -42,7 +42,7 @@ run_check "TypeScript type check" npm run typecheck
 run_check "Tests" npm run test:q
 run_check "Unit tests" npm run unit
 run_check "CLI integration tests" npm run test:cli
-run_check "CLI smoke test" node bin/cnext.js --version
+run_check "CLI smoke test" node bin/cnx.js --version
 run_check "Grammar coverage check" npm run coverage:grammar:check
 
 # Check for uncommitted changes after build/test

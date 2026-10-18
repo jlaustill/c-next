@@ -154,6 +154,7 @@ class HeaderEmissionCapture {
         systemIncludes: HeaderIncludes.decide(
           exportedSymbols,
           state.symbolTable,
+          userIncludes,
         ),
       },
       typeInput: typeInputWithSymbolTable,

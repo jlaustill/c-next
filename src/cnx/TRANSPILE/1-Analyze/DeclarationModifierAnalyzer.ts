@@ -18,9 +18,7 @@
 
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
-import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
-import type TStatement from "../../types/syntax/TStatement";
-import StatementChildren from "../../utils/StatementChildren";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import IDeclarationModifierError from "./types/IDeclarationModifierError";
 
 /** Every variable declaration 1.2 returns: global, scope member, local, `for` header */
@@ -28,36 +26,10 @@ class DeclarationModifierAnalyzer {
   private readonly found: IDeclarationModifierError[] = [];
 
   public analyze(program: IProgramSyntax): IDeclarationModifierError[] {
-    for (const member of program.declarations) {
-      this.declaration(member.declaration);
+    for (const entry of VariableDeclarations.in(program)) {
+      this.check(entry.declaration);
     }
     return this.found;
-  }
-
-  private declaration(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declaration(member.declaration);
-      }
-    } else if (declaration.kind === "variableDeclaration") {
-      this.check(declaration);
-    } else if (declaration.kind === "function") {
-      this.statements(declaration.body.statements);
-    }
-  }
-
-  private statements(statements: readonly TStatement[]): void {
-    for (const statement of statements) {
-      if (statement.kind === "variableDeclaration") {
-        this.check(statement);
-      } else if (
-        statement.kind === "for" &&
-        statement.init?.kind === "variableDeclaration"
-      ) {
-        this.check(statement.init);
-      }
-      this.statements(StatementChildren.of(statement));
-    }
   }
 
   private check(declaration: IVariableDeclarationSyntax): void {

@@ -48,8 +48,8 @@
 
 
 uint8_t Teensy4__doSomething(void) {
-    uint8_t someByte = 123U;
-    uint8_t nextByte = someByte;
+    const uint8_t someByte = 123U;
+    const uint8_t nextByte = someByte;
     return nextByte;
 }
 

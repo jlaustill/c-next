@@ -107,7 +107,6 @@ function varDecl(
     typeName: "int32_t",
     emittedName: "i",
     nameMoveComments: "",
-    renderArrayDimensions: null,
     renderInitializer: null,
     ...overrides,
   };
@@ -446,7 +445,7 @@ describe("ControlFlowGenerator", () => {
     });
 
     // ADR-016/ADR-057: registration is what yields the EMITTED name, and it
-    // happens before the dimensions and initializer render.
+    // happens before the initializer renders.
     it("registers the local variable and declares the name it hands back", () => {
       const orchestrator = createMockOrchestrator();
       const order: string[] = [];
@@ -465,24 +464,6 @@ describe("ControlFlowGenerator", () => {
 
       expect(result.code).toContain(" i");
       expect(order).toEqual(["initializer"]);
-    });
-
-    // #1646: the array branch REASSIGNS, so it drops the modifiers the
-    // non-array branch carries. Pinned as current behavior, not endorsed --
-    // the fix changes emitted C and is tracked on its own card.
-    it("drops the modifiers on the array branch (#1646, pre-existing)", () => {
-      const result = generateForVarDecl(
-        varDecl({
-          volatile: "volatile ",
-          renderArrayDimensions: () => "[10]",
-        }),
-        INPUT,
-        STATE,
-        createMockOrchestrator(),
-      );
-
-      expect(result.code).toBe("int32_t i[10]");
-      expect(result.code).not.toContain("volatile");
     });
   });
 

@@ -468,6 +468,16 @@ Transpiles to:
 char names[10][33];  // 32 + 1 for null terminator each
 ```
 
+### A `for` Header (ADR-036)
+
+A `for` header declares one scalar loop variable, and a string is a `char`
+array in C, so a string declared there, sized or unsized, is E0917. Declare it
+before the loop (owner ruling on #1823, 2026-10-18):
+
+```cnx
+for (string<8> s <- "ab"; n < 1; n <- n + 1) { }  // E0917
+```
+
 ---
 
 ## Trade-offs
