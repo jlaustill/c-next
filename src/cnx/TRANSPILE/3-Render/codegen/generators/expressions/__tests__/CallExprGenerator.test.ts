@@ -235,6 +235,24 @@ function stubParameters(
   }));
 }
 
+/**
+ * A name the case uses only as a parameter type, never declares as a callee:
+ * `ParameterPassing` asks the program whether a parameter's type is a function
+ */
+function isStubTypeName(
+  name: string,
+  signatures: ReadonlyMap<string, IFunctionSignature>,
+): boolean {
+  if (signatures.has(name)) return false;
+  return (
+    STUB_PRIMITIVES.has(name) ||
+    name.startsWith("string<") ||
+    [...signatures.values()].some((sig) =>
+      sig.parameters.some((p) => p.baseType === name),
+    )
+  );
+}
+
 /** A settled type for a signature's base type name */
 function stubType(name: string): TType {
   if (STUB_PRIMITIVES.has(name)) {
@@ -256,11 +274,14 @@ function stubProgram(
   symbolTable: () => IResolvedSymbols | null,
 ): unknown {
   return {
-    symbolByCName: (name: string) => ({
-      kind: "function",
-      name,
-      parameters: stubParameters(name, signatures(), symbolTable()),
-    }),
+    symbolByCName: (name: string) =>
+      isStubTypeName(name, signatures())
+        ? undefined
+        : {
+            kind: "function",
+            name,
+            parameters: stubParameters(name, signatures(), symbolTable()),
+          },
     passByValueParams: () => ({
       get: (fn: string) => ({
         has: (param: string) =>
@@ -273,6 +294,8 @@ function stubProgram(
       }),
     }),
     knownEnums: () => mockOrchestrator?.getKnownEnums() ?? new Set<string>(),
+    // no case names a C++ namespaced type
+    symbolTable: () => undefined,
     callbackCompatibleFunctions: () => new Set<string>(),
   };
 }

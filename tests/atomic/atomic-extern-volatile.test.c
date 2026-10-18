@@ -39,13 +39,17 @@ volatile uint8_t flags = 0U;
 
 void Manager__test(void) {
     readings[0].valid = true;
-    do {
-        uint32_t __old = __LDREXW(&counter);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &counter) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint64_t __operand = 1U;
+        do {
+            uint32_t __old = __LDREXW(&counter);
+            uint32_t __new = cnx_clamp_add_u32(__old, __operand);
+            if (__STREXW(__new, &counter) == 0) {
+                break;
+            }
+        } while (1);
+    }
     flags = 0xFFU;
 }
 

@@ -1,0 +1,81 @@
+// test-execution
+// test-adr: 006
+// ADR-006: a parenthesized field, element or callback chain read as a value
+// is the chain it wraps -- `(cfg.total)`, `(arr[1]) * 2`, `readIt((arr[2]))`,
+// `(h.inner).cb(x)` and `this.bump((this.speed))` (#1203 review). An earlier
+// version of the fix lost the chain's ops at a bracket: an internal 2.2
+// error, and `(h.inner).cb(x)` passed `x` without its `&`.
+
+struct Config {
+    u32 total;
+}
+
+void handlerType(mut u32 v) {
+    v +<- 1;
+}
+
+void target(mut u32 v) {
+    v +<- 2;
+}
+
+struct Inner {
+    handlerType cb;
+}
+
+struct Holder {
+    Inner inner;
+}
+
+u32 readIt(u32 value) {
+    return value;
+}
+
+void addTo(mut u32 sum, u32 amount) {
+    sum +<- amount;
+}
+
+scope Motor {
+    u32 speed <- 5;
+    mut u32 total <- 0;
+
+    public void run() {
+        addTo(this.total, (this.speed));
+    }
+
+    public u32 totalNow() {
+        return this.total;
+    }
+}
+
+u32 main() {
+    Config cfg <- { total: 3 };
+    u32 a <- (cfg.total);
+    if (a != 3) {
+        return 1;
+    }
+    u32[3] arr <- [4, 5, 6];
+    u32 doubled <- (arr[1]) * 2;
+    if (doubled != 10) {
+        return 2;
+    }
+    u32 read <- readIt((arr[2]));
+    if (read != 6) {
+        return 3;
+    }
+    mut u32 x <- 0;
+    Holder h <- { inner: { cb: target } };
+    h.inner.cb(x);
+    if (x != 2) {
+        return 4;
+    }
+    (h.inner).cb(x);
+    if (x != 4) {
+        return 5;
+    }
+    Motor.run();
+    u32 total <- Motor.totalNow();
+    if (total != 5) {
+        return 6;
+    }
+    return 0;
+}

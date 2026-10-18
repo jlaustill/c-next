@@ -13,6 +13,8 @@ import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
 import ParameterPassing from "./ParameterPassing";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
@@ -53,6 +55,7 @@ import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import ExpressionShape from "../../utils/ExpressionShape";
+import MutArgument from "../1-Analyze/helpers/MutArgument";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
@@ -61,6 +64,7 @@ import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import StatementChildren from "../../utils/StatementChildren";
 import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
+import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
@@ -73,6 +77,7 @@ import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import CallArgumentPassing from "./CallArgumentPassing";
 import type IArgumentPassing from "./types/IArgumentPassing";
+import type TArgumentForm from "./types/TArgumentForm";
 import CppMemberHelper from "./CppMemberHelper";
 import IPostfixOp from "../../types/IPostfixOp";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
@@ -1093,7 +1098,9 @@ class FilePlanner {
     const call = site.call.ops[site.op];
     invariant(call?.kind === "call", "an argument site names a call");
     return passing.mode === "reference" &&
-      this.getLvalueType(call.arguments[site.argument]) !== null
+      this.getLvalueType(
+        ExpressionShape.unparenthesized(call.arguments[site.argument]),
+      ) !== null
       ? null
       : base;
   }
@@ -1130,27 +1137,27 @@ class FilePlanner {
     expression: TExpression,
     param: IArgumentPassing["param"],
   ): TCArgumentForm {
-    const id = ExpressionShape.simpleIdentifier(expression);
-    const declared = this.nameTypeOf(expression);
+    const object = ExpressionShape.unparenthesized(expression);
+    const id = ExpressionShape.simpleIdentifier(object);
+    const declared = this.nameTypeOf(object);
     const parameter =
       id === null
         ? undefined
-        : this.parameterAt(id, FilePlanner.positionOf(expression));
+        : this.parameterAt(id, FilePlanner.positionOf(object));
     return CArgumentAddress.formOf(
       {
         param,
-        addressWritten:
-          expression.kind === "unary" && expression.operator === "&",
+        addressWritten: object.kind === "unary" && object.operator === "&",
         promotedHandle: parameter?.forcePointerSemantics ?? false,
         argType:
-          this.directTypeOf(expression) ??
+          this.directTypeOf(object) ??
           declared?.baseType ??
           this.foreignVariableType(id),
         declared,
         isArray: OperandTyper.decaysToPointer(
-          OperandTyper.typeOf(expression, this.state.typingContext()),
+          OperandTyper.typeOf(object, this.state.typingContext()),
         ),
-        isHandleArrayElement: this.isHandleArrayElement(expression),
+        isHandleArrayElement: this.isHandleArrayElement(object),
       },
       this.queries,
     );
@@ -1236,13 +1243,7 @@ class FilePlanner {
       const base = passing.param?.baseType;
       const form =
         passing.mode === "reference"
-          ? ArgumentForm.of(
-              this.boundArgumentName(expression) !== null,
-              base,
-              this.argumentShape(expression, structInitializers),
-              this.state.cppMode,
-              passing.param?.isConst ?? false,
-            )
+          ? this.referenceForm(expression, passing, structInitializers)
           : null;
       const enumCast =
         passing.mode === "reference"
@@ -1261,6 +1262,35 @@ class FilePlanner {
       if (cType !== null) cTypes.add(cType);
     }
     return planned;
+  }
+
+  /**
+   * A by-reference argument's form. A `mut` parameter's argument is an object
+   * 2.1 accepted (E0915), so it is never passed as a temporary.
+   */
+  private referenceForm(
+    expression: TExpression,
+    passing: IArgumentPassing,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
+  ): TArgumentForm {
+    const object = ExpressionShape.unparenthesized(expression);
+    const form = ArgumentForm.of(
+      this.boundArgumentName(object) !== null,
+      passing.param?.baseType,
+      this.argumentShape(object, structInitializers),
+      this.state.cppMode,
+      passing.param?.isConst ?? false,
+    );
+    invariant(
+      passing.param?.isConst !== false ||
+        (MutArgument.isWritable(expression, this.state.typingContext()) &&
+          form.kind !== "rvalue"),
+      "2.1 rejected every `mut` argument that is not an object (ADR-006, E0915)",
+    );
+    return form;
   }
 
   private planExpectedTypes(
@@ -1932,6 +1962,14 @@ class FilePlanner {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
           cTypes.add(TYPE_MAP[atomic.typeName]);
+        } else if (
+          atomic.form === "compare-exchange" ||
+          atomic.form === "compare-exchange-libatomic"
+        ) {
+          requirements.noteCompareExchangeLoop(
+            atomic.form === "compare-exchange-libatomic",
+          );
+          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
           cTypes.add(PRIMASK_C_TYPE);
@@ -1944,7 +1982,9 @@ class FilePlanner {
   /**
    * ADR-049: a compound write to a variable declared `atomic`, named bare or
    * through `global.`, is an LDREX/STREX loop where the target and the type
-   * allow one, otherwise the masked region. Null when the write is not atomic.
+   * allow one, otherwise the masked region, or a compare-exchange loop on a
+   * target that cannot mask interrupts (#1789). Null when the write is not
+   * atomic.
    * An `atomic` scope member written through `this.` is not seen here, and
    * saturates or wraps without the guard: bug #1179.
    */
@@ -1962,12 +2002,41 @@ class FilePlanner {
     const typeName = written?.typeName ?? "";
     const exclusive = LDREX_MAP[typeName] !== undefined;
     return {
-      form:
-        this.state.targetDescription?.ldrex_strex === true && exclusive
-          ? "ldrex-strex"
-          : "interrupt-mask",
+      form: FilePlanner.atomicFormFor(
+        this.state.targetDescription,
+        exclusive,
+        typeName,
+      ),
       typeName,
     };
+  }
+
+  /**
+   * #1789 review: a type wider than the target's `word_size` (ADR-049: the
+   * widest naturally atomic access) has no native compare-exchange, so GCC
+   * calls libatomic's `__atomic_*_N` for it (u64 on esp32).
+   */
+  private static widerThanWord(
+    target: ITargetDescription | null,
+    typeName: string,
+  ): boolean {
+    const width = TYPE_WIDTH[typeName];
+    return target !== null && width !== undefined && width > target.word_size;
+  }
+
+  /** The target's one answer to "how is a read-modify-write made atomic" */
+  private static atomicFormFor(
+    target: ITargetDescription | null,
+    exclusive: boolean,
+    typeName: string,
+  ): TAtomicForm {
+    if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
+    if (!ResolvedTarget.masksInterrupts(target)) {
+      return FilePlanner.widerThanWord(target, typeName)
+        ? "compare-exchange-libatomic"
+        : "compare-exchange";
+    }
+    return "interrupt-mask";
   }
 
   /**
@@ -2052,6 +2121,12 @@ class FilePlanner {
       ),
       emittedLdrexStrexLoop: requirements.emitsLdrexStrexLoop,
       ldrexStrexSites: requirements.sitesOf("ldrex_strex_loop"),
+      emittedCompareExchangeLoop: requirements.emitsCompareExchangeLoop,
+      compareExchangeSites: requirements.sitesOf("compare_exchange_loop"),
+      emittedWideCompareExchangeLoop: requirements.emitsWideCompareExchangeLoop,
+      wideCompareExchangeSites: requirements.sitesOf(
+        "wide_compare_exchange_loop",
+      ),
     };
   }
 

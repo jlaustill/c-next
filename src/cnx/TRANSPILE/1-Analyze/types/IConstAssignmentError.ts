@@ -6,6 +6,7 @@
  *   target is, or is reached through, it, a `safe_div`/`safe_mod` output, or
  *   an argument to a `mut` parameter
  * - E0899: a `mut` binding nothing writes
+ * - E0915: an argument to a `mut` parameter that is not a variable (ADR-006)
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 

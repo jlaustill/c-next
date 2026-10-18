@@ -46,13 +46,16 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | -         | -      | -          | n/a         | n/a        |
-| top-level function | -         | -      | -          | n/a         | n/a        |
-| scope member       | -         | -      | -          | n/a         | n/a        |
-| scope method       | -         | -      | -          | n/a         | n/a        |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-1 linked fixture with no derivable context:
+4 linked fixtures with no derivable context:
 
+- `bugs/issue-1203-non-addressable-mut-argument/c-pointer-parenthesized.test.cnx`
+- `bugs/issue-1203-non-addressable-mut-argument/parenthesized-chain-value.test.cnx`
+- `bugs/issue-1203-non-addressable-mut-argument/parenthesized-mut-argument.test.cnx`
 - `bugs/issue-1639-one-passing-decision/every-shape.test.cnx`
 
 ## ADR-007

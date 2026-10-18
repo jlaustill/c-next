@@ -1,0 +1,90 @@
+// test-error
+// test-adr: 006
+// ADR-006: a `mut` parameter is passed by reference, so its argument must be
+// a variable the callee can write. A literal, a call's result, an arithmetic
+// result, a cast, a ternary, a struct literal, an enum member or a bit of a
+// scalar, a function's name or a literal to a callback is not one: the write would land in a temporary and be lost, or C
+// would not compile (#1203). CONTROL: a literal to a read-only
+// parameter, and a `mut` variable to the `mut` parameter or callback
+// parameter, stay silent.
+
+enum EColor {
+    RED,
+    GREEN
+}
+
+struct Config {
+    u32 total;
+}
+
+u32 platformMillis() {
+    return 12345;
+}
+
+void modifies(mut u32 value) {
+    value +<- 1;
+}
+
+void readsOnly(u32 value) {
+    u32 copy <- value;
+}
+
+void touch(mut Config c) {
+    c.total <- 1;
+}
+
+void paint(mut EColor c) {
+    c <- EColor.GREEN;
+}
+
+void setFlag(mut bool b) {
+    b <- true;
+}
+
+void handlerType(mut u32 v) {
+    v +<- 1;
+}
+
+void otherHandler(mut u32 v) {
+    v +<- 2;
+}
+
+void install(mut handlerType cb) {
+    cb <- otherHandler;
+}
+
+struct Sized {
+    u32 size;
+}
+
+struct Holder {
+    handlerType cb;
+}
+
+void useAll() {
+    mut u32 a <- 1;
+    modifies(500);
+    modifies(platformMillis());
+    modifies(a + 1);
+    modifies((u32)a);
+    modifies((a > 0) ? a : 0);
+    touch({ total: 0 });
+    paint(EColor.RED);
+    setFlag(a[3]);
+    readsOnly(500);
+    modifies(a);
+    install(otherHandler);
+    mut handlerType slot <- otherHandler;
+    install(slot);
+    Holder h <- { cb: otherHandler };
+    h.cb(5);
+    h.cb(a);
+    u8[4] lens <- [1, 2, 3, 4];
+    string<8> name <- "abc";
+    modifies(lens.type_element_count);
+    modifies(name.value_char_count);
+    modifies(a.type_bit_length);
+    modifies((a).type_bit_length);
+    mut Sized sz <- { size: 1 };
+    modifies(sz.size);
+}

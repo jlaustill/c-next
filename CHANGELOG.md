@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A `critical` block on host or esp32 is error E0916** (ADR-050, Issues #1147, #1789).
+  Disabling interrupts does not shut out every other execution context there: host
+  cannot disable them from user space, and esp32 has a second core. The IRQ wrappers'
+  "assume CMSIS" arm is gone. C compiled for a compiler the wrappers have no arm for
+  now stops at an `#error`, so host-side tests can no longer stub `__disable_irq`.
+- **Target descriptions are schema version 2** (ADR-049): every description gives
+  `interrupt_mask`, so an inline description needs `#pragma interrupt_mask true` or
+  `false`.
+
+### Fixed
+
+- **An atomic read-modify-write compiles on host and esp32** (ADR-049, Issue #1789).
+  It is a GNU `__atomic` compare-exchange loop, which esp32's GCC builds as inline
+  `s32c1i` for 8-, 16- and 32-bit types. A wider type there needs libatomic, and the
+  output's requirements say so.
+- **A retry loop evaluates its value once** (Issue #1807). `w +<- f()` called `f()`
+  again on every failed LDREX/STREX attempt.
+
 ## [0.4.0] - 2026-10-17
 
 v0.4.0, not v0.3.2: ADR-071 makes an existing program fail to compile wherever it

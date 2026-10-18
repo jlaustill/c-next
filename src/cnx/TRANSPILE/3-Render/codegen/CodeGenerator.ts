@@ -736,6 +736,7 @@ export default class CodeGenerator implements IOrchestrator {
     typeInfo: TTypeInfo,
     clampOp: string | null,
     form: TAtomicForm,
+    valueType: string | null,
   ): string {
     const result = atomicGenerators.generateAtomicRMW(
       target,
@@ -744,6 +745,7 @@ export default class CodeGenerator implements IOrchestrator {
       typeInfo,
       clampOp,
       form,
+      valueType,
     );
     this.applyEffects(result.effects);
     return result.code;

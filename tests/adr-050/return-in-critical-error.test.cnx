@@ -1,6 +1,7 @@
 // test-error
 // test-c-only
 // test-adr: 050
+#pragma target cortex-m7
 // ADR-050, E0853: the generated C restores PRIMASK after a critical block, so a
 // `return` jumps past the restore and leaves interrupts disabled on device.
 //

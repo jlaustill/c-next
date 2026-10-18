@@ -23,17 +23,17 @@ Generated from the transpiler's requirements registry by
 contains, which is why they may read as deviations where a hand-written
 assessment claimed N/A.
 
-| guideline | bears on                                    | emitted constructs                                                                                                                                         |
-| --------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.1       | baseline, float bit indexing                | `stdint fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                    |
-| 1.2       | interrupt masking, struct initializer       | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `(T){ ... } in C++`                                                                  |
-| 20.8      | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
-| 20.9      | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
-| 20.14     | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()` |
-| 21.6      | overflow panic (--debug)                    | `fprintf(stderr, ...), abort()`                                                                                                                            |
-| 21.8      | overflow panic (--debug)                    | `fprintf(stderr, ...), abort()`                                                                                                                            |
-| Dir 4.3   | interrupt masking                           | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`                                                                                       |
-| Dir 4.9   | interrupt masking, atomic read-modify-write | `noInterrupts()`; `SREG, cli()`; `__disable_irq(), __get_PRIMASK(), __set_PRIMASK()`; `__LDREXB/H/W, __STREXB/H/W`                                         |
+| guideline | bears on                                                        | emitted constructs                                                                                                                                                                                          |
+| --------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1       | baseline, float bit indexing                                    | `stdint fixed-width types, // comments, mixed declarations`; `nullptr, static_cast, reinterpret_cast`; `_Static_assert`                                                                                     |
+| 1.2       | interrupt masking, atomic read-modify-write, struct initializer | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `__atomic_load(), __atomic_compare_exchange()`; `__atomic_load_N(), __atomic_compare_exchange_N() library calls`; `(T){ ... } in C++` |
+| 20.8      | interrupt masking                                               | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`                                                                                                       |
+| 20.9      | interrupt masking                                               | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`                                                                                                       |
+| 20.14     | interrupt masking                                               | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`; `noInterrupts()`; `SREG, cli()`                                                                                                       |
+| 21.6      | overflow panic (--debug)                                        | `fprintf(stderr, ...), abort()`                                                                                                                                                                             |
+| 21.8      | overflow panic (--debug)                                        | `fprintf(stderr, ...), abort()`                                                                                                                                                                             |
+| Dir 4.3   | interrupt masking                                               | `__asm volatile ("MRS %0, primask"), __attribute__((always_inline))`                                                                                                                                        |
+| Dir 4.9   | interrupt masking, atomic read-modify-write                     | `noInterrupts()`; `SREG, cli()`; `__LDREXB/H/W, __STREXB/H/W`                                                                                                                                               |
 
 <!-- END GENERATED: toolchain-guidelines -->
 
@@ -43,11 +43,11 @@ assessment claimed N/A.
 
 | Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
-| Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
-| Rules 1-5        | 4        | 3         | 5       | 0       | 3   | 7            | 1         |
-| Rules 6-10       | 3        | 15        | 7       | 0       | 0   | 8            | 0         |
-| Rules 11-15      | 3        | 15        | 6       | 0       | 1   | 6            | 0         |
-| Rules 16-22      | 5        | 29        | 4       | 0       | 11  | 7            | 1         |
+| Directives (1-4) | 1        | 8         | 1       | 0       | 1   | 1            | 1         |
+| Rules 1-5        | 4        | 3         | 5       | 0       | 0   | 10           | 1         |
+| Rules 6-10       | 4        | 13        | 9       | 0       | 0   | 7            | 0         |
+| Rules 11-15      | 2        | 13        | 7       | 0       | 1   | 8            | 0         |
+| Rules 16-22      | 6        | 26        | 6       | 0       | 1   | 17           | 1         |
 
 Counted from the guideline tables below by `npm run docs:toolchain` (157 guidelines).
 
@@ -108,7 +108,7 @@ The failure decision lives in `scripts/misra-baseline.ts`:
 | Dir 4.10 | Precautions against multiple inclusion       | **By Design** | Module system handles this                                                                             |
 | Dir 4.11 | Check validity of function parameters        | Partial       | Some validation, not comprehensive                                                                     |
 | Dir 4.12 | Dynamic memory shall not be used             | **By Design** | ADR-003: Static allocation only                                                                        |
-| Dir 4.13 | Resource lifetime management                 | **By Design** | No dynamic resources                                                                                   |
+| Dir 4.13 | Resource lifetime management                 | Not Enforced  | A `c_` stream's `fclose` can be called twice: #2133                                                    |
 
 ---
 
@@ -124,15 +124,15 @@ The failure decision lives in `scripts/misra-baseline.ts`:
 
 ## Rule 2 - Unused Code
 
-| Rule | Description                  | Status       | Reference                     |
-| ---- | ---------------------------- | ------------ | ----------------------------- |
-| 2.1  | Unreachable code             | Not Enforced | Could add dead code detection |
-| 2.2  | No dead code                 | Not Enforced | Could add dead code detection |
-| 2.3  | Unused type declarations     | Not Enforced |                               |
-| 2.4  | Unused tag declarations      | Not Enforced |                               |
-| 2.5  | Unused macro declarations    | N/A          | No macros in C-Next           |
-| 2.6  | Unused function declarations | Not Enforced |                               |
-| 2.7  | Unused function parameters   | Not Enforced |                               |
+| Rule | Description                  | Status       | Reference                                                              |
+| ---- | ---------------------------- | ------------ | ---------------------------------------------------------------------- |
+| 2.1  | Unreachable code             | Not Enforced | Could add dead code detection                                          |
+| 2.2  | No dead code                 | Not Enforced | Could add dead code detection                                          |
+| 2.3  | Unused type declarations     | Not Enforced |                                                                        |
+| 2.4  | Unused tag declarations      | Not Enforced |                                                                        |
+| 2.5  | Unused macro declarations    | Not Enforced | ADR-037 flag defines pass through, and an unused one is reported: #863 |
+| 2.6  | Unused function declarations | Not Enforced |                                                                        |
+| 2.7  | Unused function parameters   | Not Enforced |                                                                        |
 
 ---
 
@@ -156,17 +156,17 @@ The failure decision lives in `scripts/misra-baseline.ts`:
 
 ## Rule 5 - Identifiers
 
-| Rule | Description                              | Status       | Reference                |
-| ---- | ---------------------------------------- | ------------ | ------------------------ |
-| 5.1  | External identifiers distinct (31 chars) | **Enforced** | E0204 — see below        |
-| 5.2  | Identifiers in same scope distinct       | Partial      | #1341 — see below        |
-| 5.3  | Identifier in inner scope no hide        | Partial      | Some shadowing detection |
-| 5.4  | Macro identifiers distinct               | N/A          | No macros                |
-| 5.5  | Identifiers distinct from macros         | N/A          | No macros                |
-| 5.6  | Unique typedef names                     | Partial      | #1341 — see below        |
-| 5.7  | Unique tag names                         | Partial      | #1341 — see below        |
-| 5.8  | Unique external identifiers              | **Enforced** | E0204 — see below        |
-| 5.9  | Unique internal identifiers              | Not Enforced | #1338                    |
+| Rule | Description                              | Status       | Reference                                                                                                                   |
+| ---- | ---------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| 5.1  | External identifiers distinct (31 chars) | **Enforced** | E0204 — see below                                                                                                           |
+| 5.2  | Identifiers in same scope distinct       | Partial      | #1341 — see below                                                                                                           |
+| 5.3  | Identifier in inner scope no hide        | Partial      | Some shadowing detection                                                                                                    |
+| 5.4  | Macro identifiers distinct               | Not Enforced | Include guards, register bindings and ADR-037 flag defines are macros; two include guards can agree in 63 characters: #1961 |
+| 5.5  | Identifiers distinct from macros         | Not Enforced | A flag define may share a declaration's name, which then does not compile: #2127                                            |
+| 5.6  | Unique typedef names                     | Partial      | #1341 — see below                                                                                                           |
+| 5.7  | Unique tag names                         | Partial      | #1341 — see below                                                                                                           |
+| 5.8  | Unique external identifiers              | **Enforced** | E0204 — see below                                                                                                           |
+| 5.9  | Unique internal identifiers              | Not Enforced | #1338                                                                                                                       |
 
 ### Rule 5.1 and the cost of `Scope__member` (issue #1307)
 
@@ -231,12 +231,12 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 7 - Literals and Constants
 
-| Rule | Description                    | Status        | Reference                     |
-| ---- | ------------------------------ | ------------- | ----------------------------- |
-| 7.1  | No octal constants             | Not Enforced  | Could add detection           |
-| 7.2  | U suffix on unsigned constants | **By Design** | Type suffixes generated       |
-| 7.3  | Lowercase L not used in suffix | **By Design** | Generated code uses uppercase |
-| 7.4  | String literal not modified    | **By Design** | Strings are immutable         |
+| Rule | Description                    | Status        | Reference                                                                                     |
+| ---- | ------------------------------ | ------------- | --------------------------------------------------------------------------------------------- |
+| 7.1  | No octal constants             | **Enforced**  | E0912: C-Next has no octal literal (ADR-044)                                                  |
+| 7.2  | U suffix on unsigned constants | Partial       | Suffixes are generated, but not on every unsigned constant: #1062                             |
+| 7.3  | Lowercase L not used in suffix | **By Design** | Generated code uses uppercase                                                                 |
+| 7.4  | String literal not modified    | Not Enforced  | A writable `char[N]` initialized from a literal is reported; fix or deviation undecided: #844 |
 
 ---
 
@@ -255,7 +255,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | 8.9  | Object at block scope if possible               | Not Enforced  |                                                                                                                                                                 |
 | 8.10 | Inline functions internal linkage               | **By Design** | ADR-031                                                                                                                                                         |
 | 8.11 | Array size explicit when extern                 | Partial       |                                                                                                                                                                 |
-| 8.12 | Enum implicit values only if all implicit       | Not Enforced  |                                                                                                                                                                 |
+| 8.12 | Implicit enumerator values unique               | Not Enforced  |                                                                                                                                                                 |
 | 8.13 | Pointer to const if not modified                | **By Design** | ADR-071: read-only by default, so an unwritten pointer is `const`; an unwritten `mut` is E0899 (a callback's `mut` parameters excepted, the typedef fixes them) |
 | 8.14 | No restrict qualifier                           | **By Design** | Not in C-Next                                                                                                                                                   |
 
@@ -275,16 +275,16 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 10 - Essential Type Model
 
-| Rule | Description                            | Status       | Reference                |
-| ---- | -------------------------------------- | ------------ | ------------------------ |
-| 10.1 | Operands of appropriate essential type | Partial      | Type validation exists   |
-| 10.2 | Expressions of appropriate type        | Partial      |                          |
-| 10.3 | No narrowing without cast              | Partial      | E0403: Integer narrowing |
-| 10.4 | Arithmetic on same essential type      | Not Enforced |                          |
-| 10.5 | No inappropriate cast                  | Partial      | ADR-024: Type casting    |
-| 10.6 | Composite assigned to wider type       | Not Enforced |                          |
-| 10.7 | Composite expressions type             | Not Enforced |                          |
-| 10.8 | Composite cast to wider type           | Not Enforced |                          |
+| Rule | Description                            | Status       | Reference                                                      |
+| ---- | -------------------------------------- | ------------ | -------------------------------------------------------------- |
+| 10.1 | Operands of appropriate essential type | Partial      | Type validation exists                                         |
+| 10.2 | Expressions of appropriate type        | Partial      |                                                                |
+| 10.3 | No narrowing without cast              | Partial      | E0403: Integer narrowing                                       |
+| 10.4 | Arithmetic on same essential type      | Partial      | E0810 (known gaps: #1092); generated C is still reported: #858 |
+| 10.5 | No inappropriate cast                  | Partial      | ADR-024: Type casting                                          |
+| 10.6 | Composite assigned to wider type       | Not Enforced |                                                                |
+| 10.7 | Composite expressions type             | Not Enforced |                                                                |
+| 10.8 | Composite cast to wider type           | Not Enforced |                                                                |
 
 ---
 
@@ -294,8 +294,8 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | ---- | -------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | 11.1 | No function pointer conversion         | **By Design** | No raw pointers                                                                                                             |
 | 11.2 | No incomplete type pointer conversion  | **By Design** | No raw pointers                                                                                                             |
-| 11.3 | No pointer/integer conversion          | **By Design** | No raw pointers                                                                                                             |
-| 11.4 | No conversion to pointer to object     | **By Design** | No raw pointers                                                                                                             |
+| 11.3 | No cast between object pointer types   | **By Design** | No raw pointers                                                                                                             |
+| 11.4 | No object pointer/integer conversion   | Not Enforced  | Register bindings convert an address to a `volatile` pointer; fix or deviation undecided: #867, #1413                       |
 | 11.5 | No void\* to object pointer            | **By Design** | No void pointers                                                                                                            |
 | 11.6 | No pointer to void to arithmetic       | **By Design** | No void pointers                                                                                                            |
 | 11.7 | No cast between pointer and arithmetic | **By Design** | No raw pointers                                                                                                             |
@@ -306,13 +306,13 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 12 - Expressions
 
-| Rule | Description                          | Status        | Reference              |
-| ---- | ------------------------------------ | ------------- | ---------------------- |
-| 12.1 | Explicit precedence with parentheses | Not Enforced  | Could add warning      |
-| 12.2 | Shift not exceeding bit width        | **Enforced**  | Shift validation       |
-| 12.3 | No comma operator                    | **By Design** | Not in grammar         |
-| 12.4 | Constant expressions evaluable       | Partial       | Some compile-time eval |
-| 12.5 | sizeof not on array parameters       | N/A           | No array decay         |
+| Rule | Description                           | Status        | Reference                                                                                                                     |
+| ---- | ------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 12.1 | Explicit precedence with parentheses  | Not Enforced  | Could add warning                                                                                                             |
+| 12.2 | Shift not exceeding bit width         | Partial       | E0873 checks the C-Next operand's width; a generated shift of a narrow unsigned literal (`1U << 15`) is still reported: #1065 |
+| 12.3 | No comma operator                     | **By Design** | Not in grammar                                                                                                                |
+| 12.4 | Constant expressions no unsigned wrap | Partial       | E0910 in array dimensions and enum values (ADR-044); a binding's initializer (`u32 X <- 2 - 3`) wraps unchecked: #2145        |
+| 12.5 | sizeof not on array parameters        | N/A           | No array decay                                                                                                                |
 
 ---
 
@@ -331,12 +331,12 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 14 - Control Statement Expressions
 
-| Rule | Description                                | Status        | Reference                                                                                                                                                |
-| ---- | ------------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                                                                          |
-| 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                                                                          |
-| 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-068 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
-| 14.4 | Controlling expression essentially boolean | Partial       | E0701 on all five controlling expressions: `if`, `while`, `do-while`, `for` and the ternary (ADR-022)                                                    |
+| Rule | Description                                | Status       | Reference                                                                                                                                                |
+| ---- | ------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 14.1 | Loop counter float                         | Not Enforced | A float loop counter transpiles (`while (temp < 100.0)`): #1071                                                                                          |
+| 14.2 | For loop well-formed                       | Partial      | Some validation                                                                                                                                          |
+| 14.3 | Controlling expression not invariant       | Partial      | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-068 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
+| 14.4 | Controlling expression essentially boolean | Partial      | E0701 on all five controlling expressions: `if`, `while`, `do-while`, `for` and the ternary (ADR-022)                                                    |
 
 ---
 
@@ -363,100 +363,100 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | 16.3 | Every switch clause terminated | **Enforced**  | ADR-025: No fallthrough |
 | 16.4 | Every switch has default       | **Enforced**  | ADR-025                 |
 | 16.5 | Default first or last          | Not Enforced  |                         |
-| 16.6 | Non-empty switch               | **By Design** | Grammar requires cases  |
-| 16.7 | Switch expression not boolean  | Not Enforced  |                         |
+| 16.6 | At least two switch clauses    | **Enforced**  | E0712 (ADR-025)         |
+| 16.7 | Switch expression not boolean  | **Enforced**  | E0711 (ADR-025)         |
 
 ---
 
 ## Rule 17 - Functions
 
-| Rule | Description                        | Status        | Reference                                                                                        |
-| ---- | ---------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
-| 17.1 | No stdarg.h                        | **By Design** | No variadic functions                                                                            |
-| 17.2 | No recursion                       | Not Enforced  | Could add detection                                                                              |
-| 17.3 | Function declared before use       | **By Design** | Module system                                                                                    |
-| 17.4 | All exit paths return value        | Partial       | Some detection                                                                                   |
-| 17.5 | Array parameter size               | **By Design** | Arrays have size info                                                                            |
-| 17.6 | Array not modified via parameter   | **By Design** | ADR-006: pass-by-value                                                                           |
-| 17.7 | Return value used or explicit void | **Enforced**  | E0708 for author-written discards; transpiler-emitted lowering calls are `(void)`-cast (ADR-070) |
-| 17.8 | Parameter not modified             | **By Design** | ADR-006: pass-by-value                                                                           |
+| Rule | Description                         | Status        | Reference                                                                                        |
+| ---- | ----------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| 17.1 | No stdarg.h                         | **By Design** | No variadic functions                                                                            |
+| 17.2 | No recursion                        | Partial       | E0423 (ADR-030); a call through the function's own callback type is not detected: #2131          |
+| 17.3 | Function declared before use        | **By Design** | Module system                                                                                    |
+| 17.4 | All exit paths return value         | Partial       | Some detection                                                                                   |
+| 17.5 | Array parameter size                | **By Design** | Arrays have size info                                                                            |
+| 17.6 | No `static` in array parameter `[]` | **By Design** | `[static N]` is never emitted                                                                    |
+| 17.7 | Return value used or explicit void  | **Enforced**  | E0708 for author-written discards; transpiler-emitted lowering calls are `(void)`-cast (ADR-070) |
+| 17.8 | Parameter not modified              | **By Design** | ADR-006: pass-by-value                                                                           |
 
 ---
 
 ## Rule 18 - Pointers and Arrays
 
-| Rule | Description                   | Status        | Reference              |
-| ---- | ----------------------------- | ------------- | ---------------------- |
-| 18.1 | Pointer arithmetic in bounds  | **By Design** | No pointer arithmetic  |
-| 18.2 | Subtraction on same array     | **By Design** | No pointer arithmetic  |
-| 18.3 | Relational on same object     | **By Design** | No pointer comparison  |
-| 18.4 | No +, -, += , -= on pointers  | **By Design** | No pointer arithmetic  |
-| 18.5 | Max two levels of indirection | **By Design** | No raw pointers        |
-| 18.6 | No pointer to auto            | N/A           | No address-of operator |
-| 18.7 | No flexible array members     | **By Design** | Not in grammar         |
-| 18.8 | No VLAs                       | **By Design** | Static allocation only |
+| Rule | Description                   | Status        | Reference                                                                                                   |
+| ---- | ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
+| 18.1 | Pointer arithmetic in bounds  | **By Design** | No pointer arithmetic in C-Next source; premise under audit (see 18.4): #2134                               |
+| 18.2 | Subtraction on same array     | **By Design** | No pointer arithmetic in C-Next source; premise under audit (see 18.4): #2134                               |
+| 18.3 | Relational on same object     | **By Design** | No pointer comparison                                                                                       |
+| 18.4 | No +, -, += , -= on pointers  | Not Enforced  | Substring copies emit `source + offset` (ADR-045), and `+` on a `c_` pointer passes through (ADR-046): #859 |
+| 18.5 | Max two levels of indirection | **By Design** | No raw pointers                                                                                             |
+| 18.6 | No pointer to auto            | N/A           | No address-of operator                                                                                      |
+| 18.7 | No flexible array members     | **By Design** | Not in grammar                                                                                              |
+| 18.8 | No VLAs                       | **By Design** | Static allocation only                                                                                      |
 
 ---
 
 ## Rule 19 - Overlapping Storage
 
-| Rule | Description                        | Status  | Reference          |
-| ---- | ---------------------------------- | ------- | ------------------ |
-| 19.1 | Object not assigned to overlapping | Partial | Union restrictions |
-| 19.2 | Union only for packing             | Partial | ADR-018: Unions    |
+| Rule | Description                        | Status       | Reference                                                                     |
+| ---- | ---------------------------------- | ------------ | ----------------------------------------------------------------------------- |
+| 19.1 | Object not assigned to overlapping | Partial      | Union restrictions                                                            |
+| 19.2 | The union keyword not used         | Not Enforced | Float bit indexing (ADR-007) accesses a float's bits through a `union`: #1067 |
 
 ---
 
 ## Rule 20 - Preprocessing Directives
 
-| Rule  | Description                        | Status        | Reference                                                                                        |
-| ----- | ---------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
-| 20.1  | #include preceded only by comments | **By Design** | Includes follow only the banner comment                                                          |
-| 20.2  | No ' " \ in header names           | N/A           | No preprocessor                                                                                  |
-| 20.3  | #include with <> or ""             | **By Design** | All emitted includes use `<>` or `""`                                                            |
-| 20.4  | No macro with keyword name         | N/A           | No `#define` is emitted                                                                          |
-| 20.5  | No #undef                          | N/A           | No macros                                                                                        |
-| 20.6  | No macro parameter in # or ##      | N/A           | No macros                                                                                        |
-| 20.7  | Macro parameters in parentheses    | N/A           | No macros                                                                                        |
-| 20.8  | #if conditions well-defined        | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
-| 20.9  | All identifiers in #if defined     | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
-| 20.10 | No # or ## operators               | N/A           | No macros                                                                                        |
-| 20.11 | Macro parameter after # is not ##  | N/A           | No macros                                                                                        |
-| 20.12 | Macro parameter used once per ##   | N/A           | No macros                                                                                        |
-| 20.13 | No continuation in // comment      | **Enforced**  | ADR-043                                                                                          |
-| 20.14 | All #else/#elif after #if          | **By Design** | IRQ wrapper `#if`/`#elif`/`#else` chain is well-formed; See "Toolchain-derived guidelines" above |
+| Rule  | Description                                      | Status        | Reference                                                                                        |
+| ----- | ------------------------------------------------ | ------------- | ------------------------------------------------------------------------------------------------ |
+| 20.1  | #include preceded only by directives or comments | Partial       | Includes follow the banner comment, but some (`<limits.h>`) are emitted after code: #1066        |
+| 20.2  | No ' " \ in header names                         | Not Enforced  | `#include` names pass through unchecked: #2128                                                   |
+| 20.3  | #include with <> or ""                           | **By Design** | All emitted includes use `<>` or `""`                                                            |
+| 20.4  | No macro with keyword name                       | Not Enforced  | ADR-037 flag define names are unchecked: `#define const` is emitted (#2127)                      |
+| 20.5  | No #undef                                        | **By Design** | `#undef` is not in the grammar                                                                   |
+| 20.6  | No macro parameter in # or ##                    | **By Design** | No function-like macro is defined (E0501, ADR-037); this row's description is unverified: #2130  |
+| 20.7  | Macro parameters in parentheses                  | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
+| 20.8  | #if conditions well-defined                      | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
+| 20.9  | All identifiers in #if defined                   | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
+| 20.10 | No # or ## operators                             | **By Design** | No emitted macro uses them; value and function-like macros are E0502 and E0501 (ADR-037)         |
+| 20.11 | Macro parameter after # is not ##                | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
+| 20.12 | Macro parameter used once per ##                 | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
+| 20.13 | `#` line is a valid directive                    | **By Design** | An unrecognized directive is a syntax error                                                      |
+| 20.14 | All #else/#elif after #if                        | **By Design** | IRQ wrapper `#if`/`#elif`/`#else` chain is well-formed; See "Toolchain-derived guidelines" above |
 
 ---
 
 ## Rule 21 - Standard Libraries
 
-| Rule  | Description                      | Status        | Reference                                    |
-| ----- | -------------------------------- | ------------- | -------------------------------------------- |
-| 21.1  | No #define/#undef reserved names | N/A           | No macros                                    |
-| 21.2  | No reserved identifiers          | **By Design** | Scope prefixing                              |
-| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101                             |
-| 21.4  | No setjmp.h                      | **By Design** | Not accessible                               |
-| 21.5  | No signal.h                      | **By Design** | Not accessible                               |
-| 21.6  | No stdio.h for input             | **Deviation** | Issue #850: Inline suppression for C interop |
-| 21.7  | No atof, atoi, atol, atoll       | **By Design** | Not accessible                               |
-| 21.8  | No abort, exit, etc.             | Partial       | Some restrictions                            |
-| 21.9  | No bsearch, qsort                | **By Design** | Function pointers restricted                 |
-| 21.10 | No time.h                        | Not Enforced  | Could restrict                               |
-| 21.11 | No tgmath.h                      | N/A           | C11 feature                                  |
-| 21.12 | No fenv.h exception functions    | Not Enforced  |                                              |
+| Rule  | Description                      | Status        | Reference                                                                                                                                                  |
+| ----- | -------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 21.1  | No #define/#undef reserved names | Not Enforced  | ADR-037 flag define names are unchecked: `#define _RESERVED` is emitted (#2127)                                                                            |
+| 21.2  | No reserved identifiers          | Partial       | E0201 rejects `__`, but ADR-063 permits a leading underscore, so a file-scope `_Reserved` is emitted: #2129                                                |
+| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101                                                                                                                                           |
+| 21.4  | No setjmp.h                      | Not Enforced  | Callable through C library interop (`#include <setjmp.h>`): #2132                                                                                          |
+| 21.5  | No signal.h                      | Not Enforced  | Callable through C library interop (`#include <signal.h>`): #2132                                                                                          |
+| 21.6  | No stdio.h for input             | **Deviation** | Issue #850: Inline suppression for C interop                                                                                                               |
+| 21.7  | No atof, atoi, atol, atoll       | Not Enforced  | Callable through C library interop (`#include <stdlib.h>`): #1069                                                                                          |
+| 21.8  | No abort, exit, etc.             | Not Enforced  | Callable through C library interop (`#include <stdlib.h>`): #2132; the `--debug` overflow panic emits `abort()` (see "Toolchain-derived guidelines" above) |
+| 21.9  | No bsearch, qsort                | Not Enforced  | Callable through C library interop with a comparator declared in a C header: #2132                                                                         |
+| 21.10 | No time.h                        | Not Enforced  | Could restrict                                                                                                                                             |
+| 21.11 | No tgmath.h                      | Not Enforced  | Reachable through C library interop (`#include <tgmath.h>`, a C99 header): #2132                                                                           |
+| 21.12 | No fenv.h exception functions    | Not Enforced  |                                                                                                                                                            |
 
 ---
 
 ## Rule 22 - Resources
 
-| Rule | Description                          | Status        | Reference                  |
-| ---- | ------------------------------------ | ------------- | -------------------------- |
-| 22.1 | Dynamically obtained resources freed | **By Design** | No dynamic allocation      |
-| 22.2 | Free only dynamic memory             | **By Design** | No free()                  |
-| 22.3 | File opened once                     | Not Enforced  |                            |
-| 22.4 | Read-only file not written           | Not Enforced  |                            |
-| 22.5 | No pointer to FILE                   | **By Design** | No FILE pointers           |
-| 22.6 | FILE pointer valid                   | **By Design** | Stream functions validated |
+| Rule | Description                          | Status        | Reference                                                                                              |
+| ---- | ------------------------------------ | ------------- | ------------------------------------------------------------------------------------------------------ |
+| 22.1 | Dynamically obtained resources freed | Partial       | E0902 rejects dynamic memory; a `FILE*` from `fopen` in a `c_` variable is not tracked: #2133          |
+| 22.2 | Free only dynamic memory             | **By Design** | No free()                                                                                              |
+| 22.3 | File opened once                     | Not Enforced  |                                                                                                        |
+| 22.4 | Read-only file not written           | Not Enforced  |                                                                                                        |
+| 22.5 | No dereference of a FILE pointer     | **By Design** | A `c_` variable can hold a `FILE*` (22.1, 22.6); whether one can be dereferenced is under audit: #2134 |
+| 22.6 | FILE pointer valid                   | Not Enforced  | A `c_` stream can be used after `fclose`: #2133                                                        |
 
 ---
 
@@ -464,14 +464,12 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ### High Priority
 
-- **Rule 14.4**: Extend boolean condition validation to if/while/for (currently only do-while)
-- **Rule 17.2**: Add recursion detection
+- **Rule 17.2**: Recursion through a callback of the function's own type (#2131)
 - **Rule 2.1/2.2**: Dead code detection
 
 ### Medium Priority
 
 - **Rule 12.1**: Precedence clarity warnings
-- **Rule 7.1**: Octal constant detection
 - **Rule 15.7**: Require else in if-else-if chains
 
 ### Low Priority
@@ -485,9 +483,8 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 - [MISRA C:2012 Guidelines](https://www.misra.org.uk/misra-c/)
 - [ADR Index](./decisions/)
-- [C-Next Error Codes](../src/codegen/errors.md)
+- [C-Next Error Codes](./error-codes.md)
 
 ---
 
-_Last updated: 2026-02-22_
 _Based on MISRA C:2012 with Amendment 2_

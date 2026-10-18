@@ -15,13 +15,14 @@
 //   - Names are unique, and an alias names a description, never another alias.
 //   - Names match exactly, with no case folding.
 
-u8 TARGET_SCHEMA_VERSION <- 1;
+u8 TARGET_SCHEMA_VERSION <- 2;
 
 struct TargetDescription {
     string<24> name;
     u8 word_size;
     bool ldrex_strex;
     bool basepri;
+    bool interrupt_mask;
     u8 char_bits;
     bool char_signed;
     u8 short_bits;
@@ -51,6 +52,7 @@ TargetDescription CORTEX_M7 <- {
     word_size: 32,
     ldrex_strex: true,
     basepri: true,
+    interrupt_mask: true,
     char_bits: 8,
     char_signed: false,
     short_bits: 16,
@@ -78,6 +80,7 @@ TargetDescription CORTEX_M4 <- {
     word_size: 32,
     ldrex_strex: true,
     basepri: true,
+    interrupt_mask: true,
     char_bits: 8,
     char_signed: false,
     short_bits: 16,
@@ -104,6 +107,7 @@ TargetDescription CORTEX_M3 <- {
     word_size: 32,
     ldrex_strex: true,
     basepri: true,
+    interrupt_mask: true,
     char_bits: 8,
     char_signed: false,
     short_bits: 16,
@@ -128,6 +132,7 @@ TargetDescription CORTEX_M0_PLUS <- {
     word_size: 32,
     ldrex_strex: false,
     basepri: false,
+    interrupt_mask: true,
     char_bits: 8,
     char_signed: false,
     short_bits: 16,
@@ -152,6 +157,7 @@ TargetDescription CORTEX_M0 <- {
     word_size: 32,
     ldrex_strex: false,
     basepri: false,
+    interrupt_mask: true,
     char_bits: 8,
     char_signed: false,
     short_bits: 16,
@@ -176,6 +182,7 @@ TargetDescription ATMEGA328P <- {
     word_size: 8,
     ldrex_strex: false,
     basepri: false,
+    interrupt_mask: true,
     char_bits: 8,
     char_signed: true,
     short_bits: 16,
@@ -204,6 +211,7 @@ TargetDescription ESP32 <- {
     word_size: 32,
     ldrex_strex: false,
     basepri: false,
+    interrupt_mask: false,
     char_bits: 8,
     char_signed: false,
     short_bits: 16,
@@ -226,6 +234,7 @@ TargetDescription HOST <- {
     word_size: 64,
     ldrex_strex: false,
     basepri: false,
+    interrupt_mask: false,
     char_bits: 8,
     char_signed: true,
     short_bits: 16,

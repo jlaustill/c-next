@@ -1,0 +1,39 @@
+// test-execution
+// #1789 / #1147: an atomic read-modify-write on the build machine, which has
+// no LDREX/STREX and cannot mask interrupts. It was lowered to the IRQ
+// wrappers' CMSIS fallback, which no host header declares, so the C failed to
+// compile. Each compound form, plain and saturating, must keep its value.
+#pragma target host
+
+atomic mut u32 counter <- 0;
+atomic mut u8 small <- 250;
+atomic mut u16 bits <- 0x00F0;
+
+void increment() {
+    counter +<- 1;
+}
+
+u32 main() {
+    increment();
+    increment();
+    if (counter != 2) {
+        return 1;
+    }
+    counter -<- 1;
+    if (counter != 1) {
+        return 2;
+    }
+    small +<- 10;
+    if (small != 255) {
+        return 3;
+    }
+    bits |<- 0x0F00;
+    if (bits != 0x0FF0) {
+        return 4;
+    }
+    bits &<- 0x0F0F;
+    if (bits != 0x0F00) {
+        return 5;
+    }
+    return 0;
+}

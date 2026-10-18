@@ -19,7 +19,8 @@ interface ICodeGenApi {
   /**
    * Generate atomic read-modify-write operation. `clampOp` is the ADR-044
    * helper the inner operation saturates with, or null for plain arithmetic;
-   * `form` is the one 2.2 planned (ADR-049).
+   * `form` is the one 2.2 planned (ADR-049); `valueType` is the value's
+   * C-Next type, which a retry loop's `__operand` may need to stay wide.
    */
   generateAtomicRMW(
     target: string,
@@ -28,6 +29,7 @@ interface ICodeGenApi {
     typeInfo: TTypeInfo,
     clampOp: string | null,
     form: TAtomicForm,
+    valueType: string | null,
   ): string;
 
   /** Generate a float bit write through a union (ADR-007) */

@@ -1,3 +1,4 @@
+import InterruptMask from "./3-Render/codegen/helpers/InterruptMask";
 import type IPlannedArgument from "./2-Plan/types/IPlannedArgument";
 import LengthProperty from "../utils/LengthProperty";
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
@@ -762,8 +763,9 @@ class CodeGenWalker {
       planned.form !== null,
       "2.2 planned the form of every argument 2.3 passes by reference",
     );
-    const simpleId = this.planner.boundArgumentName(expr);
-    const declared = this.planner.nameTypeOf(expr);
+    const object = ExpressionShape.unparenthesized(expr);
+    const simpleId = this.planner.boundArgumentName(object);
+    const declared = this.planner.nameTypeOf(object);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
@@ -1656,7 +1658,7 @@ class CodeGenWalker {
 
     const irq = plan.irqWrappers;
     if (irq !== null) {
-      output.push(...this.generateIrqWrappers());
+      output.push(...InterruptMask.wrappers());
     }
 
     if (plan.isrTypedef) {
@@ -3608,62 +3610,6 @@ class CodeGenWalker {
       new Set(plan.clampOps),
       plan.panicOverflowHelpers !== null,
     );
-  }
-
-  /**
-   * Generate platform-portable IRQ wrappers for critical sections (ADR-050, Issue #778)
-   *
-   * Generates code that works on:
-   * - ARM platforms (bare-metal or Arduino): Uses inline assembly for PRIMASK access
-   * - AVR Arduino: Uses SREG save/restore pattern
-   * - Other platforms: Falls back to CMSIS intrinsics
-   *
-   * This avoids dependencies on CMSIS headers which may not be available on all platforms
-   * (e.g., Teensy 4.x via Arduino.h doesn't expose __get_PRIMASK/__set_PRIMASK).
-   *
-   * Spells `uint32_t` / `uint8_t` without recording them (#1927): these are
-   * emitted only when `InterruptMask.wrap` asks for them, and that effect
-   * records `uint32_t`, so `<stdint.h>` is already decided.
-   */
-  private generateIrqWrappers(): string[] {
-    return [
-      "// ADR-050: Platform-portable IRQ wrappers for critical sections",
-      "#if defined(__arm__) || defined(__ARM_ARCH)",
-      "// ARM platforms (including ARM Arduino like Teensy 4.x, Due, Zero)",
-      "// Provide inline assembly PRIMASK access to avoid CMSIS header dependencies",
-      "__attribute__((always_inline)) static inline uint32_t __cnx_get_PRIMASK(void) {",
-      "    uint32_t result;",
-      '    __asm volatile ("MRS %0, primask" : "=r" (result));',
-      "    return result;",
-      "}",
-      "__attribute__((always_inline)) static inline void __cnx_set_PRIMASK(uint32_t mask) {",
-      '    __asm volatile ("MSR primask, %0" :: "r" (mask) : "memory");',
-      "}",
-      "#if defined(ARDUINO)",
-      "static inline void __cnx_disable_irq(void) { noInterrupts(); }",
-      "#else",
-      "__attribute__((always_inline)) static inline void __cnx_disable_irq(void) {",
-      '    __asm volatile ("cpsid i" ::: "memory");',
-      "}",
-      "#endif",
-      "#elif defined(__AVR__)",
-      "// AVR Arduino: use SREG for interrupt state",
-      "// SREG is declared by avr-libc's <avr/io.h>, cli() by its <avr/interrupt.h>",
-      "#include <avr/io.h>",
-      "#include <avr/interrupt.h>",
-      "// Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)",
-      "// Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional",
-      "static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }",
-      "static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }",
-      "static inline void __cnx_disable_irq(void) { cli(); }",
-      "#else",
-      "// Fallback: assume CMSIS is available",
-      "static inline void __cnx_disable_irq(void) { __disable_irq(); }",
-      "static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }",
-      "static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }",
-      "#endif",
-      "",
-    ];
   }
 
   /**

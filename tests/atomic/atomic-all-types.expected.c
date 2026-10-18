@@ -45,25 +45,37 @@ volatile uint16_t word_counter = 0U;
 volatile uint32_t dword_counter = 0U;
 
 int main(void) {
-    do {
-        uint8_t __old = __LDREXB(&byte_counter);
-        uint8_t __new = cnx_clamp_add_u8(__old, 1U);
-        if (__STREXB(__new, &byte_counter) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint16_t __old = __LDREXH(&word_counter);
-        uint16_t __new = cnx_clamp_add_u16(__old, 1U);
-        if (__STREXH(__new, &word_counter) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&dword_counter);
-        uint32_t __new = cnx_clamp_add_u32(__old, 1U);
-        if (__STREXW(__new, &dword_counter) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint32_t __operand = 1U;
+        do {
+            uint8_t __old = __LDREXB(&byte_counter);
+            uint8_t __new = cnx_clamp_add_u8(__old, __operand);
+            if (__STREXB(__new, &byte_counter) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint32_t __operand = 1U;
+        do {
+            uint16_t __old = __LDREXH(&word_counter);
+            uint16_t __new = cnx_clamp_add_u16(__old, __operand);
+            if (__STREXH(__new, &word_counter) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint64_t __operand = 1U;
+        do {
+            uint32_t __old = __LDREXW(&dword_counter);
+            uint32_t __new = cnx_clamp_add_u32(__old, __operand);
+            if (__STREXW(__new, &dword_counter) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }

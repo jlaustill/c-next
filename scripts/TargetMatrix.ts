@@ -36,6 +36,7 @@ import type ITargetDescription from "../src/cnx/types/ITargetDescription";
 import type IValidationResult from "./types/IValidationResult";
 import type TTestMode from "./types/TTestMode";
 import NodeFileSystem from "../src/cnx/PARSE/1-Discover/NodeFileSystem";
+import InterruptMask from "../src/cnx/TRANSPILE/3-Render/codegen/helpers/InterruptMask";
 
 class TargetMatrix {
   /** The build machine: the one target a fixture is executed on */
@@ -230,7 +231,9 @@ class TargetMatrix {
   /**
    * A C translation unit that compiles only if a catalog row's facts are what
    * its compiler says: every width, `char`'s signedness, the byte order, and
-   * whether the architecture has LDREX/STREX and BASEPRI. A false fact in the
+   * whether the architecture has LDREX/STREX and BASEPRI. A row that says
+   * `interrupt_mask: true` also compiles the real IRQ wrappers, so a compiler
+   * they have no arm for stops at their `#error` (#1789). A false fact in the
    * catalog is a static assertion that fails, so no program is transpiled
    * against it (#1668's addendum, "startup model probe").
    */
@@ -264,6 +267,9 @@ class TargetMatrix {
       `_Static_assert((__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) == ${row.big_endian ? 1 : 0}, "big_endian");`,
       `_Static_assert(CNX_LDREX == ${row.ldrex_strex ? 1 : 0}, "ldrex_strex");`,
       `_Static_assert(CNX_BASEPRI == ${row.basepri ? 1 : 0}, "basepri");`,
+      ...(row.interrupt_mask
+        ? ["#include <stdint.h>", ...InterruptMask.wrappers()]
+        : []),
       "",
     ].join("\n");
   }

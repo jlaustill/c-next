@@ -1,0 +1,25 @@
+// test-execution
+// #1789 review, #1807: a compare-exchange retry loop evaluates its value once.
+// step() changes counter itself, so the first exchange fails. A loop that
+// evaluated the value on every attempt would call step() twice.
+#pragma target host
+
+atomic mut u32 counter <- 0;
+mut u32 calls <- 0;
+
+u32 step() {
+    calls <- calls + 1;
+    counter <- 10;
+    return 1;
+}
+
+u32 main() {
+    counter +<- step();
+    if (calls != 1) {
+        return 1;
+    }
+    if (counter != 11) {
+        return 2;
+    }
+    return 0;
+}

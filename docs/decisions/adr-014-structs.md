@@ -74,21 +74,23 @@ origin.x <- 100;
 
 ### Pass by Reference (per ADR-006)
 
-All parameters are passed by reference, including primitives. This means you cannot pass literals directly (no magic numbers):
+A `mut` parameter is passed by reference, including a primitive, so its
+argument must be a variable, a field or an element: a literal is E0915
+(ADR-006). A read-only parameter is passed by value (ADR-071) and accepts a
+literal, though named values remain the recommended style (ruling on #1203):
 
 ```cnx
-void movePoint(Point p, i32 dx, i32 dy) {
+void movePoint(mut Point p, i32 dx, i32 dy) {
     p.x +<- dx;
     p.y +<- dy;
 }
 
-// Usage - named values required (per ADR-006)
-const i32 MOVE_X <- 10;
-const i32 MOVE_Y <- 20;
+// Usage
+i32 MOVE_X <- 10;
+i32 MOVE_Y <- 20;
 movePoint(origin, MOVE_X, MOVE_Y);  // origin is modified
+movePoint(origin, 10, 20);          // valid: dx and dy are read-only
 ```
-
-This enforces self-documenting code and eliminates magic numbers.
 
 ### Transpilation
 

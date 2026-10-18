@@ -6,44 +6,62 @@
  * the scope is one to `S__x`, not to nothing.
  */
 
+import ExpressionShape from "../../../utils/ExpressionShape";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import type TChainRoot from "../../../types/TChainRoot";
 import type TExpression from "../../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
-import type IAnalysisContext from "../types/IAnalysisContext";
+import type ITypingContext from "../../../types/ITypingContext";
 import type IWrittenBinding from "../types/IWrittenBinding";
 
 class WrittenBinding {
-  /** `K`, `table[0]`, `this.K`, `S.x`, `global.cfg.x`; null for anything else */
+  /** `K`, `(K)`, `(cfg).x`, `table[0]`, `this.K`, `S.x`, `global.cfg.x`; null for anything else */
   static ofExpression(
     expr: TExpression,
-    context: IAnalysisContext,
+    context: ITypingContext,
   ): IWrittenBinding | null {
     if (expr.kind === "unary" && expr.operator === "&") {
       return WrittenBinding.ofExpression(expr.operand, context);
     }
-    if (expr.kind === "identifier") {
-      return WrittenBinding.of(null, expr.name, [], expr.span, context);
-    }
-    if (expr.kind !== "postfix") return null;
-    if (expr.primary.kind === "identifier") {
+    const view = WrittenBinding.nameChain(expr);
+    if (view === null) return null;
+    if (view.primary.kind === "identifier") {
       return WrittenBinding.of(
         null,
-        expr.primary.name,
-        expr.ops,
+        view.primary.name,
+        view.ops,
         expr.span,
         context,
       );
     }
-    const first = expr.ops[0];
-    if (expr.primary.kind !== "root" || first.kind !== "member") return null;
+    const first = view.ops[0];
+    if (view.primary.kind !== "root" || first?.kind !== "member") return null;
     return WrittenBinding.of(
-      expr.primary.root,
+      view.primary.root,
       first.name,
-      expr.ops.slice(1),
+      view.ops.slice(1),
       expr.span,
       context,
     );
+  }
+
+  /**
+   * The chain an expression writes, through brackets: `((a))` is `a` and
+   * `(cfg.inner).v` is `cfg.inner.v`. Only this binding lookup flattens a
+   * bracketed head into one chain; the syntax keeps its nodes (#1203 review).
+   */
+  private static nameChain(expr: TExpression): {
+    readonly primary: TExpression;
+    readonly ops: readonly TPostfixOpSyntax[];
+  } | null {
+    const view = ExpressionShape.postfixView(
+      ExpressionShape.unparenthesized(expr),
+    );
+    if (view?.primary.kind !== "parenthesized") return view;
+    const head = WrittenBinding.nameChain(view.primary);
+    return head === null
+      ? null
+      : { primary: head.primary, ops: [...head.ops, ...view.ops] };
   }
 
   static of(
@@ -51,7 +69,7 @@ class WrittenBinding {
     name: string,
     ops: readonly TPostfixOpSyntax[],
     at: { line: number; column: number },
-    context: IAnalysisContext,
+    context: ITypingContext,
   ): IWrittenBinding {
     const program = context.program;
     let binding = program.bindValue(context.sourceFile, root, name, at);

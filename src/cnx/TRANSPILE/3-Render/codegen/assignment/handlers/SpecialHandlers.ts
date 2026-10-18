@@ -42,6 +42,7 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
       typeInfo,
       AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
       ctx.atomicForm,
+      ctx.valueExpressionType(),
     );
 }
 

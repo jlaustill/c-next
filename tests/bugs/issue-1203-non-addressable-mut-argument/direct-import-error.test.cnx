@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 006
+// ADR-006: a literal passed to an imported function's `mut` parameter gets
+// E0915 too -- matrix cell: direct (1 hop), from a
+// top-level function, a scope method, a global variable's initializer and a
+// scope member's initializer (#1203). CONTROL: a `mut`
+// variable passed to the same parameter stays silent.
+
+#include "callee.cnx"
+
+u32 fromGlobal <- takeShared(9);
+
+void topLevelFunction() {
+    bumpShared(5);
+    mut u32 x <- 0;
+    bumpShared(x);
+}
+
+scope Widget {
+    u32 fromMember <- takeShared(10);
+
+    public void methodValue() {
+        bumpShared(6);
+        mut u32 y <- 0;
+        bumpShared(y);
+        u32 seen <- this.fromMember;
+    }
+}

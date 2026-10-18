@@ -120,9 +120,9 @@ describe("TargetDescriptions.catalog", () => {
     ],
     [
       "an unknown schema version",
-      "TARGET_SCHEMA_VERSION <- 1;",
       "TARGET_SCHEMA_VERSION <- 2;",
-      /TARGET_SCHEMA_VERSION must be 1/,
+      "TARGET_SCHEMA_VERSION <- 3;",
+      /TARGET_SCHEMA_VERSION must be 2/,
     ],
     [
       "a struct member the schema lacks",
@@ -144,14 +144,14 @@ describe("TargetDescriptions.catalog", () => {
     ],
     [
       "a constant of another type",
-      "u8 TARGET_SCHEMA_VERSION <- 1;",
-      "u8 TARGET_SCHEMA_VERSION <- 1;\nu8 EXTRA <- 2;",
+      "u8 TARGET_SCHEMA_VERSION <- 2;",
+      "u8 TARGET_SCHEMA_VERSION <- 2;\nu8 EXTRA <- 2;",
       /'EXTRA' is neither a TargetDescription nor a TargetAlias/,
     ],
     [
       "a function",
-      "u8 TARGET_SCHEMA_VERSION <- 1;",
-      "u8 TARGET_SCHEMA_VERSION <- 1;\nvoid f() { }",
+      "u8 TARGET_SCHEMA_VERSION <- 2;",
+      "u8 TARGET_SCHEMA_VERSION <- 2;\nvoid f() { }",
       /only structs and constants are allowed/,
     ],
   ])("refuses %s", (_why, from, to, message) => {
