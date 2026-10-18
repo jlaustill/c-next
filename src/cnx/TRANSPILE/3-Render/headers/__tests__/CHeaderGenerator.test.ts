@@ -12,6 +12,7 @@ import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import HeaderPassing from "./HeaderPassing";
 
 // ============================================================================
 // Test Helpers
@@ -85,6 +86,7 @@ function createParam(
     type,
     isConst: false,
     isArray: false,
+    passing: HeaderPassing.of(),
     ...options,
   };
 }
@@ -234,11 +236,10 @@ describe("CHeaderGenerator", () => {
       const passByValueParams = new Map([["process", new Set(["value"])]]);
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, passByValueParams),
         "test.h",
         {},
         undefined,
-        passByValueParams,
       );
 
       expect(result).toContain("void process(uint32_t value);");
@@ -251,11 +252,13 @@ describe("CHeaderGenerator", () => {
       ];
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(
+          symbols,
+          new Map([["setFloat", new Set(["value"])]]),
+        ),
         "test.h",
         {},
         undefined,
-        new Map([["setFloat", new Set(["value"])]]),
       );
 
       expect(result).toContain("void setFloat(float value);");
@@ -270,11 +273,13 @@ describe("CHeaderGenerator", () => {
       ];
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(
+          symbols,
+          new Map([["setDouble", new Set(["value"])]]),
+        ),
         "test.h",
         {},
         undefined,
-        new Map([["setDouble", new Set(["value"])]]),
       );
 
       expect(result).toContain("void setDouble(double value);");
@@ -290,11 +295,13 @@ describe("CHeaderGenerator", () => {
       const allKnownEnums = new Set(["State"]);
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(
+          symbols,
+          new Map([["setState", new Set(["state"])]]),
+        ),
         "test.h",
         {},
         undefined,
-        new Map([["setState", new Set(["state"])]]),
         allKnownEnums,
       );
 
@@ -310,11 +317,13 @@ describe("CHeaderGenerator", () => {
       ];
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(
+          symbols,
+          new Map([["setHandler", new Set(["handler"])]]),
+        ),
         "test.h",
         {},
         undefined,
-        new Map([["setHandler", new Set(["handler"])]]),
       );
 
       expect(result).toContain("void setHandler(ISR handler);");
@@ -330,11 +339,10 @@ describe("CHeaderGenerator", () => {
       ];
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, new Map()),
         "test.h",
         {},
         undefined,
-        new Map(),
         new Set(["State"]),
       );
 
@@ -633,10 +641,9 @@ describe("CHeaderGenerator", () => {
       const allKnownEnums = new Set(["CrossFileState"]);
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, undefined),
         "test.h",
         {},
-        undefined,
         undefined,
         allKnownEnums,
       );

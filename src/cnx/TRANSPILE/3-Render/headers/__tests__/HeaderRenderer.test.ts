@@ -45,7 +45,6 @@ describe("HeaderRenderer", () => {
         bitmapBackingType: new Map(),
         bitmapFields: new Map(),
       },
-      passByValueParams: new Map(),
       allKnownEnums: new Set(),
       basename: filename,
       program: C_RUN,

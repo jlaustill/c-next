@@ -2,7 +2,6 @@ import type TranspileState from "../TranspileState";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import SymbolLookupHelper from "./SymbolLookupHelper";
-import PassByValueAnalyzer from "./PassByValueAnalyzer";
 import type IPlanQueries from "./types/IPlanQueries";
 
 /** The one answer to each of `IPlanQueries`, read off the file's state */
@@ -54,14 +53,6 @@ class PlanQueries implements IPlanQueries {
 
   getKnownEnums(): ReadonlySet<string> {
     return this.state.symbols!.knownEnums;
-  }
-
-  isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    return PassByValueAnalyzer.isParameterPassByValue(
-      funcName,
-      paramIndex,
-      this.state,
-    );
   }
 }
 

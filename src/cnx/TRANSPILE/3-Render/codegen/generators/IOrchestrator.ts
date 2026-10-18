@@ -96,9 +96,6 @@ interface IOrchestrator extends IPlanQueries {
   /** Issue #304: Check if a type is a C++ enum class (needs :: syntax and explicit casts) */
   isCppEnumClass(typeName: string): boolean;
 
-  /** Issue #269: Check if a parameter is pass-by-value (small unmodified primitive) */
-  isParameterPassByValue(funcName: string, paramIndex: number): boolean;
-
   // === Statement Generation ===
 
   /**

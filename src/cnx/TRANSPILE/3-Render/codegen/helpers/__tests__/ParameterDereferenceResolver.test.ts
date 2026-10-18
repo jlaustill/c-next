@@ -15,11 +15,6 @@ describe("ParameterDereferenceResolver", () => {
     overrides: Partial<IParameterDereferenceDeps> = {},
   ): IParameterDereferenceDeps {
     return {
-      isFloatType: vi.fn(() => false),
-      isKnownPrimitive: vi.fn(() => true),
-      knownEnums: new Set<string>(),
-      isParameterPassByValue: vi.fn(() => false),
-      currentFunctionName: "testFunc",
       maybeDereference: vi.fn((id) => `(*${id})`),
       ...overrides,
     };
@@ -43,132 +38,69 @@ describe("ParameterDereferenceResolver", () => {
 
   describe("isPassByValue", () => {
     it("should return true for callback parameters", () => {
-      const deps = createMockDeps();
       const param = createParamInfo({ isCallback: true });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return true for a read-only float (ADR-071 Q6)", () => {
-      const deps = createMockDeps({
-        isFloatType: vi.fn(() => true),
-        isParameterPassByValue: vi.fn(() => true),
-        currentFunctionName: "myFunc",
-      });
-      const param = createParamInfo({ baseType: "f32" });
+      const param = createParamInfo({ isPassByValue: true, baseType: "f32" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return false for a `mut` float (ADR-071 Q6)", () => {
-      const deps = createMockDeps({
-        isFloatType: vi.fn(() => true),
-        isParameterPassByValue: vi.fn(() => false),
-        currentFunctionName: "myFunc",
-      });
       const param = createParamInfo({ baseType: "f64" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        false,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(false);
     });
 
     it("should return true for a read-only enum", () => {
-      const deps = createMockDeps({
-        knownEnums: new Set(["Status", "State"]),
-        isParameterPassByValue: vi.fn(() => true),
-        currentFunctionName: "myFunc",
+      const param = createParamInfo({
+        isPassByValue: true,
+        baseType: "Status",
       });
-      const param = createParamInfo({ baseType: "Status" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return true for string parameters", () => {
-      const deps = createMockDeps();
       const param = createParamInfo({ isString: true });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return true for small unmodified primitives (pass-by-value optimization)", () => {
-      const deps = createMockDeps({
-        isParameterPassByValue: vi.fn(() => true),
-        currentFunctionName: "myFunc",
-      });
-      const param = createParamInfo({ name: "value" });
+      const param = createParamInfo({ isPassByValue: true, name: "value" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
-      expect(deps.isParameterPassByValue).toHaveBeenCalledWith(
-        "myFunc",
-        "value",
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return true for struct parameters", () => {
-      const deps = createMockDeps();
       const param = createParamInfo({ isStruct: true, baseType: "Point" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return true for array parameters", () => {
-      const deps = createMockDeps();
       const param = createParamInfo({ isArray: true });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return true for unknown types (external enums, typedefs)", () => {
-      const deps = createMockDeps({
-        isKnownPrimitive: vi.fn(() => false),
+      const param = createParamInfo({
+        isPassByValue: true,
+        baseType: "ExternalType",
       });
-      const param = createParamInfo({ baseType: "ExternalType" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should return false for known primitives that are pass-by-reference", () => {
-      const deps = createMockDeps({
-        isKnownPrimitive: vi.fn(() => true),
-        isParameterPassByValue: vi.fn(() => false),
-      });
       const param = createParamInfo({ baseType: "u32" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        false,
-      );
-    });
-
-    it("should not check pass-by-value when not in a function", () => {
-      const isParameterPassByValue = vi.fn(() => true);
-      const deps = createMockDeps({
-        isParameterPassByValue,
-        currentFunctionName: null,
-      });
-      const param = createParamInfo();
-
-      // Should still return false because currentFunctionName is null
-      // (falls through to isKnownPrimitive check)
-      ParameterDereferenceResolver.isPassByValue(param, deps);
-
-      expect(isParameterPassByValue).not.toHaveBeenCalled();
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(false);
     });
   });
 
@@ -216,11 +148,7 @@ describe("ParameterDereferenceResolver", () => {
     });
 
     it("should dereference a `mut` float", () => {
-      const deps = createMockDeps({
-        isFloatType: vi.fn(() => true),
-        isParameterPassByValue: vi.fn(() => false),
-        currentFunctionName: "myFunc",
-      });
+      const deps = createMockDeps();
       const param = createParamInfo({ baseType: "f32" });
 
       const result = ParameterDereferenceResolver.resolve(
@@ -232,11 +160,7 @@ describe("ParameterDereferenceResolver", () => {
     });
 
     it("should dereference a `mut` enum, which is not an unknown type", () => {
-      const deps = createMockDeps({
-        knownEnums: new Set(["State"]),
-        isParameterPassByValue: vi.fn(() => false),
-        currentFunctionName: "myFunc",
-      });
+      const deps = createMockDeps();
       const param = createParamInfo({ baseType: "State" });
 
       const result = ParameterDereferenceResolver.resolve(
@@ -248,11 +172,7 @@ describe("ParameterDereferenceResolver", () => {
     });
 
     it("should not dereference an enum array, which is already a pointer", () => {
-      const deps = createMockDeps({
-        knownEnums: new Set(["State"]),
-        isParameterPassByValue: vi.fn(() => false),
-        currentFunctionName: "myFunc",
-      });
+      const deps = createMockDeps();
       const param = createParamInfo({ baseType: "State", isArray: true });
 
       const result = ParameterDereferenceResolver.resolve(
@@ -290,33 +210,18 @@ describe("ParameterDereferenceResolver", () => {
 
   describe("priority ordering", () => {
     it("should check callback before float", () => {
-      const deps = createMockDeps({
-        isFloatType: vi.fn(() => true),
-      });
       const param = createParamInfo({ isCallback: true, baseType: "f32" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
-      // isFloatType should not be called since callback check comes first
-      expect(deps.isFloatType).not.toHaveBeenCalled();
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
 
     it("should check a read-only enum's declaration before its enum-ness", () => {
-      const deps = createMockDeps({
-        knownEnums: new Set(["Status"]),
-        isParameterPassByValue: vi.fn(() => true),
-        currentFunctionName: "myFunc",
+      const param = createParamInfo({
+        isPassByValue: true,
+        baseType: "Status",
       });
-      const param = createParamInfo({ baseType: "Status" });
 
-      expect(ParameterDereferenceResolver.isPassByValue(param, deps)).toBe(
-        true,
-      );
-      expect(deps.isParameterPassByValue).toHaveBeenCalledWith(
-        "myFunc",
-        "param",
-      );
+      expect(ParameterDereferenceResolver.isPassByValue(param)).toBe(true);
     });
   });
 });

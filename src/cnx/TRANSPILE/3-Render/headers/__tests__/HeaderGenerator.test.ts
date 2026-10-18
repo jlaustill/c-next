@@ -12,6 +12,7 @@ import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import HeaderPassing from "./HeaderPassing";
 
 /** #1428: the run's mode, stated -- the facade reads it from the program */
 const C_RUN = { cppMode: () => false };
@@ -52,6 +53,7 @@ describe("HeaderGenerator", () => {
         {
           name: "value",
           emittedName: "value",
+          passing: HeaderPassing.of(),
           type: "u32",
           isConst: false,
           isArray: false,
@@ -308,6 +310,7 @@ describe("HeaderGenerator", () => {
             {
               name: "param",
               emittedName: "param",
+              passing: HeaderPassing.of(),
               type: paramType,
               isConst: false,
               isArray: false,

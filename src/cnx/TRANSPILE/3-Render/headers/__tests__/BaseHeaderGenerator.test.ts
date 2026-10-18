@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import CHeaderGenerator from "../CHeaderGenerator";
 import CppHeaderGenerator from "../CppHeaderGenerator";
 import IHeaderSymbol from "../types/IHeaderSymbol";
+import HeaderPassing from "./HeaderPassing";
 
 /**
  * Helper to create a minimal function symbol for tests
@@ -36,8 +37,7 @@ function createFunctionSymbol(
       isConst: p.isConst ?? false,
       isArray: p.isArray ?? false,
       arrayDimensions: p.arrayDimensions,
-      isCallbackPointer: p.isCallbackPointer,
-      isCallbackConst: p.isCallbackConst,
+      passing: HeaderPassing.of(false, p.isCallbackPointer, p.isCallbackConst),
     })),
   };
 }
@@ -72,11 +72,10 @@ describe("BaseHeaderGenerator", () => {
       ]);
 
       const result = generator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, passByValueParams),
         "test.h",
         {},
         undefined,
-        passByValueParams,
       );
 
       expect(result).toContain("int32_t add(int32_t a, int32_t b);");
@@ -138,18 +137,16 @@ describe("BaseHeaderGenerator", () => {
       const readOnly = new Map([["calculate", new Set(["x", "y"])]]);
 
       const cResult = cGenerator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, readOnly),
         "test.h",
         {},
         undefined,
-        readOnly,
       );
       const cppResult = cppGenerator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, readOnly),
         "test.h",
         {},
         undefined,
-        readOnly,
       );
 
       expect(cResult).toContain("float calculate(float x, double y);");
@@ -168,19 +165,23 @@ describe("BaseHeaderGenerator", () => {
       const knownEnums = new Set(["Mode"]);
 
       const cResult = cGenerator.generate(
-        symbols,
+        HeaderPassing.byValue(
+          symbols,
+          new Map([["setMode", new Set(["mode"])]]),
+        ),
         "test.h",
         {},
         undefined,
-        new Map([["setMode", new Set(["mode"])]]),
         knownEnums,
       );
       const cppResult = cppGenerator.generate(
-        symbols,
+        HeaderPassing.byValue(
+          symbols,
+          new Map([["setMode", new Set(["mode"])]]),
+        ),
         "test.h",
         {},
         undefined,
-        new Map([["setMode", new Set(["mode"])]]),
         knownEnums,
       );
 
@@ -237,18 +238,16 @@ describe("BaseHeaderGenerator", () => {
       const readOnly = new Map([["registerHandler", new Set(["handler"])]]);
 
       const cResult = cGenerator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, readOnly),
         "test.h",
         {},
         undefined,
-        readOnly,
       );
       const cppResult = cppGenerator.generate(
-        symbols,
+        HeaderPassing.byValue(symbols, readOnly),
         "test.h",
         {},
         undefined,
-        readOnly,
       );
 
       // A read-only ISR has no * or & suffix

@@ -12,6 +12,7 @@ import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
+import ParameterPassing from "./ParameterPassing";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
@@ -2615,7 +2616,7 @@ class FilePlanner {
       returnType: this.callbackCType(
         SymbolTypeResolver.getTypeName(symbol.returnType),
       ),
-      parameters: symbol.parameters.map((param) => {
+      parameters: symbol.parameters.map((param, index) => {
         const typeName = SymbolTypeResolver.getTypeName(param.type);
         // Spread, not re-listed: a field the shape gains reaches the typedef
         // (#1552 was a builder dropping one).
@@ -2639,11 +2640,9 @@ class FilePlanner {
           ),
           isArray: param.isArray,
           // ADR-071 Q6: a `mut` scalar is a pointer, as in its prototype
-          isPointer:
-            this.state.program
-              ?.passByPointerParams()
-              .get(cName)
-              ?.has(param.name) ?? false,
+          // #1639: from the declaration, as a call through the type passes it
+          isPointer: !ParameterPassing.of(cName, index, this.state, false)
+            .byValue,
           // Already folded to literals by the symbols layer, which is exactly
           // what MISRA Rule 18.8 needs -- a dimension that is still an
           // identifier makes the typedef a variably-modified type.

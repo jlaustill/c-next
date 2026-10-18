@@ -303,9 +303,10 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // roster exists to make visible in a diff.
   ],
   MisraSuppressions: ["MisraSuppressionUtils.ts"],
-  // #1991: `codegen/CodeGenerator.ts` stood here. 2.2 decides each argument's
-  // passing before 2.3 runs, so no render module asks it.
-  PassByValueAnalyzer: [],
+  // #1639: decided once in 2.2. `HeaderEmissionCapture` stamps the answer
+  // on each prototype's parameters for the header renderer to read; no
+  // render module decides passing for itself.
+  ParameterPassing: ["headers/HeaderEmissionCapture.ts"],
   PublicInterface: [
     // #1445 box 3: `ScopeGenerator` used to ask this while walking its own
     // members. It renders a plan now, so "does the header already define this

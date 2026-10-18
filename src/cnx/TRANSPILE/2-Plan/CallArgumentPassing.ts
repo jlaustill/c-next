@@ -1,7 +1,7 @@
 import type ICallArgumentFacts from "./types/ICallArgumentFacts";
 import type IPlanQueries from "./types/IPlanQueries";
 import CallExprUtils from "./CallExprUtils";
-import ParameterInfoPlanner from "./ParameterInfoPlanner";
+import ParameterPassing from "./ParameterPassing";
 import type IArgumentPassing from "./types/IArgumentPassing";
 
 /**
@@ -69,74 +69,12 @@ class CallArgumentPassing {
     if (!orchestrator.isCNextFunction(signatureName)) {
       return { param: resolved.param, mode: "c" };
     }
-    // Issue #895: a C callback typedef the callee is used as decides whether
-    // its parameter is a pointer, and its signature is written from the same
-    // answer. So a direct call passes the argument by value exactly where the
-    // typedef takes the parameter by value, and by reference where it takes a
-    // pointer -- a scalar too. A `mut` parameter keeps the reference form: the
-    // typedef's copy would lose the write, and gcc rejecting the call is the
-    // louder answer (#2146).
-    const typedefParam = isDirectCall
-      ? ParameterInfoPlanner.callbackTypedefParamInfo(
-          signatureName,
-          index,
-          input,
-        )
-      : null;
-    const byValue =
-      typedefParam && resolved.param?.isConst !== false
-        ? !typedefParam.isParamPointer
-        : CallArgumentPassing.shouldPassByValue(
-            signatureName,
-            index,
-            resolved.param,
-            orchestrator,
-          );
+    // #1639: the callee's signature is written from this same answer
     return {
       param: resolved.param,
-      mode: byValue ? "value" : "reference",
+      mode: ParameterPassing.of(signatureName, index, input, isDirectCall)
+        .argument,
     };
-  }
-
-  /** Determine if a C-Next parameter should be passed by value. */
-  private static shouldPassByValue(
-    funcExpr: string,
-    idx: number,
-    targetParam: IArgumentPassing["param"],
-    orchestrator: IPlanQueries,
-  ): boolean {
-    if (!targetParam) return false;
-
-    const isFloatParam = orchestrator.isFloatType(targetParam.baseType);
-    const isEnumParam = orchestrator.getKnownEnums().has(targetParam.baseType);
-    const isPrimitivePassByValue = orchestrator.isParameterPassByValue(
-      funcExpr,
-      idx,
-    );
-
-    // ADR-071 Q6: a float or enum is a scalar like any other -- by value when
-    // read-only, by pointer when `mut` -- which `isParameterPassByValue` reads.
-    // #786 forced a primitive from another file by value, because only this
-    // file's parameters were known then. 1.4 now decides eligibility across
-    // every file (#1511), so a modified one is passed by reference here too.
-
-    // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
-    //
-    // ADR-030 / #1722: an opaque handle lands here too, and that is the right
-    // route rather than a lucky one -- the handle's C value IS the pointer the
-    // callee's `T*` parameter takes. Rendering an opaque PARAMETER as that value
-    // is the parameter registry's decision (`TParameterInfo.isOpaqueHandle`),
-    // not this function's. The by-reference route would take `&` of every opaque
-    // scope variable and array element (`&UI__held`), which #996's and #1722's
-    // fixtures pin.
-    const isUnknownType =
-      !orchestrator.isKnownStruct(targetParam.baseType) &&
-      !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-      !CallExprUtils.isStringType(targetParam.baseType) &&
-      !isFloatParam &&
-      !isEnumParam;
-
-    return isPrimitivePassByValue || isUnknownType;
   }
 }
 

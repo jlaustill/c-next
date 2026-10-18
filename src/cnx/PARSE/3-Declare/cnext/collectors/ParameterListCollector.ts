@@ -1,7 +1,7 @@
 /**
  * Each of one file's functions' parameter names, in declaration order, by
  * the function's transpiled C name (#1825): ADR-006's per-file half, which
- * `Program` merges for `PassByValueAnalyzer`.
+ * `Program` merges.
  *
  * Collected in 1.3 Declare because a parameter list is spelled in the file's
  * own declarations. ADR-071 retired the walk that also recorded which

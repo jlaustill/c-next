@@ -41,7 +41,6 @@ import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import type TChainRoot from "../types/TChainRoot";
 import type TValueBinding from "../types/TValueBinding";
 import IComment from "../types/IComment";
-import TYPE_MAP from "./2-Plan/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
 import type IBoundParameter from "./types/IBoundParameter";
 import TypeValidator from "./2-Plan/TypeValidator";
@@ -111,7 +110,6 @@ import PublicInterface from "./2-Plan/PublicInterface";
 import functionGenerator from "./3-Render/codegen/generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/ScopeGenerator";
 import FormatUtils from "../utils/FormatUtils";
-import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
 import SafeDivision from "../utils/SafeDivision";
 import type IChainHead from "../types/IChainHead";
@@ -173,7 +171,6 @@ import CTypeIncludes from "./2-Plan/CTypeIncludes";
 import WrittenCTypes from "./3-Render/codegen/helpers/WrittenCTypes";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
-import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
@@ -192,6 +189,7 @@ const { processPreprocessorDirective: includeProcessPreprocessorDirective } =
   includeGenerators;
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import FilePlanner from "./2-Plan/FilePlanner";
+import ParameterPassing from "./2-Plan/ParameterPassing";
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
 
@@ -1259,30 +1257,11 @@ class CodeGenWalker {
   }
 
   /**
-   * Issue #551: Check if a type is a known primitive type.
-   * Known primitives use pass-by-reference with dereference.
-   * Unknown types (external enums, typedefs) use pass-by-value.
-   */
-  private _isKnownPrimitive(typeName: string): boolean {
-    return !!TYPE_MAP[typeName];
-  }
-
-  /**
    * PR #681: Build dependencies for parameter dereference resolution.
    * Used by ParameterDereferenceResolver to determine if parameters need dereferencing.
    */
   private _buildParameterDereferenceDeps(): IParameterDereferenceDeps {
     return {
-      isFloatType: (typeName: string) => this._isFloatType(typeName),
-      isKnownPrimitive: (typeName: string) => this._isKnownPrimitive(typeName),
-      knownEnums: this.host.state.symbols!.knownEnums,
-      isParameterPassByValue: (funcName: string, paramName: string) =>
-        PassByValueAnalyzer.isParameterPassByValueByName(
-          funcName,
-          paramName,
-          this.host.state,
-        ),
-      currentFunctionName: this.host.state.currentFunctionName,
       maybeDereference: (id: string) =>
         CppModeHelper.maybeDereference(id, this.host.state),
     };
@@ -1755,10 +1734,6 @@ class CodeGenWalker {
   ): (name: string) => TTypeInfo | undefined {
     const position = { line: at.line, column: at.column };
     return (name) => this.host.state.declarationTypeInfo(null, name, position);
-  }
-
-  private _isFloatType(typeName: string): boolean {
-    return TypeCheckUtils.isFloat(typeName);
   }
 
   private generateDeclaration(declaration: TDeclarationSyntax): string {
@@ -2335,28 +2310,20 @@ class CodeGenWalker {
     param: IParameterSyntax,
     paramIndex: number,
   ): string {
-    const typeName = this.plannedParameter(param).typeName;
     const name = param.name;
 
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
     // 2.1 (ADR-036).
 
-    // Issue #895: For callback-compatible functions, determine pointer/value
-    // from the typedef signature, not from normal C-Next pass-by-value rules
-    const callbackInfo =
-      paramIndex === undefined
-        ? null
-        : FunctionContextManager.getCallbackTypedefParamInfo(
-            paramIndex,
-            this.host.state,
-          );
-    const isPassByValue = callbackInfo
-      ? !callbackInfo.isParamPointer
-      : this._isPassByValueType(typeName, name);
-    // Build normalized input using adapter
-    // Issue #895: Force pass-by-reference and const from typedef signature
-    const forcePassByReference = callbackInfo?.isParamPointer ?? false;
-    const forceConst = callbackInfo?.isParamConst ?? false;
+    // #1639: decided once in 2.2, and the `.h` prototype, the body and every
+    // call read the same answer
+    const functionName = this.host.state.currentFunctionName;
+    invariant(functionName, "a parameter renders inside its function");
+    const passing = ParameterPassing.of(
+      functionName,
+      paramIndex,
+      this.host.state,
+    );
 
     // ADR-030 / #1722: the parameter was registered when this function's
     // context was entered -- FunctionGenerator and ScopeGenerator both render
@@ -2380,22 +2347,7 @@ class CodeGenWalker {
       this.planParameter(param, emittedName),
       {
         callbackTypes: this.host.state.callbackTypes,
-        isKnownStruct: (t) => {
-          if (this.host.isKnownStruct(t)) return true;
-          // ADR-057: check qualified name for scope-local struct types only
-          const qualified = this.host.state.currentScopePath
-            ? QualifiedNameGenerator.forMember(
-                this.host.state.currentScopePath,
-                t,
-              )
-            : t;
-          return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
-        },
-        isKnownEnum: (t) => this.host.state.symbols?.knownEnums.has(t) ?? false,
-        typeMap: TYPE_MAP,
-        isPassByValue,
-        forcePassByReference,
-        forceConst,
+        passing,
         isOpaqueHandle: registered.isOpaqueHandle ?? false,
       },
     );
@@ -2485,63 +2437,6 @@ class CodeGenWalker {
         dimension ? `[${this.renderLoweredDimension(dimension)}]` : "[]",
       )
       .join("");
-  }
-
-  /**
-   * Check if type should use pass-by-value semantics
-   */
-  private _isPassByValueType(typeName: string, name: string): boolean {
-    // ADR-071 Q6: a read-only scalar, by its declaration (Program)
-    if (
-      this.host.state.currentFunctionName &&
-      PassByValueAnalyzer.isParameterPassByValueByName(
-        this.host.state.currentFunctionName,
-        name,
-        this.host.state,
-      )
-    ) {
-      return true;
-    }
-
-    // Callback-compatible functions: struct params become pass-by-value to
-    // match C function pointer typedef signatures.
-    //
-    // #1450: this used to say "a full fix requires parsing the typedef
-    // signature to determine which", citing #895. That fix IS #895 --
-    // `TypedefParamParser` parses the signature ("Used by Issue #895 to
-    // determine if callback params should be pointers or values") and
-    // `getCallbackTypedefParamInfo` is the path that consumes it. #895 closed
-    // 2026-02-23, so the note described work that had already landed and
-    // pointed at a closed issue as if it were the tracker.
-    //
-    // What is left here is the FALLBACK, reached only when the typedef type
-    // cannot be resolved -- the caller prefers `callbackInfo` and only calls
-    // this when that is null. Measured: throwing inside the branch leaves
-    // 1247/1247 fixtures green, while throwing immediately above it fires
-    // repeatedly, so the line is reached and the condition is simply never
-    // true in the corpus. Not deleted on that evidence: a corpus that does not
-    // reach a branch is not a user base that does not, and the third conjunct
-    // (`isKnownStruct`) is the one no fixture satisfies.
-    //
-    // #1545 attempted to route this through
-    // `this.host.state.callbackTypedefTypeFor` so that "is this function
-    // callback-compatible" had ONE spelling. Reverted here on the reasoning
-    // directly above: requiring the typedef type to resolve would make this
-    // branch unreachable in precisely the case it exists to serve. #1603 is
-    // where whether an unresolvable typedef should fail open is
-    // decided -- for both, in one place, rather than by quietly aligning the
-    // spellings here.
-    if (
-      this.host.state.currentFunctionName &&
-      this.host.state.program
-        ?.callbackCompatibleFunctions()
-        .has(this.host.state.currentFunctionName) &&
-      this.host.isKnownStruct(typeName)
-    ) {
-      return true;
-    }
-
-    return false;
   }
 
   /**

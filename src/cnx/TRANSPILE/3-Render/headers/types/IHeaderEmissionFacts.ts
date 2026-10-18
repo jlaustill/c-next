@@ -1,7 +1,6 @@
 import IHeaderSymbol from "./IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
-import TPassByValueParams from "./TPassByValueParams";
 import type IProgram from "../../../../types/IProgram";
 
 /**
@@ -32,7 +31,6 @@ interface IHeaderEmissionFacts {
   readonly filename: string;
   readonly options: IHeaderOptions;
   readonly typeInput: IHeaderTypeInput;
-  readonly passByValueParams: TPassByValueParams;
   readonly allKnownEnums: ReadonlySet<string>;
   readonly basename: string;
   /** #1428: the program 2.3 rendered against; its mode picks the generator */

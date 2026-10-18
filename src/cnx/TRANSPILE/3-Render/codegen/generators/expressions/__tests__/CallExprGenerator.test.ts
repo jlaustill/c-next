@@ -13,6 +13,9 @@ import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../../../../TranspileState";
 import TTypeInfo from "../../../../../../types/TTypeInfo";
+import type TType from "../../../../../../types/TType";
+import type IFunctionSignature from "../../../../../../types/IFunctionSignature";
+import type IResolvedSymbols from "../../../../../../types/IResolvedSymbols";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
 import type IPlannedArgument from "../../../../../2-Plan/types/IPlannedArgument";
@@ -153,7 +156,7 @@ function createMockInput(
   const { typeRegistry = new Map<string, TTypeInfo>(), ...input } = overrides;
   declaredTypes = typeRegistry;
 
-  return {
+  const facts = {
     symbols: null,
     symbolTable: null,
     functionSignatures: new Map(),
@@ -163,10 +166,115 @@ function createMockInput(
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    program: null,
+    program: stubProgram(
+      () => facts.functionSignatures,
+      () => facts.symbolTable,
+    ),
+    isKnownStruct: (name: string) =>
+      mockOrchestrator?.isKnownStruct(name) ?? false,
     callbackTypedefTypeFor: () => undefined,
     ...input,
   } as unknown as IGeneratorInput & ICallArgumentFacts;
+  return facts;
+}
+
+const STUB_PRIMITIVES = new Set([
+  "u8",
+  "u16",
+  "u32",
+  "u64",
+  "i8",
+  "i16",
+  "i32",
+  "i64",
+  "f32",
+  "f64",
+  "bool",
+]);
+
+/**
+ * The case's parameters for `name`: its signature, else a cross-file
+ * function's in the symbol table, else read-write `u32`s for a callee the
+ * case does not declare
+ */
+function stubParameters(
+  name: string,
+  signatures: ReadonlyMap<string, IFunctionSignature>,
+  symbolTable: IResolvedSymbols | null,
+): unknown[] {
+  const sig = signatures.get(name);
+  const crossFile = (
+    symbolTable?.getOverloadsByCName(name) as
+      | ReadonlyArray<{
+          kind: string;
+          parameters?: ReadonlyArray<{
+            name: string;
+            type: string;
+            isConst: boolean;
+            isArray: boolean;
+          }>;
+        }>
+      | undefined
+  )?.find((s) => s.kind === "function")?.parameters;
+  const declared =
+    sig?.parameters.map((p) => ({ ...p, type: p.baseType })) ?? crossFile;
+  const params =
+    declared ??
+    Array.from({ length: 8 }, (_, i) => ({
+      name: `p${i}`,
+      type: "u32",
+      isConst: false,
+      isArray: false,
+    }));
+  return params.map((p) => ({
+    name: p.name,
+    emittedName: p.name,
+    type: stubType(p.type),
+    isConst: p.isConst,
+    isArray: p.isArray,
+  }));
+}
+
+/** A settled type for a signature's base type name */
+function stubType(name: string): TType {
+  if (STUB_PRIMITIVES.has(name)) {
+    return { kind: "primitive", primitive: name } as TType;
+  }
+  if (name.startsWith("string<")) {
+    return { kind: "string", capacity: Number(name.slice(7, -1)) } as TType;
+  }
+  // a struct's name, which `isKnownStruct` classifies
+  return { kind: "struct", name } as unknown as TType;
+}
+
+/**
+ * #1639: the settled program `ParameterPassing` reads, built from each case's
+ * signatures and answered by its orchestrator
+ */
+function stubProgram(
+  signatures: () => ReadonlyMap<string, IFunctionSignature>,
+  symbolTable: () => IResolvedSymbols | null,
+): unknown {
+  return {
+    symbolByCName: (name: string) => ({
+      kind: "function",
+      name,
+      parameters: stubParameters(name, signatures(), symbolTable()),
+    }),
+    passByValueParams: () => ({
+      get: (fn: string) => ({
+        has: (param: string) =>
+          mockOrchestrator?.isParameterPassByValue(
+            fn,
+            signatures()
+              .get(fn)
+              ?.parameters.findIndex((p) => p.name === param) ?? -1,
+          ) ?? false,
+      }),
+    }),
+    knownEnums: () => mockOrchestrator?.getKnownEnums() ?? new Set<string>(),
+    callbackCompatibleFunctions: () => new Set<string>(),
+  };
 }
 
 function createMockState(): IGeneratorState {
@@ -183,6 +291,8 @@ function createMockState(): IGeneratorState {
  * working while the production interface sheds its last parse types.
  */
 interface IArgumentPlannerStub {
+  /** #1639: the read-only scalars 1.4 settled, as the stub program reports them */
+  isParameterPassByValue(funcName: string, paramIndex: number): boolean;
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
   /** #1969: the parameter the argument's name binds to where it is passed */
   getParameter(ctx: Parser.ExpressionContext): TParameterInfo | undefined;
@@ -201,10 +311,13 @@ interface IArgumentPlannerStub {
  */
 let sharedState = new TranspileState();
 
+/** The case's orchestrator, which the stub program answers from */
+let mockOrchestrator: (IOrchestrator & IArgumentPlannerStub) | null = null;
+
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
 ): IOrchestrator & IArgumentPlannerStub {
-  return {
+  mockOrchestrator = {
     // #1452: the orchestrator carries 2.3's per-file state, so a generator
     // reads it from the collaborator it was handed rather than a static class.
     state: sharedState,
@@ -230,6 +343,7 @@ function createMockOrchestrator(
     ),
     ...overrides,
   } as unknown as IOrchestrator & IArgumentPlannerStub;
+  return mockOrchestrator;
 }
 
 // ========================================================================

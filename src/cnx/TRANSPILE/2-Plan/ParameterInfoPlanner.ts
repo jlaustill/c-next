@@ -1,4 +1,5 @@
 import TypedefParamParser from "../../utils/TypedefParamParser";
+import ParameterPassing from "./ParameterPassing";
 import SymbolGuards from "../../types/symbols/SymbolGuards";
 import invariant from "../../utils/invariant";
 import type IParameterInfo from "../../types/symbols/IParameterInfo";
@@ -39,14 +40,10 @@ class ParameterInfoPlanner {
       state,
     );
 
-    // Issue #895: For callback-compatible functions, check the typedef signature
-    // to determine if the param should be a pointer or value
-    const callbackTypedefInfo = ParameterInfoPlanner.callbackTypedefParamInfo(
-      functionName,
-      paramIndex,
-      state,
-    );
-    const isCallbackPointerParam = callbackTypedefInfo?.isParamPointer ?? false;
+    // #1639: pointer or value, as the signature, the prototype and every
+    // call read it
+    const passing = ParameterPassing.of(functionName, paramIndex, state);
+    const isCallbackPointerParam = passing.typedefPointer;
 
     // ADR-030 / #1722: whether this parameter holds opaque handles -- read from
     // the stamp 1.4 set on the function's settled parameter, the one decision
@@ -70,9 +67,7 @@ class ParameterInfoPlanner {
     // - If typedef says pointer BUT it's a primitive (like u8), don't treat as struct
     //   (primitives use forcePointerSemantics for dereference instead)
     // Issue #958: C-header typedef struct types are always treated as struct (pointer semantics)
-    const isStruct = callbackTypedefInfo
-      ? isCallbackPointerParam && typeInfo.isStruct
-      : typeInfo.isStruct || isOpaqueHandle;
+    const isStruct = (typeInfo.isStruct && !passing.byValue) || isOpaqueHandle;
 
     // Issue #895: Primitive types that become pointers need dereferencing when used as values
     // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
@@ -110,6 +105,7 @@ class ParameterInfoPlanner {
       // Issue #895/#958: Force pointer semantics for callback-compatible and typedef struct params
       forcePointerSemantics,
       isOpaqueHandle,
+      isPassByValue: passing.byValue,
     };
   }
 
@@ -216,7 +212,7 @@ class ParameterInfoPlanner {
    */
   static settledParameters(
     functionName: string | null,
-    state: TranspileState,
+    state: Pick<TranspileState, "program">,
   ): ReadonlyArray<IParameterInfo> {
     const symbol =
       functionName === null

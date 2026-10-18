@@ -55,7 +55,6 @@ class HeaderRenderer {
           facts.filename,
           facts.options,
           facts.typeInput,
-          facts.passByValueParams,
           facts.allKnownEnums,
           facts.basename,
         );

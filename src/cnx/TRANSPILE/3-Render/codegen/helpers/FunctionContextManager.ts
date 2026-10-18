@@ -84,22 +84,6 @@ class FunctionContextManager {
   }
 
   /**
-   * Issue #895: Get callback typedef parameter info from the C header.
-   * Returns null if not callback-compatible or index is invalid.
-   */
-  static getCallbackTypedefParamInfo(
-    paramIndex: number,
-    state: TranspileState,
-  ): { isParamPointer: boolean; isParamConst: boolean } | null {
-    if (state.currentFunctionName === null) return null;
-    return ParameterInfoPlanner.callbackTypedefParamInfo(
-      state.currentFunctionName,
-      paramIndex,
-      state,
-    );
-  }
-
-  /**
    * #1290: the C name of the current function's parameter at `paramIndex`, as
    * 1.4 settled it on the function's symbol (ADR-057) -- the stamp the `.h`
    * prototype reads, and the one every use in the body binds to.

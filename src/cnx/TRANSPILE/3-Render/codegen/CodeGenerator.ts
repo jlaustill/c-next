@@ -635,17 +635,6 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #63: validateBitmapFieldLiteral moved to TypeValidator
   // Issue #60: evaluateConstantExpression method removed - now in SymbolCollector
 
-  // Issue #269: Pass-by-value analysis extracted to PassByValueAnalyzer
-
-  /**
-   * Issue #269: Check if a parameter should be passed by value (by index).
-   * Part of IOrchestrator interface - used by CallExprGenerator.
-   * Delegates to PassByValueAnalyzer.
-   */
-  isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    return this.planQueries.isParameterPassByValue(funcName, paramIndex);
-  }
-
   /**
    * Clear parameter tracking when leaving a function.
    * Issue #793: Delegates to FunctionContextManager.

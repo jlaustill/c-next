@@ -23,10 +23,7 @@ class ParameterDereferenceResolver {
   /**
    * Determine if a parameter should be passed by value (no dereference needed)
    */
-  static isPassByValue(
-    paramInfo: TParameterInfo,
-    deps: IParameterDereferenceDeps,
-  ): boolean {
+  static isPassByValue(paramInfo: TParameterInfo): boolean {
     // Issue #895: Primitive params that became pointers due to callback typedef
     // are NOT pass-by-value — when used as values (assignments, comparisons),
     // they need dereferencing (*buf) to get the actual value.
@@ -46,37 +43,19 @@ class ParameterDereferenceResolver {
       return true;
     }
 
-    // ADR-071 Q6: a read-only scalar -- an integer, a float, an enum -- is
-    // passed by value
-    if (
-      deps.currentFunctionName &&
-      deps.isParameterPassByValue(deps.currentFunctionName, paramInfo.name)
-    ) {
+    // #1639: 2.2 passed it by value -- a read-only scalar (ADR-071 Q6) or an
+    // external type (#551) -- the decision the signature is written from
+    if (paramInfo.isPassByValue) {
       return true;
     }
 
-    // ...and a `mut` one is a pointer, an enum too, so its value is `(*p)`.
-    // An enum array is already a pointer, like any array.
-    if (!paramInfo.isArray && deps.knownEnums.has(paramInfo.baseType)) {
-      return false;
-    }
-
-    // Structs use -> notation, not dereference
-    if (paramInfo.isStruct) {
+    // Structs use -> notation, not dereference; arrays are already pointers
+    if (paramInfo.isStruct || paramInfo.isArray) {
       return true;
     }
 
-    // Arrays are already pointers
-    if (paramInfo.isArray) {
-      return true;
-    }
-
-    // Issue #551: Unknown types use pass-by-value
-    if (!deps.isKnownPrimitive(paramInfo.baseType)) {
-      return true;
-    }
-
-    // Known primitive that is pass-by-reference
+    // #1639: anything else 2.2 passed through a pointer -- a `mut` scalar, an
+    // enum, an external type -- is `(*p)` where its value is used
     return false;
   }
 
@@ -93,7 +72,7 @@ class ParameterDereferenceResolver {
   ): string {
     const paramInfo = parameter.info;
     const emittedName = parameter.emittedName;
-    if (ParameterDereferenceResolver.isPassByValue(paramInfo, deps)) {
+    if (ParameterDereferenceResolver.isPassByValue(paramInfo)) {
       return emittedName;
     }
 
