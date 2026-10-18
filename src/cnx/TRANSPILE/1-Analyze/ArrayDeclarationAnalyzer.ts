@@ -57,7 +57,9 @@ class ArrayDeclarationCheck {
     const sizes: TDimension[] = type.dimensions.map((size) =>
       size === null ? null : ConstantExpression.valueAt(size, this.context),
     );
-    this.found.push(...ArrayListCount.mismatches(initializer, sizes));
+    this.found.push(
+      ...ArrayListCount.mismatches(initializer, sizes, type.element.text),
+    );
   }
 }
 

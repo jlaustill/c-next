@@ -1,0 +1,8 @@
+35:18 error[E0866]: An array of shape [2] is passed for a parameter of shape [4]
+       help: Pass an array of the parameter's shape, or write its elements as a list (ADR-014).
+37:18 error[E0866]: An array of shape [6] is passed for a parameter of shape [4]
+       help: Pass an array of the parameter's shape, or write its elements as a list (ADR-014).
+39:19 error[E0866]: An array of shape [2][3] is passed for a parameter of shape [2][2]
+       help: Pass an array of the parameter's shape, or write its elements as a list (ADR-014).
+41:19 error[E0866]: An array of shape [2] is passed for a parameter of shape [4]
+       help: Pass an array of the parameter's shape, or write its elements as a list (ADR-014).

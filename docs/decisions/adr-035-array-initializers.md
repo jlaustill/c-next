@@ -269,10 +269,16 @@ columns are `off`. (A dimension named by a const from an include is sized
 through the program's const table; the count itself is local.)
 
 This table covers a declaration's initializer. A whole array is also taken at a
-field, at an assignment target, and at a parameter. At a field and an
-assignment target the rules above apply as they do here (#1782); at a parameter
-a struct initializer is E0866, and the rest is #2157's. Whether that field is an array is read from its
-struct, which an include can declare. Those positions are ADR-014's rule, and
+field, at an assignment target, and at a parameter, and the rules above apply
+at each as they do here: one element per slot at every level, and a row's slot
+is a list too (#2195). At a field and an assignment target this is #1782's. At a
+parameter (#2157) a list is passed as an array of the parameter's full shape,
+written where the argument stands so `&&`, `||` and `?:` evaluate it only when
+they evaluate the call; a scalar or a struct initializer is E0866. An array
+argument is passed by reference and must have the parameter's shape wherever
+both sizes fold (#2194), since the callee reads it with that shape. Whether a
+field or a parameter is an array is read from its struct or function, which an
+include can declare. Those positions are ADR-014's rule, and
 their imported cells are ADR-014's to declare and occupy (#1760 review,
 2026-09-28).
 

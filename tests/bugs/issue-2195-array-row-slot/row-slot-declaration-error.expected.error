@@ -1,0 +1,8 @@
+17:19 error[E0866]: An array must be given a list, not '1'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+17:22 error[E0866]: An array must be given a list, not '2'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+19:19 error[E0866]: An array must be given a list, not 'row'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).
+19:24 error[E0866]: An array must be given a list, not 'row'
+       help: Write the elements out in brackets, or set them one at a time (ADR-035).

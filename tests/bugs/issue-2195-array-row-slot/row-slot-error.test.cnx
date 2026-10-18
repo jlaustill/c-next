@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 035
+// #2195: ADR-035 counts one element per slot at every level, and ADR-014
+// makes a row a whole array, so an element at a level with dimensions left
+// is a list (or, for a u8 row, a string literal). A scalar or an array
+// variable there was accepted at exit 0 and reached C as brace elision
+// (partial initialization) or as a pointer initializing a uint8_t.
+u8[2] row <- [1, 2];
+
+struct G {
+    u8[2][2] cells;
+}
+
+u32 first(u8[2][2] m) {
+    return m[0][0];
+}
+
+// NEGATIVE CONTROL -- a nested list at each position stays silent.
+u8[2][2] OK_GRID <- [[1, 2], [3, 4]];
+
+void f() {
+    mut u8[2][2] grid <- [[0, 0], [0, 0]];
+    grid <- [[1, 2], [3, 4]];
+    G ok <- { cells: [[1, 2], [3, 4]] };
+    u32 fine <- first([[1, 2], [3, 4]]);
+
+    // ASSERTION 1 -- scalars as an assignment target's rows.
+    grid <- [1, 2];
+    // ASSERTION 2 -- array variables as an assignment target's rows.
+    grid <- [row, row];
+    // ASSERTION 3 -- array variables as a field's rows.
+    G g <- { cells: [row, row] };
+    // ASSERTION 4 -- scalars as an argument's rows.
+    u32 s <- first([1, 2]);
+}

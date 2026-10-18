@@ -39,7 +39,7 @@ uint32_t row(void) {
 int main(void) {
     /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp0[2] = {5U, 6U};
-    uint8_t (*const cnx_tmp1)[2] = &regs[row()];
+    volatile uint8_t (*const cnx_tmp1)[2] = &regs[row()];
     for (uint32_t cnx_tmp2 = 0U; cnx_tmp2 < 2U; cnx_tmp2++) {
         (*cnx_tmp1)[cnx_tmp2] = cnx_tmp0[cnx_tmp2];
     }

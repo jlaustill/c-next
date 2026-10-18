@@ -13,6 +13,12 @@ u8[4] source <- [1, 2, 3, 4];
 u8[8] wide <- [0*];
 u16 word <- 0x0102;
 
+struct Labels {
+    string<8>[3] items;
+    string<8>[2][3] cells;
+}
+mut Labels labelled;
+
 void assignments() {
     mut u8[4] a <- [0*];
     mut H h <- { buf: [0*] };
@@ -59,4 +65,10 @@ void assignments() {
     H fromArray <- { buf: source };
     // ASSERTION 14 -- a struct initializer's array field with the wrong count.
     H shortList <- { buf: [1, 2] };
+    // ASSERTION 15 -- a string array from one string (#1899).
+    names <- "x";
+    // ASSERTION 16 -- a struct's string-array field from one string (#1899).
+    labelled.items <- "x";
+    // ASSERTION 17 -- a row of a string grid from one string (#1899).
+    labelled.cells[0] <- "x";
 }

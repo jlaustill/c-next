@@ -49,7 +49,10 @@ class WholeArrayValueAnalyzer {
       // #2157: an argument passes an array by reference, so an array value
       // is one too
       const site = positions.sites.get(value)?.site;
-      if (site?.kind === "argument" && this.isArrayValue(value)) continue;
+      if (site?.kind === "argument" && this.isArrayValue(value)) {
+        found.push(...this.shapeMismatch(value, at));
+        continue;
+      }
       found.push(...WholeArrayValueAnalyzer.check(value, at));
     }
     return found.sort((a, b) => a.line - b.line || a.column - b.column);
@@ -67,29 +70,55 @@ class WholeArrayValueAnalyzer {
     return typed === null || typed.dimensions.length > 0;
   }
 
-  private static check(
+  /**
+   * #2194: the callee reads an array argument with the parameter's shape, so
+   * the two agree wherever both sizes fold.
+   */
+  private shapeMismatch(
     value: TExpression,
     at: IValuePosition,
   ): IArrayDeclarationError[] {
-    if (value.kind === "arrayInitializer") {
-      return ArrayListCount.mismatches(
-        value,
-        at.dimensions.map((size) => (typeof size === "number" ? size : null)),
+    const given = OperandTyper.typeOf(value, this.context)?.dimensions;
+    if (given === undefined) return [];
+    const taken = at.dimensions;
+    const agree =
+      given.length === taken.length &&
+      given.every(
+        (size, i) =>
+          typeof size !== "number" ||
+          typeof taken[i] !== "number" ||
+          size === taken[i],
       );
-    }
-    const element =
-      at.typeText === null ? null : TypeText.withoutDimensions(at.typeText);
-    if (ExpressionShape.givesWholeArray(value, element)) return [];
+    if (agree) return [];
+    const shape = (sizes: ReadonlyArray<number | string>) =>
+      sizes.map((size) => `[${size}]`).join("");
     return [
       {
         code: "E0866",
         line: value.span.line,
         column: value.span.column,
-        message: `An array must be given a list, not '${value.written}'`,
+        message: `An array of shape ${shape(given)} is passed for a parameter of shape ${shape(taken)}`,
         helpText:
-          "Write the elements out in brackets, or set them one at a time (ADR-035).",
+          "Pass an array of the parameter's shape, or write its elements as a list (ADR-014).",
       },
     ];
+  }
+
+  private static check(
+    value: TExpression,
+    at: IValuePosition,
+  ): IArrayDeclarationError[] {
+    const element =
+      at.typeText === null ? null : TypeText.withoutDimensions(at.typeText);
+    if (value.kind === "arrayInitializer") {
+      return ArrayListCount.mismatches(
+        value,
+        at.dimensions.map((size) => (typeof size === "number" ? size : null)),
+        element,
+      );
+    }
+    if (ExpressionShape.givesWholeArray(value, element)) return [];
+    return [ArrayListCount.notAList(value)];
   }
 
   private static markAsked(

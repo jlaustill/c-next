@@ -29,28 +29,28 @@ uint32_t second(const S items[2]) {
 }
 
 int main(void) {
-    const uint8_t cnx_tmp0[4] = {1U, 2U, 3U, 4U};
-    const uint8_t t = third(cnx_tmp0);
+    typedef const uint8_t cnx_tmp0_t[4];
+    const uint8_t t = third(static_cast<cnx_tmp0_t&>(cnx_tmp0_t{1U, 2U, 3U, 4U}));
     if (t != 3) {
         return 1U;
     }
-    const uint8_t cnx_tmp1[4] = {7U, 7U, 7U, 7U};
-    const uint8_t filled = third(cnx_tmp1);
+    typedef const uint8_t cnx_tmp1_t[4];
+    const uint8_t filled = third(static_cast<cnx_tmp1_t&>(cnx_tmp1_t{7U, 7U, 7U, 7U}));
     if (filled != 7) {
         return 2U;
     }
-    const uint8_t cnx_tmp2[2][2] = {{1U, 2U}, {3U, 4U}};
-    const uint8_t c = corner(cnx_tmp2);
+    typedef const uint8_t cnx_tmp2_t[2][2];
+    const uint8_t c = corner(static_cast<cnx_tmp2_t&>(cnx_tmp2_t{{1U, 2U}, {3U, 4U}}));
     if (c != 4) {
         return 3U;
     }
-    const S cnx_tmp3[2] = {{ .a = 5U }, { .a = 6U }};
-    const uint32_t s = second(cnx_tmp3);
+    typedef const S cnx_tmp3_t[2];
+    const uint32_t s = second(static_cast<cnx_tmp3_t&>(cnx_tmp3_t{{ .a = 5U }, { .a = 6U }}));
     if (s != 6) {
         return 4U;
     }
-    const uint8_t cnx_tmp4[4] = {1U, 2U, 3U, 4U};
-    const uint32_t total = sumFour(cnx_tmp4);
+    typedef const uint8_t cnx_tmp4_t[4];
+    const uint32_t total = sumFour(static_cast<cnx_tmp4_t&>(cnx_tmp4_t{1U, 2U, 3U, 4U}));
     if (total != 10) {
         return 5U;
     }

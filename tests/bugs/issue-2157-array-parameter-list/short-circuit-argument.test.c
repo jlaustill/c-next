@@ -42,10 +42,8 @@ uint32_t sumTwo(const uint8_t b[2]) {
 }
 
 uint32_t probe(const uint32_t i) {
-    const uint8_t cnx_tmp0[2] = {bump(), 0U};
-    const bool ok = i < 2 && sumTwo(cnx_tmp0) > 0;
-    const uint8_t cnx_tmp1[2] = {bump(), 0U};
-    const uint32_t t = (i < 2) ? sumTwo(cnx_tmp1) : 0U;
+    const bool ok = i < 2 && sumTwo((const uint8_t[2]){bump(), 0U}) > 0;
+    const uint32_t t = (i < 2) ? sumTwo((const uint8_t[2]){bump(), 0U}) : 0U;
     if (ok == true) {
         return t;
     }
