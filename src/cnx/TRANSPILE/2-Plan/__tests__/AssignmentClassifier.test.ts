@@ -417,6 +417,7 @@ describe("AssignmentClassifier - Array Access", () => {
         elementCType: "uint8_t",
         dimensions: [4],
         fromList: true,
+        volatileTarget: false,
       },
     });
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.WHOLE_ARRAY);

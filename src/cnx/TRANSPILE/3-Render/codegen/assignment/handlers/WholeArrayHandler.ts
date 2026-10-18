@@ -12,7 +12,7 @@ import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import ArrayInitHelper from "../../helpers/ArrayInitHelper";
 
 const COPY_COMMENT =
-  "// C has no array assignment: the list fills a temporary, copied element by element (ADR-035)";
+  "/* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */";
 
 function bound(size: number | string): string {
   return typeof size === "number" ? `${size}U` : size;
@@ -28,10 +28,12 @@ function handleWholeArray(ctx: IAssignmentContext): string {
 
   let target = ctx.renderTarget();
   if (ctx.targetIndexHasSideEffect) {
-    // The target's subscripts are evaluated once, as a plain write's are
+    // The target's subscripts are evaluated once, as a plain write's are;
+    // the pointer keeps a volatile target's qualifier, so each write is one
     const pointer = state.getNextTempVarName();
+    const qualifier = plan.volatileTarget ? "volatile " : "";
     lines.push(
-      `${plan.elementCType} (*const ${pointer})${shape} = &${target};`,
+      `${qualifier}${plan.elementCType} (*const ${pointer})${shape} = &${target};`,
     );
     target = `(*${pointer})`;
   }

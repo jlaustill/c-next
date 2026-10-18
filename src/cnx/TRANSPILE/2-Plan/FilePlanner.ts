@@ -1746,6 +1746,7 @@ class FilePlanner {
           written.stringCapacity,
           dimensions,
           value,
+          written.hasSideEffect,
         ),
       );
       cTypes.add("uint32_t");
@@ -1783,6 +1784,7 @@ class FilePlanner {
         capacity,
         position.dimensions,
         expression,
+        false,
       );
       planned.set(expression, shape);
       cTypes.add(shape.elementCType);
@@ -1796,12 +1798,14 @@ class FilePlanner {
     stringCapacity: number | null,
     dimensions: ReadonlyArray<number | string>,
     value: TExpression,
+    volatileTarget: boolean,
   ): IPlannedWholeArrayWrite {
     const isString = stringCapacity !== null;
     return {
       elementCType: isString ? "char" : elementCType,
       dimensions: isString ? [...dimensions, stringCapacity + 1] : dimensions,
       fromList: value.kind === "arrayInitializer",
+      volatileTarget,
     };
   }
 

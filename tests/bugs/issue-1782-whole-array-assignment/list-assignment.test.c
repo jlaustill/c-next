@@ -32,7 +32,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 static uint8_t Lab__rows[2] = {0U, 0U};
 
 void Lab__set(void) {
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp0[2] = {5U, 6U};
     for (uint32_t cnx_tmp1 = 0U; cnx_tmp1 < 2U; cnx_tmp1++) {
         Lab__rows[cnx_tmp1] = cnx_tmp0[cnx_tmp1];
@@ -55,7 +55,7 @@ uint32_t nextRow(void) {
 uint8_t grid[2][2] = {{0U, 0U}, {0U, 0U}};
 
 void put(uint8_t p[4]) {
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp2[4] = {1U, 2U, 3U, 4U};
     for (uint32_t cnx_tmp3 = 0U; cnx_tmp3 < 4U; cnx_tmp3++) {
         p[cnx_tmp3] = cnx_tmp2[cnx_tmp3];
@@ -63,7 +63,7 @@ void put(uint8_t p[4]) {
 }
 
 int main(void) {
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp4[4] = {1U, 2U, 3U, 4U};
     for (uint32_t cnx_tmp5 = 0U; cnx_tmp5 < 4U; cnx_tmp5++) {
         globalBuf[cnx_tmp5] = cnx_tmp4[cnx_tmp5];
@@ -74,7 +74,7 @@ int main(void) {
     if (globalBuf[3U] != 4) {
         return 2U;
     }
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp6[4] = {7U, 7U, 7U, 7U};
     for (uint32_t cnx_tmp7 = 0U; cnx_tmp7 < 4U; cnx_tmp7++) {
         globalBuf[cnx_tmp7] = cnx_tmp6[cnx_tmp7];
@@ -86,7 +86,7 @@ int main(void) {
         return 4U;
     }
     uint8_t local[3] = {0U, 0U, 0U};
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp8[3] = {9U, 8U, 7U};
     for (uint32_t cnx_tmp9 = 0U; cnx_tmp9 < 3U; cnx_tmp9++) {
         local[cnx_tmp9] = cnx_tmp8[cnx_tmp9];
@@ -98,7 +98,7 @@ int main(void) {
         return 6U;
     }
     uint8_t pair[2] = {1U, 2U};
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp10[2] = {pair[1U], pair[0U]};
     for (uint32_t cnx_tmp11 = 0U; cnx_tmp11 < 2U; cnx_tmp11++) {
         pair[cnx_tmp11] = cnx_tmp10[cnx_tmp11];
@@ -110,7 +110,7 @@ int main(void) {
         return 8U;
     }
     S sa[2] = {{ .a = 0U }, { .a = 0U }};
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const S cnx_tmp12[2] = {{ .a = 3U }, { .a = 4U }};
     for (uint32_t cnx_tmp13 = 0U; cnx_tmp13 < 2U; cnx_tmp13++) {
         sa[cnx_tmp13] = cnx_tmp12[cnx_tmp13];
@@ -122,7 +122,7 @@ int main(void) {
         return 10U;
     }
     H h = { .buf = {0U, 0U, 0U, 0U} };
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp14[4] = {4U, 3U, 2U, 1U};
     for (uint32_t cnx_tmp15 = 0U; cnx_tmp15 < 4U; cnx_tmp15++) {
         h.buf[cnx_tmp15] = cnx_tmp14[cnx_tmp15];
@@ -133,7 +133,7 @@ int main(void) {
     if (h.buf[3U] != 1) {
         return 12U;
     }
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp16[2][2] = {{1U, 2U}, {3U, 4U}};
     for (uint32_t cnx_tmp17 = 0U; cnx_tmp17 < 2U; cnx_tmp17++) {
         for (uint32_t cnx_tmp18 = 0U; cnx_tmp18 < 2U; cnx_tmp18++) {
@@ -146,7 +146,7 @@ int main(void) {
     if (grid[1U][0U] != 3) {
         return 14U;
     }
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp19[2] = {7U, 8U};
     for (uint32_t cnx_tmp20 = 0U; cnx_tmp20 < 2U; cnx_tmp20++) {
         grid[1][cnx_tmp20] = cnx_tmp19[cnx_tmp20];
@@ -160,9 +160,9 @@ int main(void) {
     if (grid[0U][0U] != 1) {
         return 17U;
     }
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp21[2] = {5U, 6U};
-    uint8_t (*const cnx_tmp22)[2] = &grid[nextRow()];
+    volatile uint8_t (*const cnx_tmp22)[2] = &grid[nextRow()];
     for (uint32_t cnx_tmp23 = 0U; cnx_tmp23 < 2U; cnx_tmp23++) {
         (*cnx_tmp22)[cnx_tmp23] = cnx_tmp21[cnx_tmp23];
     }
@@ -195,7 +195,7 @@ int main(void) {
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
     char names[2][9] = {"a", "b"};
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const char cnx_tmp24[2][9] = {"cd", "ef"};
     for (uint32_t cnx_tmp25 = 0U; cnx_tmp25 < 2U; cnx_tmp25++) {
         for (uint32_t cnx_tmp26 = 0U; cnx_tmp26 < 9U; cnx_tmp26++) {
@@ -209,7 +209,7 @@ int main(void) {
         return 23U;
     }
     uint8_t text[6] = {0U, 0U, 0U, 0U, 0U, 0U};
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp27[6] = "Hello";
     for (uint32_t cnx_tmp28 = 0U; cnx_tmp28 < 6U; cnx_tmp28++) {
         text[cnx_tmp28] = cnx_tmp27[cnx_tmp28];
@@ -223,7 +223,7 @@ int main(void) {
     if (text[5U] != 0) {
         return 31U;
     }
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp29[4] = {5U, 6U, 7U, 8U};
     for (uint32_t cnx_tmp30 = 0U; cnx_tmp30 < 4U; cnx_tmp30++) {
         sharedBuf[cnx_tmp30] = cnx_tmp29[cnx_tmp30];
@@ -235,7 +235,7 @@ int main(void) {
         return 25U;
     }
     Packet pk = { .payload = {0U, 0U, 0U, 0U}, .id = 1U };
-    // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
+    /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp31[4] = {2U, 4U, 6U, 8U};
     for (uint32_t cnx_tmp32 = 0U; cnx_tmp32 < 4U; cnx_tmp32++) {
         pk.payload[cnx_tmp32] = cnx_tmp31[cnx_tmp32];

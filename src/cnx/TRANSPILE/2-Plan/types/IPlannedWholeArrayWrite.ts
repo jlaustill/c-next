@@ -8,6 +8,8 @@ interface IPlannedWholeArrayWrite {
   readonly dimensions: ReadonlyArray<number | string>;
   /** A list, whose fill-all form expands; otherwise a `u8` array's string */
   readonly fromList: boolean;
+  /** The target is `volatile` (or `atomic`, which C writes `volatile`) */
+  readonly volatileTarget: boolean;
 }
 
 export default IPlannedWholeArrayWrite;
