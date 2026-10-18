@@ -10,7 +10,7 @@ This document is the single source of truth for how work moves. `CONTRIBUTING.md
 covers _how to write the change_; this covers _how the change travels_.
 
 The board: **[C-Next project](https://github.com/users/jlaustill/projects/1)** —
-it spans [`c-next`](https://github.com/jlaustill/c-next) and
+it spans [`cnx`](https://github.com/smeltworks/cnx) and
 [`vscode-c-next`](https://github.com/jlaustill/vscode-c-next), because a release
 that touches the grammar touches the extension too.
 

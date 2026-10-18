@@ -90,7 +90,7 @@ a rating. **A green gate with an open issue on your code is still a fail.**
 Check the issues themselves, not the badge:
 
 ```bash
-curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&pullRequest=<n>&statuses=OPEN,CONFIRMED&ps=100"
+curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&pullRequest=<n>&statuses=OPEN,CONFIRMED&ps=100"
 ```
 
 Real example: the gate reported **OK** while one CRITICAL cognitive-
