@@ -20,8 +20,8 @@ codes that already have a fixture.
 | E06xx     | Sizeof Expressions                                                                                     | 3       |
 | E07xx     | Control Flow                                                                                           | 15      |
 | E08xx     | Arithmetic/Array Safety                                                                                | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments | 17      |
-| **Total** |                                                                                                        | **142** |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments | 18      |
+| **Total** |                                                                                                        | **143** |
 
 ---
 
@@ -429,6 +429,7 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                                                                                                         | Help                                                                                                                                                                                                                                                   | Source                                           |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | E0916 | A `critical` block on a target where disabling interrupts does not shut out every other execution context (`interrupt_mask: false`: host, esp32) (#1789, #1147) | A critical block disables interrupts (ADR-050), which shuts out every other context only on a target whose description has interrupt_mask true. An atomic variable's read-modify-write needs no critical block; otherwise name a target that can mask. | `TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts` |
+| E0917 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034)                                                  | Index every dimension first: `a[i].A`                                                                                                                                                                                                                  | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`    |
 
 ---
 

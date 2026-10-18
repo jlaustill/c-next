@@ -113,6 +113,7 @@ class BitmapAccessCheck {
     const bitmaps = this.context.symbols.bitmapFields;
     if (!bitmaps || chain.length === 0) return null;
 
+    if (this.reportsArrayField(node)) return null;
     const found = this.bitmapOf(chain, root, node);
     if (found === null) return null;
     const { bitmap, at } = found;
@@ -150,6 +151,30 @@ class BitmapAccessCheck {
       return null;
     }
     return { bitmap, field };
+  }
+
+  /**
+   * E0917 (#2186): a field belongs to one bitmap value. An array of bitmaps,
+   * or a row of one (`g2[1]` of `F[2][2]`), is no bitmap value, so a field of
+   * it names no storage -- C rejects both the member access and the mask.
+   */
+  private reportsArrayField(node: TExpression): boolean {
+    const step = OperandTyper.chainOf(node, this.context).steps.find(
+      (candidate) =>
+        candidate.member !== null &&
+        candidate.property === null &&
+        !!candidate.before?.bitmapTypeName &&
+        candidate.before.dimensions.length > 0,
+    );
+    if (step === undefined) return false;
+    const bitmap = step.before!.bitmapTypeName!;
+    this.report(
+      node,
+      "E0917",
+      `Field '${step.member}' of an array of '${bitmap}' names no element`,
+      `A field belongs to one '${bitmap}' value; index every dimension first, e.g. NAME[i].${step.member} (ADR-034).`,
+    );
+    return true;
   }
 
   private bitmapOf(
