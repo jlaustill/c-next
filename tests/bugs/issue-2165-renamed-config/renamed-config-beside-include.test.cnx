@@ -4,14 +4,12 @@
 // never visits lib/, so only discovery's walk from lib/helper.cnx reaches
 // lib/cnext.config.json: this fixture fails if that walk stops reporting.
 //
-// Negative controls, which must stay silent:
-// - ok/ holds a new-name config, so the walk from ok/okHelper.cnx stops there.
-// - nested/cnext.config.json sits above nested/inner/cnx.config.json, where the
-//   walk from nested/inner/innerHelper.cnx stops, so it is never reached.
+// Negative control, which must stay silent: nested/cnext.config.json sits above
+// nested/inner/cnx.config.json, where the walk from nested/inner/innerHelper.cnx
+// stops, so it is never reached; and a new-name config is never E0918 itself.
 #include "lib/helper.cnx"
-#include "ok/okHelper.cnx"
 #include "nested/inner/innerHelper.cnx"
 
 u32 total() {
-    return helperValue() + okValue() + innerValue();
+    return helperValue() + innerValue();
 }

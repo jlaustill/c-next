@@ -35,11 +35,14 @@ class RunAnchor {
    * The include paths + defines + compiler are the contract every build system
    * converges on. (Issue #985 external-symbol recovery; unblocks ADR-062.)
    *
-   * `previous` is kept for what the move does not change: the same anchor is
-   * the same answer, the same project root reads the same database, and the
-   * same database needs no second read. The compiler it names reads the
-   * headers only of a target that names none (#1713, owner ruling
-   * 2026-10-16: the target's own compiler reads its headers).
+   * `previous` is kept for what the move does not change: the same anchor
+   * under the same project root is the same answer, the same project root
+   * reads the same database, and the same database needs no second read. The
+   * root is walked again on every run, as discovery's tiers are: a marker
+   * created or renamed between runs moves it (#2221 review: a reuse keyed on
+   * the path alone kept the root from before E0918's rename). The compiler it
+   * names reads the headers only of a target that names none (#1713, owner
+   * ruling 2026-10-16: the target's own compiler reads its headers).
    */
   static at(
     anchorPath: string,
@@ -48,10 +51,10 @@ class RunAnchor {
     fs: IFileSystem,
   ): IRunAnchor {
     const path = resolve(anchorPath);
-    if (previous?.path === path) {
+    const projectRoot = RunAnchor._projectRootFrom(anchorPath, fs);
+    if (previous?.path === path && previous.projectRoot === projectRoot) {
       return previous;
     }
-    const projectRoot = RunAnchor._projectRootFrom(anchorPath, fs);
     const settled =
       previous !== null && previous.projectRoot === projectRoot
         ? previous

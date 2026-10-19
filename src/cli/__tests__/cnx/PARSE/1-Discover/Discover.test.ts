@@ -327,8 +327,28 @@ describe("Discover", () => {
       );
 
       expect(first.errors).toHaveLength(1);
-      expect(second.anchor).toBe(first.anchor);
       expect(second.errors).toEqual([]);
+      // #2221 review: the renamed file is a marker now, and the anchor's root
+      // follows it, as discovery's own walk from the anchor does
+      expect(first.anchor.projectRoot).toBeUndefined();
+      expect(second.anchor.projectRoot).toBe("/proj");
+    });
+
+    it("keeps the anchor while its project root is unchanged", () => {
+      fs = project().addFile("/proj/cnx.config.json", "{}");
+      const anchor = RunAnchor.at(settings.input, null, settings, fs);
+      const first = Discover.run({ kind: "files" }, anchor, settings, fs, []);
+
+      const second = Discover.run(
+        { kind: "files" },
+        first.anchor,
+        settings,
+        fs,
+        [],
+      );
+
+      expect(first.anchor.projectRoot).toBe("/proj");
+      expect(second.anchor).toBe(first.anchor);
     });
   });
 });

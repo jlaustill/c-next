@@ -1,3 +1,0 @@
-u32 okValue() {
-    return 2;
-}

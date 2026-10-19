@@ -17,9 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in that order by the same upward walk as before. A file under an old name (`cnext.config.json`,
   `.cnext.json`, `.cnextrc`) is never read: it is error E0918, naming the file and its new name, and
   so is an old name beside a new one. Discovery reports one in any directory a project-root walk
-  passes, so a library still shipping `cnext.config.json` stops its consumers' builds until it is
-  renamed in the library. `--pio-install` updates whichever config the project already has, where it
-  used to write `cnext.config.json` beside a `.cnextrc` and shadow it.
+  passes, so a library still shipping `cnext.config.json` stops the build of a consumer that includes
+  one of its `.cnx` files until it is renamed in the library. A consumer of its C headers alone is
+  unaffected. The editor's server reports a workspace config's E0918 on every transpile, and picks up
+  the renamed file at the next one, with no restart. `--pio-install` updates whichever config the
+  project already has, where it used to write `cnext.config.json` beside a `.cnextrc` and shadow it.
 - **The repository moved to [smeltworks/cnx](https://github.com/smeltworks/cnx)** (Issue #2180).
   Old `github.com/jlaustill/c-next` links and git remotes redirect; update a clone with
   `git remote set-url origin https://github.com/smeltworks/cnx.git`. The coverage report moved
