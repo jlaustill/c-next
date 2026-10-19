@@ -39,8 +39,7 @@ int main(void) {
         (void) strncat(joined, base, 32 - strlen(joined));
         joined[32] = '\0';
         char part[9] = "";
-        (void) strncpy(part, base + 0, 3);
-        part[3] = '\0';
+        cnx_string_copy(part, base + 0, 3U);
         if (strcmp(copied, "Hello") != 0) {
             return 1;
         }

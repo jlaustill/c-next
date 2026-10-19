@@ -1,6 +1,8 @@
 // test-error
 // Tests: #2191 - E0864 checks an assignment as a declaration; a fitting assignment is the control
-struct Cfg { string<8> name; }
+struct Cfg {
+    string<8> name;
+}
 
 void f() {
     string<8> a <- "ab";
@@ -10,6 +12,6 @@ void f() {
     t <- a;
     t <- "toolong";
     t <- "ok";
-    Cfg c <- {name: "xy"};
+    Cfg c <- { name: "xy" };
     string<6> y <- c.name + "z";
 }
