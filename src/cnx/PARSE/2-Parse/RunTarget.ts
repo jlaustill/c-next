@@ -31,6 +31,7 @@ import type TRunTarget from "../../types/TRunTarget";
 import type TTargetFieldValue from "../../types/TTargetFieldValue";
 import type IPlatformIOEnv from "../../types/IPlatformIOEnv";
 import type IPlatformIOProject from "../../types/IPlatformIOProject";
+import CONFIG_FILE_NAMES from "../../types/CONFIG_FILE_NAMES";
 
 /** The description pragmas are the facts that define a platform */
 const DESCRIPTION_KEYS = TargetDescriptions.PLATFORM_FACTS;
@@ -121,7 +122,7 @@ class RunTarget {
         RunTarget.unplaced(
           "E0515",
           "the program names no target",
-          `A program has exactly one target (ADR-049). Name it with '#pragma target <name>', --target <name>, "target" in cnext.config.json, or the board of a PlatformIO environment. Known targets: ${[...inputs.catalog.keys()].join(", ")}.`,
+          `A program has exactly one target (ADR-049). Name it with '#pragma target <name>', --target <name>, "target" in ${CONFIG_FILE_NAMES[0]}, or the board of a PlatformIO environment. Known targets: ${[...inputs.catalog.keys()].join(", ")}.`,
         ),
       ],
     };

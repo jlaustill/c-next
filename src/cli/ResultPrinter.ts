@@ -4,8 +4,10 @@
  */
 
 import DeclarationSite from "../cnx/utils/DeclarationSite";
+import DiagnosticText from "./DiagnosticText";
 import ITranspilerResult from "./types/ITranspilerResult";
 import ToolchainRequirementUtils from "../cnx/utils/ToolchainRequirementUtils";
+import type ITranspileError from "../cnx/types/ITranspileError";
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
 import type IToolchainRequirement from "../cnx/types/IToolchainRequirement";
 import type TOutputMode from "../cnx/types/TOutputMode";
@@ -21,6 +23,16 @@ const SITE_LIMIT = 3;
  */
 class ResultPrinter {
   /**
+   * Print one error. A conflict's location goes through `DeclarationSite`, like
+   * the diagnostic body beside it, so one diagnostic never spells a file two
+   * ways. Error fixtures are generated from this output (`transpileViaCli` is
+   * the only path `runErrorTest` uses).
+   */
+  static printError(error: ITranspileError): void {
+    console.error(`Error: ${DiagnosticText.of(error)}`);
+  }
+
+  /**
    * Print pipeline compilation result
    * @param result - Transpiler result to print
    */
@@ -30,25 +42,8 @@ class ResultPrinter {
       console.warn(`Warning: ${warning}`);
     }
 
-    // Print errors
     for (const error of result.errors) {
-      // Format error with source path if available
-      // Through DeclarationSite, like the diagnostic BODY beside it. A conflict
-      // rendered its locations cwd-relative here and its header as a raw absolute
-      // path, so one diagnostic spelled the same file two ways, one line apart.
-      // DeclarationSite's docblock claims to be the single source of truth for
-      // `sourceFile:line`; the header was the last renderer bypassing it.
-      const location = error.sourcePath
-        ? `${DeclarationSite.displayPath(error.sourcePath)}:${error.line}:${error.column}`
-        : `${error.line}:${error.column}`;
-      console.error(`Error: ${location} ${error.message}`);
-      // The advice an analyzer wrote, indented under its diagnostic. Error
-      // fixtures are generated from this output (`transpileViaCli` is the only
-      // path `runErrorTest` uses), so what a user reads and what the corpus
-      // asserts cannot drift apart.
-      if (error.helpText !== undefined && error.helpText.length > 0) {
-        console.error(`       help: ${error.helpText}`);
-      }
+      ResultPrinter.printError(error);
     }
 
     // Summary

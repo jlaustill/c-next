@@ -14,7 +14,7 @@ C-Next is a safer C for embedded systems. It transpiles to clean, readable C.
 // ...or describe it inline, one #pragma per field, every field given:
 // #pragma word_size 32
 // #pragma ldrex_strex true      (and the rest of the target description)
-// (--target on the command line, or "target" in cnext.config.json, also work)
+// (--target on the command line, or "target" in cnx.config.json, also work)
 
 // Single-line comments work as you expect
 /* Multi-line comments too */
@@ -659,7 +659,7 @@ the rule cannot apply, because there is nothing to check against.
 
 ## Further Reading
 
-- [Project setup & PlatformIO integration](platformio-integration.md) — `cnext.config.json`, C/C++ output mode, build hook
+- [Project setup & PlatformIO integration](platformio-integration.md) — `cnx.config.json`, C/C++ output mode, build hook
 - [AI codegen reference](cnext-ai-reference.md) — comprehensive cheat sheet
 - [GitHub Repository](https://github.com/jlaustill/c-next)
 - [Architecture Decision Records](https://github.com/jlaustill/c-next/tree/main/docs/decisions)

@@ -160,10 +160,10 @@ cnext examples/teensy4/blink.cnx --parse
 cnext examples/teensy4/blink.cnx --cpp
 
 # Target platform (ADR-049). Every program names exactly one target: a
-# `#pragma target` in the source, this option, "target" in cnext.config.json,
+# `#pragma target` in the source, this option, "target" in cnx.config.json,
 # or a PlatformIO environment's board. `cnext --help` lists the known targets.
 # Upgrading: a program that names none is now error E0515, so an existing
-# project adds one of these -- "target" in cnext.config.json covers every file.
+# project adds one of these -- "target" in cnx.config.json covers every file.
 cnext examples/teensy4/blink.cnx --target teensy41
 
 # Separate output directories for code and headers
@@ -187,7 +187,7 @@ cnext led.cnx --target teensy41   # Generates led.h and led.c
 ```
 
 Every program names its target (ADR-049): `--target`, `#pragma target` in the file,
-`"target"` in `cnext.config.json`, or a PlatformIO environment's board.
+`"target"` in `cnx.config.json`, or a PlatformIO environment's board.
 
 **Step 2:** Include the generated header in your existing code:
 
@@ -209,7 +209,7 @@ cnext main.cpp --cpp --target teensy41   # Discovers led.cnx via header marker, 
 
 > With no `--cpp`, the run is C++ exactly when a header your `.cnx` files reach is C++: a
 > `.hpp`, or a `.h` whose preprocessed text holds C++ (Issue #1844). `--cpp` (or
-> `cppRequired: true` in `cnext.config.json`) makes it C++ regardless, which a C++ project
+> `cppRequired: true` in `cnx.config.json`) makes it C++ regardless, which a C++ project
 > should set so the mode does not depend on the include path. `--no-cpp` (or
 > `cppRequired: false`) requires C, and a C++ header is then error **E0507**.
 

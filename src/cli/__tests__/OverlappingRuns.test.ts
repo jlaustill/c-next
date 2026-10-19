@@ -139,7 +139,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
     // "lib/colors.h". `workingDir` is what `ServeCommand` passed on `main`; this
     // branch reads the text's own directory and ignores it, so the same test
     // runs on both.
-    writeFileSync(join(tempDir, "cnext.config.json"), "{}\n");
+    writeFileSync(join(tempDir, "cnx.config.json"), "{}\n");
     mkdirSync(join(tempDir, "lib"));
     writeFileSync(
       join(tempDir, "lib", "colors.cnx"),

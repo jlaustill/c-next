@@ -3,20 +3,70 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { relative, resolve } from "node:path";
 import PlatformIOCommand from "../PlatformIOCommand";
-import * as fs from "node:fs";
+import IFileSystem from "../../cnx/types/IFileSystem";
+import TestFileSystem from "../../cnx/types/__testUtils__/TestFileSystem";
+import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
+import DiagnosticText from "../DiagnosticText";
 
-// Mock fs module
-vi.mock("node:fs", async () => {
-  const actual = await vi.importActual("node:fs");
-  return {
-    ...actual,
-    existsSync: vi.fn(),
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    unlinkSync: vi.fn(),
-  };
-});
+/**
+ * A PlatformIO project in memory at the cwd, which install and uninstall
+ * configure: its files by name, and what the commands removed.
+ */
+class PioProject {
+  private readonly files = new Map<string, string>();
+  readonly removed: string[] = [];
+  /** Every path written, in order, by name relative to the project. */
+  readonly written: string[] = [];
+  readonly fs: IFileSystem;
+
+  constructor(
+    entries: Record<string, string>,
+    overrides: Partial<IFileSystem> = {},
+  ) {
+    for (const [name, content] of Object.entries(entries)) {
+      this.files.set(PioProject.at(name), content);
+    }
+    this.fs = TestFileSystem.with({
+      exists: (path: string) => this.files.has(path),
+      isFile: (path: string) => this.files.has(path),
+      readFile: (path: string) => {
+        const content = this.files.get(path);
+        if (content === undefined) {
+          throw new Error(`ENOENT: ${path}`);
+        }
+        return content;
+      },
+      writeFile: (path: string, content: string) => {
+        this.written.push(relative(process.cwd(), path));
+        this.files.set(path, content);
+      },
+      mkdir: () => {},
+      unlink: (path: string) => {
+        this.removed.push(path);
+        this.files.delete(path);
+      },
+      ...overrides,
+    });
+  }
+
+  /** The file `name` in the project, or undefined when there is none. */
+  file(name: string): string | undefined {
+    return this.files.get(PioProject.at(name));
+  }
+
+  /** The project's config under `name`, parsed. */
+  config(name: string): Record<string, unknown> {
+    const content = this.file(name);
+    expect(content).toBeDefined();
+    return JSON.parse(content as string);
+  }
+
+  private static at(name: string): string {
+    return resolve(process.cwd(), name);
+  }
+}
 
 describe("PlatformIOCommand", () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -25,7 +75,6 @@ describe("PlatformIOCommand", () => {
   let processExitSpy: any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     // Mock process.exit to throw so execution stops (simulates real exit behavior)
@@ -42,9 +91,11 @@ describe("PlatformIOCommand", () => {
 
   describe("install", () => {
     it("fails when platformio.ini doesn't exist", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
+      const project = new PioProject({});
 
-      expect(() => PlatformIOCommand.install()).toThrow("process.exit(1)");
+      expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+        "process.exit(1)",
+      );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Error: platformio.ini not found in current directory",
@@ -52,67 +103,45 @@ describe("PlatformIOCommand", () => {
     });
 
     it("creates cnext_build.py script", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
-      // Should write cnext_build.py
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const scriptCall = writeCalls.find((call) =>
-        (call[0] as string).includes("cnext_build.py"),
-      );
-
-      expect(scriptCall).toBeDefined();
-      expect(scriptCall?.[1]).toContain("Import");
-      expect(scriptCall?.[1]).toContain("transpile_cnext");
+      const script = project.file("cnext_build.py");
+      expect(script).toContain("Import");
+      expect(script).toContain("transpile_cnext");
     });
 
     it("generates script that uses entry point, not per-file loop", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const scriptCall = writeCalls.find((call) =>
-        (call[0] as string).includes("cnext_build.py"),
-      );
-
-      expect(scriptCall).toBeDefined();
-      const scriptContent = scriptCall?.[1] as string;
-
+      const script = project.file("cnext_build.py");
       // Should use entry point approach
-      expect(scriptContent).toContain('Path("src/main.cnx")');
+      expect(script).toContain('Path("src/main.cnx")');
       // ADR-049: the environment being built names the target (#1668)
-      expect(scriptContent).toContain(
+      expect(script).toContain(
         '["cnext", str(entry), "--pio-env", env["PIOENV"]]',
       );
 
       // Should NOT loop over individual .cnx files
-      expect(scriptContent).not.toContain("for cnx_file");
-      expect(scriptContent).not.toContain("rglob");
+      expect(script).not.toContain("for cnx_file");
+      expect(script).not.toContain("rglob");
     });
 
     it("generates script that shows a successful run's target and warnings", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
-      const scriptCall = vi
-        .mocked(fs.writeFileSync)
-        .mock.calls.find((call) =>
-          (call[0] as string).includes("cnext_build.py"),
-        );
-      const scriptContent = scriptCall?.[1] as string;
-
+      const script = project.file("cnext_build.py");
       // #1760 review: the ADR-049 `Target:` line was filtered out of pio run,
       // and warnings, which go to stderr, were printed only on failure
-      expect(scriptContent).toContain(
+      expect(script).toContain(
         'line.startswith(("Compiled", "Target", "Collected", "Generated"))',
       );
-      expect(scriptContent).toContain(
+      expect(script).toContain(
         "if result.stderr:\n            print(result.stderr.rstrip())",
       );
     });
@@ -120,80 +149,65 @@ describe("PlatformIOCommand", () => {
     it("generates script that runs at import time, not as buildprog pre-action (issue #833)", () => {
       // Issue #833: buildprog fires AFTER compilation, so transpile runs too late
       // The script should run transpilation at import time (before compilation)
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const scriptCall = writeCalls.find((call) =>
-        (call[0] as string).includes("cnext_build.py"),
-      );
-
-      expect(scriptCall).toBeDefined();
-      const scriptContent = scriptCall?.[1] as string;
-
+      const script = project.file("cnext_build.py");
       // Should NOT use AddPreAction (runs too late)
-      expect(scriptContent).not.toContain("AddPreAction");
-      expect(scriptContent).not.toContain("buildprog");
+      expect(script).not.toContain("AddPreAction");
+      expect(script).not.toContain("buildprog");
 
       // Should call transpile_cnext() at top level (import time)
-      expect(scriptContent).toContain("transpile_cnext()");
+      expect(script).toContain("transpile_cnext()");
     });
 
     it("adds extra_scripts to platformio.ini when not present", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        "[env:esp32]\nboard = esp32dev\n",
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nboard = esp32dev\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toContain(
+        "extra_scripts = pre:cnext_build.py",
       );
-
-      PlatformIOCommand.install();
-
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const iniCall = writeCalls.find((call) =>
-        (call[0] as string).includes("platformio.ini"),
-      );
-
-      expect(iniCall).toBeDefined();
-      expect(iniCall?.[1]).toContain("extra_scripts = pre:cnext_build.py");
     });
 
     it("appends to existing extra_scripts", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        "[env:esp32]\nextra_scripts = post:other.py\n",
-      );
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = post:other.py\n",
+      });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const iniCall = writeCalls.find((call) =>
-        (call[0] as string).includes("platformio.ini"),
-      );
-
-      expect(iniCall).toBeDefined();
-      expect(iniCall?.[1]).toContain("post:other.py");
-      expect(iniCall?.[1]).toContain("pre:cnext_build.py");
+      const ini = project.file("platformio.ini");
+      expect(ini).toContain("post:other.py");
+      expect(ini).toContain("pre:cnext_build.py");
     });
 
-    it("skips modification when already configured", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
-      );
+    // #2221 review: since a reinstall goes on to set up the config, nothing
+    // pinned what it leaves alone; writing platformio.ini again lists the
+    // script twice, and the first-install banner is not a reinstall's
+    it("leaves platformio.ini and the first-install banner alone on a reinstall", () => {
+      const ini = "[env:esp32]\nextra_scripts = pre:cnext_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
+      expect(project.file("platformio.ini")).toBe(ini);
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("already configured"),
+      );
+      expect(consoleLogSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining("PlatformIO integration configured"),
       );
     });
 
     it("outputs success message with next steps", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.install();
+      PlatformIOCommand.install(project.fs);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("PlatformIO integration configured"),
@@ -203,144 +217,214 @@ describe("PlatformIOCommand", () => {
       );
     });
 
-    describe("cnext.config.json setup", () => {
-      it("creates cnext.config.json when it doesn't exist", () => {
-        vi.mocked(fs.existsSync).mockImplementation((path) => {
-          if ((path as string).includes("platformio.ini")) return true;
-          if ((path as string).includes("cnext.config.json")) return false;
-          return false;
-        });
-        vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+    describe("config setup", () => {
+      it("creates cnx.config.json when the project has no config", () => {
+        const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-        PlatformIOCommand.install();
+        PlatformIOCommand.install(project.fs);
 
-        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-        const configCall = writeCalls.find((call) =>
-          (call[0] as string).includes("cnext.config.json"),
-        );
-
-        expect(configCall).toBeDefined();
-        const config = JSON.parse(configCall?.[1] as string);
+        const config = project.config("cnx.config.json");
         expect(config.include).toContain(".pio/libdeps");
         expect(config.headerOut).toBe("include");
       });
 
       it("appends .pio/libdeps to existing include array", () => {
-        vi.mocked(fs.existsSync).mockImplementation((path) => {
-          if ((path as string).includes("platformio.ini")) return true;
-          if ((path as string).includes("cnext.config.json")) return true;
-          return false;
-        });
-        vi.mocked(fs.readFileSync).mockImplementation((path) => {
-          if ((path as string).includes("cnext.config.json")) {
-            return JSON.stringify({ include: ["lib/"] });
-          }
-          return "[env:esp32]\n";
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\n",
+          "cnx.config.json": JSON.stringify({ include: ["lib/"] }),
         });
 
-        PlatformIOCommand.install();
+        PlatformIOCommand.install(project.fs);
 
-        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-        const configCall = writeCalls.find((call) =>
-          (call[0] as string).includes("cnext.config.json"),
-        );
-
-        expect(configCall).toBeDefined();
-        const config = JSON.parse(configCall?.[1] as string);
+        const config = project.config("cnx.config.json");
         expect(config.include).toContain("lib/");
         expect(config.include).toContain(".pio/libdeps");
       });
 
       it("sets headerOut only if not already set", () => {
-        vi.mocked(fs.existsSync).mockImplementation((path) => {
-          if ((path as string).includes("platformio.ini")) return true;
-          if ((path as string).includes("cnext.config.json")) return true;
-          return false;
-        });
-        vi.mocked(fs.readFileSync).mockImplementation((path) => {
-          if ((path as string).includes("cnext.config.json")) {
-            return JSON.stringify({ headerOut: "custom/" });
-          }
-          return "[env:esp32]\n";
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\n",
+          "cnx.config.json": JSON.stringify({ headerOut: "custom/" }),
         });
 
-        PlatformIOCommand.install();
+        PlatformIOCommand.install(project.fs);
 
-        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-        const configCall = writeCalls.find((call) =>
-          (call[0] as string).includes("cnext.config.json"),
-        );
-
-        expect(configCall).toBeDefined();
-        const config = JSON.parse(configCall?.[1] as string);
-        expect(config.headerOut).toBe("custom/");
+        expect(project.config("cnx.config.json").headerOut).toBe("custom/");
       });
 
       it("does not duplicate .pio/libdeps if already present", () => {
-        vi.mocked(fs.existsSync).mockImplementation((path) => {
-          if ((path as string).includes("platformio.ini")) return true;
-          if ((path as string).includes("cnext.config.json")) return true;
-          return false;
-        });
-        vi.mocked(fs.readFileSync).mockImplementation((path) => {
-          if ((path as string).includes("cnext.config.json")) {
-            return JSON.stringify({ include: [".pio/libdeps", "lib/"] });
-          }
-          return "[env:esp32]\n";
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\n",
+          "cnx.config.json": JSON.stringify({
+            include: [".pio/libdeps", "lib/"],
+          }),
         });
 
-        PlatformIOCommand.install();
+        PlatformIOCommand.install(project.fs);
 
-        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-        const configCall = writeCalls.find((call) =>
-          (call[0] as string).includes("cnext.config.json"),
-        );
-
-        expect(configCall).toBeDefined();
-        const config = JSON.parse(configCall?.[1] as string);
-        const pioCount = config.include.filter(
-          (i: string) => i === ".pio/libdeps",
-        ).length;
-        expect(pioCount).toBe(1);
+        const include = project.config("cnx.config.json").include as string[];
+        expect(include.filter((i) => i === ".pio/libdeps")).toHaveLength(1);
       });
 
       it("preserves other existing config values", () => {
-        vi.mocked(fs.existsSync).mockImplementation((path) => {
-          if ((path as string).includes("platformio.ini")) return true;
-          if ((path as string).includes("cnext.config.json")) return true;
-          return false;
-        });
-        vi.mocked(fs.readFileSync).mockImplementation((path) => {
-          if ((path as string).includes("cnext.config.json")) {
-            return JSON.stringify({
-              cppRequired: true,
-              target: "teensy41",
-              include: ["lib/"],
-            });
-          }
-          return "[env:esp32]\n";
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\n",
+          "cnx.config.json": JSON.stringify({
+            cppRequired: true,
+            target: "teensy41",
+            include: ["lib/"],
+          }),
         });
 
-        PlatformIOCommand.install();
+        PlatformIOCommand.install(project.fs);
 
-        const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-        const configCall = writeCalls.find((call) =>
-          (call[0] as string).includes("cnext.config.json"),
-        );
-
-        expect(configCall).toBeDefined();
-        const config = JSON.parse(configCall?.[1] as string);
+        const config = project.config("cnx.config.json");
         expect(config.cppRequired).toBe(true);
         expect(config.target).toBe("teensy41");
+      });
+
+      // #2165: it wrote `cnx.config.json` whatever the project used, and the
+      // walk reads that name first, so a `.cnxrc` was shadowed with no word.
+      it("updates the config a run reads, under the name it has", () => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\n",
+          ".cnxrc": JSON.stringify({ target: "teensy41" }),
+        });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.config(".cnxrc")).toMatchObject({
+          target: "teensy41",
+          include: [".pio/libdeps"],
+        });
+        expect(project.file("cnx.config.json")).toBeUndefined();
+      });
+
+      // #2221 review: an already-configured platformio.ini returned before
+      // the config was set up, so a reinstall left it without the defaults
+      it("updates the config on a reinstall too", () => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          ".cnxrc": JSON.stringify({ target: "teensy41" }),
+        });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.config(".cnxrc")).toEqual({
+          target: "teensy41",
+          include: [".pio/libdeps"],
+          headerOut: "include",
+        });
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("already configured"),
+        );
+      });
+
+      // #2221 review: a reinstall replaced a config it could not parse, so a
+      // trailing comma cost the project its settings, and `null` crashed
+      it.each([
+        ["a trailing comma", '{"target":"teensy41","include":["lib/"],}'],
+        ["null", "null"],
+      ])("stops at a config holding %s, writing nothing", (_label, content) => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          ".cnxrc": content,
+        });
+
+        expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+          "process.exit(1)",
+        );
+
+        expect(project.written).toEqual([]);
+        expect(project.file(".cnxrc")).toBe(content);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining("nothing was written"),
+        );
+      });
+
+      // #2221 review: a config it cannot read was only a warning, so install
+      // went on to write; the first case crashed half-installed on EACCES,
+      // the second wrote a cnx.config.json shadowing the unreadable one
+      it.each([["cnx.config.json"], [".cnx.json"]])(
+        "stops at a %s it cannot read, writing nothing",
+        (name) => {
+          const unreadable = resolve(process.cwd(), name);
+          const project = new PioProject(
+            {
+              "platformio.ini": "[env:esp32]\n",
+              [name]: JSON.stringify({ target: "teensy41" }),
+            },
+            {
+              readFile: (path: string) => {
+                if (path === unreadable) {
+                  throw new Error("EACCES: permission denied");
+                }
+                return "[env:esp32]\n";
+              },
+            },
+          );
+
+          expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+            "process.exit(1)",
+          );
+
+          expect(project.written).toEqual([]);
+          expect(consoleErrorSpy).toHaveBeenCalledWith(
+            `Error: Failed to read config ${unreadable}: EACCES: permission denied; nothing was written. Fix it and run --pio-install again.`,
+          );
+        },
+      );
+
+      it("rewrites no config that already has the defaults", () => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          ".cnxrc": JSON.stringify({
+            include: [".pio/libdeps"],
+            headerOut: "include",
+          }),
+        });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.written).toEqual(["cnext_build.py"]);
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("already has the PlatformIO defaults"),
+        );
+      });
+
+      it("stops with E0918 at a config under an old name, writing nothing (#2165)", () => {
+        const ini = "[env:esp32]\n";
+        const project = new PioProject({
+          "platformio.ini": ini,
+          ".cnextrc": "{}",
+        });
+
+        expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+          "process.exit(1)",
+        );
+
+        const error = ConfigFileNames.errorFor({
+          path: resolve(process.cwd(), ".cnextrc"),
+          successor: ".cnxrc",
+          besideConfig: null,
+        });
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          `Error: ${DiagnosticText.of(error)}`,
+        );
+        expect(project.file("platformio.ini")).toBe(ini);
+        expect(project.file("cnext_build.py")).toBeUndefined();
+        expect(project.file(".cnxrc")).toBeUndefined();
       });
     });
   });
 
   describe("uninstall", () => {
     it("fails when platformio.ini doesn't exist", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
+      const project = new PioProject({});
 
-      expect(() => PlatformIOCommand.uninstall()).toThrow("process.exit(1)");
+      expect(() => PlatformIOCommand.uninstall(project.fs)).toThrow(
+        "process.exit(1)",
+      );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Error: platformio.ini not found in current directory",
@@ -348,29 +432,25 @@ describe("PlatformIOCommand", () => {
     });
 
     it("removes cnext_build.py when it exists", () => {
-      vi.mocked(fs.existsSync).mockImplementation((path) => {
-        if ((path as string).includes("platformio.ini")) return true;
-        if ((path as string).includes("cnext_build.py")) return true;
-        return false;
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\n",
+        "cnext_build.py": "",
       });
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
 
-      PlatformIOCommand.uninstall();
+      PlatformIOCommand.uninstall(project.fs);
 
-      expect(fs.unlinkSync).toHaveBeenCalled();
+      expect(project.removed).toEqual([
+        resolve(process.cwd(), "cnext_build.py"),
+      ]);
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("Removed"),
       );
     });
 
     it("reports when cnext_build.py doesn't exist", () => {
-      vi.mocked(fs.existsSync).mockImplementation((path) => {
-        if ((path as string).includes("platformio.ini")) return true;
-        return false; // cnext_build.py doesn't exist
-      });
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.uninstall();
+      PlatformIOCommand.uninstall(project.fs);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("already removed"),
@@ -378,49 +458,35 @@ describe("PlatformIOCommand", () => {
     });
 
     it("removes cnext_build.py reference from platformio.ini", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
-      );
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+        "cnext_build.py": "",
+      });
 
-      PlatformIOCommand.uninstall();
+      PlatformIOCommand.uninstall(project.fs);
 
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const iniCall = writeCalls.find((call) =>
-        (call[0] as string).includes("platformio.ini"),
-      );
-
-      expect(iniCall).toBeDefined();
-      expect(iniCall?.[1]).not.toContain("cnext_build.py");
+      expect(project.file("platformio.ini")).not.toContain("cnext_build.py");
     });
 
     it("removes an indented cnext_build.py and keeps its sibling scripts", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        "[env:esp32]\nextra_scripts =\n    pre:cnext_build.py\n    post:other.py\n",
-      );
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts =\n    pre:cnext_build.py\n    post:other.py\n",
+        "cnext_build.py": "",
+      });
 
-      PlatformIOCommand.uninstall();
+      PlatformIOCommand.uninstall(project.fs);
 
-      const writeCalls = vi.mocked(fs.writeFileSync).mock.calls;
-      const iniCall = writeCalls.find((call) =>
-        (call[0] as string).includes("platformio.ini"),
-      );
-
-      expect(iniCall).toBeDefined();
-      expect(iniCall?.[1]).not.toContain("cnext_build.py");
+      const ini = project.file("platformio.ini");
+      expect(ini).not.toContain("cnext_build.py");
       // The removed run reaches back only to the previous entry, never through it.
-      expect(iniCall?.[1]).toContain("post:other.py");
+      expect(ini).toContain("post:other.py");
     });
 
     it("reports when no integration found", () => {
-      vi.mocked(fs.existsSync).mockImplementation((path) => {
-        if ((path as string).includes("platformio.ini")) return true;
-        return false;
-      });
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
-      PlatformIOCommand.uninstall();
+      PlatformIOCommand.uninstall(project.fs);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("No c-next integration found"),
@@ -428,13 +494,18 @@ describe("PlatformIOCommand", () => {
     });
 
     it("handles file deletion errors", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue("[env:esp32]\n");
-      vi.mocked(fs.unlinkSync).mockImplementation(() => {
-        throw new Error("Permission denied");
-      });
+      const project = new PioProject(
+        { "platformio.ini": "[env:esp32]\n", "cnext_build.py": "" },
+        {
+          unlink: () => {
+            throw new Error("Permission denied");
+          },
+        },
+      );
 
-      expect(() => PlatformIOCommand.uninstall()).toThrow("process.exit(1)");
+      expect(() => PlatformIOCommand.uninstall(project.fs)).toThrow(
+        "process.exit(1)",
+      );
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining("Error removing"),
@@ -443,13 +514,12 @@ describe("PlatformIOCommand", () => {
     });
 
     it("outputs success message after removal", () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
-        "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
-      );
-      vi.mocked(fs.unlinkSync).mockImplementation(() => {});
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+        "cnext_build.py": "",
+      });
 
-      PlatformIOCommand.uninstall();
+      PlatformIOCommand.uninstall(project.fs);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("integration removed"),

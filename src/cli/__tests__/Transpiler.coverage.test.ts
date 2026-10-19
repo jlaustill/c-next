@@ -872,7 +872,7 @@ describe("Transpiler coverage tests", () => {
   describe("Cache in standalone mode", () => {
     it("flushes cache after transpileSource when enabled", async () => {
       // Create a mock file system with project marker
-      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/cnx.config.json", "{}");
 
       const transpiler = new Transpiler(
         {
@@ -995,7 +995,7 @@ describe("Transpiler coverage tests", () => {
   describe("Cache hit with C++ detection", () => {
     it("parses a cached C++-syntax .h with the C++ parser in declared C++ mode", async () => {
       // Create a project marker for caching
-      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/cnx.config.json", "{}");
       // Create a C header with C++ syntax
       mockFs.addFile(
         "/project/include/typed_enum.h",
@@ -1034,7 +1034,7 @@ describe("Transpiler coverage tests", () => {
     });
 
     it("parses a cached .hpp in declared C++ mode", async () => {
-      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/cnx.config.json", "{}");
       mockFs.addFile("/project/include/utils.hpp", "void helper();");
       mockFs.addFile(
         "/project/src/main.cnx",
@@ -1122,7 +1122,7 @@ describe("Transpiler coverage tests", () => {
   describe("Cache hit C++ detection paths", () => {
     it("keeps declared C++ mode across a cache hit for a C++-syntax .h", async () => {
       // Create files with C++ syntax in a C header (typed enum C++14)
-      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/cnx.config.json", "{}");
       mockFs.addFile(
         "/project/include/cpp_in_c.h",
         "enum Status : uint8_t { OK, ERROR }; // C++14 typed enum",
@@ -1170,7 +1170,7 @@ describe("Transpiler coverage tests", () => {
 
     it("keeps declared C++ mode across a cache hit for a .hpp", async () => {
       // Create hpp header
-      mockFs.addFile("/project/cnext.config.json", "{}");
+      mockFs.addFile("/project/cnx.config.json", "{}");
       mockFs.addFile("/project/include/utils.hpp", "void helper();");
       mockFs.addFile(
         "/project/src/main.cnx",
@@ -1659,7 +1659,7 @@ describe("Transpiler coverage integration tests", () => {
 
   it("emits .cpp on both runs for a cached C++-syntax .h in declared C++ mode", async () => {
     // Create project structure with C++ syntax in .h file
-    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+    writeFileSync(join(testDir, "cnx.config.json"), "{}");
 
     const includeDir = join(testDir, "include");
     mkdirSync(includeDir, { recursive: true });
@@ -1707,7 +1707,7 @@ describe("Transpiler coverage integration tests", () => {
 
   it("emits .cpp on both runs for a cached .hpp in declared C++ mode", async () => {
     // Create project structure with .hpp file
-    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+    writeFileSync(join(testDir, "cnx.config.json"), "{}");
 
     const includeDir = join(testDir, "include");
     mkdirSync(includeDir, { recursive: true });
@@ -1755,7 +1755,7 @@ describe("Transpiler coverage integration tests", () => {
   // `noCache: true` and therefore cannot reach it: the guard was real,
   // reachable and completely untested, which is a guard you cannot fail.
   const warmThenUndeclared = async (header: string, name: string) => {
-    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+    writeFileSync(join(testDir, "cnx.config.json"), "{}");
     const includeDir = join(testDir, "include");
     mkdirSync(includeDir, { recursive: true });
     writeFileSync(join(includeDir, name), header);
@@ -1860,7 +1860,7 @@ describe("Transpiler coverage integration tests", () => {
 
   it("uses cache on second run when enabled", async () => {
     // Create project with marker for cache
-    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+    writeFileSync(join(testDir, "cnx.config.json"), "{}");
     writeFileSync(join(testDir, "types.h"), "typedef int MyInt;");
     writeFileSync(
       join(testDir, "main.cnx"),

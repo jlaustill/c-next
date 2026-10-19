@@ -9,13 +9,29 @@ import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
 import IFileSystem from "../../types/IFileSystem";
+import ConfigFileNames from "./ConfigFileNames";
+import CONFIG_FILE_NAMES from "../../types/CONFIG_FILE_NAMES";
+import type IIncludeTiers from "./types/IIncludeTiers";
+import type IProjectRootWalk from "./types/IProjectRootWalk";
+import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
+
+/**
+ * What marks a project root (#1668). Every marker counts equally: the nearest
+ * directory holding any wins, so the order decides nothing.
+ */
+const PROJECT_MARKERS: readonly string[] = [
+  ...CONFIG_FILE_NAMES,
+  "platformio.ini",
+  ".git",
+  "package.json",
+];
 
 /**
  * Auto-discovery of include paths for C-Next compilation
  *
  * Implements 4-tier include path discovery:
  * 1. File's own directory (for relative #include "header.h")
- * 2. Project root (walk up to find platformio.ini, cnext.config.json, .git)
+ * 2. Project root (walk up to find platformio.ini, cnx.config.json, .git)
  * 3. PlatformIO library dependencies (.pio/libdeps/ and lib_extra_dirs)
  * 4. Arduino library paths (~/Arduino/libraries/ or ~/Documents/Arduino/libraries/)
  *
@@ -28,9 +44,13 @@ class IncludeDiscovery {
    *
    * @param inputFile - Path to .cnx file being compiled
    * @param fs - File system abstraction
-   * @returns Array of include directory paths
+   * @returns the include directory paths, and the project-root walk that
+   *   found the project tier
    */
-  static discoverIncludePaths(inputFile: string, fs: IFileSystem): string[] {
+  static discoverIncludePaths(
+    inputFile: string,
+    fs: IFileSystem,
+  ): IIncludeTiers {
     const paths: string[] = [];
 
     // Tier 1: File's own directory (highest priority)
@@ -38,7 +58,8 @@ class IncludeDiscovery {
     paths.push(fileDir);
 
     // Tier 2: Project root detection
-    const projectRoot = this.findProjectRoot(fileDir, fs);
+    const walk = this.findProjectRoot(fileDir, fs);
+    const projectRoot = walk.root;
     if (projectRoot) {
       // Add common include directories if they exist
       const commonDirs = ["include", "src", "lib"];
@@ -75,7 +96,7 @@ class IncludeDiscovery {
     paths.push(...arduinoPaths);
 
     // Remove duplicates
-    return Array.from(new Set(paths));
+    return { paths: Array.from(new Set(paths)), projectRoot: walk };
   }
 
   /** Common subdirectories where library headers might live */
@@ -244,31 +265,29 @@ class IncludeDiscovery {
    *
    * The one finder (#1668): include discovery and the transpiler's cache and
    * header base used to walk with two marker lists that each lacked a marker
-   * the other had. Every marker counts equally -- the nearest directory wins,
-   * so the list's order decides nothing.
+   * the other had.
+   *
+   * #2165: a config under an old name is not a marker. The walk passes it and
+   * returns it, with every other one it passed, for the caller to report as
+   * E0918: the config walk alone cannot see them all, since a file included
+   * from another tree is walked from there.
    *
    * @param startDir - Directory to start search from
    * @param fs - File system abstraction
-   * @returns Project root path or null if not found
+   * @returns the project root, or null if there is none, and the renamed
+   *   configs on the way
    */
-  static findProjectRoot(startDir: string, fs: IFileSystem): string | null {
-    const markers = [
-      "cnext.config.json",
-      ".cnext.json",
-      ".cnextrc",
-      "platformio.ini",
-      ".git",
-      "package.json",
-    ];
-
+  static findProjectRoot(startDir: string, fs: IFileSystem): IProjectRootWalk {
+    const renamedConfigs: IRenamedConfigFile[] = [];
     let dir = resolve(startDir);
     while (true) {
-      if (markers.some((marker) => fs.exists(join(dir, marker)))) {
-        return dir;
+      renamedConfigs.push(...ConfigFileNames.renamedIn(dir, fs));
+      if (PROJECT_MARKERS.some((marker) => fs.exists(join(dir, marker)))) {
+        return { root: dir, renamedConfigs };
       }
       const parent = dirname(dir);
       if (parent === dir) {
-        return null;
+        return { root: null, renamedConfigs };
       }
       dir = parent;
     }

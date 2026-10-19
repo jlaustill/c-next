@@ -3,18 +3,16 @@
  * Loads configuration from project config files, read through the port.
  */
 
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
+import TConfigInDirectory from "./types/TConfigInDirectory";
+import TConfigLoad from "./types/TConfigLoad";
+import TConfigObject from "./types/TConfigObject";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
-
-/**
- * Searched in this order in each directory. `cnx --help` documents these
- * three names and JSON as the only format.
- */
-const SEARCH_PLACES = ["cnext.config.json", ".cnext.json", ".cnextrc"];
+import ConfigFileNames from "../cnx/PARSE/1-Discover/ConfigFileNames";
 
 /**
  * Load configuration from project directory
@@ -23,35 +21,83 @@ class ConfigLoader {
   /**
    * Load config from project directory, searching up the directory tree
    * @param startDir - Directory to start searching from
-   * @returns Loaded configuration (empty object if no config found)
+   * @returns The loaded configuration (empty if none was found), or E0918
+   *   for each file under an old name the walk met first (#2165)
    */
   static load(
     startDir: string,
     fs: IFileSystem = NodeFileSystem.instance,
-  ): IFileConfig {
+  ): TConfigLoad {
     const found = ConfigLoader.find(resolve(startDir), fs);
-    if (!found) {
-      return {}; // No config found
+    if (found.kind === "renamed") {
+      return found;
     }
+    return { kind: "loaded", config: ConfigLoader.parse(found) };
+  }
 
-    let config: unknown;
+  /**
+   * What `dir` alone holds for the walk (#2165): an old-name file is E0918,
+   * whatever else is there; otherwise `ConfigFileNames.readIn`'s config, the
+   * one decision of which new-name file that is. `--pio-install` asks it about
+   * the directory it configures and updates that directory's config (#2235:
+   * with none there, the one it writes shadows an ancestor's).
+   */
+  static inDirectory(dir: string, fs: IFileSystem): TConfigInDirectory {
+    const renamed = ConfigFileNames.renamedIn(dir, fs);
+    if (renamed.length > 0) {
+      return {
+        kind: "renamed",
+        errors: renamed.map((file) => ConfigFileNames.errorFor(file)),
+      };
+    }
+    const read = ConfigFileNames.readIn(dir, fs);
+    return read.config === null
+      ? { kind: "none", unreadable: read.unreadable }
+      : { kind: "found", ...read.config, unreadable: read.unreadable };
+  }
+
+  /**
+   * A config file's text as a config object, its paths left as written: the
+   * one decision of whether the file holds one (#2221 review). A run warns and
+   * ignores a file that does not; `--pio-install` stops before writing, where
+   * it used to replace the file and drop its settings.
+   */
+  static objectOf(found: {
+    readonly path: string;
+    readonly content: string;
+  }): TConfigObject {
+    let parsed: unknown;
     try {
-      config = JSON.parse(found.content);
+      parsed = JSON.parse(found.content);
     } catch (err) {
-      const message = CaughtError.messageOf(err);
-      console.error(`Warning: Failed to parse config: ${message}`);
-      return {};
+      return {
+        kind: "invalid",
+        reason: `Failed to parse config ${found.path}: ${CaughtError.messageOf(err)}`,
+      };
     }
-    if (!config || typeof config !== "object" || Array.isArray(config)) {
-      console.error(
-        `Warning: Config ${found.path} is not a JSON object; ignored`,
-      );
-      return {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {
+        kind: "invalid",
+        reason: `Config ${found.path} is not a JSON object`,
+      };
     }
+    return { kind: "object", config: parsed as IFileConfig };
+  }
 
-    const fileConfig = config as IFileConfig;
-    fileConfig._path = found.path;
-    return ConfigLoader.anchorPaths(fileConfig, dirname(found.path));
+  /** The config a walk found, parsed and anchored; empty when there is none. */
+  private static parse(
+    found: Exclude<TConfigInDirectory, { kind: "renamed" }>,
+  ): IFileConfig {
+    if (found.kind === "none") {
+      return {};
+    }
+    const read = ConfigLoader.objectOf(found);
+    if (read.kind === "invalid") {
+      console.error(`Warning: ${read.reason}; ignored`);
+      return {};
+    }
+    read.config._path = found.path;
+    return ConfigLoader.anchorPaths(read.config, dirname(found.path));
   }
 
   /**
@@ -64,39 +110,25 @@ class ConfigLoader {
    * searched the OS config directory for `config`, `config.json`,
    * `config.yaml`, `config.js`, `config.ts` and more, and a JavaScript one
    * would be executed. Only the documented search remains: the three names,
-   * JSON, and the upward walk.
+   * JSON, and the upward walk. #2165: the first directory holding an
+   * old-name file ends it, as E0918.
    *
    * An empty file is skipped and the search continues, as cosmiconfig's
    * default `ignoreEmptySearchPlaces` did. So is a file that cannot be read,
    * as cosmiconfig skipped EACCES, now with a warning (#1826 review: letting
    * the error escape aborted every run under an unreadable ancestor config).
    */
-  private static find(
-    startDir: string,
-    fs: IFileSystem,
-  ): { path: string; content: string } | null {
+  private static find(startDir: string, fs: IFileSystem): TConfigInDirectory {
     for (let dir = startDir; ; dir = dirname(dir)) {
-      for (const place of SEARCH_PLACES) {
-        const content = ConfigLoader.readConfig(join(dir, place), fs);
-        if (content !== null && content.trim() !== "") {
-          return { path: join(dir, place), content };
+      const found = ConfigLoader.inDirectory(dir, fs);
+      if (found.kind !== "renamed") {
+        for (const file of found.unreadable) {
+          console.error(`Warning: ${file.reason}`);
         }
       }
-      if (dirname(dir) === dir) {
-        return null;
+      if (found.kind !== "none" || dirname(dir) === dir) {
+        return found;
       }
-    }
-  }
-
-  /** A config file's text, or null when there is none or it cannot be read. */
-  private static readConfig(path: string, fs: IFileSystem): string | null {
-    if (!fs.isFile(path)) return null;
-    try {
-      return fs.readFile(path);
-    } catch (err) {
-      const message = CaughtError.messageOf(err);
-      console.error(`Warning: Failed to read config ${path}: ${message}`);
-      return null;
     }
   }
 

@@ -139,7 +139,7 @@ u8 preferred() {
       "give each file the .c, header and guard the CLI writes for it, %s",
       async (_label, withRoot) => {
         if (withRoot) {
-          writeFileSync(join(project, "cnext.config.json"), "{}\n");
+          writeFileSync(join(project, "cnx.config.json"), "{}\n");
         }
         for (const [file, text] of [
           ["main.cnx", MAIN],
@@ -194,7 +194,7 @@ void main() {
       mkdirSync(join(project, "src"), { recursive: true });
       mkdirSync(vendor, { recursive: true });
       writeFileSync(join(vendor, "colors.cnx"), "enum EColor { RED, GREEN }\n");
-      writeFileSync(join(project, "cnext.config.json"), "{}\n");
+      writeFileSync(join(project, "cnx.config.json"), "{}\n");
       writeFileSync(
         join(project, "compile_commands.json"),
         JSON.stringify([

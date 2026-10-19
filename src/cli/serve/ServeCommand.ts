@@ -13,11 +13,13 @@ import IJsonRpcRequest from "./types/IJsonRpcRequest";
 import IJsonRpcResponse from "./types/IJsonRpcResponse";
 import ConfigPrinter from "../ConfigPrinter";
 import ConfigLoader from "../ConfigLoader";
+import DiagnosticText from "../DiagnosticText";
 import Transpiler from "../Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import CaughtError from "../../cnx/utils/CaughtError";
+import type ITranspileError from "../../cnx/types/ITranspileError";
 
 /**
  * What a method handler returns. Only transpile awaits anything
@@ -61,6 +63,14 @@ class ServeCommand {
   private static readline: Interface | null = null;
   private static debugMode = false;
   private static transpiler: Transpiler | null = null;
+  /**
+   * The workspace whose config `initialize` could not load because it has an
+   * old name (#2165), or null. Each transpile loads it again: the editor
+   * shows a transpile's errors and drops `initialize`'s, and it initializes
+   * once, so the rename that fixes E0918 takes effect at the next request
+   * (#2221 review).
+   */
+  private static renamedWorkspace: string | null = null;
 
   /**
    * Method handlers registry
@@ -262,7 +272,39 @@ class ServeCommand {
     const workspacePath = params.workspacePath;
     ServeCommand.log(`initializing with workspace: ${workspacePath}`);
 
-    const config = ConfigLoader.load(workspacePath);
+    const errors = ServeCommand._loadWorkspace(workspacePath);
+    if (errors.length > 0) {
+      return {
+        success: false,
+        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
+        errorMessage: errors
+          .map((error) => DiagnosticText.of(error))
+          .join("\n"),
+      };
+    }
+
+    return {
+      success: true,
+      result: { success: true },
+    };
+  }
+
+  /**
+   * Load `workspacePath`'s config into the server's transpiler: the one place
+   * a workspace's config is read. A config under an old name loads none and
+   * returns its E0918s, which every transpile answers with until it is renamed,
+   * so no run uses an earlier workspace's transpiler.
+   */
+  private static _loadWorkspace(
+    workspacePath: string,
+  ): readonly ITranspileError[] {
+    const loaded = ConfigLoader.load(workspacePath);
+    if (loaded.kind === "renamed") {
+      ServeCommand.renamedWorkspace = workspacePath;
+      return loaded.errors;
+    }
+    ServeCommand.renamedWorkspace = null;
+    const config = loaded.config;
 
     ServeCommand.transpiler = new Transpiler(
       {
@@ -282,11 +324,17 @@ class ServeCommand {
     ServeCommand.log(
       `initialized (cppRequired=${config.cppRequired ?? "unset"}, includeDirs=${(config.include ?? []).length})`,
     );
+    return [];
+  }
 
-    return {
-      success: true,
-      result: { success: true },
-    };
+  /**
+   * The E0918s of a workspace whose config still has an old name, read again
+   * now; none once it is renamed, which loads it.
+   */
+  private static _renamedConfigErrors(): readonly ITranspileError[] {
+    return ServeCommand.renamedWorkspace === null
+      ? []
+      : ServeCommand._loadWorkspace(ServeCommand.renamedWorkspace);
   }
 
   /**
@@ -296,6 +344,15 @@ class ServeCommand {
   private static async _handleTranspile(
     params: ISourceParams,
   ): Promise<IMethodResult> {
+    const configErrors = ServeCommand._renamedConfigErrors();
+    if (configErrors.length > 0) {
+      // A run's answer, as a run that stops in discovery gives one, so the
+      // editor shows them where it shows every run's errors
+      return {
+        success: true,
+        result: { success: false, code: "", errors: configErrors },
+      };
+    }
     if (!ServeCommand.transpiler) {
       return {
         success: false,

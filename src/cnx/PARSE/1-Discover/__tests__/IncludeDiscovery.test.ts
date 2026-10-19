@@ -18,6 +18,16 @@ import IFileSystem from "../../../types/IFileSystem";
 import TestFileSystem from "../../../types/__testUtils__/TestFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
+/** The include directories discovered from `inputFile`. */
+function includePaths(inputFile: string, fs: IFileSystem): readonly string[] {
+  return IncludeDiscovery.discoverIncludePaths(inputFile, fs).paths;
+}
+
+/** The project root found from `startDir`, or null. */
+function projectRoot(startDir: string, fs: IFileSystem): string | null {
+  return IncludeDiscovery.findProjectRoot(startDir, fs).root;
+}
+
 describe("IncludeDiscovery", () => {
   // #1640: NOT under `src/`. A test that writes into the tree another
   // test scans is the coupling -- `tmpdir()` has no scanner. The pid
@@ -47,18 +57,15 @@ describe("IncludeDiscovery", () => {
         "platformio.ini",
         "[env:esp32]",
       ],
-      ["finds project root with cnext.config.json", "cnext.config.json", "{}"],
-      ["finds project root with .cnext.json", ".cnext.json", "{}"],
-      ["finds project root with .cnextrc", ".cnextrc", "{}"],
+      ["finds project root with cnx.config.json", "cnx.config.json", "{}"],
+      ["finds project root with .cnx.json", ".cnx.json", "{}"],
+      ["finds project root with .cnxrc", ".cnxrc", "{}"],
       ["finds project root with package.json", "package.json", "{}"],
     ])("%s", (_label, source, source2) => {
       writeFileSync(join(testDir, source), source2);
       mkdirSync(join(testDir, "src"), { recursive: true });
 
-      const result = IncludeDiscovery.findProjectRoot(
-        join(testDir, "src"),
-        NodeFileSystem.instance,
-      );
+      const result = projectRoot(join(testDir, "src"), NodeFileSystem.instance);
 
       expect(result).toBe(resolve(testDir));
     });
@@ -67,7 +74,7 @@ describe("IncludeDiscovery", () => {
       mkdirSync(join(testDir, ".git"), { recursive: true });
       mkdirSync(join(testDir, "src", "modules"), { recursive: true });
 
-      const result = IncludeDiscovery.findProjectRoot(
+      const result = projectRoot(
         join(testDir, "src", "modules"),
         NodeFileSystem.instance,
       );
@@ -77,31 +84,50 @@ describe("IncludeDiscovery", () => {
 
     it("prefers platformio.ini over other markers", () => {
       writeFileSync(join(testDir, "platformio.ini"), "[env:esp32]");
-      writeFileSync(join(testDir, "cnext.config.json"), "{}");
+      writeFileSync(join(testDir, "cnx.config.json"), "{}");
       mkdirSync(join(testDir, "src"), { recursive: true });
 
-      const result = IncludeDiscovery.findProjectRoot(
-        join(testDir, "src"),
-        NodeFileSystem.instance,
-      );
+      const result = projectRoot(join(testDir, "src"), NodeFileSystem.instance);
 
       // Should find testDir since platformio.ini is checked first
       expect(result).toBe(resolve(testDir));
     });
 
     it("stops at first directory with marker", () => {
-      // Inner has cnext.config.json, outer has platformio.ini
+      // Inner has cnx.config.json, outer has platformio.ini
       const innerDir = join(testDir, "inner");
       mkdirSync(innerDir, { recursive: true });
       writeFileSync(join(testDir, "platformio.ini"), "[env]");
-      writeFileSync(join(innerDir, "cnext.config.json"), "{}");
+      writeFileSync(join(innerDir, "cnx.config.json"), "{}");
 
-      const result = IncludeDiscovery.findProjectRoot(
-        innerDir,
-        NodeFileSystem.instance,
-      );
+      const result = projectRoot(innerDir, NodeFileSystem.instance);
 
       expect(result).toBe(resolve(innerDir));
+    });
+
+    // #2165: an old-name config is not a marker; the walk passes it and
+    // returns it for discovery to report
+    it("passes an old-name config, returning it, and stops at the next marker", () => {
+      const files = new Set([
+        "/p/.git",
+        "/p/app/cnext.config.json",
+        "/cnext.config.json",
+      ]);
+      const fs = TestFileSystem.with({
+        exists: (path: string) => files.has(path),
+        isFile: (path: string) => files.has(path),
+      });
+
+      expect(IncludeDiscovery.findProjectRoot("/p/app/src", fs)).toEqual({
+        root: "/p",
+        renamedConfigs: [
+          {
+            path: "/p/app/cnext.config.json",
+            successor: "cnx.config.json",
+            besideConfig: null,
+          },
+        ],
+      });
     });
 
     it("returns null when no marker found", () => {
@@ -116,10 +142,7 @@ describe("IncludeDiscovery", () => {
         stat: () => ({ mtimeMs: 0 }),
       });
 
-      const result = IncludeDiscovery.findProjectRoot(
-        "/some/deep/path",
-        mockFs,
-      );
+      const result = projectRoot("/some/deep/path", mockFs);
 
       expect(result).toBeNull();
     });
@@ -133,9 +156,7 @@ describe("IncludeDiscovery", () => {
         stat: () => ({ mtimeMs: 0 }),
       });
 
-      expect(IncludeDiscovery.findProjectRoot("/some/deep/path", mockFs)).toBe(
-        "/",
-      );
+      expect(projectRoot("/some/deep/path", mockFs)).toBe("/");
     });
   });
 
@@ -509,7 +530,7 @@ describe("IncludeDiscovery", () => {
     it("includes file's own directory", () => {
       writeFileSync(join(testDir, "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -518,12 +539,12 @@ describe("IncludeDiscovery", () => {
     });
 
     it("adds common project directories when project root found", () => {
-      writeFileSync(join(testDir, "cnext.config.json"), "{}");
+      writeFileSync(join(testDir, "cnx.config.json"), "{}");
       mkdirSync(join(testDir, "include"), { recursive: true });
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -533,11 +554,11 @@ describe("IncludeDiscovery", () => {
     });
 
     it("removes duplicate paths", () => {
-      writeFileSync(join(testDir, "cnext.config.json"), "{}");
+      writeFileSync(join(testDir, "cnx.config.json"), "{}");
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -554,7 +575,7 @@ describe("IncludeDiscovery", () => {
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -576,7 +597,7 @@ lib_extra_dirs = extra_libs
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -594,7 +615,7 @@ lib_extra_dirs = extra_libs
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -622,7 +643,7 @@ lib_extra_dirs =
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -646,7 +667,7 @@ build_flags = not_a_lib_dir
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -670,7 +691,7 @@ lib_extra_dirs =
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -692,7 +713,7 @@ lib_extra_dirs = lib1, lib2
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -713,7 +734,7 @@ lib_extra_dirs = extra ; this is a comment
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -733,7 +754,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -746,7 +767,7 @@ lib_extra_dirs = "quoted lib"
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
       const discover = (ini: string) => {
         writeFileSync(join(testDir, "platformio.ini"), ini);
-        return IncludeDiscovery.discoverIncludePaths(
+        return includePaths(
           join(testDir, "src", "main.cnx"),
           NodeFileSystem.instance,
         );
@@ -775,7 +796,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -791,7 +812,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -808,7 +829,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -832,7 +853,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -860,11 +881,11 @@ lib_extra_dirs = "quoted lib"
         mkdirSync(join(mockHome, "Arduino", "libraries", "MyLib"), {
           recursive: true,
         });
-        writeFileSync(join(testDir, "cnext.config.json"), "{}");
+        writeFileSync(join(testDir, "cnx.config.json"), "{}");
         mkdirSync(join(testDir, "src"), { recursive: true });
         writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-        const paths = IncludeDiscovery.discoverIncludePaths(
+        const paths = includePaths(
           join(testDir, "src", "main.cnx"),
           NodeFileSystem.instance,
         );
@@ -885,11 +906,11 @@ lib_extra_dirs = "quoted lib"
         mkdirSync(join(mockHome, "Arduino", "libraries", "MyLib", "src"), {
           recursive: true,
         });
-        writeFileSync(join(testDir, "cnext.config.json"), "{}");
+        writeFileSync(join(testDir, "cnx.config.json"), "{}");
         mkdirSync(join(testDir, "src"), { recursive: true });
         writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-        const paths = IncludeDiscovery.discoverIncludePaths(
+        const paths = includePaths(
           join(testDir, "src", "main.cnx"),
           NodeFileSystem.instance,
         );
@@ -914,7 +935,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -928,7 +949,7 @@ lib_extra_dirs = "quoted lib"
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -948,7 +969,7 @@ lib_extra_dirs = nonexistent_dir
       mkdirSync(join(testDir, "src"), { recursive: true });
       writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-      const paths = IncludeDiscovery.discoverIncludePaths(
+      const paths = includePaths(
         join(testDir, "src", "main.cnx"),
         NodeFileSystem.instance,
       );
@@ -965,11 +986,11 @@ lib_extra_dirs = nonexistent_dir
         delete process.env.HOME;
         delete process.env.USERPROFILE;
 
-        writeFileSync(join(testDir, "cnext.config.json"), "{}");
+        writeFileSync(join(testDir, "cnx.config.json"), "{}");
         mkdirSync(join(testDir, "src"), { recursive: true });
         writeFileSync(join(testDir, "src", "main.cnx"), "void main() {}");
 
-        const paths = IncludeDiscovery.discoverIncludePaths(
+        const paths = includePaths(
           join(testDir, "src", "main.cnx"),
           NodeFileSystem.instance,
         );
