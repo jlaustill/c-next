@@ -8,6 +8,13 @@ interface IValuePosition {
   readonly typeText: string | null;
   /** Whether the position takes a whole array */
   readonly isArray: boolean;
+  /**
+   * The sizes a whole array here is counted against, leading first (ADR-035,
+   * E0866): an assignment target's, a field's or a parameter's. A size that
+   * does not fold is its C spelling. Empty for a declaration, whose sizes are
+   * its own syntax and are counted from there, and wherever no array is taken.
+   */
+  readonly dimensions: ReadonlyArray<number | string>;
   /** A declaration, whose whole-array initializer ADR-035's rule checks */
   readonly isDeclaration: boolean;
   /** Whether an array initializer stands between the value and the position */

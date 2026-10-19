@@ -1,0 +1,46 @@
+// test-error
+// test-adr: 014
+// #2157: an array parameter takes an array, or a list of its own shape. A
+// scalar was accepted at exit 0 and passed as a one-element buffer.
+#include "readers.cnx"
+#include "arg-macros.h"
+
+void take(u8[4] buf) {}
+
+void grid(u8[2][2] g) {}
+
+void pair(u8[2] p) {}
+
+u8[4] source <- [1, 2, 3, 4];
+u8 one <- 1;
+
+void calls() {
+    // NEGATIVE CONTROLS -- an array, a list, a fill-all and a nested list.
+    take(source);
+    take([1, 2, 3, 4]);
+    take([0*]);
+    grid([[1, 2], [3, 4]]);
+    take(TABLE);
+
+    // ASSERTION 1 -- a scalar literal.
+    take(5);
+    // ASSERTION 2 -- a scalar variable.
+    take(one);
+    // ASSERTION 3 -- a list that is too short.
+    take([1, 2, 3]);
+    // ASSERTION 4 -- an inner level with the wrong count.
+    grid([[1, 2, 3], [4, 5]]);
+    // ASSERTION 5 -- a scalar for a callee declared across an include.
+    u32 r <- sumFour(5);
+    // ASSERTION 6 -- a C macro's scalar.
+    take(LIMIT);
+}
+
+void viaCallback(pair cb) {
+    // NEGATIVE CONTROL -- a list of the callback's parameter's shape.
+    cb([1, 2]);
+    // ASSERTION 7 -- a list too long for a callback's parameter (ADR-029).
+    cb([1, 2, 3]);
+    // ASSERTION 8 -- a scalar for a callback's parameter.
+    cb(5);
+}

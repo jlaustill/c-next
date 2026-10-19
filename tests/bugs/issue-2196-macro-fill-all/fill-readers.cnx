@@ -1,0 +1,10 @@
+// #2196: a struct and a callee declared across an include, for fill-error.test.cnx
+#include "dims.h"
+
+struct Packet {
+    u8[NDIM] data;
+}
+
+u8 last(u8[NDIM] buf) {
+    return buf[3];
+}

@@ -14,6 +14,7 @@
  * that reaches here is one 1.2 judged and accepted.
  */
 
+import ArrayListCount from "./helpers/ArrayListCount";
 import ConstantExpression from "./helpers/ConstantExpression";
 import ForHeaderVariable from "../../utils/ForHeaderVariable";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
@@ -21,11 +22,10 @@ import OperandTyper from "../../utils/OperandTyper";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
-import type TExpression from "../../types/syntax/TExpression";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-type TDimension = number | null;
+type TDimension = number | string | null;
 
 class ArrayDeclarationCheck {
   private readonly found: IArrayDeclarationError[] = [];
@@ -65,41 +65,18 @@ class ArrayDeclarationCheck {
       return;
     }
     const sizes: TDimension[] = type.dimensions.map((size) =>
-      size === null ? null : ConstantExpression.valueAt(size, this.context),
+      size === null
+        ? null
+        : (ConstantExpression.valueAt(size, this.context) ?? size.written),
     );
-    this.checkLevel(initializer, sizes, 0);
-  }
-
-  /** Count one level of a nested list against its dimension, then descend. */
-  private checkLevel(
-    initializer: Extract<TExpression, { kind: "arrayInitializer" }>,
-    sizes: readonly TDimension[],
-    level: number,
-  ): void {
-    if (initializer.fill !== null) return; // fill-all covers this level
-    const elements = initializer.elements;
-    const declared = sizes[level];
-    if (
-      declared !== null &&
-      declared !== undefined &&
-      elements.length !== declared
-    ) {
-      const where = level > 0 ? ` at nesting level ${level + 1}` : "";
-      this.found.push({
-        code: "E0866",
-        line: initializer.span.line,
-        column: initializer.span.column,
-        message: `Array size mismatch: declared [${declared}] but the initializer has ${elements.length} element(s)${where}`,
-        helpText:
-          "Give one element per slot, or use the fill-all form such as [0*] (ADR-035).",
-      });
-      return;
-    }
-    for (const element of elements) {
-      if (element.kind === "arrayInitializer") {
-        this.checkLevel(element, sizes, level + 1);
-      }
-    }
+    this.found.push(
+      ...ArrayListCount.mismatches(
+        initializer,
+        sizes,
+        type.element.text,
+        this.context,
+      ),
+    );
   }
 }
 

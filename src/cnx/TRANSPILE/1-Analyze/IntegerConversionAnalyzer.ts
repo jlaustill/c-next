@@ -168,12 +168,13 @@ class IntegerConversionCheck {
    * E0918: a value that is not a string at a position that types it one
    * string<N> (ADR-045, #1634) -- whatever it is, as `OperandTyper.isStringValue`
    * decides. True when reported. Unreported, it reached the string copy, which
-   * takes the value as an address.
+   * takes the value as an address. A string array's list element is E0866's
+   * (ADR-035, #2195), which takes only a string literal there.
    */
   private checkNonStringAt(value: TExpression): boolean {
-    const target = StructInitializerType.valueTypeAt(
-      ValuePositions.at(this.positions, value),
-    );
+    const position = ValuePositions.at(this.positions, value);
+    if (position.inList) return false;
+    const target = StructInitializerType.valueTypeAt(position);
     if (target === null || !TypeCheckUtils.isSizedStringName(target)) {
       return false;
     }

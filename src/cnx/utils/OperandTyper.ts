@@ -285,6 +285,60 @@ class OperandTyper {
     return OperandTyper.walkChain(target, ctx).last;
   }
 
+  /** What a target's chain is rooted in: the declaration it writes into */
+  static rootOfTarget(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): TValueBinding | null {
+    return OperandTyper.walkChain(target, ctx).typing.root;
+  }
+
+  /**
+   * ADR-014: the arrays a value passes by reference -- itself, or each value
+   * arm of a ternary, through parentheses. Null when one is not an array: a
+   * list, a string literal or a scalar is not passed as it stands, and nor is
+   * a value the typer cannot type (a C macro such as `#define LIMIT 5`), which
+   * is asked for a list as a scalar is.
+   */
+  static arrayArms(
+    expr: TExpression,
+    ctx: ITypingContext,
+  ): TExpression[] | null {
+    const inner = ExpressionShape.unparenthesized(expr);
+    if (inner.kind === "ternary") {
+      const whenTrue = OperandTyper.arrayArms(inner.whenTrue, ctx);
+      const whenFalse = OperandTyper.arrayArms(inner.whenFalse, ctx);
+      return whenTrue === null || whenFalse === null
+        ? null
+        : [...whenTrue, ...whenFalse];
+    }
+    if (
+      inner.kind === "arrayInitializer" ||
+      inner.kind === "structInitializer" ||
+      ExpressionShape.isStringLiteral(inner)
+    ) {
+      return null;
+    }
+    const typed = OperandTyper.typeOf(inner, ctx);
+    return typed !== null && typed.dimensions.length > 0 ? [inner] : null;
+  }
+
+  /**
+   * The dimensions an assignment target takes a whole array of (#1782):
+   * none for a scalar, an element, or an ADR-007 slice, which writes a
+   * value's bytes rather than an array.
+   */
+  static wholeArrayDimensions(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): ReadonlyArray<number | string> {
+    const { typing, last } = OperandTyper.walkChain(target, ctx);
+    if (last === null || typing.steps.at(-1)?.subscript === "array_slice") {
+      return [];
+    }
+    return last.dimensions;
+  }
+
   /** The chain typed, and the value it ends on */
   private static walkChain(
     chain: TExpression,
@@ -490,8 +544,9 @@ class OperandTyper {
   /**
    * #1634: whether a value is a string, as the `string<N>` it lands in reads
    * it (ADR-045): a string literal; a `string<N>` or unsized `string` -- an
-   * element, a field, a concatenation or a substring of one included; a C
-   * `char` array; or a substring of a string, its `s[0]` among them. False for
+   * element or a field of one included; a concatenation of strings, or a
+   * ternary between two; a C `char` array; or a substring of a string, its
+   * `s[0]` among them. False for
    * every other value the typer types, so a category added later is no string
    * until this says so. Null for a value the typer leaves untyped, a header's
    * pointer among them (ForeignTypeFacts.operandType), which C judges.
@@ -503,13 +558,11 @@ class OperandTyper {
     if (value.kind === "parenthesized") {
       return OperandTyper.isStringValue(value.expression, ctx);
     }
-    if (value.kind === "ternary") {
-      const arms = [
-        OperandTyper.isStringValue(value.whenTrue, ctx),
-        OperandTyper.isStringValue(value.whenFalse, ctx),
-      ];
-      if (arms.includes(false)) return false;
-      return arms.includes(null) ? null : true;
+    const parts = OperandTyper.stringParts(value);
+    if (parts !== null) {
+      const each = parts.map((part) => OperandTyper.isStringValue(part, ctx));
+      if (each.includes(false)) return false;
+      return each.includes(null) ? null : true;
     }
     if (ExpressionShape.isStringLiteral(value)) return true;
     const t = OperandTyper.typeOf(value, ctx);
@@ -519,6 +572,24 @@ class OperandTyper {
       (t.typeName === "char" && t.dimensions.length === 1) ||
       OperandTyper.isSubstring(value, ctx)
     );
+  }
+
+  /**
+   * The values a ternary or a `+` chain is a string of, when each is: its two
+   * arms, or its operands -- three or more among them, which #1954 tracks
+   */
+  private static stringParts(
+    value: TExpression,
+  ): readonly TExpression[] | null {
+    if (value.kind === "ternary") return [value.whenTrue, value.whenFalse];
+    if (
+      value.kind === "binary" &&
+      value.level === "additive" &&
+      value.operators.every((operator) => operator === "+")
+    ) {
+      return value.operands;
+    }
+    return null;
   }
 
   /**

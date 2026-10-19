@@ -77,6 +77,9 @@ enum AssignmentKind {
   /** buffer[0, 10] <- source (slice assignment: per-element little-endian writes, ADR-007/#1081) */
   ARRAY_SLICE,
 
+  /** buf <- [1, 2, 3, 4] (a whole array given its list: a temporary, copied, #1782) */
+  WHOLE_ARRAY,
+
   // === Special operations ===
 
   /** atomic counter +<- 1 (atomic read-modify-write) */

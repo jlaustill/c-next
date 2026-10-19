@@ -1,0 +1,4 @@
+// #2209: a callee declared across an include, for element-error.test.cnx
+u8 fourth(u8[4] buf) {
+    return buf[3];
+}

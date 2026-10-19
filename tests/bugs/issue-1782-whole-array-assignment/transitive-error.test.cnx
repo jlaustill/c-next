@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 014
+// #1782: whether an assignment target is a whole array is read from its
+// declaration, here two includes away, through a helper. A scalar or a list of
+// the wrong length is E0866 in each context; the full lists are the controls,
+// and stay silent.
+#include "shared-chain.cnx"
+
+void f() {
+    mut Packet p;
+    sharedBuf <- 5;
+    sharedBuf <- [1, 2, 3, 4];
+    p.payload <- [1, 2];
+    p.payload <- [1, 2, 3, 4];
+}
+
+scope S {
+    public void method() {
+        sharedBuf <- [1, 2, 3];
+        sharedBuf <- [0*];
+    }
+}

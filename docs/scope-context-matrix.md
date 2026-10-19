@@ -124,7 +124,7 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-7 linked fixtures with no derivable context:
+10 linked fixtures with no derivable context:
 
 - `adr-014/struct-inferred-every-position.test.cnx`
 - `adr-014/struct-literal-argument-by-value-callback.test.cnx`
@@ -133,6 +133,9 @@ cell is declared by the ADR that owns it.
 - `adr-014/struct-literal-argument.test.cnx`
 - `adr-014/struct-literal-for-header.test.cnx`
 - `adr-014/struct-literal-positions.test.cnx`
+- `bugs/issue-1782-whole-array-assignment/list-assignment.test.cnx`
+- `bugs/issue-2157-array-parameter-list/list-argument.test.cnx`
+- `bugs/issue-2157-array-parameter-list/ternary-argument.test.cnx`
 
 ## ADR-015
 
@@ -272,7 +275,7 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-19 linked fixtures with no derivable context:
+20 linked fixtures with no derivable context:
 
 - `adr-029/callback-assign.test.cnx`
 - `adr-029/callback-basic.test.cnx`
@@ -293,6 +296,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1562-fn-type-variable-header/fn-type-variable.test.cnx`
 - `bugs/issue-1566-struct-init-all-fields/struct-init-all-fields.test.cnx`
 - `bugs/issue-1568-init-designated-position/init-designated-position.test.cnx`
+- `bugs/issue-2157-array-parameter-list/chained-call.test.cnx`
 
 ## ADR-030
 
@@ -348,15 +352,16 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | -      | -          | n/a         | n/a        |
-| top-level function | ok        | -      | -          | n/a         | n/a        |
+| top-level function | ok        | ok     | -          | n/a         | n/a        |
 | scope member       | ok        | -      | -          | n/a         | n/a        |
-| scope method       | ok        | -      | -          | n/a         | n/a        |
+| scope method       | ok        | ok     | -          | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+3 linked fixtures with no derivable context:
 
 - `adr-035/empty-dimension-included.test.cnx`
 - `adr-035/inferred-size-render.test.cnx`
+- `bugs/issue-2110-nested-fill-all/nested-fill.test.cnx`
 
 ## ADR-036
 

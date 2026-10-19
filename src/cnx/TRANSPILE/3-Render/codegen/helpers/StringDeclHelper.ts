@@ -137,44 +137,11 @@ class StringDeclHelper {
       }
     }
 
-    // Handle fill-all expansion if needed
-    const finalInitValue = StringDeclHelper._expandFillAll(
-      initValue,
-      plan.declaredSize,
-      state,
-    );
-
     // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
     // but C standard guarantees zero-initialization of remaining elements
     const suppression =
       "// cppcheck-suppress misra-c2012-9.3\n// cppcheck-suppress misra-c2012-9.4\n";
-    return `${suppression}${decl} = ${finalInitValue};`;
-  }
-
-  /**
-   * Expand fill-all syntax (`{= value}`) to one element per declared slot.
-   */
-  private static _expandFillAll(
-    initValue: string,
-    declaredSize: number | null,
-    state: TranspileState,
-  ): string {
-    const fillVal = state.lastArrayFillValue;
-    if (fillVal === undefined) {
-      return initValue;
-    }
-
-    // Empty string fill doesn't need expansion (C handles {""} correctly)
-    if (fillVal === '""') {
-      return initValue;
-    }
-
-    if (declaredSize === null) {
-      return initValue;
-    }
-
-    const elements = new Array<string>(declaredSize).fill(fillVal);
-    return `{${elements.join(", ")}}`;
+    return `${suppression}${decl} = ${initValue};`;
   }
 
   /**

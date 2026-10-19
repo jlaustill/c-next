@@ -1,0 +1,8 @@
+// #1782: an array and a struct with an array field, declared one include hop
+// from the fixtures that assign them a whole value.
+struct Packet {
+    u8[4] payload;
+    u32 id;
+}
+
+mut u8[4] sharedBuf <- [0*];

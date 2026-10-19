@@ -1,0 +1,52 @@
+// test-execution
+// test-adr: 029
+// #2157 review: each call in a chain takes its arguments by its own callee.
+// Every call was placed against the chain's first callee, so
+// `make(seed).op(5)` was checked against make's `u8[2] seed` (a false E0866)
+// and `makeLast().op([1, 2])` passed a one-element compound literal.
+u8 id(u8 v) {
+    return v;
+}
+
+u8 last(u8[2] pair) {
+    return pair[1];
+}
+
+struct Ops {
+    id op;
+}
+
+struct Lasts {
+    last op;
+}
+
+Ops gOps <- { op: id };
+Lasts gLasts <- { op: last };
+
+Ops make(u8[2] seed) {
+    u8 s <- seed[0];
+    if (s > 100) {
+        return gOps;
+    }
+    return gOps;
+}
+
+Lasts makeLast() {
+    return gLasts;
+}
+
+u8[2] seed <- [1, 2];
+
+u32 main() {
+    // A scalar for a later call's scalar parameter, after an array argument
+    u8 a <- make(seed).op(5);
+    // A list for a later call's array parameter
+    u8 b <- makeLast().op([7, 9]);
+    if (a != 5) {
+        return 1;
+    }
+    if (b != 9) {
+        return 2;
+    }
+    return 0;
+}

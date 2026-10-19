@@ -795,19 +795,18 @@ describe("StringDeclHelper", () => {
       ).toThrow("a string array is initialized from literals");
     });
 
-    // #1644: a fill-all expands to one element per DECLARED slot, so a plan
-    // whose declaredSize did not fold leaves the literal alone -- which is the
-    // shape the hex and const spellings used to produce.
-    it("expands a fill-all across every declared slot", () => {
+    // #2110: the walker expands a fill-all (ArrayInitHelper.fillAll); the
+    // declaration emits the list as rendered.
+    it("emits a fill-all's list as rendered", () => {
       const code = StringDeclHelper.generateStringDecl(
         array({
           elementCapacity: 8,
           dimensions: "[3]",
           declaredSize: 3,
           renderInit: () => {
-            state.lastArrayInitCount = 1;
+            state.lastArrayInitCount = 0;
             state.lastArrayFillValue = '"ab"';
-            return '{"ab"}';
+            return '{"ab", "ab", "ab"}';
           },
         }),
         "filled",
@@ -817,48 +816,6 @@ describe("StringDeclHelper", () => {
       );
 
       expect(code).toContain('{"ab", "ab", "ab"}');
-    });
-
-    it("leaves the fill alone when the declared size did not fold", () => {
-      const code = StringDeclHelper.generateStringDecl(
-        array({
-          elementCapacity: 8,
-          dimensions: "[SIZE]",
-          declaredSize: null,
-          renderInit: () => {
-            state.lastArrayInitCount = 1;
-            state.lastArrayFillValue = '"ab"';
-            return '{"ab"}';
-          },
-        }),
-        "unfolded",
-        NO_MODS,
-        false,
-        state,
-      );
-
-      expect(code).toContain('{"ab"}');
-    });
-
-    it('does not expand an empty-string fill (C handles {""} correctly)', () => {
-      const code = StringDeclHelper.generateStringDecl(
-        array({
-          elementCapacity: 8,
-          dimensions: "[3]",
-          declaredSize: 3,
-          renderInit: () => {
-            state.lastArrayInitCount = 1;
-            state.lastArrayFillValue = '""';
-            return '{""}';
-          },
-        }),
-        "empties",
-        NO_MODS,
-        false,
-        state,
-      );
-
-      expect(code).toContain('{""}');
     });
 
     it("generates string array with modifiers", () => {

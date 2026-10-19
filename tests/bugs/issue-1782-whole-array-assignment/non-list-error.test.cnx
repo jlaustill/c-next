@@ -1,0 +1,75 @@
+// test-error
+// test-adr: 014
+// #1782: an array's whole value at an assignment target is ADR-035's list
+// (ADR-014), which counts one element per slot. Another array, a scalar, or a
+// list of the wrong length was emitted as a C array assignment, which C
+// rejects, at exit 0.
+#include "shared-arrays.cnx"
+
+struct H {
+    u8[4] buf;
+}
+
+u8[4] source <- [1, 2, 3, 4];
+u8[8] wide <- [0*];
+u16 word <- 0x0102;
+
+struct Labels {
+    string<8>[3] items;
+    string<8>[2][3] cells;
+}
+mut Labels labelled;
+
+void assignments() {
+    mut u8[4] a <- [0*];
+    mut H h <- { buf: [0*] };
+    mut u8[2][2] grid <- [[0, 0], [0, 0]];
+    mut string<8>[2] names <- ["a", "b"];
+    string<8>[2] others <- ["c", "d"];
+    mut u8[6] text <- [0*];
+    mut Packet pk <- { payload: [0*], id: 1 };
+
+    // NEGATIVE CONTROLS -- a list, a fill-all, a row's list, and element writes.
+    a <- [1, 2, 3, 4];
+    a <- [0*];
+    grid[0] <- [1, 2];
+    a[0] <- source[1];
+    h.buf[1] <- 2;
+    a[0, 2] <- word;
+    text <- "Hello";
+
+    // ASSERTION 1 -- another array of the same type.
+    a <- source;
+    // ASSERTION 2 -- an array of another length.
+    a <- wide;
+    // ASSERTION 3 -- a scalar.
+    a <- 5;
+    // ASSERTION 4 -- a struct's array field from another array.
+    h.buf <- source;
+    // ASSERTION 5 -- a row from another array.
+    grid[1] <- source;
+    // ASSERTION 6 -- a string array from another string array.
+    names <- others;
+    // ASSERTION 7 -- an array declared across an include.
+    sharedBuf <- source;
+    // ASSERTION 8 -- a field of a struct declared across an include.
+    pk.payload <- source;
+    // ASSERTION 9 -- too few elements.
+    a <- [1, 2, 3];
+    // ASSERTION 10 -- too many elements.
+    a <- [1, 2, 3, 4, 5];
+    // ASSERTION 11 -- an inner level with the wrong count.
+    grid <- [[1, 2, 3], [4, 5]];
+    // ASSERTION 12 -- a field's list with the wrong count.
+    h.buf <- [1, 2];
+    // ASSERTION 13 -- a struct initializer's array field from another array.
+    H fromArray <- { buf: source };
+    // ASSERTION 14 -- a struct initializer's array field with the wrong count.
+    H shortList <- { buf: [1, 2] };
+    // ASSERTION 15 -- a string array from one string (#1899).
+    names <- "x";
+    // ASSERTION 16 -- a struct's string-array field from one string (#1899).
+    labelled.items <- "x";
+    // ASSERTION 17 -- a row of a string grid from one string (#1899).
+    labelled.cells[0] <- "x";
+}

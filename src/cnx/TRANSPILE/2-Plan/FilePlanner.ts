@@ -41,6 +41,7 @@ import PublicInterface from "./PublicInterface";
 import PlanTyping from "./PlanTyping";
 import CompositeType from "../../utils/CompositeType";
 import type IOperandType from "../../types/IOperandType";
+import type TValueBinding from "../../types/TValueBinding";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionFacts from "../../types/IEmissionFacts";
@@ -55,6 +56,7 @@ import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import TypeText from "../../utils/TypeText";
 import ExpressionShape from "../../utils/ExpressionShape";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import MutArgument from "../1-Analyze/helpers/MutArgument";
@@ -95,12 +97,14 @@ import TypeGenerationHelper from "./TypeGenerationHelper";
 import type IPlannedType from "./types/IPlannedType";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
 import type IValuePositions from "../../types/IValuePositions";
+import type IValuePosition from "../../types/IValuePosition";
 import type IValueSite from "../../types/IValueSite";
 import type TValueSite from "../../types/TValueSite";
 import type IPlannedExpectedType from "./types/IPlannedExpectedType";
 import type IFilePlan from "./types/IFilePlan";
 import type IPlannedClamp from "./types/IPlannedClamp";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
+import type IPlannedWholeArrayWrite from "./types/IPlannedWholeArrayWrite";
 import SliceSource from "./SliceSource";
 import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import invariant from "../../utils/invariant";
@@ -628,12 +632,14 @@ class FilePlanner {
    * expression and fails at file scope on GCC < 13. So is one outside any
    * function, and in C++ one of an anonymous struct or union, since each
    * `struct { ... }` is its own type there (#882). Any other is a compound
-   * literal.
+   * literal. A whole array's list is its temporary's declaration initializer
+   * (#1782), so its elements are plain too.
    */
   private planStructInitializers(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
+    wholeArrayValues: ReadonlySet<TExpression>,
   ): ReadonlyMap<TExpressionOf<"structInitializer">, TStructInitializerForm> {
     const { declarationInits, inFunctions } =
       FilePlanner.initializerPositions(program);
@@ -662,14 +668,15 @@ class FilePlanner {
         expr,
         plain,
       )) {
-        visit(child, childPlain, inFunction);
+        visit(child, childPlain || wholeArrayValues.has(child), inFunction);
       }
     };
     for (const { part } of WrittenParts.of(program, inlinedConsts)) {
       if (part.kind !== "expression" || part.constant) continue;
       visit(
         part.expression,
-        declarationInits.has(part.expression),
+        declarationInits.has(part.expression) ||
+          wholeArrayValues.has(part.expression),
         inFunctions.has(part.expression),
       );
     }
@@ -1003,14 +1010,28 @@ class FilePlanner {
       ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
+    const wholeArrayWrites = this.planWholeArrayWrites(
+      valuePositions,
+      decidedCTypes,
+    );
+    const wholeArrayArguments = FilePlanner.planWholeArrayArguments(
+      valuePositions,
+      decidedCTypes,
+    );
+    const fillSizes = this.planFillSizes(valuePositions);
     const structInitializers = this.planStructInitializers(
       program,
       inlinedConsts,
       expectedTypes,
+      new Set([
+        ...[...wholeArrayWrites.keys()].map((site) => site.value),
+        ...wholeArrayArguments.keys(),
+      ]),
     );
     const argumentPlans = this.planArguments(
       valuePositions,
       structInitializers,
+      wholeArrayArguments,
       decidedCTypes,
     );
     const clamps = this.planClamps(
@@ -1063,6 +1084,8 @@ class FilePlanner {
       stringCopies: stringCopies.copies,
       stringInitCopies: stringCopies.initCopies,
       stringCopyHelper: stringCopies.helper,
+      wholeArrayWrites,
+      fillSizes,
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1232,6 +1255,7 @@ class FilePlanner {
       TExpressionOf<"structInitializer">,
       TStructInitializerForm
     >,
+    wholeArrayArguments: ReadonlyMap<TExpression, IPlannedWholeArrayWrite>,
     cTypes: Set<string>,
   ): ReadonlyMap<TExpression, IPlannedArgument> {
     const planned = new Map<TExpression, IPlannedArgument>();
@@ -1244,10 +1268,12 @@ class FilePlanner {
 
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
-      const form =
-        passing.mode === "reference"
-          ? this.referenceForm(expression, passing, structInitializers)
-          : null;
+      const form = this.argumentForm(
+        expression,
+        passing,
+        wholeArrayArguments.get(expression),
+        structInitializers,
+      );
       const enumCast =
         passing.mode === "reference"
           ? null
@@ -1265,6 +1291,38 @@ class FilePlanner {
       if (cType !== null) cTypes.add(cType);
     }
     return planned;
+  }
+  /** A by-reference argument's form; a list for an array parameter is its temporary */
+  private argumentForm(
+    expression: TExpression,
+    passing: ReturnType<FilePlanner["argumentPassing"]>,
+    array: IPlannedWholeArrayWrite | undefined,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
+  ): TArgumentForm | null {
+    if (passing.mode !== "reference") return null;
+    if (array !== undefined) return { kind: "array-temp", array };
+    if (this.isArrayTernary(expression, passing)) {
+      return { kind: "array" };
+    }
+    return this.referenceForm(expression, passing, structInitializers);
+  }
+
+  /**
+   * ADR-014: a ternary of arrays for an array parameter is passed as it
+   * stands, the way each of its arms would be; the arms are 2.1's to check
+   */
+  private isArrayTernary(
+    expression: TExpression,
+    passing: IArgumentPassing,
+  ): boolean {
+    return (
+      passing.param?.isArray === true &&
+      ExpressionShape.unparenthesized(expression).kind === "ternary" &&
+      OperandTyper.arrayArms(expression, this.state.typingContext()) !== null
+    );
   }
 
   /**
@@ -1747,6 +1805,187 @@ class FilePlanner {
       found.add(initializer);
     }
     return found;
+  }
+
+  /**
+   * #1782: each `<-` that writes a whole array -- 2.1's position for its
+   * value says so, and 2.1 has checked that it is given what ADR-035 gives
+   * one (E0866) with `<-` alone (E0857) -- and the element type and
+   * dimensions its copy walks.
+   */
+  private planWholeArrayWrites(
+    valuePositions: IValuePositions,
+    cTypes: Set<string>,
+  ): ReadonlyMap<IAssignmentSyntax, IPlannedWholeArrayWrite> {
+    const typing = this.state.typingContext();
+    const planned = new Map<IAssignmentSyntax, IPlannedWholeArrayWrite>();
+    for (const [value, at] of valuePositions.sites) {
+      if (at.site.kind !== "assignment") continue;
+      const site = at.site.assignment;
+      const position = valuePositions.positions.get(value);
+      const dimensions = position?.dimensions ?? [];
+      if (site.value !== value || dimensions.length === 0) continue;
+      const written = OperandTyper.typeOfTarget(site.target, typing);
+      const typeName = written?.typeName ?? null;
+      invariant(
+        written !== null && typeName !== null,
+        "a whole array's element type is named",
+      );
+      invariant(
+        ExpressionShape.givesWholeArray(value, typeName),
+        "2.1 gave a whole array its list (E0866)",
+      );
+      planned.set(
+        site,
+        FilePlanner.wholeArrayShape(
+          position?.typeText ?? typeName,
+          written.cType,
+          dimensions,
+          value,
+          FilePlanner.isVolatileTarget(
+            OperandTyper.rootOfTarget(site.target, typing),
+          ),
+        ),
+      );
+      cTypes.add("uint32_t");
+    }
+    return planned;
+  }
+
+  /**
+   * #2157: each list (or a `u8` array's string) given for an array
+   * parameter, and the temporary of the parameter's shape it is passed as.
+   * 2.1's E0866 has counted it against the parameter.
+   */
+  private static planWholeArrayArguments(
+    valuePositions: IValuePositions,
+    cTypes: Set<string>,
+  ): ReadonlyMap<TExpression, IPlannedWholeArrayWrite> {
+    const planned = new Map<TExpression, IPlannedWholeArrayWrite>();
+    for (const [expression, at] of valuePositions.sites) {
+      if (at.site.kind !== "argument") continue;
+      const position = valuePositions.positions.get(expression);
+      if (
+        !position?.isArray ||
+        position.dimensions.length === 0 ||
+        position.typeText === null
+      ) {
+        continue;
+      }
+      const element = TypeText.withoutDimensions(position.typeText);
+      if (!ExpressionShape.givesWholeArray(expression, element)) continue;
+      const shape = FilePlanner.wholeArrayShape(
+        position.typeText,
+        null,
+        position.dimensions,
+        expression,
+        false,
+      );
+      planned.set(expression, shape);
+      cTypes.add(shape.elementCType);
+    }
+    return planned;
+  }
+
+  /**
+   * #2110 (ADR-035): how many slots each fill-all fills, at every level of a
+   * whole array's list -- a declaration's, an assignment target's, a field's
+   * or a parameter's. A size that does not fold is absent: 2.1 rejects any
+   * fill there but zero (#2196), which C's `{v}` already gives every slot.
+   */
+  private planFillSizes(
+    valuePositions: IValuePositions,
+  ): ReadonlyMap<TExpressionOf<"arrayInitializer">, number> {
+    const found = new Map<TExpressionOf<"arrayInitializer">, number>();
+    for (const [value, at] of valuePositions.positions) {
+      if (value.kind !== "arrayInitializer" || at.inList) continue;
+      FilePlanner.fillSizesOf(
+        value,
+        this.listSizes(value, at, valuePositions),
+        0,
+        found,
+      );
+    }
+    return found;
+  }
+
+  /** The sizes a whole array's list fills, leading first; null: not folded */
+  private listSizes(
+    value: TExpression,
+    at: IValuePosition,
+    valuePositions: IValuePositions,
+  ): ReadonlyArray<number | null> {
+    if (!at.isDeclaration) {
+      return at.dimensions.map((size) =>
+        typeof size === "number" ? size : null,
+      );
+    }
+    const site = valuePositions.sites.get(value)?.site;
+    if (site?.kind !== "declaration") return [];
+    const { type, dimensions } = site.declaration;
+    return [
+      ...(type.kind === "array" ? type.dimensions : []),
+      ...dimensions,
+    ].map((size) => (size === null ? null : (this.constantOf(size) ?? null)));
+  }
+
+  private static fillSizesOf(
+    list: TExpressionOf<"arrayInitializer">,
+    sizes: ReadonlyArray<number | null>,
+    level: number,
+    found: Map<TExpressionOf<"arrayInitializer">, number>,
+  ): void {
+    const size = sizes[level];
+    if (list.fill !== null && typeof size === "number") found.set(list, size);
+    for (const element of list.fill === null ? list.elements : [list.fill]) {
+      if (element.kind === "arrayInitializer") {
+        FilePlanner.fillSizesOf(element, sizes, level + 1, found);
+      }
+    }
+  }
+
+  /**
+   * A target declared `volatile` or `atomic` (which C writes `volatile`); a
+   * call in its subscript is a side effect, not a qualifier
+   */
+  private static isVolatileTarget(binding: TValueBinding | null): boolean {
+    if (binding?.kind === "local") {
+      return binding.declaration.isVolatile || binding.declaration.isAtomic;
+    }
+    if (binding?.kind === "variable") {
+      return binding.symbol.isVolatile || binding.symbol.isAtomic;
+    }
+    return false;
+  }
+
+  /**
+   * A whole array's shape from its position's type spelling, the one source
+   * an assignment target and a parameter share; `cType` is a header's own
+   * spelling of an unfixed-width element
+   */
+  private static wholeArrayShape(
+    typeText: string,
+    cType: string | null,
+    dimensions: ReadonlyArray<number | string>,
+    value: TExpression,
+    volatileTarget: boolean,
+  ): IPlannedWholeArrayWrite {
+    const element = TypeText.withoutDimensions(typeText);
+    if (TypeCheckUtils.isSizedStringName(element)) {
+      const capacity = Number(element.slice("string<".length, -1));
+      return {
+        elementCType: "char",
+        dimensions: [...dimensions, capacity + 1],
+        fromList: value.kind === "arrayInitializer",
+        volatileTarget,
+      };
+    }
+    return {
+      elementCType: cType ?? TYPE_MAP[element] ?? element,
+      dimensions,
+      fromList: value.kind === "arrayInitializer",
+      volatileTarget,
+    };
   }
 
   /**

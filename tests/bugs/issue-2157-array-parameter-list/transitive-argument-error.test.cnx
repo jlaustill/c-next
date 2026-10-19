@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 014
+// #2157: whether a parameter takes a whole array is read from its function,
+// here two includes away, through a helper. A scalar, a list of the wrong
+// length, or an array of another shape is E0866 in each context; the list and
+// the array of the parameter's shape are the controls, and stay silent.
+#include "readers-chain.cnx"
+
+u8[2] small <- [1, 2];
+u8[4] full <- [1, 2, 3, 4];
+
+void f() {
+    u32 a <- sumFour(5);
+    u32 b <- sumFour([1, 2]);
+    u32 c <- sumFour(small);
+    u32 d <- sumFour([1, 2, 3, 4]);
+    u32 e <- sumFour(full);
+}
+
+scope S {
+    public void method() {
+        u32 g <- sumFour([1, 2, 3, 4, 5]);
+        u32 h <- sumFour([0*]);
+    }
+}

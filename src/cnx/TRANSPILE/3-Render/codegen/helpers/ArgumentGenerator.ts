@@ -21,6 +21,7 @@ import type TranspileState from "../../../TranspileState";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
 import invariant from "../../../../utils/invariant";
+import ArrayInitHelper from "./ArrayInitHelper";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -130,7 +131,7 @@ class ArgumentGenerator {
           declared,
           state,
         );
-      case "array-member":
+      case "array":
         return callbacks.generateExpression();
       case "member-temp":
         return ArgumentGenerator.createCppMemberConversionTemp(
@@ -146,6 +147,12 @@ class ArgumentGenerator {
         return ArgumentGenerator.handleRvalueArg(
           form.compoundLiteral,
           callbacks,
+        );
+      case "array-temp":
+        return ArrayInitHelper.arrayArgument(
+          form.array,
+          callbacks.generateExpression(),
+          state,
         );
     }
   }

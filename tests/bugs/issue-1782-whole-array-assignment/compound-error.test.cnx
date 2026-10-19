@@ -1,0 +1,15 @@
+// test-error
+// #2193: a compound operator does not take a whole array. C has no array
+// assignment, and a whole array is given ADR-035's list with `<-` alone, so
+// a compound write to a whole array is E0857, as a slice or a string target
+// is, whatever its value: a list, an array or a scalar.
+mut u8[2] a <- [0*];
+u8[2] b <- [1, 2];
+
+void f() {
+    a +<- [1, 2];
+    a -<- b;
+    a +<- 1;
+    // Negative control: an element is a scalar, so its compound write stands
+    a[0] +<- 1;
+}

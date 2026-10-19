@@ -54,6 +54,7 @@ function createMockContext(
     state,
     // #1731 review: 2.2's decision is the case's input
     plannedStringCapacity: null,
+    plannedWholeArray: null,
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it

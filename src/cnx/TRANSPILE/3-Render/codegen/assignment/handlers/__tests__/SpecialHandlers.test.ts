@@ -65,6 +65,7 @@ function createMockContext(
     // it is handed, so the mock context carries the same instance the test
     // set its facts up on.
     state,
+    plannedWholeArray: null,
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it

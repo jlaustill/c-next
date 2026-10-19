@@ -269,6 +269,7 @@ describe("IntegerConversionAnalyzer", () => {
             inMain(
               '    string<4> s <- "ab";\n    string<8> t <- s;\n    string<8> u <- names[1];\n' +
                 '    string<8> v <- g.name;\n    string<8> w <- s + "c";\n    string<8> x <- s[0, 1];\n' +
+                '    string<8> w2 <- s + s;\n    string<8> w3 <- "ab" + "cd";\n    string<12> w4 <- s + s + s;\n' +
                 '    string<8> y <- (wide = 1) ? "y" : "n";\n    string<1> z <- s[0];\n' +
                 '    mut string<8> buffer <- "";\n    u16 half <- 7;\n    buffer[0, 2] <- half;',
             ),

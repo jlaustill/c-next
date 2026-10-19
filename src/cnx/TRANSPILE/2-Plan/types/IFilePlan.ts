@@ -15,6 +15,7 @@ import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import type IPlannedCast from "./IPlannedCast";
 import type IPlannedClamp from "./IPlannedClamp";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
+import type IPlannedWholeArrayWrite from "./IPlannedWholeArrayWrite";
 import type IPlannedExpectedType from "./IPlannedExpectedType";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
@@ -91,6 +92,16 @@ interface IFilePlan {
   readonly stringInitCopies: ReadonlySet<TExpression>;
   /** #2207: whether the file copies a string, through `cnx_string_copy` */
   readonly stringCopyHelper: boolean;
+  /**
+   * #2110 (ADR-035): how many slots each fill-all fills, at every level of a
+   * whole array's list. A fill whose size does not fold is absent.
+   */
+  readonly fillSizes: ReadonlyMap<TExpressionOf<"arrayInitializer">, number>;
+  /** #1782: each assignment that writes a whole array, and its copy's shape */
+  readonly wholeArrayWrites: ReadonlyMap<
+    IAssignmentSyntax,
+    IPlannedWholeArrayWrite
+  >;
 
   /**
    * MISRA 10.3 (#845): the C type a compound write to a narrow variable is
