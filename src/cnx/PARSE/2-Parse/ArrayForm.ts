@@ -252,9 +252,9 @@ class ArrayVariableForm {
     initializer: TExpression,
   ): void {
     if (initializer.kind !== "arrayInitializer") {
-      const isByteArray =
-        type.element.kind === "primitive" && type.element.name === "u8";
-      if (ExpressionShape.isStringLiteral(initializer) && isByteArray) return; // `u8[] s <- "Hello"` (ADR-035)
+      if (ExpressionShape.givesWholeArray(initializer, type.element.text)) {
+        return; // `u8[] s <- "Hello"` (ADR-035)
+      }
       this.report(
         initializer.span,
         "E0866",

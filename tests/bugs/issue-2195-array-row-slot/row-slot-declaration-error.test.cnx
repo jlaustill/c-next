@@ -1,0 +1,30 @@
+// test-error
+// test-adr: 035
+// #2195: ADR-035 counts one element per slot at every level, and ADR-014
+// makes a row a whole array, so an element at a level with dimensions left
+// is a list (or, for a u8 row, a string literal). A scalar or an array
+// variable there was accepted at exit 0 and reached C as brace elision
+// (partial initialization) or as a pointer initializing a uint8_t.
+// A declaration is asked before the other positions, so it is its own file:
+// row-slot-error.test.cnx holds an assignment target, a field and an argument.
+u8[2] row <- [1, 2];
+string<8>[2] names <- ["ab", "cd"];
+
+// NEGATIVE CONTROL -- a nested list and string literals stay silent.
+u8[2][2] OK_GRID <- [[1, 2], [3, 4]];
+string<8>[2] OK_NAMES <- ["ef", "gh"];
+u8[4][4] OK_FILLED <- [[0*], [0*], [0*], [0*]];
+string<8>[4] OK_BLANK <- [""*];
+
+void f() {
+    // ASSERTION 1 -- scalars where a declaration's rows are taken.
+    u8[2][2] a <- [1, 2];
+    // ASSERTION 2 -- array variables as a declaration's rows.
+    u8[2][2] b <- [row, row];
+    // ASSERTION 3 -- string variables as a declaration's strings.
+    string<8>[2] c <- [names[1], names[0]];
+    // ASSERTION 4 -- a fill-all's value stands in each row's slot.
+    u8[4][4] d <- [0*];
+    // ASSERTION 5 -- a fill-all's zero stands in each string's slot.
+    string<8>[4] e <- [0*];
+}

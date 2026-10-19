@@ -1,4 +1,4 @@
-31:0 error[E0862]: A string array requires an explicit capacity
+32:0 error[E0862]: A string array requires an explicit capacity
        help: Write the element capacity, e.g. string<64>[4].
-35:27 error[E0862]: A read-only string without a capacity requires a string literal to infer it from
+36:27 error[E0862]: A read-only string without a capacity requires a string literal to infer it from
        help: Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.

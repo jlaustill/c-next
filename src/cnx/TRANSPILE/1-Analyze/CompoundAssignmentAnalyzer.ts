@@ -37,7 +37,7 @@ import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
-type TRejection = "bit index" | "bit range or slice" | "string";
+type TRejection = "bit index" | "bit range or slice" | "string" | "whole array";
 
 class CompoundAssignmentCheck {
   private readonly found: ICompoundAssignmentError[] = [];
@@ -89,6 +89,11 @@ class CompoundAssignmentCheck {
       )
     ) {
       return "bit range or slice";
+    }
+    // #2193: a whole array is no one location either; C has no array
+    // assignment, and a list is given to one with `<-` alone (ADR-035)
+    if (OperandTyper.wholeArrayDimensions(target, this.context).length > 0) {
+      return "whole array";
     }
     const typing = OperandTyper.chainOf(target, this.context);
     if (typing.steps.some((step) => step.subscript === "bit_single")) {

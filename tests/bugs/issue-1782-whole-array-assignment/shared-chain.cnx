@@ -1,0 +1,3 @@
+// #1782: a helper between a fixture and the arrays it assigns, so they are
+// declared two include hops away.
+#include "shared-arrays.cnx"

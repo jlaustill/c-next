@@ -20,6 +20,7 @@ import bitAccessHandlers from "./handlers/BitAccessHandlers";
 import arrayHandlers from "./handlers/ArrayHandlers";
 import specialHandlers from "./handlers/SpecialHandlers";
 import accessPatternHandlers from "./handlers/AccessPatternHandlers";
+import handleWholeArray from "./handlers/WholeArrayHandler";
 
 /**
  * Initialize the handler registry with all handlers.
@@ -34,6 +35,10 @@ function initializeHandlers(): void {
   AssignmentHandlerRegistry.registerAll(arrayHandlers);
   AssignmentHandlerRegistry.registerAll(specialHandlers);
   AssignmentHandlerRegistry.registerAll(accessPatternHandlers);
+  AssignmentHandlerRegistry.register(
+    AssignmentKind.WHOLE_ARRAY,
+    handleWholeArray,
+  );
 }
 
 // Initialize handlers on module load
