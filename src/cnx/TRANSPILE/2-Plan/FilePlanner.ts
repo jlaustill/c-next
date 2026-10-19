@@ -2300,28 +2300,29 @@ class FilePlanner {
       form,
       exclusive: form === "ldrex-strex" ? exclusive : null,
     };
+    const valueCType = AtomicOperandType.valueCTypeOf(
+      OperandTyper.typeOf(site.value, typing),
+      this.tryEvaluateConstant(site.value),
+      access,
+    );
     if (site.operator !== "<-") {
       return {
         ...planned,
         operandCType: AtomicOperandType.ofCompound(
           access,
           clampType,
-          this.directTypeOf(site.value),
+          valueCType,
         ),
       };
     }
     const step = this.targetDeclaration(site.target).last;
-    const value = OperandTyper.typeOf(site.value, typing);
-    const valueType = OperandTyper.directTypeName(value);
     return {
       ...planned,
       operandCType: AtomicOperandType.ofBits(
         access,
         BitmapFieldStep.writesOneBit(step, bitmapField),
         writesFloatBits,
-        (valueType === null ? undefined : TYPE_MAP[valueType]) ??
-          value?.cType ??
-          null,
+        valueCType,
       ),
     };
   }

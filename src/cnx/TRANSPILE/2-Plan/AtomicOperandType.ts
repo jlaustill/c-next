@@ -1,6 +1,6 @@
 import type IAtomicAccess from "../../types/IAtomicAccess";
+import type IOperandType from "../../types/IOperandType";
 import invariant from "../../utils/invariant";
-import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ClampTypes from "./ClampTypes";
 import FloatBitType from "./FloatBitType";
 import TYPE_MAP from "./types/TYPE_MAP";
@@ -34,26 +34,56 @@ class AtomicOperandType {
 
   /**
    * A compound write: a clamp helper's `b` is its wider type (`ClampTypes`,
-   * #94: `cnx_clamp_add_u8(0, 256)` must give 255), and a wider float value
-   * keeps its own precision, as `f32 += f64` does. Any other value takes the
-   * atomic's type: a wrap or bitwise narrowing is modular, so the result is
-   * the same.
+   * #94: `cnx_clamp_add_u8(0, 256)` must give 255); any other value is held
+   * in the type the inline form computes it in (`valueCType`), as `v %<- d`
+   * divides by all of `d` and `f32 +<- d * 2.0` keeps the double (#2250,
+   * #2155 review 9) -- or the atomic's when the value has none.
    */
   static ofCompound(
     access: IAtomicAccess,
     clampType: string | null,
-    valueType: string | null,
+    valueCType: string | null,
   ): string {
     if (clampType !== null) {
       return ClampTypes.resolve(clampType)?.widerType ?? access.cType;
     }
-    const accessedWidth =
-      access.typeName === null ? undefined : TYPE_WIDTH[access.typeName];
-    const isWiderFloat =
-      valueType?.startsWith("f") === true &&
-      accessedWidth !== undefined &&
-      (TYPE_WIDTH[valueType] ?? 0) > accessedWidth;
-    return isWiderFloat ? TYPE_MAP[valueType] : access.cType;
+    return valueCType ?? access.cType;
+  }
+
+  /**
+   * The C type the inline form computes a written value in: its typed C
+   * type; a constant the typer gives none (`200`) in the unsigned type that
+   * holds it, no narrower than the atomic -- never a signed atomic's type
+   * (`int8_t __operand = 200U` is implementation-defined, C11 6.3.1.3p3); a
+   * negative constant in the atomic's type. Null when nothing gives it one.
+   */
+  static valueCTypeOf(
+    value: IOperandType | null,
+    folded: number | undefined,
+    access: IAtomicAccess,
+  ): string | null {
+    const typed =
+      value?.typeName === null || value?.typeName === undefined
+        ? undefined
+        : TYPE_MAP[value.typeName];
+    const literal = value?.form.kind === "literal";
+    if (typed !== undefined && (!literal || value?.category === "floating")) {
+      return typed;
+    }
+    if (folded !== undefined && Number.isInteger(folded)) {
+      if (folded < 0) return access.cType;
+      const least = Math.max(
+        AtomicOperandType.bitsFor(folded),
+        access.bits ?? 8,
+      );
+      const unsigned = [8, 16, 32, 64].find((bits) => bits >= least) ?? 64;
+      return TYPE_MAP[`u${unsigned}`];
+    }
+    return typed ?? value?.cType ?? null;
+  }
+
+  private static bitsFor(n: number): number {
+    return n === 0 ? 1 : Math.floor(Math.log2(n)) + 1;
   }
 }
 

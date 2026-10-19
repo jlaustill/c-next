@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type IOperandType from "../../../types/IOperandType";
 import AtomicOperandType from "../AtomicOperandType";
 
 const U8 = { typeName: "u8", cType: "uint8_t", bits: 8 };
@@ -9,19 +10,20 @@ const HEADER = { typeName: null, cType: "int_fast16_t", bits: 16 };
 describe("AtomicOperandType.ofCompound", () => {
   // #2120 review 2: the temporary must not narrow before the clamp helper
   it("holds a saturating value in the helper's wider type", () => {
-    expect(AtomicOperandType.ofCompound(U8, "u8", "u32")).toBe("uint32_t");
+    expect(AtomicOperandType.ofCompound(U8, "u8", "uint8_t")).toBe("uint32_t");
   });
 
   it("keeps a wider float value's precision", () => {
-    expect(AtomicOperandType.ofCompound(F32, null, "f64")).toBe("double");
+    expect(AtomicOperandType.ofCompound(F32, null, "double")).toBe("double");
   });
 
-  it("holds a wrapping integer value in the atomic's type", () => {
-    expect(AtomicOperandType.ofCompound(U8, null, "u32")).toBe("uint8_t");
+  it("holds a value in the type the inline form computes it in (#2250)", () => {
+    // `v %<- d` with a u32 `d` divides by all of `d`, as `pv % d` does
+    expect(AtomicOperandType.ofCompound(U8, null, "uint32_t")).toBe("uint32_t");
   });
 
   it("holds a C header type's value in its C type", () => {
-    expect(AtomicOperandType.ofCompound(HEADER, null, "u32")).toBe(
+    expect(AtomicOperandType.ofCompound(HEADER, null, null)).toBe(
       "int_fast16_t",
     );
   });
@@ -53,5 +55,44 @@ describe("AtomicOperandType.ofBits", () => {
 
   it("falls back to the atomic's C type for a value with none", () => {
     expect(AtomicOperandType.ofBits(U8, false, false, null)).toBe("uint8_t");
+  });
+});
+
+describe("AtomicOperandType.valueCTypeOf", () => {
+  const literal = {
+    typeName: "int",
+    category: "signed",
+    form: { kind: "literal" },
+  } as unknown as IOperandType;
+  const I8 = { typeName: "i8", cType: "int8_t", bits: 8 };
+
+  it("holds a constant in the unsigned type that holds it, never a signed atomic's", () => {
+    expect(AtomicOperandType.valueCTypeOf(literal, 200, I8)).toBe("uint8_t");
+    expect(AtomicOperandType.valueCTypeOf(literal, 256, U8)).toBe("uint16_t");
+    expect(AtomicOperandType.valueCTypeOf(literal, 5, U32)).toBe("uint32_t");
+  });
+
+  it("holds a negative constant in the atomic's type", () => {
+    expect(AtomicOperandType.valueCTypeOf(literal, -1, I8)).toBe("int8_t");
+  });
+
+  it("holds a typed value in its own C type", () => {
+    const typed = {
+      typeName: "u32",
+      category: "unsigned",
+      form: { kind: "declared" },
+    } as unknown as IOperandType;
+    expect(AtomicOperandType.valueCTypeOf(typed, undefined, U8)).toBe(
+      "uint32_t",
+    );
+  });
+
+  it("holds a float literal in its float type", () => {
+    const f = {
+      typeName: "f64",
+      category: "floating",
+      form: { kind: "literal" },
+    } as unknown as IOperandType;
+    expect(AtomicOperandType.valueCTypeOf(f, 2, F32)).toBe("double");
   });
 });
