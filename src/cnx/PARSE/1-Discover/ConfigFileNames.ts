@@ -59,7 +59,7 @@ class ConfigFileNames {
    * run under an unreadable ancestor config).
    */
   static readIn(dir: string, fs: IFileSystem): IConfigRead {
-    const unreadable: { path: string; message: string }[] = [];
+    const unreadable: { path: string; reason: string }[] = [];
     for (const name of CONFIG_FILE_NAMES) {
       const path = join(dir, name);
       if (!fs.isFile(path)) {
@@ -69,7 +69,10 @@ class ConfigFileNames {
       try {
         content = fs.readFile(path);
       } catch (err) {
-        unreadable.push({ path, message: CaughtError.messageOf(err) });
+        unreadable.push({
+          path,
+          reason: `Failed to read config ${path}: ${CaughtError.messageOf(err)}`,
+        });
         continue;
       }
       if (content.trim() !== "") {

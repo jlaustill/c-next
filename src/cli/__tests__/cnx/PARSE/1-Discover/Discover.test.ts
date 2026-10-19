@@ -287,6 +287,31 @@ describe("Discover", () => {
       ]);
     });
 
+    // A source run is the editor's (serve mode): its text lives in memory,
+    // and the run is anchored where it says the text sits (#1719)
+    it("reports one the walk from a source run's text passes", () => {
+      fs = new MockFileSystem()
+        .addFile("/proj/.git", "")
+        .addFile("/proj/src/lib.cnx", "u32 one() { return 1; }\n")
+        .addFile("/proj/cnext.config.json", "{}");
+
+      const { errors } = Discover.run(
+        {
+          kind: "source",
+          source: '#include "lib.cnx"\n\nvoid main() { }\n',
+          sourcePath: "/proj/src/app.cnx",
+        },
+        RunAnchor.at(settings.input, null, settings, fs),
+        settings,
+        fs,
+        [],
+      );
+
+      expect(errors).toEqual([
+        renamedError("/proj/cnext.config.json", "cnx.config.json"),
+      ]);
+    });
+
     it("stops reporting it once the file is renamed, at the same anchor", () => {
       fs = project().addFile("/proj/cnext.config.json", "{}");
       const anchor = RunAnchor.at(settings.input, null, settings, fs);

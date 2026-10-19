@@ -143,7 +143,11 @@ describe("ConfigFileNames (#2165)", () => {
       expect(ConfigFileNames.readIn("/p", fs)).toEqual({
         config: { path: "/p/.cnxrc", content: "{}" },
         unreadable: [
-          { path: "/p/cnx.config.json", message: "EACCES: permission denied" },
+          {
+            path: "/p/cnx.config.json",
+            reason:
+              "Failed to read config /p/cnx.config.json: EACCES: permission denied",
+          },
         ],
       });
     });

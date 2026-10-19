@@ -102,23 +102,17 @@ class PlatformIOCommand {
     }
     // #2221 review: a config it cannot read was only a warning, so install
     // wrote on: a crash half-installed, or a cnx.config.json shadowing it
-    for (const file of config.unreadable) {
-      console.error(
-        `Error: Failed to read config ${file.path}: ${file.message}; nothing was written. Fix it and run --pio-install again.`,
-      );
-    }
     if (config.unreadable.length > 0) {
-      process.exit(1);
+      PlatformIOCommand.stopBeforeWriting(
+        config.unreadable.map((file) => file.reason),
+      );
     }
     const existing: TConfigObject =
       config.kind === "found"
         ? ConfigLoader.objectOf(config)
         : { kind: "object", config: {} };
     if (existing.kind === "invalid") {
-      console.error(
-        `Error: ${existing.reason}; nothing was written. Fix it and run --pio-install again.`,
-      );
-      process.exit(1);
+      PlatformIOCommand.stopBeforeWriting([existing.reason]);
     }
     const configPath =
       config.kind === "found"
@@ -201,6 +195,19 @@ transpile_cnext()
       "The transpiler will follow includes from main.cnx automatically.",
     );
     console.log("Commit both .cnx and generated .c files to version control.");
+  }
+
+  /**
+   * Stop before anything is written, with each reason the project's config
+   * cannot be used: the one way install refuses a config (#2221 review).
+   */
+  private static stopBeforeWriting(reasons: readonly string[]): never {
+    for (const reason of reasons) {
+      console.error(
+        `Error: ${reason}; nothing was written. Fix it and run --pio-install again.`,
+      );
+    }
+    process.exit(1);
   }
 
   /** `pioIni` with the pre-build script in its `extra_scripts`. */

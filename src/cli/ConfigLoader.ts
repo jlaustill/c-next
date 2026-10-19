@@ -123,9 +123,7 @@ class ConfigLoader {
       const found = ConfigLoader.inDirectory(dir, fs);
       if (found.kind !== "renamed") {
         for (const file of found.unreadable) {
-          console.error(
-            `Warning: Failed to read config ${file.path}: ${file.message}`,
-          );
+          console.error(`Warning: ${file.reason}`);
         }
       }
       if (found.kind !== "none" || dirname(dir) === dir) {

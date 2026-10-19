@@ -5,9 +5,10 @@
  */
 interface IConfigRead {
   readonly config: { readonly path: string; readonly content: string } | null;
+  /** Each file passed, and why, as its one rendering for every caller. */
   readonly unreadable: readonly {
     readonly path: string;
-    readonly message: string;
+    readonly reason: string;
   }[];
 }
 
