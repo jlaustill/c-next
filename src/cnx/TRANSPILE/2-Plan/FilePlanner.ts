@@ -1317,7 +1317,7 @@ class FilePlanner {
     passing: IArgumentPassing,
   ): boolean {
     return (
-      passing.param?.isArray === true &&
+      passing.param?.isArray === false &&
       ExpressionShape.unparenthesized(expression).kind === "ternary" &&
       OperandTyper.arrayArms(expression, this.state.typingContext()) !== null
     );
