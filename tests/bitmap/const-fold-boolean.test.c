@@ -21,7 +21,7 @@ int main(void) {
         return 2U;
     }
     const bool val = true;
-    f = (uint8_t)((f & ~(1U << 2)) | (1U << 2));
+    f = (uint8_t)((f & ~(1U << 2)) | ((val ? 1U : 0U) << 2));
     if (((f >> 2) & 1) != true) {
         return 3U;
     }

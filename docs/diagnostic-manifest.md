@@ -12,11 +12,12 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-670 fixture(s) assert a diagnostic; 660 carry a code.
+673 fixture(s) assert a diagnostic; 663 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
 | tests/adr-004/register-access-uncovered-arms-error.test.cnx                                      | E0870, E0871, E0872 |
+| tests/adr-004/register-imported-bitmap-access-error.test.cnx                                     | E0870, E0871, E0872 |
 | tests/adr-004/register-imported-direct-error.test.cnx                                            | E0870, E0871, E0872 |
 | tests/adr-004/register-imported-transitive-error.test.cnx                                        | E0870, E0871, E0872 |
 | tests/adr-004/register-read-wo-error.test.cnx                                                    | E0870               |
@@ -207,6 +208,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0864               |
 | tests/adr-045/string-imported-transitive-global-error.test.cnx                                   | E0863               |
 | tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
+| tests/adr-049/atomic-const-error.test.cnx                                                        | E0898               |
 | tests/adr-049/atomic-mut-error.test.cnx                                                          | E0919               |
 | tests/adr-049/atomic-mut-in-function-error.test.cnx                                              | E0919               |
 | tests/adr-049/atomic-mut-in-scope-method-error.test.cnx                                          | E0919               |
@@ -235,6 +237,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-058/length-property-scope-struct-transitive-error.test.cnx                             | E0867, E0886        |
 | tests/adr-058/length-property-top-level-struct-field-error.test.cnx                              | E0886               |
 | tests/adr-058/length-property-wrong-type-error.test.cnx                                          | E0867               |
+| tests/adr-068/for-header-multi-statement-c-header-type-error.test.cnx                            | E0715               |
 | tests/adr-068/for-header-multi-statement-error.test.cnx                                          | E0715               |
 | tests/adr-068/for-header-multi-statement-imported-direct-error.test.cnx                          | E0715               |
 | tests/adr-068/for-header-multi-statement-imported-transitive-error.test.cnx                      | E0715               |

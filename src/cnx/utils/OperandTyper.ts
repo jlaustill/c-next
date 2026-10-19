@@ -1430,19 +1430,19 @@ class OperandTyper {
         const info =
           register?.kind === "register" ? register.members.get(member) : null;
         if (!info) return UNKNOWN;
+        // #2155 review 8: the member is named whether or not its type
+        // resolves (an included bitmap does not, #1514), so its access rules
+        // still apply to it
+        const registerMember = {
+          register: current.name,
+          cName: QualifiedCName.fromParts([current.name, member]),
+        };
         if (info.bitmapType) {
           const t = {
             ...OperandTyper.plain(info.bitmapType),
             bitmapTypeName: info.bitmapType,
           };
-          return {
-            k: "value",
-            registerMember: {
-              register: current.name,
-              cName: QualifiedCName.fromParts([current.name, member]),
-            },
-            t,
-          };
+          return { k: "value", registerMember, t };
         }
         // A member records its C spelling (`uint16_t`)
         const foreign = ForeignTypeFacts.operandType(
@@ -1450,16 +1450,11 @@ class OperandTyper {
           ctx.symbolTable,
           OperandTyper.target(ctx),
         );
-        if (!foreign) return UNKNOWN;
-        const t = { ...foreign, form: DECLARED };
-        return {
-          k: "value",
-          registerMember: {
-            register: current.name,
-            cName: QualifiedCName.fromParts([current.name, member]),
-          },
-          t,
-        };
+        const t =
+          foreign === null
+            ? OperandTyper.plain(null)
+            : { ...foreign, form: DECLARED };
+        return { k: "value", registerMember, t };
       }
       case "foreignPath":
         return OperandTyper.foreignPathOf([...current.parts, member], ctx);

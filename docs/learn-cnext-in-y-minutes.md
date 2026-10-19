@@ -39,7 +39,7 @@ mut bool flag;  // bool
 // Assignment uses <- (not =)
 mut u32 x <- 42;
 
-// Every binding is read-only unless declared mut (ADR-071). The generated C
+// Every binding is read-only unless declared mut (ADR-071; atomic implies mut). The generated C
 // marks a read-only binding `const`; a binding the code writes says `mut`.
 u32 limit <- 10;            // read-only: const uint32_t limit = 10U;
 mut u32 total <- 0;         // written below, so it is declared mut

@@ -12,13 +12,12 @@
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import type TAtomicForm from "../../../../types/TAtomicForm";
+import type IPlannedAtomic from "../../../../types/IPlannedAtomic";
 import LDREX_MAP from "../../../../2-Plan/types/LDREX_MAP";
 import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
 import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
-import ClampTypes from "../../../../2-Plan/ClampTypes";
 import TYPE_WIDTH from "../../../../../types/TYPE_WIDTH";
 import type ICompareExchangeViews from "../../../../types/ICompareExchangeViews";
 
@@ -44,8 +43,7 @@ const STREX_MAP: Record<string, string> = {
 function generateInnerAtomicOp(
   cOp: string,
   value: string,
-  typeInfo: TTypeInfo,
-  helperOp: string | null,
+  clampHelper: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
   const simpleOp = COMPOUND_TO_BINARY[cOp];
@@ -55,11 +53,8 @@ function generateInnerAtomicOp(
   );
 
   // Saturate when the classifier chose a clamp helper
-  if (helperOp) {
-    return {
-      code: `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`,
-      effects,
-    };
+  if (clampHelper) {
+    return { code: `${clampHelper}(__old, ${value})`, effects };
   }
 
   // For wrap behavior, floats, or non-clamp ops, use natural arithmetic
@@ -72,30 +67,6 @@ function generateInnerAtomicOp(
  * call in it again.
  */
 const OPERAND = "__operand";
-
-/**
- * The C type `__operand` holds the value in, so hoisting it narrows nothing
- * the inline form would not (#2120 review 2). A clamp helper's `b` is the
- * wider type (`ClampTypes`, #94: `cnx_clamp_add_u8(0, 256)` must give 255),
- * and a wider float value keeps its own precision, as `f32 += f64` does. A
- * wrap or bitwise integer value takes the variable's type: that narrowing is
- * modular, so the result is the same.
- */
-function operandCType(
-  typeInfo: TTypeInfo,
-  clampOp: string | null,
-  valueType: string | null,
-): string {
-  const cType = TYPE_MAP[typeInfo.baseType];
-  if (clampOp) {
-    return ClampTypes.resolve(typeInfo.baseType)?.widerType ?? cType;
-  }
-  const isWiderFloat =
-    valueType !== null &&
-    valueType.startsWith("f") &&
-    (TYPE_WIDTH[valueType] ?? 0) > (TYPE_WIDTH[typeInfo.baseType] ?? 0);
-  return isWiderFloat ? TYPE_MAP[valueType] : cType;
-}
 
 /**
  * Generate LDREX/STREX retry loop for atomic RMW.
@@ -169,6 +140,7 @@ function plainViews(cType: string): ICompareExchangeViews {
  * @param innerOp - The new value, computed from `__old` and `__operand`
  * @param libatomic - The type is wider than the target's word (ADR-049
  *   `word_size`), so GCC calls libatomic for it; the comment says so
+ * @param cType - The C type the atomic value is accessed as
  * @param views - How `__old` and `__new` are declared and accessed: the
  *   value's own type, or an atomic float's bits unions (#2155 review)
  */
@@ -176,11 +148,11 @@ function generateCompareExchangeLoop(
   target: string,
   value: string,
   innerOp: string,
-  typeInfo: TTypeInfo,
+  cType: string,
   innerEffects: readonly TGeneratorEffect[],
-  operandType: string = TYPE_MAP[typeInfo.baseType],
+  operandType: string = cType,
   libatomic: boolean = false,
-  views: ICompareExchangeViews = plainViews(TYPE_MAP[typeInfo.baseType]),
+  views: ICompareExchangeViews = plainViews(cType),
 ): IGeneratorOutput {
   const wide = libatomic
     ? " The type is wider than the target's word, so the compiler calls libatomic's __atomic_*_N for it."
@@ -210,8 +182,7 @@ function generatePrimaskWrapper(
   target: string,
   cOp: string,
   value: string,
-  typeInfo: TTypeInfo,
-  helperOp: string | null,
+  clampHelper: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
 
@@ -219,8 +190,8 @@ function generatePrimaskWrapper(
   let assignment: string;
 
   // Saturate when the classifier chose a clamp helper
-  if (helperOp) {
-    assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
+  if (clampHelper) {
+    assignment = `${target} = ${clampHelper}(${target}, ${value});`;
   } else {
     assignment = `${target} ${cOp} ${value};`;
   }
@@ -229,8 +200,13 @@ function generatePrimaskWrapper(
   return { code: masked.code, effects: [...effects, ...masked.effects] };
 }
 
-/** The type info of an atomic value accessed as the C-Next integer `baseType` */
-function accessedAs(baseType: string): TTypeInfo {
+/** The type info of an atomic value LDREX/STREX accesses: always a C-Next integer */
+function exclusiveAccess(atomic: IPlannedAtomic): TTypeInfo {
+  const baseType = atomic.typeName;
+  invariant(
+    baseType !== null && LDREX_MAP[baseType] !== undefined,
+    `2.2 plans an LDREX/STREX loop only for an exclusive-access type (got ${baseType ?? atomic.cType})`,
+  );
   return {
     baseType,
     bitWidth: TYPE_WIDTH[baseType] ?? 0,
@@ -239,62 +215,66 @@ function accessedAs(baseType: string): TTypeInfo {
   };
 }
 
+/** The ADR-044 helper a saturating compound write calls, or null */
+function clampHelperOf(
+  atomic: IPlannedAtomic,
+  clampOp: string | null,
+): string | null {
+  if (clampOp === null) return null;
+  invariant(
+    atomic.typeName !== null,
+    "2.2 plans a clamp helper only for a C-Next integer",
+  );
+  return `cnx_clamp_${clampOp}_${atomic.typeName}`;
+}
+
 /**
  * ADR-049: Generate atomic Read-Modify-Write operation.
  * Written in the form 2.2 decided: LDREX/STREX, the masked region, or a
- * compare-exchange loop.
+ * compare-exchange loop, with the types 2.2 planned.
  *
  * @param target - The target variable expression
  * @param cOp - The C compound assignment operator (+=, -=, etc.)
  * @param value - The value expression
- * @param baseType - The C-Next integer 2.2 planned the atomic value as
+ * @param atomic - 2.2's plan: the form, what the value is accessed as, and
+ *   the C type `__operand` holds the value in
  * @param clampOp - ADR-044 helper operation from
  *   `AssignmentClassifier.compoundClamp`, or null for plain arithmetic
- * @param form - The form 2.2 planned for this write
- * @param valueType - The value's C-Next type, or null when unknown
  * @returns Generated code and effects
  */
 function generateAtomicRMW(
   target: string,
   cOp: string,
   value: string,
-  baseType: string,
+  atomic: IPlannedAtomic,
   clampOp: string | null,
-  form: TAtomicForm,
-  valueType: string | null = null,
 ): IGeneratorOutput {
-  const typeInfo = accessedAs(baseType);
-  const operandType = operandCType(typeInfo, clampOp, valueType);
-
-  if (form === "interrupt-mask") {
-    return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
+  const clampHelper = clampHelperOf(atomic, clampOp);
+  if (atomic.form === "interrupt-mask") {
+    return generatePrimaskWrapper(target, cOp, value, clampHelper);
   }
 
   // A retry loop reads the value once, through `__operand` (#1807)
-  const innerResult = generateInnerAtomicOp(cOp, OPERAND, typeInfo, clampOp);
+  const innerResult = generateInnerAtomicOp(cOp, OPERAND, clampHelper);
 
-  if (form === "ldrex-strex") {
-    invariant(
-      LDREX_MAP[baseType] !== undefined,
-      `2.2 plans an LDREX/STREX loop only for an exclusive-access type (got ${baseType})`,
-    );
+  if (atomic.form === "ldrex-strex") {
     return generateLdrexStrexLoop(
       target,
       value,
       innerResult.code,
-      typeInfo,
+      exclusiveAccess(atomic),
       innerResult.effects,
-      operandType,
+      atomic.operandCType,
     );
   }
   return generateCompareExchangeLoop(
     target,
     value,
     innerResult.code,
-    typeInfo,
+    atomic.cType,
     innerResult.effects,
-    operandType,
-    form === "compare-exchange-libatomic",
+    atomic.operandCType,
+    atomic.form === "compare-exchange-libatomic",
   );
 }
 
@@ -304,40 +284,37 @@ function generateAtomicRMW(
  * from the value read: the target itself inside the masked region, `__old`
  * in a retry loop, which reads the written value once, through `__operand`.
  *
- * @param baseType - The C-Next integer the atomic value is accessed as
- * @param operandType - The C type `__operand` holds the written value in
+ * @param atomic - 2.2's plan: the form, what the value is accessed as, and
+ *   the C type `__operand` holds the written value in
  */
 function generateAtomicStore(
   target: string,
   value: string,
-  operandType: string,
-  baseType: string,
+  atomic: IPlannedAtomic,
   newValue: (read: string, value: string) => string,
-  form: TAtomicForm,
 ): IGeneratorOutput {
-  if (form === "interrupt-mask") {
+  if (atomic.form === "interrupt-mask") {
     return InterruptMask.wrap(`${target} = ${newValue(target, value)};`);
   }
-  const typeInfo = accessedAs(baseType);
   const inner = newValue("__old", OPERAND);
-  if (form === "ldrex-strex") {
+  if (atomic.form === "ldrex-strex") {
     return generateLdrexStrexLoop(
       target,
       value,
       inner,
-      typeInfo,
+      exclusiveAccess(atomic),
       [],
-      operandType,
+      atomic.operandCType,
     );
   }
   return generateCompareExchangeLoop(
     target,
     value,
     inner,
-    typeInfo,
+    atomic.cType,
     [],
-    operandType,
-    form === "compare-exchange-libatomic",
+    atomic.operandCType,
+    atomic.form === "compare-exchange-libatomic",
   );
 }
 

@@ -65,3 +65,32 @@ describe("BitmapFieldStep.writesBits", () => {
     ).toBe(false);
   });
 });
+
+describe("BitmapFieldStep.writesOneBit", () => {
+  it("is a bit index, or a one-bit field", () => {
+    const one = { offset: 0, width: 1 } as IBitmapFieldLayout;
+    expect(
+      BitmapFieldStep.writesOneBit(step({ subscript: "bit_single" }), null),
+    ).toBe(true);
+    expect(
+      BitmapFieldStep.writesOneBit(step({ member: "A" }), {
+        bitmapType: "Flags",
+        fieldName: "A",
+        layout: one,
+      }),
+    ).toBe(true);
+  });
+
+  it("is not a bit range or a wider field", () => {
+    expect(
+      BitmapFieldStep.writesOneBit(step({ subscript: "bit_range" }), null),
+    ).toBe(false);
+    expect(
+      BitmapFieldStep.writesOneBit(step({ member: "Mode" }), {
+        bitmapType: "Flags",
+        fieldName: "Mode",
+        layout,
+      }),
+    ).toBe(false);
+  });
+});

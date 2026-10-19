@@ -453,6 +453,12 @@ function runAnalyzers(
       run: () => new ArrayIndexBoundsAnalyzer(context).analyze(parsed.program),
     },
     {
+      // Before read-only enforcement: `atomic mut` is E0919 once, not E0899
+      // asking for `atomic` to go and then for `mut` (#2155 review 8)
+      label: "declaration modifiers (ADR-049, E0889/E0919)",
+      run: () => new DeclarationModifierAnalyzer().analyze(parsed.program),
+    },
+    {
       label: "read-only enforcement (ADR-071, E0900/E0899)",
       run: () => new ConstAssignmentAnalyzer(context).analyze(parsed.program),
     },
@@ -491,10 +497,6 @@ function runAnalyzers(
     {
       label: "no sizeof (ADR-023, E0603)",
       run: () => new SizeofAnalyzer().analyze(parsed.program),
-    },
-    {
-      label: "declaration modifiers (ADR-049, E0889)",
-      run: () => new DeclarationModifierAnalyzer().analyze(parsed.program),
     },
     {
       label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",

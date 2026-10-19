@@ -15,7 +15,7 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 // Expression generators
 // Statement generators
 import atomicGenerators from "./generators/statements/AtomicGenerator";
-import type TAtomicForm from "../../types/TAtomicForm";
+import type IPlannedAtomic from "../../types/IPlannedAtomic";
 // Declaration generators
 // ADR-065: Extracted utilities
 import FormatUtils from "../../../utils/FormatUtils";
@@ -732,19 +732,15 @@ export default class CodeGenerator implements IOrchestrator {
     target: string,
     cOp: string,
     value: string,
-    baseType: string,
+    atomic: IPlannedAtomic,
     clampOp: string | null,
-    form: TAtomicForm,
-    valueType: string | null,
   ): string {
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
-      baseType,
+      atomic,
       clampOp,
-      form,
-      valueType,
     );
     this.applyEffects(result.effects);
     return result.code;
@@ -759,18 +755,14 @@ export default class CodeGenerator implements IOrchestrator {
   generateAtomicStore(
     target: string,
     value: string,
-    operandType: string,
-    baseType: string,
+    atomic: IPlannedAtomic,
     newValue: (read: string, value: string) => string,
-    form: TAtomicForm,
   ): string {
     const result = atomicGenerators.generateAtomicStore(
       target,
       value,
-      operandType,
-      baseType,
+      atomic,
       newValue,
-      form,
     );
     this.applyEffects(result.effects);
     return result.code;

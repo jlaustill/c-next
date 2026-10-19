@@ -30,10 +30,8 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
     ctx.cOp,
     ctx.generatedValue,
     // #1179: the value 2.2 found atomic, however the target spells it
-    atomic.typeName,
+    atomic,
     AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
-    atomic.form,
-    ctx.valueExpressionType(),
   );
 }
 

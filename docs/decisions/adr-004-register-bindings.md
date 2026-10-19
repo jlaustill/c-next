@@ -275,8 +275,9 @@ Attempting to write to a `ro` register or read from a `wo` register is a
 assignment (`+<-` and the others) reads its target, so it is a read of a `wo`
 member as well as a write.
 
-A **zero written to a single bit or bit range** of a write-1 member (`wo`,
-`w1s`, `w1c`) is also rejected (E0872): the hardware ignores zeros, so
+A **zero written to a single bit, a bit range or a bitmap field** of a
+write-1 member (`wo`, `w1s`, `w1c`) is also rejected (E0872, and for a field
+#2027): the hardware ignores zeros, so
 `REG.SET[3] <- false` cannot clear bit 3 and the author almost certainly wanted
 the corresponding CLEAR register. The rule is about the VALUE, not its spelling:
 `0`, `0x0`, `0b0`, `false` and a `const` that evaluates to zero are all the same
@@ -407,11 +408,11 @@ If done right, this could be C-Next's standout feature:
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                  | Asserted by                                          |
-| ----- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| E0870 | A `wo` member is read -- as an operand, an initializer, or the target of a compound assignment | `tests/adr-004/register-read-wo-error.test.cnx`      |
-| E0871 | An `ro` member is written -- whole, a bit, a bit range, or through a compound assignment       | `tests/adr-004/register-write-ro-error.test.cnx`     |
-| E0872 | A single bit or bit range of a `wo`/`w1s`/`w1c` member is assigned a compile-time zero         | `tests/adr-004/register-wo-set-false-error.test.cnx` |
+| Code  | Reported when                                                                                            | Asserted by                                                                                       |
+| ----- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| E0870 | A `wo` member is read -- as an operand, an initializer, or the target of a compound assignment           | `tests/adr-004/register-read-wo-error.test.cnx`                                                   |
+| E0871 | An `ro` member is written -- whole, a bit, a bit range, or through a compound assignment                 | `tests/adr-004/register-write-ro-error.test.cnx`                                                  |
+| E0872 | A single bit, a bit range or a bitmap field of a `wo`/`w1s`/`w1c` member is assigned a compile-time zero | `tests/adr-004/register-wo-set-false-error.test.cnx`, `tests/bugs/issue-2027-register-field-zero` |
 
 Each rule applies to every spelling of the member: `R.M`, `this.R.M`,
 `global.R.M`, `Scope.R.M` and `global.Scope.R.M` name the same hardware, so the

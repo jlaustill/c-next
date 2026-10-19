@@ -660,7 +660,12 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "+=",
-      atomic: { form: "ldrex-strex", typeName: "u32", operandCType: null },
+      atomic: {
+        form: "ldrex-strex",
+        typeName: "u32",
+        cType: "uint32_t",
+        operandCType: "uint32_t",
+      },
       cnextOp: "+<-",
     });
 

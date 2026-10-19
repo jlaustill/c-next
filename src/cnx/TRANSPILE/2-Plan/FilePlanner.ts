@@ -113,6 +113,7 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import AtomicOwner from "../../utils/AtomicOwner";
+import AtomicOperandType from "./AtomicOperandType";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
 import SymbolTypeResolver from "../../utils/TypeResolver";
@@ -370,6 +371,22 @@ class FilePlanner {
       AdrProvenance.record("010", type.span.line);
     }
     return resolved ?? type.text;
+  }
+
+  /**
+   * A written value's compile-time value, which a bit write folds into its
+   * mask (`BitUtils.boolToInt`). None when it reads a local: the fold would
+   * leave the local's declaration with no reader, which `-Wunused-variable`
+   * rejects (#1791, #2155 review 8). A `volatile` has none either way.
+   */
+  foldWrittenValue(expr: TExpression): number | undefined {
+    const typing = this.state.typingContext();
+    const readsLocal = ExpressionNodes.direct(expr).some(
+      (node) =>
+        (node.kind === "identifier" || node.kind === "postfix") &&
+        OperandTyper.typeOf(node, typing)?.binding?.kind === "local",
+    );
+    return readsLocal ? undefined : this.constantOf(expr);
   }
 
   /** Try to evaluate a constant expression at compile time */
@@ -981,12 +998,6 @@ class FilePlanner {
     const complementCasts = this.planComplementCasts(program, inlinedConsts);
     const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
     const bitmapFieldWrites = this.planBitmapFieldWrites(program);
-    const atomicForms = this.planInterruptSafety(
-      program,
-      bitmapFieldWrites,
-      decidedCTypes,
-      requirements,
-    );
     // ADR-007: each union copy is checked by the float static assert
     const floatBitWrites = [...floatBits.writes.values()].filter(
       (write) => write !== null,
@@ -1044,6 +1055,13 @@ class FilePlanner {
       inlinedConsts,
       foreignRegisterValues,
       decidedCTypes,
+    );
+    const atomicForms = this.planInterruptSafety(
+      program,
+      bitmapFieldWrites,
+      clamps.compound,
+      decidedCTypes,
+      requirements,
     );
     const sliceSources = new Map<IAssignmentSyntax, IPlannedSliceSource>();
     const compoundCasts = new Map<IAssignmentSyntax, string>();
@@ -2194,6 +2212,10 @@ class FilePlanner {
       IAssignmentSyntax,
       IBitmapFieldTarget | null
     >,
+    compoundClamps: ReadonlyMap<
+      IAssignmentSyntax,
+      { operation: string; cnxType: string } | null
+    >,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
   ): ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null> {
@@ -2214,17 +2236,18 @@ class FilePlanner {
         const atomic = this.atomicFormOf(
           site,
           bitmapFieldWrites.get(site) ?? null,
+          compoundClamps.get(site)?.cnxType ?? null,
         );
         forms.set(site, atomic);
         if (atomic === null) continue;
-        if (atomic.form !== "interrupt-mask" && atomic.operandCType !== null) {
-          // A retry loop holds a bit write's value in `__operand` (#1807)
+        if (atomic.form !== "interrupt-mask") {
+          // A retry loop holds the written value in `__operand` (#1807)
           cTypes.add(atomic.operandCType);
+          cTypes.add(atomic.cType);
         }
         if (atomic.form === "ldrex-strex") {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
-          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else if (
           atomic.form === "compare-exchange" ||
           atomic.form === "compare-exchange-libatomic"
@@ -2232,7 +2255,6 @@ class FilePlanner {
           requirements.noteCompareExchangeLoop(
             atomic.form === "compare-exchange-libatomic",
           );
-          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
           cTypes.add(PRIMASK_C_TYPE);
@@ -2254,53 +2276,44 @@ class FilePlanner {
   private atomicFormOf(
     site: IAssignmentSyntax,
     bitmapField: IBitmapFieldTarget | null,
+    clampType: string | null,
   ): IPlannedAtomic | null {
-    const typeName = AtomicOwner.ofWrite(
-      site,
-      this.state.typingContext(),
-      bitmapField,
-    );
-    if (typeName === null) return null;
+    const typing = this.state.typingContext();
+    const access = AtomicOwner.ofWrite(site, typing, bitmapField);
+    if (access === null) return null;
     AdrProvenance.record("049", site.target.span.line);
-    return {
-      form: FilePlanner.atomicFormFor(
-        this.state.targetDescription,
-        LDREX_MAP[typeName] !== undefined,
-        typeName,
-      ),
+    const typeName = access.typeName;
+    const form = FilePlanner.atomicFormFor(
+      this.state.targetDescription,
+      typeName !== null && LDREX_MAP[typeName] !== undefined,
       typeName,
-      operandCType: FilePlanner.bitsOperandCType(
-        site,
-        this.targetDeclaration(site.target).last,
-        bitmapField,
-        typeName,
+    );
+    if (site.operator !== "<-") {
+      return {
+        ...access,
+        form,
+        operandCType: AtomicOperandType.ofCompound(
+          access,
+          clampType,
+          this.directTypeOf(site.value),
+        ),
+      };
+    }
+    const step = this.targetDeclaration(site.target).last;
+    const value = OperandTyper.typeOf(site.value, typing);
+    const valueType = OperandTyper.directTypeName(value);
+    return {
+      ...access,
+      form,
+      operandCType: AtomicOperandType.ofBits(
+        access,
+        BitmapFieldStep.writesOneBit(step, bitmapField),
+        step?.before?.category === "floating",
+        (valueType === null ? undefined : TYPE_MAP[valueType]) ??
+          value?.cType ??
+          null,
       ),
     };
-  }
-
-  /**
-   * ADR-049 (#2200, #2155 review): the C type a retry loop holds a bit
-   * write's value in, decided here so 2.2 plans its header (a lone `bool`
-   * needs `<stdbool.h>`): a single bit or a one-bit field takes a `bool`,
-   * wider bits the integer they are written in -- a float's is its bits'
-   * unsigned integer. Null for a compound write, whose operand the atomic
-   * generator types from its clamp and its value.
-   */
-  private static bitsOperandCType(
-    site: IAssignmentSyntax,
-    step: IChainStep | undefined,
-    bitmapField: IBitmapFieldTarget | null,
-    typeName: string,
-  ): string | null {
-    if (site.operator !== "<-") return null;
-    const isOneBit =
-      bitmapField === null
-        ? step?.subscript === "bit_single"
-        : bitmapField.layout.width === 1;
-    if (isOneBit) return "bool";
-    return step?.before?.category === "floating"
-      ? FloatBitType.of(typeName)
-      : TYPE_MAP[typeName];
   }
 
   /**
@@ -2310,9 +2323,9 @@ class FilePlanner {
    */
   private static widerThanWord(
     target: ITargetDescription | null,
-    typeName: string,
+    typeName: string | null,
   ): boolean {
-    const width = TYPE_WIDTH[typeName];
+    const width = typeName === null ? undefined : TYPE_WIDTH[typeName];
     return target !== null && width !== undefined && width > target.word_size;
   }
 
@@ -2320,7 +2333,7 @@ class FilePlanner {
   private static atomicFormFor(
     target: ITargetDescription | null,
     exclusive: boolean,
-    typeName: string,
+    typeName: string | null,
   ): TAtomicForm {
     if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
     if (!ResolvedTarget.masksInterrupts(target)) {

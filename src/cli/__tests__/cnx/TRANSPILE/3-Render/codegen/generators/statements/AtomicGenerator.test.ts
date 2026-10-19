@@ -7,6 +7,8 @@
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../../../../../../../../cnx/TRANSPILE/3-Render/codegen/generators/statements/AtomicGenerator";
 import TTypeInfo from "../../../../../../../../cnx/types/TTypeInfo";
+import type IPlannedAtomic from "../../../../../../../../cnx/TRANSPILE/types/IPlannedAtomic";
+import type TAtomicForm from "../../../../../../../../cnx/TRANSPILE/types/TAtomicForm";
 
 const {
   generateAtomicRMW,
@@ -41,8 +43,7 @@ function createTypeInfo(
 describe("AtomicGenerator", () => {
   describe("generateInnerAtomicOp", () => {
     it("generates clamp helper for += with clamp behavior", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generateInnerAtomicOp("+=", "5", typeInfo, "add");
+      const result = generateInnerAtomicOp("+=", "5", "cnx_clamp_add_u32");
 
       expect(result.code).toBe("cnx_clamp_add_u32(__old, 5)");
       // 2.2 planned the helper; 2.3 reports nothing (#1991)
@@ -50,8 +51,7 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates clamp helper for -= with clamp behavior", () => {
-      const typeInfo = createTypeInfo("u16", "clamp");
-      const result = generateInnerAtomicOp("-=", "value", typeInfo, "sub");
+      const result = generateInnerAtomicOp("-=", "value", "cnx_clamp_sub_u16");
 
       expect(result.code).toBe("cnx_clamp_sub_u16(__old, value)");
       // 2.2 planned the helper; 2.3 reports nothing (#1991)
@@ -59,8 +59,7 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates clamp helper for *= with clamp behavior", () => {
-      const typeInfo = createTypeInfo("i8", "clamp");
-      const result = generateInnerAtomicOp("*=", "2", typeInfo, "mul");
+      const result = generateInnerAtomicOp("*=", "2", "cnx_clamp_mul_i8");
 
       expect(result.code).toBe("cnx_clamp_mul_i8(__old, 2)");
       // 2.2 planned the helper; 2.3 reports nothing (#1991)
@@ -68,58 +67,45 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates natural arithmetic when no clamp helper is chosen", () => {
-      const typeInfo = createTypeInfo("u32", "wrap");
-      const result = generateInnerAtomicOp("+=", "5", typeInfo, null);
+      const result = generateInnerAtomicOp("+=", "5", null);
 
       expect(result.code).toBe("__old + 5");
       expect(result.effects).toHaveLength(0);
     });
 
     it("generates natural arithmetic for non-clamp ops", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generateInnerAtomicOp("/=", "2", typeInfo, null);
+      const result = generateInnerAtomicOp("/=", "2", null);
 
       expect(result.code).toBe("__old / 2");
       expect(result.effects).toHaveLength(0);
     });
 
     it("generates natural arithmetic for bitwise ops", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-
-      expect(generateInnerAtomicOp("&=", "0xFF", typeInfo, null).code).toBe(
+      expect(generateInnerAtomicOp("&=", "0xFF", null).code).toBe(
         "__old & 0xFF",
       );
-      expect(generateInnerAtomicOp("|=", "0x01", typeInfo, null).code).toBe(
+      expect(generateInnerAtomicOp("|=", "0x01", null).code).toBe(
         "__old | 0x01",
       );
-      expect(generateInnerAtomicOp("^=", "mask", typeInfo, null).code).toBe(
+      expect(generateInnerAtomicOp("^=", "mask", null).code).toBe(
         "__old ^ mask",
       );
     });
 
     it("generates natural arithmetic for shift ops", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-
-      expect(generateInnerAtomicOp("<<=", "2", typeInfo, null).code).toBe(
-        "__old << 2",
-      );
-      expect(generateInnerAtomicOp(">>=", "4", typeInfo, null).code).toBe(
-        "__old >> 4",
-      );
+      expect(generateInnerAtomicOp("<<=", "2", null).code).toBe("__old << 2");
+      expect(generateInnerAtomicOp(">>=", "4", null).code).toBe("__old >> 4");
     });
 
     it("generates natural arithmetic for floats even with clamp", () => {
-      const typeInfo = createTypeInfo("f32", "clamp");
-      const result = generateInnerAtomicOp("+=", "1.0f", typeInfo, null);
+      const result = generateInnerAtomicOp("+=", "1.0f", null);
 
       expect(result.code).toBe("__old + 1.0f");
       expect(result.effects).toHaveLength(0);
     });
 
     it("refuses an operator that is not a compound assignment", () => {
-      const typeInfo = createTypeInfo("u32", "wrap");
-
-      expect(() => generateInnerAtomicOp("??=", "5", typeInfo, null)).toThrow(
+      expect(() => generateInnerAtomicOp("??=", "5", null)).toThrow(
         "an atomic read-modify-write is a compound assignment (got '??=')",
       );
     });
@@ -230,14 +216,7 @@ describe("AtomicGenerator", () => {
 
   describe("generatePrimaskWrapper", () => {
     it("generates PRIMASK wrapper for simple op", () => {
-      const typeInfo = createTypeInfo("u32", "wrap");
-      const result = generatePrimaskWrapper(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        null,
-      );
+      const result = generatePrimaskWrapper("counter", "+=", "1", null);
 
       // #1146: the ADR-050 wrappers a critical block masks through, not raw
       // CMSIS with no platform guard
@@ -250,60 +229,46 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates PRIMASK wrapper with clamp helper for +=", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
       const result = generatePrimaskWrapper(
         "counter",
         "+=",
         "5",
-        typeInfo,
-        "add",
+        "cnx_clamp_add_u32",
       );
 
       expect(result.code).toContain("counter = cnx_clamp_add_u32(counter, 5);");
     });
 
     it("generates PRIMASK wrapper with clamp helper for -=", () => {
-      const typeInfo = createTypeInfo("u16", "clamp");
       const result = generatePrimaskWrapper(
         "value",
         "-=",
         "10",
-        typeInfo,
-        "sub",
+        "cnx_clamp_sub_u16",
       );
 
       expect(result.code).toContain("value = cnx_clamp_sub_u16(value, 10);");
     });
 
     it("generates PRIMASK wrapper with clamp helper for *=", () => {
-      const typeInfo = createTypeInfo("i8", "clamp");
       const result = generatePrimaskWrapper(
         "factor",
         "*=",
         "2",
-        typeInfo,
-        "mul",
+        "cnx_clamp_mul_i8",
       );
 
       expect(result.code).toContain("factor = cnx_clamp_mul_i8(factor, 2);");
     });
 
     it("generates PRIMASK wrapper without clamp for /=", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-      const result = generatePrimaskWrapper("value", "/=", "2", typeInfo, null);
+      const result = generatePrimaskWrapper("value", "/=", "2", null);
 
       expect(result.code).toContain("value /= 2;");
     });
 
     it("generates PRIMASK wrapper without clamp for floats", () => {
-      const typeInfo = createTypeInfo("f32", "clamp");
-      const result = generatePrimaskWrapper(
-        "value",
-        "+=",
-        "1.0f",
-        typeInfo,
-        null,
-      );
+      const result = generatePrimaskWrapper("value", "+=", "1.0f", null);
 
       expect(result.code).toContain("value += 1.0f;");
     });
@@ -314,8 +279,20 @@ describe("AtomicGenerator", () => {
   // ============================================================================
 
   describe("generateAtomicRMW", () => {
-    const rmw = (baseType: string, form: "ldrex-strex" | "interrupt-mask") =>
-      generateAtomicRMW("counter", "+=", "1", baseType, "add", form);
+    const planned = (
+      typeName: string | null,
+      cType: string,
+      form: TAtomicForm,
+      operandCType: string = cType,
+    ): IPlannedAtomic => ({ form, typeName, cType, operandCType });
+    const rmw = (typeName: string, form: TAtomicForm) =>
+      generateAtomicRMW(
+        "counter",
+        "+=",
+        "1",
+        planned(typeName, typeName === "u64" ? "uint64_t" : "uint32_t", form),
+        "add",
+      );
 
     it("writes the LDREX/STREX loop 2.2 planned", () => {
       const result = rmw("u32", "ldrex-strex");
@@ -343,15 +320,14 @@ describe("AtomicGenerator", () => {
 
     // #1807: a failed attempt must not evaluate the value again
     it.each(["ldrex-strex", "compare-exchange"] as const)(
-      "evaluates the value once, before the %s loop",
+      "evaluates the value once, before the %s loop, in the planned type",
       (form) => {
         const code = generateAtomicRMW(
           "counter",
           "+=",
           "step()",
-          "u32",
+          planned("u32", "uint32_t", form, "uint64_t"),
           "add",
-          form,
         ).code;
         expect(code.split("step()")).toHaveLength(2);
         expect(code.indexOf("uint64_t __operand = step();")).toBeGreaterThan(
@@ -362,63 +338,38 @@ describe("AtomicGenerator", () => {
       },
     );
 
-    // #2120 review 2: the temporary must not narrow before the clamp helper
-    it.each(["ldrex-strex", "compare-exchange"] as const)(
-      "holds a saturating value in the helper's wider type (%s)",
-      (form) => {
-        const code = generateAtomicRMW(
-          "counter",
-          "+=",
-          "big",
-          "u8",
-          "add",
-          form,
-          "u32",
-        ).code;
-        expect(code).toContain("uint32_t __operand = big;");
-      },
-    );
-
-    it("keeps a wider float value's precision", () => {
+    // #2155 review 8: an atomic of a C header type has no C-Next name, and
+    // is accessed by its C type
+    it("writes a C header type's compare-exchange loop in its C type", () => {
       const code = generateAtomicRMW(
-        "sum",
+        "f",
         "+=",
-        "tiny",
-        "f32",
+        "1",
+        planned(null, "int_fast16_t", "compare-exchange"),
         null,
-        "compare-exchange",
-        "f64",
       ).code;
-      expect(code).toContain("double __operand = tiny;");
+      expect(code).toContain("int_fast16_t __operand = 1;");
+      expect(code).toContain("int_fast16_t __old;");
+      expect(code).toContain("__new = __old + __operand;");
     });
 
-    it("holds a wrapping integer value in the variable's type", () => {
-      const code = generateAtomicRMW(
-        "counter",
-        "+=",
-        "big",
-        "u8",
-        null,
-        "compare-exchange",
-        "u32",
-      ).code;
-      expect(code).toContain("uint8_t __operand = big;");
+    it("fails when 2.2 planned a clamp helper for a C header type", () => {
+      expect(() =>
+        generateAtomicRMW(
+          "f",
+          "+=",
+          "1",
+          planned(null, "int_fast16_t", "interrupt-mask"),
+          "add",
+        ),
+      ).toThrow("2.2 plans a clamp helper only for a C-Next integer");
     });
 
     it("annotates each retry loop with the ADR that shapes it", () => {
       expect(rmw("u32", "ldrex-strex").code).toContain(
         "/* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop.",
       );
-      expect(
-        generateAtomicRMW(
-          "counter",
-          "+=",
-          "1",
-          "u32",
-          "add",
-          "compare-exchange",
-        ).code,
-      ).toContain(
+      expect(rmw("u32", "compare-exchange").code).toContain(
         "/* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop,",
       );
     });

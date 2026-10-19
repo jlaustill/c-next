@@ -1,0 +1,37 @@
+// test-error
+// test-adr: 004
+// E0870/E0871/E0872 on register members typed by a bitmap from an INCLUDED
+// file (#2155 review 8). An included bitmap type is not resolved where the
+// register is declared (#1514); the member's access rules still apply,
+// because they belong to the member, not to its type.
+
+#include "register-imported-bitmap-type.cnx"
+
+register LREG @ 0x40001000 {
+    CLR: Ctl w1c @ 0x08,
+    CFG: Ctl wo @ 0x0C,
+    ST: Ctl ro @ 0x04,
+    RW: Ctl rw @ 0x00,
+}
+
+mut u8 sink;
+
+// NEGATIVE CONTROL -- the rw member, read and written, a one written to the
+// w1c member's bit, and a read of the ro member.
+void okAccess() {
+    LREG.RW <- 1;
+    sink <- LREG.RW;
+    LREG.CLR[0] <- true;
+    sink <- LREG.ST;
+}
+
+void main() {
+    // ASSERTION 1 -- read of a wo member (E0870).
+    sink <- LREG.CFG;
+    // ASSERTION 2 -- zero written to a w1c member's bit (E0872).
+    LREG.CLR[0] <- false;
+    // ASSERTION 3 -- compound write reads a wo member (E0870).
+    LREG.CFG +<- 1;
+    // ASSERTION 4 -- write to an ro member (E0871).
+    LREG.ST <- 1;
+}

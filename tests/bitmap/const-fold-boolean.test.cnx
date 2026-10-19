@@ -26,7 +26,8 @@ u32 main() {
         return 2;
     }
 
-    // A const (non-mut is const) folds by its value, as a literal does
+    // A local const keeps the ternary: folding its one read would leave its
+    // declaration unread (#1791, #2155 review 8)
     bool val <- true;
     f.bit2 <- val;
     if (f.bit2 != true) {

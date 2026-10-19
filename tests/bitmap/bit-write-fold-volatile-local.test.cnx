@@ -1,0 +1,47 @@
+// test-execution
+// test-no-warnings
+// #2155 review 8: a bit write folds a value only when nothing about it is
+// read at run time. A `volatile` is read where it is written, whatever its
+// initializer; and a local const's one read keeps its declaration read, so
+// `-Wall -Werror` accepts the file. A file-scope const still folds.
+bitmap8 F {
+    A,
+    B,
+    C,
+    Rest[5]
+}
+
+volatile u8 V <- 0;
+volatile bool VB <- true;
+bool ON <- true;
+
+u32 main() {
+    mut F g;
+    mut u8 word <- 0;
+
+    // ASSERTION -- a volatile read stays a read: `(V != 0 ? 1U : 0U)`
+    g.A <- V != 0;
+    if (g.A != false) {
+        return 1;
+    }
+
+    // ASSERTION -- a volatile bool stays a read: `(VB ? 1U : 0U)`
+    word[2] <- VB;
+    if (word != 4) {
+        return 2;
+    }
+
+    // ASSERTION -- a local const is read, so its declaration is used
+    bool on <- true;
+    g.B <- on;
+    if (g.B != true) {
+        return 3;
+    }
+
+    // CONTROL -- a file-scope const folds to `1U`
+    g.C <- ON;
+    if (g.C != true) {
+        return 4;
+    }
+    return 0;
+}

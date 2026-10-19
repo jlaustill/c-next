@@ -12,7 +12,7 @@
  * is not a channel; it is a second way to ask, which is what this card removes.
  */
 import type IFloatBitWrite from "./IFloatBitWrite";
-import type TAtomicForm from "./TAtomicForm";
+import type IPlannedAtomic from "./IPlannedAtomic";
 
 interface ICodeGenApi {
   /**
@@ -25,10 +25,8 @@ interface ICodeGenApi {
     target: string,
     op: string,
     value: string,
-    baseType: string,
+    atomic: IPlannedAtomic,
     clampOp: string | null,
-    form: TAtomicForm,
-    valueType: string | null,
   ): string;
 
   /**
@@ -38,10 +36,8 @@ interface ICodeGenApi {
   generateAtomicStore(
     target: string,
     value: string,
-    operandType: string,
-    baseType: string,
+    atomic: IPlannedAtomic,
     newValue: (read: string, value: string) => string,
-    form: TAtomicForm,
   ): string;
 
   /** Generate a float bit write through a union (ADR-007) */

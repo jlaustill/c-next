@@ -430,7 +430,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | same file           | error    |
 | scope member       | same file           | warn     |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | warn     |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | warn     |
 | scope member       | imported direct     | warn     |
 | top-level function | imported transitive | warn     |
@@ -441,7 +441,9 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 A bitmap's fields and a register member's type can both be declared in an
 included file, so every imported cell is reachable and none is `off`.
 
-`top-level function | imported direct` is `error`: #1651 built it. A bitmap
+`top-level function | imported direct` is `error`: #1651 built it, and
+`scope method | imported direct` is `error` since #1749's fixtures write an
+included bitmap's field from a scope method. A bitmap
 declared one hop away was assigned as a struct member and emitted
 `shared.Active = 1` -- a member access on a scalar, rejected by the C compiler,
 with the same statement lowering correctly in the declaring file. That cell is

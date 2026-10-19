@@ -37,7 +37,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)  | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global                                |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md) | Explicit Length Properties | `.type_bit_length`/`.type_byte_length`/`.type_element_count`/`.value_char_count` |
 | [ADR-070](decisions/adr-070-return-value-use.md)           | Return-Value Use           | Reject discarded non-void returns (MISRA 17.7, E0708)                            |
-| [ADR-071](decisions/adr-071-read-only-by-default.md)       | Read-Only by Default       | Every binding read-only unless declared `mut`                                    |
+| [ADR-071](decisions/adr-071-read-only-by-default.md)       | Read-Only by Default       | Every binding read-only unless declared `mut` (`atomic` implies `mut`)           |
 
 ## Accepted
 

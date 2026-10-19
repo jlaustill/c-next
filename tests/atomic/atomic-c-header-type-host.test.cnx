@@ -1,0 +1,27 @@
+#pragma target host
+// test-execution
+// test-adr: 049
+// #2155 review 8: on a target with no interrupt mask, an `atomic` of a C
+// header integer type is a compare-exchange loop in its C type. `main`
+// crashed on this compound write; an earlier head of #2155 wrote it plainly.
+
+// The atomic is a local: a public global of a header type is #2248's.
+
+#include "atomic-c-header-type.h"
+
+u32 main() {
+    atomic int_fast16_t f <- 0;
+    f +<- 3;
+    if (f != 3) {
+        return 1;
+    }
+    f[4] <- true;
+    if (f != 19) {
+        return 2;
+    }
+    f[0, 2] <- 0;
+    if (f != 16) {
+        return 3;
+    }
+    return 0;
+}

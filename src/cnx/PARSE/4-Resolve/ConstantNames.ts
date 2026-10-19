@@ -185,7 +185,9 @@ class ConstantNames {
     if (declaration.kind === "parameter") {
       return ConstantNames.without("parameter", walk);
     }
-    if (declaration.isConst) {
+    // A `volatile` is read where it is written: its value is the hardware's
+    // or an interrupt's, never its initializer (#2155 review 8)
+    if (declaration.isConst && !declaration.isVolatile) {
       return ConstantNames.ofSettled(settled?.constValue ?? undefined, walk);
     }
     return ConstantNames.without("variable", walk);
@@ -203,7 +205,9 @@ class ConstantNames {
         walk,
       );
     }
-    if (!symbol.isConst) return ConstantNames.without("variable", walk);
+    if (!symbol.isConst || symbol.isVolatile) {
+      return ConstantNames.without("variable", walk);
+    }
     return ConstantNames.ofSettled(walk.facts.constValue(symbol), walk);
   }
 

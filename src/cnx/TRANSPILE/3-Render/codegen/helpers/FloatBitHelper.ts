@@ -164,22 +164,13 @@ class FloatBitHelper {
       atomic.form !== "ldrex-strex",
       "2.2 plans no exclusive access for a float: LDREX_MAP names none",
     );
-    invariant(
-      atomic.operandCType !== null,
-      "2.2 plans the C type of every atomic bit write's value",
-    );
     // The one compare-exchange loop, exchanging the float through the
     // unions' float view and computing its bits in their integer view
     return atomicGenerators.generateCompareExchangeLoop(
       target,
       bitWrite.value,
       bits("__old.u", "__operand"),
-      {
-        baseType: bitWrite.floatType,
-        bitWidth: 0,
-        isArray: false,
-        isConst: false,
-      },
+      atomic.cType,
       [],
       atomic.operandCType,
       atomic.form === "compare-exchange-libatomic",

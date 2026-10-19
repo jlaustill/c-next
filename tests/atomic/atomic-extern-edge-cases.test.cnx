@@ -4,8 +4,8 @@
 // Bug #468: Comprehensive coverage to prevent regression
 #pragma target teensy41
 
-// Edge case 1: an atomic is writable without mut (#2233), so the const
-// this case once paired with atomic no longer exists
+// Edge case 1: an atomic nothing in this file writes is still writable
+// (#2233): its extern is `extern volatile uint32_t CONFIG;`, with no const
 atomic u32 CONFIG <- 42;
 
 // Edge case 2: atomic 2D array
@@ -27,7 +27,7 @@ struct TStatus {
 }
 atomic TStatus currentStatus;
 
-// Edge case 7: atomic with wrap + const (multiple modifiers)
+// Edge case 7: atomic with wrap (multiple modifiers)
 atomic wrap u16 sequence <- 0;
 
 // Edge case 8: atomic with clamp (saturation)

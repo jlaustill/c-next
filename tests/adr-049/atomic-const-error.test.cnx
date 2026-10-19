@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 049
+// #2155 review 8: `atomic` makes a binding writable (#2233), so `atomic
+// const` asks for a read-only atomic, which protects nothing. E0898 asks for
+// `atomic` to be removed, not for `const` alone, which would make the binding
+// writable instead.
+
+// NEGATIVE CONTROL -- a plain read-only global and a written atomic.
+u32 limit <- 5;
+atomic u32 count <- 0;
+
+void bump() {
+    count +<- 1;
+}
+
+// ASSERTION -- E0898 asks for `atomic` to go
+atomic const u32 a <- 5;
+
+void main() {
+    bump();
+}

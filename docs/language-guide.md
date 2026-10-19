@@ -45,7 +45,7 @@ bool                   // boolean
 ### Read-Only by Default (ADR-071)
 
 Every binding — global, scope member, local, parameter, `for` variable — is
-read-only unless it is declared `mut`. Writing one that is not is a compile
+read-only unless it is declared `mut` (`atomic` implies `mut`). Writing one that is not is a compile
 error, and so is a `mut` that nothing writes, or a `const` (it is the default):
 
 ```cnx

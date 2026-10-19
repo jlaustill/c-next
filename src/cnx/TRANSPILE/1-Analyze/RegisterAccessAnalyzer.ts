@@ -114,10 +114,7 @@ class RegisterAccessCheck {
     const access = this.context.symbols.registerMemberAccess.get(member);
     if (!RegisterAccessMode.isWriteOne(access)) return;
     if (!ZeroValue.of(site.value, this.context)) return;
-    const single =
-      field === null
-        ? step.subscript === "bit_single"
-        : field.layout.width === 1;
+    const single = BitmapFieldStep.writesOneBit(step, field);
     this.report(
       site.target,
       "E0872",

@@ -93,6 +93,9 @@ interface IContextBuilderDeps {
   /** Fold an expression to a compile-time constant */
   tryEvaluateConstant(expr: TExpression): number | undefined;
 
+  /** The written value's compile-time value, for a bit write to fold */
+  foldWrittenValue(expr: TExpression): number | undefined;
+
   /** The value expression's essential type */
   expressionType(expr: TExpression): string | null;
 
@@ -301,7 +304,7 @@ function buildAssignmentContext(
     valueIntegerType: () => deps.integerExpressionType(valueExpr),
     valueHasFloatingOperand: () =>
       valueExpr.kind !== "missing" && deps.hasFloatingOperand(valueExpr),
-    foldValue: () => deps.tryEvaluateConstant(valueExpr),
+    foldValue: () => deps.foldWrittenValue(valueExpr),
     identifiers,
     subscriptCount: subscripts.length,
     renderSubscript: (index) => deps.generateExpression(subscripts[index]),

@@ -3008,6 +3008,7 @@ class CodeGenWalker {
         this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.renderExpression(expr),
       tryEvaluateConstant: (expr) => this.planner.tryEvaluateConstant(expr),
+      foldWrittenValue: (expr) => this.planner.foldWrittenValue(expr),
       expressionType: (expr) => this.planner.directTypeOf(expr),
       integerExpressionType: (expr) => this.planner.integerTypeOf(expr),
       hasFloatingOperand: (expr) => this.planner.hasFloatingLeaf(expr),

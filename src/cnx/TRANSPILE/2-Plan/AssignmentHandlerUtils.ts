@@ -127,23 +127,12 @@ function storeBits(
   if (atomic === null) {
     return `${target} = ${newValue(target, ctx.generatedValue, ctx.foldValue())};`;
   }
-  const form = atomic.form;
-  const operandType = atomic.operandCType;
-  invariant(
-    operandType !== null,
-    "2.2 plans the C type of every atomic bit write's value",
-  );
   // A folded value is the written value only where it is written directly
-  const folded = form === "interrupt-mask" ? ctx.foldValue() : undefined;
+  const folded = atomic.form === "interrupt-mask" ? ctx.foldValue() : undefined;
   return ctx.state
     .requireGenerator()
-    .generateAtomicStore(
-      target,
-      ctx.generatedValue,
-      operandType,
-      atomic.typeName,
-      (read, value) => newValue(read, value, folded),
-      form,
+    .generateAtomicStore(target, ctx.generatedValue, atomic, (read, value) =>
+      newValue(read, value, folded),
     );
 }
 

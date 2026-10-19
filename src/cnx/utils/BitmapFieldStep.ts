@@ -45,6 +45,20 @@ class BitmapFieldStep {
       field !== null
     );
   }
+
+  /**
+   * Whether a final step writing bits (`writesBits`) writes exactly one: a
+   * bit index, or a one-bit field. The one answer for the value's C type
+   * (`bool`), E0872's wording, and the rendered form.
+   */
+  static writesOneBit(
+    step: IChainStep | undefined,
+    field: IBitmapFieldTarget | null,
+  ): boolean {
+    return field === null
+      ? step?.subscript === "bit_single"
+      : field.layout.width === 1;
+  }
 }
 
 export default BitmapFieldStep;
