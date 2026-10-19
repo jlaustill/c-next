@@ -1876,7 +1876,7 @@ class FilePlanner {
     found: Map<TExpressionOf<"arrayInitializer">, number>,
   ): void {
     const size = sizes[level];
-    if (list.fill !== null && typeof size === "number") found.set(list, size);
+    if (list.fill !== null && typeof size === "number" && level === 0) found.set(list, size);
     for (const element of list.fill === null ? list.elements : [list.fill]) {
       if (element.kind === "arrayInitializer") {
         FilePlanner.fillSizesOf(element, sizes, level + 1, found);
