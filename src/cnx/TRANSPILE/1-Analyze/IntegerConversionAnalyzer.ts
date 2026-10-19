@@ -77,18 +77,8 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
 import type IOperandType from "../../types/IOperandType";
 import SourceOrder from "../../utils/SourceOrder";
-import type TEssentialCategory from "../../types/TEssentialCategory";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
-
-/** The categories of a value that is no string: none of them lands in one */
-const NON_STRING_CATEGORIES: ReadonlySet<TEssentialCategory> = new Set([
-  "signed",
-  "unsigned",
-  "floating",
-  "boolean",
-  "enum",
-]);
 
 class IntegerConversionCheck {
   private readonly found: IIntegerConversionError[] = [];
@@ -175,10 +165,10 @@ class IntegerConversionCheck {
   }
 
   /**
-   * E0918: a value that is not a string -- an integer, a float, a bool, an
-   * enum, a bitmap or a char literal -- at a position that types it one
-   * string<N> (ADR-045, #1634). True when reported. Unreported, it reached
-   * the string copy, which takes the value as an address.
+   * E0918: a value that is not a string at a position that types it one
+   * string<N> (ADR-045, #1634) -- whatever it is, as `OperandTyper.isStringValue`
+   * decides. True when reported. Unreported, it reached the string copy, which
+   * takes the value as an address.
    */
   private checkNonStringAt(value: TExpression): boolean {
     const target = StructInitializerType.valueTypeAt(
@@ -187,12 +177,14 @@ class IntegerConversionCheck {
     if (target === null || !TypeCheckUtils.isSizedStringName(target)) {
       return false;
     }
-    if (!this.landsNonString(value)) return false;
+    if (OperandTyper.isStringValue(value, this.context) !== false) {
+      return false;
+    }
     this.report(
       value,
       "E0918",
       `A value that is not a string cannot be assigned to ${target}: '${value.written}'`,
-      "A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation or a substring",
+      "A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string",
     );
     return true;
   }
@@ -200,31 +192,6 @@ class IntegerConversionCheck {
   /** Whether the write lands one whole string<N>, by the copy's own rule */
   private writesWholeString(site: IAssignmentSyntax): boolean {
     return OperandTyper.stringCopyCapacity(site.target, this.context) !== null;
-  }
-
-  /**
-   * Whether an integer, a float, a bool, an enum, a bitmap or a char literal
-   * is what lands. A string's `s[0]` is not one: it is the one-character
-   * substring (ADR-045), however the typer categorizes its character
-   */
-  private landsNonString(value: TExpression): boolean {
-    if (value.kind === "parenthesized") {
-      return this.landsNonString(value.expression);
-    }
-    if (value.kind === "ternary") {
-      return (
-        this.landsNonString(value.whenTrue) ||
-        this.landsNonString(value.whenFalse)
-      );
-    }
-    const t = OperandTyper.typeOf(value, this.context);
-    if (t === null || t.dimensions.length > 0) return false;
-    return (
-      t.form.kind === "literal" ||
-      NON_STRING_CATEGORIES.has(t.category) ||
-      t.enumTypeName !== null ||
-      t.bitmapTypeName !== null
-    );
   }
 
   /**

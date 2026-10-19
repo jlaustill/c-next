@@ -339,11 +339,15 @@ string<10> d <- b[60, 10];        // ERROR: 60 + 10 > 64
 b <- b + "!";                     // ERROR: 64 < 64 + 1
 ```
 
-Only a string lands in a `string<N>`: an integer, a float or its bits, a bool, a
-char or an enum is E0918, as a declaration's initializer, an assignment's value
-or an argument (#1634). Until then each was accepted at exit 0 and emitted as
-the string copy, which C reads as an address. E0914 (ADR-024) is the other
-direction.
+Only a string lands in a `string<N>`: a literal, another string, a
+concatenation, a substring, or a C string (a `char*` or a `char[]`). Anything
+else -- an integer, a float or its bits, a bool, a char, an enum, a struct or
+an array -- is E0918, as a declaration's initializer, an assignment's value or
+an argument (#1634). Until then each was accepted at exit 0 and emitted as the
+string copy, which C reads as an address. E0914 (ADR-024) is the other
+direction. A declaration's copy is decided by the `string<N>` it declares, as
+an assignment's is by its target: every initializer but a literal, a
+concatenation and a substring is copied in.
 
 ### No Silent Truncation
 

@@ -236,6 +236,18 @@ describe("IntegerConversionAnalyzer", () => {
       ).toEqual(["E0918", "E0918", "E0918", "E0918", "E0918", "E0918"]);
     });
 
+    it("rejects a struct and an array, which no category list names (#1731 review)", () => {
+      expect(
+        codes(
+          "struct Pt {\n    u8 x;\n}\n" +
+            inMain(
+              "    Pt p <- {x: 1};\n    u8[4] bytes <- [1, 2, 3, 4];\n" +
+                "    string<8> s1 <- p;\n    string<8> s2 <- bytes;",
+            ),
+        ),
+      ).toEqual(["E0918", "E0918"]);
+    });
+
     it("rejects one assigned, passed and in a ternary arm", () => {
       const found = errors(
         "void take(string<8> v) {\n}\n" +

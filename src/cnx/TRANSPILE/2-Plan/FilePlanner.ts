@@ -1693,11 +1693,12 @@ class FilePlanner {
 
   /**
    * #1731: the capacity of each write of one whole `string<N>`, which is one
-   * `cnx_string_copy` (#2207) whatever spells its target. ADR-045's copy, recorded where it is decided. The typer's answer,
-   * asked as 2.1's E0715 asks it, so a `for` header cannot be handed a copy
-   * 2.1 did not see (#1731 review). Whether the file defines the helper, and
-   * the `uint32_t` it counts in, are decided here with it, as `planClamps`
-   * decides its helpers and their types.
+   * `cnx_string_copy` (#2207) whatever spells its target. ADR-045's copy,
+   * recorded where it is decided. The typer's answer, asked as 2.1's E0715
+   * asks it, so a `for` header cannot be handed a copy 2.1 did not see (#1731
+   * review). Whether the file defines the helper, and the `uint32_t` it counts
+   * in, are decided here with it, as `planClamps` decides its helpers and
+   * their types.
    */
   private planStringCopies(
     program: IProgramSyntax,
@@ -1724,8 +1725,11 @@ class FilePlanner {
 
   /**
    * #1731 sweep: a function's `string<N> t <- s` copies one whole string in,
-   * by the rule an assignment's copy is decided by, so both are one
-   * `cnx_string_copy`. A literal initializes the array instead.
+   * decided as an assignment's copy is, by the `string<N>` it lands in (#1731
+   * review): every initializer but ADR-045's other three forms -- a literal,
+   * which initializes the array, a concatenation and a substring. 2.1 has
+   * rejected a value that is no string (E0918), so what is left is a string:
+   * a C-Next one, or a C `char*` or `char[]`.
    */
   private static stringInitCopies(
     program: IProgramSyntax,
@@ -1738,9 +1742,8 @@ class FilePlanner {
       if (declaration.type.kind !== "string") continue;
       if (declaration.type.capacity === null) continue;
       if (ExpressionShape.isStringLiteral(initializer)) continue;
-      if (OperandTyper.stringCopyCapacity(initializer, typing) === null) {
-        continue;
-      }
+      if (ExpressionShape.additionOperands(initializer) !== null) continue;
+      if (OperandTyper.isSubstring(initializer, typing)) continue;
       found.add(initializer);
     }
     return found;

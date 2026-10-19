@@ -487,6 +487,54 @@ class OperandTyper {
     return writesWhole ? OperandTyper.scalarStringCapacity(written) : null;
   }
 
+  /**
+   * #1634: whether a value is a string, as the `string<N>` it lands in reads
+   * it (ADR-045): a string literal; a `string<N>` or unsized `string` -- an
+   * element, a field, a concatenation or a substring of one included; a C
+   * `char` array; or a substring of a string, its `s[0]` among them. False for
+   * every other value the typer types, so a category added later is no string
+   * until this says so. Null for a value the typer leaves untyped, a header's
+   * pointer among them (ForeignTypeFacts.operandType), which C judges.
+   */
+  static isStringValue(
+    value: TExpression,
+    ctx: ITypingContext,
+  ): boolean | null {
+    if (value.kind === "parenthesized") {
+      return OperandTyper.isStringValue(value.expression, ctx);
+    }
+    if (value.kind === "ternary") {
+      const arms = [
+        OperandTyper.isStringValue(value.whenTrue, ctx),
+        OperandTyper.isStringValue(value.whenFalse, ctx),
+      ];
+      if (arms.includes(false)) return false;
+      return arms.includes(null) ? null : true;
+    }
+    if (ExpressionShape.isStringLiteral(value)) return true;
+    const t = OperandTyper.typeOf(value, ctx);
+    if (t === null) return null;
+    return (
+      OperandTyper.isScalarString(t) ||
+      (t.typeName === "char" && t.dimensions.length === 1) ||
+      OperandTyper.isSubstring(value, ctx)
+    );
+  }
+
+  /**
+   * A subscript of one string, which ADR-045 reads as its substring:
+   * `s[0, 2]`, or `s[0]`, its first character
+   */
+  static isSubstring(value: TExpression, ctx: ITypingContext): boolean {
+    if (value.kind !== "postfix") return false;
+    const step = OperandTyper.walkChain(value, ctx).typing.steps.at(-1);
+    return (
+      step !== undefined &&
+      step.subscript !== null &&
+      OperandTyper.isScalarString(step.before)
+    );
+  }
+
   /** `wholeStringCapacity` of what an assignment target writes */
   static stringCopyCapacity(
     target: TExpression,
