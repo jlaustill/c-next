@@ -12,6 +12,15 @@ struct Cfg {
 mut string<8>[2] names <- ["ab", "cd"];
 mut string<8> s <- "abc";
 mut Cfg c;
+mut string<8> t;
+
+// #2207 review: the copy zero-fills past the terminator, as a literal's does
+u8 staleByte() {
+    s <- "hello";
+    t <- "hi";
+    s <- t;
+    return s[3];
+}
 
 void copyName(u32 i, u32 j) {
     names[i] <- names[j];
@@ -37,6 +46,12 @@ u32 main() {
     if (c.name != "nm") {
         return 4;
     }
+
+    u8 stale <- staleByte();
+    if (stale != 0) {
+        return 7;
+    }
+    s <- "abc";
 
     // NEGATIVE CONTROL: two different elements, which is a copy
     copyName(0, 1);

@@ -88,6 +88,8 @@ interface IFilePlan {
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
   /** #1731: each assignment that writes one whole `string<N>`, and how it copies */
   readonly stringCopies: ReadonlyMap<IAssignmentSyntax, IPlannedStringCopy>;
+  /** #2207: whether any of them copies through `cnx_string_copy` */
+  readonly stringCopyHelper: boolean;
 
   /**
    * MISRA 10.3 (#845): the C type a compound write to a narrow variable is

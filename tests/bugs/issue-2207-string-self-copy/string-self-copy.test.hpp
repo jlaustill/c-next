@@ -21,8 +21,10 @@ typedef struct Cfg {
 extern char names[2][9];
 extern char s[9];
 extern Cfg c;
+extern char t[9];
 
 /* Function prototypes */
+uint8_t staleByte(void);
 void copyName(const uint32_t i, const uint32_t j);
 
 #ifdef __cplusplus

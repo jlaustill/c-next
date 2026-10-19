@@ -245,7 +245,8 @@ const generateLengthHelpers = (used: readonly string[]): string[] => {
  * #2207: the copy a string written from another string goes through. It moves
  * one character at a time, so a source that is the target copies each
  * character onto itself, where `strncpy` with overlapping arguments is
- * undefined.
+ * undefined. Then it zero-fills to the capacity as `strncpy` does, so the
+ * bytes past the terminator are the same however the value was spelled.
  */
 const generateStringCopyHelper = (needed: boolean): string[] =>
   needed
@@ -257,7 +258,11 @@ const generateStringCopyHelper = (needed: boolean): string[] =>
         "        target[i] = source[i];",
         "        i++;",
         "    }",
-        "    target[i] = '\\0';",
+        "    while (i < capacity) {",
+        "        target[i] = '\\0';",
+        "        i++;",
+        "    }",
+        "    target[capacity] = '\\0';",
         "}",
         "",
       ]

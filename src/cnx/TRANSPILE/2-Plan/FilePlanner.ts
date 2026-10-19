@@ -927,11 +927,7 @@ class FilePlanner {
       selfIncludeAdded,
     );
     const decidedCTypes = new Set<string>();
-    const stringCopies = this.planStringCopies(program);
-    // #2207: `cnx_string_copy` counts in `uint32_t`, written once 2.3 is done
-    if ([...stringCopies.values()].some((copy) => copy.throughHelper)) {
-      decidedCTypes.add("uint32_t");
-    }
+    const stringCopies = this.planStringCopies(program, decidedCTypes);
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
     const types = this.planTypeSites(program, inlinedConsts);
     // Each planned type is written once 2.3 is done, so its include is decided here
@@ -1063,7 +1059,8 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
-      stringCopies,
+      stringCopies: stringCopies.copies,
+      stringCopyHelper: stringCopies.helper,
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1693,15 +1690,23 @@ class FilePlanner {
   }
 
   /**
-   * #1731: the capacity of each write of one whole `string<N>`, which is a
-   * bounded copy whatever spells its target. ADR-045's copy, recorded where
-   * it is decided. The typer's answer, asked as 2.1's E0715 asks it, so a
-   * `for` header cannot be handed a copy 2.1 did not see (#1731 review).
+   * #1731: how each write of one whole `string<N>` copies -- its capacity,
+   * and whether through `cnx_string_copy` (#2207) -- whatever spells its
+   * target. ADR-045's copy, recorded where it is decided. The typer's answer,
+   * asked as 2.1's E0715 asks it, so a `for` header cannot be handed a copy
+   * 2.1 did not see (#1731 review). Whether the file defines the helper, and
+   * the `uint32_t` it counts in, are decided here with it, as `planClamps`
+   * decides its helpers and their types.
    */
   private planStringCopies(
     program: IProgramSyntax,
-  ): Map<IAssignmentSyntax, IPlannedStringCopy> {
+    cTypes: Set<string>,
+  ): {
+    readonly copies: ReadonlyMap<IAssignmentSyntax, IPlannedStringCopy>;
+    readonly helper: boolean;
+  } {
     const copies = new Map<IAssignmentSyntax, IPlannedStringCopy>();
+    let helper = false;
     const typing = this.state.typingContext();
     for (const site of FilePlanner.assignmentSites(program)) {
       const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
@@ -1709,11 +1714,12 @@ class FilePlanner {
       AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
       // #2207: only a literal cannot be the target, so `names[i] <- names[j]`
       // must not reach `strncpy` with overlapping arguments when i == j
-      const literal =
-        site.value.kind === "literal" && site.value.literalKind === "string";
-      copies.set(site, { capacity, throughHelper: !literal });
+      const throughHelper = !ExpressionShape.isStringLiteral(site.value);
+      helper ||= throughHelper;
+      copies.set(site, { capacity, throughHelper });
     }
-    return copies;
+    if (helper) cTypes.add("uint32_t");
+    return { copies, helper };
   }
 
   /**
@@ -2133,9 +2139,7 @@ class FilePlanner {
       selfIncludeAdded,
       existingIncludeTargets,
       clampOps: plan.clampOps,
-      stringCopyHelper: [...plan.stringCopies.values()].some(
-        (copy) => copy.throughHelper,
-      ),
+      stringCopyHelper: plan.stringCopyHelper,
       castHelpers: requirements.castHelpers,
       lengthHelpers: requirements.lengthHelpers,
       safeDivOps: requirements.safeDivisions,

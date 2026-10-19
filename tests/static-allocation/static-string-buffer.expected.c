@@ -15,7 +15,11 @@ static inline void cnx_string_copy(char* target, const char* source, uint32_t ca
         target[i] = source[i];
         i++;
     }
-    target[i] = '\0';
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
 }
 
 // test-execution

@@ -15,7 +15,11 @@ static inline void cnx_string_copy(char* target, const char* source, uint32_t ca
         target[i] = source[i];
         i++;
     }
-    target[i] = '\0';
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
 }
 
 // test-execution
@@ -31,6 +35,16 @@ char names[2][9] = {"ab", "cd"};
 char s[9] = "abc";
 
 Cfg c = {0};
+
+char t[9] = "";
+
+// #2207 review: the copy zero-fills past the terminator, as a literal's does
+uint8_t staleByte(void) {
+    (void) strncpy(s, "hello", 8); s[8] = '\0';
+    (void) strncpy(t, "hi", 8); t[8] = '\0';
+    cnx_string_copy(s, t, 8U);
+    return s[3U];
+}
 
 void copyName(const uint32_t i, const uint32_t j) {
     cnx_string_copy(names[i], names[j], 8U);
@@ -54,6 +68,11 @@ int main(void) {
     if (strcmp(c.name, "nm") != 0) {
         return 4U;
     }
+    const uint8_t stale = staleByte();
+    if (stale != 0) {
+        return 7U;
+    }
+    (void) strncpy(s, "abc", 8); s[8] = '\0';
     copyName(0U, 1U);
     if (strcmp(names[0U], "cd") != 0) {
         return 5U;
