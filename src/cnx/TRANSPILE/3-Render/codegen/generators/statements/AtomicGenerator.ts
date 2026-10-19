@@ -9,30 +9,13 @@
  * These are helper functions called from assignment generation,
  * not top-level statement generators.
  */
-import TTypeInfo from "../../../../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import type IPlannedAtomic from "../../../../types/IPlannedAtomic";
-import LDREX_MAP from "../../../../2-Plan/types/LDREX_MAP";
-import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
 import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
-import TYPE_WIDTH from "../../../../../types/TYPE_WIDTH";
 import type ICompareExchangeViews from "../../../../types/ICompareExchangeViews";
-
-/**
- * ADR-049: STREX intrinsic map for atomic operations
- * Maps C-Next types to ARM STREX (Store-Exclusive) instructions
- */
-const STREX_MAP: Record<string, string> = {
-  u8: "__STREXB",
-  i8: "__STREXB",
-  u16: "__STREXH",
-  i16: "__STREXH",
-  u32: "__STREXW",
-  i32: "__STREXW",
-};
 
 /**
  * Generate the inner operation for atomic RMW.
@@ -80,17 +63,22 @@ function generateLdrexStrexLoop(
   target: string,
   value: string,
   innerOp: string,
-  typeInfo: TTypeInfo,
+  atomic: IPlannedAtomic,
   innerEffects: readonly TGeneratorEffect[],
-  operandType: string = TYPE_MAP[typeInfo.baseType],
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [...innerEffects];
-  const ldrex = LDREX_MAP[typeInfo.baseType];
-  const strex = STREX_MAP[typeInfo.baseType];
-  const cType = TYPE_MAP[typeInfo.baseType];
+  const exclusive = atomic.exclusive;
+  invariant(
+    exclusive !== null,
+    `2.2 plans an LDREX/STREX loop only with its exclusive access (got ${atomic.cType})`,
+  );
+  const ldrex = exclusive.ldrex;
+  const strex = exclusive.strex;
+  const cType = atomic.cType;
+  const operandType = atomic.operandCType;
   // #2208: CMSIS's intrinsics take an unsigned pointer; a signed value is
-  // accessed through its unsigned type of the same width
-  const exclusiveType = TYPE_MAP[typeInfo.baseType.replace(/^i/, "u")];
+  // accessed through its unsigned type of the same width, as 2.2 planned
+  const exclusiveType = exclusive.pointee;
   const address =
     exclusiveType === cType
       ? `&${target}`
@@ -200,21 +188,6 @@ function generatePrimaskWrapper(
   return { code: masked.code, effects: [...effects, ...masked.effects] };
 }
 
-/** The type info of an atomic value LDREX/STREX accesses: always a C-Next integer */
-function exclusiveAccess(atomic: IPlannedAtomic): TTypeInfo {
-  const baseType = atomic.typeName;
-  invariant(
-    baseType !== null && LDREX_MAP[baseType] !== undefined,
-    `2.2 plans an LDREX/STREX loop only for an exclusive-access type (got ${baseType ?? atomic.cType})`,
-  );
-  return {
-    baseType,
-    bitWidth: TYPE_WIDTH[baseType] ?? 0,
-    isArray: false,
-    isConst: false,
-  };
-}
-
 /** The ADR-044 helper a saturating compound write calls, or null */
 function clampHelperOf(
   atomic: IPlannedAtomic,
@@ -262,9 +235,8 @@ function generateAtomicRMW(
       target,
       value,
       innerResult.code,
-      exclusiveAccess(atomic),
+      atomic,
       innerResult.effects,
-      atomic.operandCType,
     );
   }
   return generateCompareExchangeLoop(
@@ -298,14 +270,7 @@ function generateAtomicStore(
   }
   const inner = newValue("__old", OPERAND);
   if (atomic.form === "ldrex-strex") {
-    return generateLdrexStrexLoop(
-      target,
-      value,
-      inner,
-      exclusiveAccess(atomic),
-      [],
-      atomic.operandCType,
-    );
+    return generateLdrexStrexLoop(target, value, inner, atomic, []);
   }
   return generateCompareExchangeLoop(
     target,

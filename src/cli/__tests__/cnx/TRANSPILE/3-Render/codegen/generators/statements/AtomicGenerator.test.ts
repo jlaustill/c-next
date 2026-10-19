@@ -6,9 +6,11 @@
 
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../../../../../../../../cnx/TRANSPILE/3-Render/codegen/generators/statements/AtomicGenerator";
-import TTypeInfo from "../../../../../../../../cnx/types/TTypeInfo";
 import type IPlannedAtomic from "../../../../../../../../cnx/TRANSPILE/types/IPlannedAtomic";
 import type TAtomicForm from "../../../../../../../../cnx/TRANSPILE/types/TAtomicForm";
+import ExclusiveAccess from "../../../../../../../../cnx/TRANSPILE/2-Plan/ExclusiveAccess";
+import TYPE_MAP from "../../../../../../../../cnx/TRANSPILE/2-Plan/types/TYPE_MAP";
+import TYPE_WIDTH from "../../../../../../../../cnx/types/TYPE_WIDTH";
 
 const {
   generateAtomicRMW,
@@ -20,19 +22,6 @@ const {
 // ============================================================================
 // Test Helpers
 // ============================================================================
-
-function createTypeInfo(
-  baseType: string,
-  overflowBehavior: "clamp" | "wrap" = "clamp",
-): TTypeInfo {
-  return {
-    baseType,
-    bitWidth: 32,
-    isArray: false,
-    isConst: false,
-    overflowBehavior,
-  };
-}
 
 /** A catalog target with, or without, LDREX/STREX */
 
@@ -116,8 +105,22 @@ describe("AtomicGenerator", () => {
   // ============================================================================
 
   describe("generateLdrexStrexLoop", () => {
+    // 2.2's plan for an LDREX/STREX loop on a C-Next integer
+    const exclusivePlan = (typeName: string): IPlannedAtomic => {
+      const access = {
+        typeName,
+        cType: TYPE_MAP[typeName],
+        bits: TYPE_WIDTH[typeName] ?? null,
+      };
+      return {
+        ...access,
+        form: "ldrex-strex",
+        operandCType: access.cType,
+        exclusive: ExclusiveAccess.of(access),
+      };
+    };
     it("generates LDREX/STREX loop for u32", () => {
-      const typeInfo = createTypeInfo("u32");
+      const typeInfo = exclusivePlan("u32");
       const result = generateLdrexStrexLoop(
         "counter",
         "1",
@@ -143,7 +146,7 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates LDREX/STREX loop for u16", () => {
-      const typeInfo = createTypeInfo("u16");
+      const typeInfo = exclusivePlan("u16");
       const result = generateLdrexStrexLoop(
         "value",
         "1",
@@ -157,7 +160,7 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates LDREX/STREX loop for u8", () => {
-      const typeInfo = createTypeInfo("u8");
+      const typeInfo = exclusivePlan("u8");
       const result = generateLdrexStrexLoop(
         "byte",
         "1",
@@ -171,7 +174,7 @@ describe("AtomicGenerator", () => {
     });
 
     it("generates LDREX/STREX loop for signed types", () => {
-      const typeInfo = createTypeInfo("i32");
+      const typeInfo = exclusivePlan("i32");
       const result = generateLdrexStrexLoop(
         "signed_val",
         "1",
@@ -191,7 +194,7 @@ describe("AtomicGenerator", () => {
     });
 
     it("preserves inner effects", () => {
-      const typeInfo = createTypeInfo("u32");
+      const typeInfo = exclusivePlan("u32");
       const innerEffects = [
         { type: "set-array-init-count" as const, count: 1 },
       ];
@@ -284,7 +287,19 @@ describe("AtomicGenerator", () => {
       cType: string,
       form: TAtomicForm,
       operandCType: string = cType,
-    ): IPlannedAtomic => ({ form, typeName, cType, operandCType });
+    ): IPlannedAtomic => {
+      const access = {
+        typeName,
+        cType,
+        bits: typeName === null ? null : (TYPE_WIDTH[typeName] ?? null),
+      };
+      return {
+        ...access,
+        form,
+        operandCType,
+        exclusive: form === "ldrex-strex" ? ExclusiveAccess.of(access) : null,
+      };
+    };
     const rmw = (typeName: string, form: TAtomicForm) =>
       generateAtomicRMW(
         "counter",

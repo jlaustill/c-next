@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 004
+// #2251: a zero written to a bit of a write-1 register member's bitmap field
+// is E0872, as on the member's own bits. The `true` write is the control.
+bitmap8 Pins {
+    A,
+    B,
+    C,
+    LED,
+    Mode[3],
+    R7
+}
+
+register GPIO @ 0x40000000 {
+    SET: Pins wo @ 0x00,
+}
+
+void main() {
+    GPIO.SET.Mode[1] <- true;
+    GPIO.SET.Mode[1] <- false;
+}

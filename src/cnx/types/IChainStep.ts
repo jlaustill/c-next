@@ -1,5 +1,6 @@
 import type IOperandType from "./IOperandType";
 import type TSubscriptKind from "./TSubscriptKind";
+import type IFieldBits from "./IFieldBits";
 
 /** One postfix operation of a chain, with the types on either side of it */
 interface IChainStep {
@@ -23,6 +24,12 @@ interface IChainStep {
   readonly beforeNamesType: boolean;
   /** ADR-058: the prefix is a bitmap field or a header bit-field, with no storage of its own */
   readonly beforeIsBitField: boolean;
+  /**
+   * For a bit or bit range of a bitmap field (`p.Mode[1]`), the bitmap whose
+   * bits it is and the field's offset (#2251); null for any other step. Its
+   * `beforeRegisterMember` is then the bitmap's: the bits are the member's.
+   */
+  readonly fieldBits: IFieldBits | null;
   /**
    * ADR-004: the prefix is a register member -- its C name, however the
    * register was spelled (`R`, a scope's own bare `R`, `this.R`, `S.R`) -- so

@@ -20,8 +20,8 @@ codes that already have a fixture.
 | E06xx     | Sizeof Expressions                                                                                                   | 3       |
 | E07xx     | Control Flow                                                                                                         | 15      |
 | E08xx     | Arithmetic/Array Safety                                                                                              | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 20      |
-| **Total** |                                                                                                                      | **145** |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 21      |
+| **Total** |                                                                                                                      | **146** |
 
 ---
 
@@ -399,11 +399,11 @@ base: bare, `this.` and `global.`.
 
 ## E0909-E0911 — Values Fixed at Compile Time (ADR-017, ADR-023, ADR-044)
 
-| Code  | Message                                                                              | Help                                                                                                                                                                  | Source                                                                                               |
-| ----- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| E0909 | An array dimension or an enum member's value is not known at compile time            | Build it from literals, read-only bindings, length properties (`.type_byte_length`) and casts; an enum member may also name the members of its enum declared above it | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`, `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
-| E0910 | A value fixed at compile time overflows the type its arithmetic happens at (ADR-044) | Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type                                                               | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`, `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
-| E0911 | An enum member's value does not fit `i32` (ADR-017)                                  | Use a value of at most 2147483647                                                                                                                                     | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`                                                     |
+| Code  | Message                                                                              | Help                                                                                                                                                                                                    | Source                                                                                               |
+| ----- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| E0909 | An array dimension or an enum member's value is not known at compile time            | Build it from literals, read-only bindings that are not `volatile` (ADR-064), length properties (`.type_byte_length`) and casts; an enum member may also name the members of its enum declared above it | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`, `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
+| E0910 | A value fixed at compile time overflows the type its arithmetic happens at (ADR-044) | Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type                                                                                                 | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`, `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
+| E0911 | An enum member's value does not fit `i32` (ADR-017)                                  | Use a value of at most 2147483647                                                                                                                                                                       | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`                                                     |
 
 ## E0912 — Integer Literal Form (ADR-044)
 
@@ -449,6 +449,12 @@ base: bare, `this.` and `global.`.
 | Code  | Description                                           | Help                                                                                                                               | Source                                               |
 | ----- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | E0919 | A declaration carries both `atomic` and `mut` (#2233) | `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
+
+## E0920 — A Constant Bit Index Past the Value's Width (ADR-007)
+
+| Code  | Description                                                                                                                                                  | Help                                                                                              | Source                                     |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| E0920 | A constant bit index, or a constant bit range's last bit, is past the width of the value it indexes: its declared type's, or a bitmap field's (#1808, #2251) | A bit index counts within the indexed value's own bits; index a wider value, or a bit that exists | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts` |
 
 ## Adding New Error Codes
 

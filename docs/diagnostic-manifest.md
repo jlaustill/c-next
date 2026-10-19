@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-673 fixture(s) assert a diagnostic; 663 carry a code.
+676 fixture(s) assert a diagnostic; 666 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -552,6 +552,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx                      | E0358               |
 | tests/bugs/issue-1802-struct-initializer-target/pointer-and-function-types.test.cnx              | E0358               |
 | tests/bugs/issue-1802-struct-initializer-target/whole-array-positions.test.cnx                   | E0866               |
+| tests/bugs/issue-1808-bit-index-width/bit-index-width-error.test.cnx                             | E0920               |
 | tests/bugs/issue-1833-miscased-cnext-extension/miscased-include-error.test.cnx                   | E0518               |
 | tests/bugs/issue-1866-scope-member-is-not-external/bare-call-outside-scope.test.cnx              | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/global-call-to-scope-member.test.cnx          | E0422               |
@@ -606,6 +607,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2196-macro-fill-all/fill-declaration-error.test.cnx                             | E0866               |
 | tests/bugs/issue-2196-macro-fill-all/fill-error.test.cnx                                         | E0866               |
 | tests/bugs/issue-2209-array-argument-element/element-error.test.cnx                              | E0866               |
+| tests/bugs/issue-2251-bitmap-field-bit-index/field-bit-index-wo-zero-error.test.cnx              | E0872               |
+| tests/bugs/issue-2254-volatile-not-inlined/volatile-dimension-error.test.cnx                     | E0909               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

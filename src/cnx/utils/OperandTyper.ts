@@ -45,6 +45,7 @@ import type TEssentialCategory from "../types/TEssentialCategory";
 import type TType from "../types/TType";
 import type TValueBinding from "../types/TValueBinding";
 import type TSubscriptKind from "../types/TSubscriptKind";
+import type IFieldBits from "../types/IFieldBits";
 import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
@@ -359,18 +360,28 @@ class OperandTyper {
       const before = OperandTyper.measuredBy(current, op, ctx);
       const { next, subscript } = OperandTyper.applyOp(current, op, ctx);
       const member = op.kind === "member" ? op.name : null;
+      const field = bitField
+        ? OperandTyper.fieldBitsOf(steps.at(-1), subscript, ctx)
+        : null;
+      const owner = field === null ? undefined : steps.at(-1);
+      const beforeRegisterMember =
+        owner !== undefined
+          ? owner.beforeRegisterMember
+          : current.k === "value"
+            ? (current.registerMember?.cName ?? null)
+            : null;
       steps.push({
         before,
         beforeNamesType: current.k === "type" || current.k === "enumType",
         beforeIsBitField: bitField,
-        beforeRegisterMember:
-          current.k === "value"
-            ? (current.registerMember?.cName ?? null)
-            : null,
+        fieldBits: field,
+        beforeRegisterMember,
         beforeRegister:
-          current.k === "value"
-            ? (current.registerMember?.register ?? null)
-            : null,
+          owner !== undefined
+            ? owner.beforeRegister
+            : current.k === "value"
+              ? (current.registerMember?.register ?? null)
+              : null,
         registerMember:
           next.k === "value" ? (next.registerMember?.cName ?? null) : null,
         subscript,
@@ -1450,10 +1461,20 @@ class OperandTyper {
           ctx.symbolTable,
           OperandTyper.target(ctx),
         );
+        if (foreign !== null) {
+          return {
+            k: "value",
+            registerMember,
+            t: { ...foreign, form: DECLARED },
+          };
+        }
+        // A C-Next enum types the member as that enum (#2155 review 9); a type
+        // that does not resolve (an included bitmap, #1514) types nothing
+        const named = OperandTyper.namedFacts(info.cType, ctx);
         const t =
-          foreign === null
-            ? OperandTyper.plain(null)
-            : { ...foreign, form: DECLARED };
+          named.category === "enum"
+            ? { ...OperandTyper.plain(info.cType), ...named }
+            : OperandTyper.plain(null);
         return { k: "value", registerMember, t };
       }
       case "foreignPath":
@@ -1538,6 +1559,25 @@ class OperandTyper {
       };
     }
     return OperandTyper.foreignFieldOf(t, t.typeName, member, ctx);
+  }
+
+  /**
+   * ADR-034 (#2251): a bit or bit range of the bitmap field `fieldStep` read,
+   * as bits of its bitmap at the field's offset; null for a header bit-field
+   * or any other subscript
+   */
+  private static fieldBitsOf(
+    fieldStep: IChainStep | undefined,
+    subscript: TSubscriptKind | null,
+    ctx: ITypingContext,
+  ): IFieldBits | null {
+    if (subscript !== "bit_single" && subscript !== "bit_range") return null;
+    const bitmap = fieldStep?.before?.bitmapTypeName ?? null;
+    const name = fieldStep?.member ?? null;
+    if (bitmap === null || name === null) return null;
+    const layout = ctx.symbols.bitmapFields.get(bitmap)?.get(name);
+    if (layout === undefined) return null;
+    return { storage: fieldStep?.before ?? null, offset: layout.offset };
   }
 
   /** Whether `op` reads a bitmap field or a header bit-field of `current` (ADR-058) */

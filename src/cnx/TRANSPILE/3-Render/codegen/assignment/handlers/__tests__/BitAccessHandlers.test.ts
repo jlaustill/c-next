@@ -392,6 +392,7 @@ describe("BitAccessHandlers", () => {
             callee: null,
             beforeNamesType: false,
             beforeIsBitField: false,
+            fieldBits: null,
             beforeRegisterMember: null,
             beforeRegister: null,
             registerMember: null,

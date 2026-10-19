@@ -6,6 +6,8 @@ import type IAtomicAccess from "../types/IAtomicAccess";
 import type ITypingContext from "../types/ITypingContext";
 import BitmapFieldStep from "./BitmapFieldStep";
 import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import ForeignTypeFacts from "./ForeignTypeFacts";
 import OperandTyper from "./OperandTyper";
 import invariant from "./invariant";
 
@@ -47,7 +49,10 @@ class AtomicOwner {
     bitmapField: IBitmapFieldTarget | null,
     bitmapBackingType: ReadonlyMap<string, string>,
   ): IAtomicAccess | null {
-    const owner = step?.before ?? null;
+    // #2251: a bit of a bitmap field is a bit of the bitmap
+    const owner = step?.fieldBits
+      ? step.fieldBits.storage
+      : (step?.before ?? null);
     if (
       owner === null ||
       !BitmapFieldStep.writesBits(step, bitmapField) ||
@@ -60,7 +65,9 @@ class AtomicOwner {
 
   /**
    * What an atomic value of type `t` is accessed as: a bitmap as its backing
-   * integer, a C-Next type as itself, a C header type by its C type alone
+   * integer, an enum as its C type, a C-Next type as itself, a C header type
+   * by its declared C type -- `size_t` stays `size_t` even where the typer
+   * names it `u32`, as `uint32_t` may be another C type (#2155 review 9)
    */
   private static accessOf(
     t: IOperandType,
@@ -76,18 +83,33 @@ class AtomicOwner {
         accessed !== undefined && backing !== undefined,
         `a bitmap's backing type is an unsigned integer ('${backing}')`,
       );
-      return { typeName: accessed, cType: backing };
+      return {
+        typeName: accessed,
+        cType: backing,
+        bits: TYPE_WIDTH[accessed] ?? null,
+      };
+    }
+    if (t.enumTypeName !== null) {
+      return { typeName: null, cType: t.enumTypeName, bits: null };
     }
     const named =
       t.typeName === null ? undefined : CNEXT_TO_C_TYPE_MAP[t.typeName];
     if (t.typeName !== null && named !== undefined) {
-      return { typeName: t.typeName, cType: named };
+      return {
+        typeName: t.typeName,
+        cType: t.cType ?? named,
+        bits: t.bitWidth ?? TYPE_WIDTH[t.typeName] ?? null,
+      };
     }
     invariant(
       t.cType !== null,
       `an atomic value has a C type to be accessed as ('${t.typeName}')`,
     );
-    return { typeName: null, cType: t.cType };
+    return {
+      typeName: null,
+      cType: t.cType,
+      bits: t.bitWidth ?? ForeignTypeFacts.leastBits(t.cType),
+    };
   }
 
   /** Declared `atomic`, by the declaration the value binds to */

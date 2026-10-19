@@ -36,13 +36,14 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-5 linked fixtures with no derivable context:
+6 linked fixtures with no derivable context:
 
 - `adr-004/register-expression-address-mmio.test.cnx`
 - `adr-004/register-imported-bitmap-member.test.cnx`
 - `adr-004/register-imported-expression-mmio.test.cnx`
 - `adr-004/register-imported-rw.test.cnx`
 - `adr-004/register-imported-wo-mmio.test.cnx`
+- `bugs/issue-2258-register-enum-member/register-enum-member.test.cnx`
 
 ## ADR-006
 
@@ -342,10 +343,11 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+3 linked fixtures with no derivable context:
 
 - `bitmap/bitmap-error-bits.test.cnx`
 - `bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx`
+- `bugs/issue-2251-bitmap-field-bit-index/field-bit-index-register.test.cnx`
 
 ## ADR-035
 
@@ -501,6 +503,20 @@ cell is declared by the ADR that owns it.
 - `adr-058/length-property-struct.test.cnx`
 - `adr-058/slice-length-byte-length.test.cnx`
 - `bugs/issue-1975-type-length-across-includes/type-length-across-includes.test.cnx`
+
+## ADR-064
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | ok        | -      | -          | n/a         | n/a        |
+| top-level function | -         | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | -         | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
+
+1 linked fixture with no derivable context:
+
+- `bugs/issue-2254-volatile-not-inlined/volatile-read-not-inlined.test.cnx`
 
 ## ADR-068
 

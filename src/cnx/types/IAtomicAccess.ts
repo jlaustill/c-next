@@ -7,6 +7,12 @@
 interface IAtomicAccess {
   readonly typeName: string | null;
   readonly cType: string;
+  /**
+   * Its width in bits, or the least a C library type has (`int_fast64_t`:
+   * 64); null when unknown. Whether a target's word holds it reads this
+   * (#2155 review 9), not the C-Next name a header type lacks.
+   */
+  readonly bits: number | null;
 }
 
 export default IAtomicAccess;

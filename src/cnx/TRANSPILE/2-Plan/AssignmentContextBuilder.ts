@@ -36,6 +36,7 @@ import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import OperandTyper from "../../utils/OperandTyper";
+import BitUtils from "../../utils/BitUtils";
 
 /**
  * Dependencies for building context.
@@ -268,6 +269,43 @@ function buildAssignmentContext(
     lastSubscriptExprCount,
   } = extraction;
 
+  // #2251: a bit of a bitmap field is a bit of the bitmap, at the field's
+  // offset -- the field's prefix is the target, and its start index shifts
+  const fieldBits = deps.target.last?.fieldBits ?? null;
+  const bitStart = subscripts.length - lastSubscriptExprCount;
+  const renderSubscript = (index: number): string => {
+    const text = deps.generateExpression(subscripts[index]);
+    if (fieldBits === null || index !== bitStart) return text;
+    return BitUtils.shiftedIndex(
+      text,
+      deps.tryEvaluateConstant(subscripts[index]),
+      fieldBits.offset,
+    );
+  };
+  const foldSubscript = (index: number): number | undefined => {
+    const folded = deps.tryEvaluateConstant(subscripts[index]);
+    if (fieldBits === null || index !== bitStart || folded === undefined) {
+      return folded;
+    }
+    return folded + fieldBits.offset;
+  };
+  const lastOp = ops.at(-1);
+  const targetOps =
+    fieldBits === null || lastOp?.kind !== "subscript"
+      ? ops
+      : [
+          ...ops.slice(0, -1),
+          {
+            ...lastOp,
+            renderIndexes: () =>
+              lastOp
+                .renderIndexes()
+                .map((text, at) =>
+                  at === 0 ? renderSubscript(bitStart) : text,
+                ),
+          },
+        ];
+
   // Compute derived properties
   const memberAccessDepth = identifiers.length - 1;
   const subscriptDepth = subscripts.length;
@@ -287,7 +325,10 @@ function buildAssignmentContext(
     state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetExpr),
     renderBitTarget: () =>
-      deps.generateAssignmentTarget(targetExpr, postfixOps.length - 1),
+      deps.generateAssignmentTarget(
+        targetExpr,
+        postfixOps.length - (fieldBits === null ? 1 : 2),
+      ),
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
@@ -307,10 +348,10 @@ function buildAssignmentContext(
     foldValue: () => deps.foldWrittenValue(valueExpr),
     identifiers,
     subscriptCount: subscripts.length,
-    renderSubscript: (index) => deps.generateExpression(subscripts[index]),
+    renderSubscript,
     renderExpression: (expr) => deps.generateExpression(expr),
-    foldSubscript: (index) => deps.tryEvaluateConstant(subscripts[index]),
-    postfixOps: ops,
+    foldSubscript,
+    postfixOps: targetOps,
     hasThis,
     hasGlobal,
     scopePath: OperandTyper.scopePathAt(

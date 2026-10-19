@@ -14,7 +14,6 @@ import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
 import ParameterPassing from "./ParameterPassing";
-import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
@@ -64,7 +63,7 @@ import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
 import StatementChildren from "../../utils/StatementChildren";
-import LDREX_MAP from "./types/LDREX_MAP";
+import ExclusiveAccess from "./ExclusiveAccess";
 import type TAtomicForm from "../types/TAtomicForm";
 import type IPlannedAtomic from "../types/IPlannedAtomic";
 import type ITargetDescription from "../../types/ITargetDescription";
@@ -1059,6 +1058,7 @@ class FilePlanner {
     const atomicForms = this.planInterruptSafety(
       program,
       bitmapFieldWrites,
+      floatBits.writes,
       clamps.compound,
       decidedCTypes,
       requirements,
@@ -2016,25 +2016,27 @@ class FilePlanner {
       if (node.kind === "literal")
         return node.text.startsWith("'") ? [[0, "int"]] : [];
       if (node.kind !== "postfix") return [];
-      return OperandTyper.chainOf(node, typing).steps.flatMap(
-        (step, index): Array<[number, string]> => {
-          const from = step.before?.typeName ?? null;
-          if (step.subscript === "bit_single") return [[index, "int"]];
-          if (step.subscript === "bit_range") {
-            // A float's bits are read through a union's integer member, which
-            // is not promoted (ADR-007)
-            return from === null || FloatBits.rangeTypeOf(step) !== null
-              ? []
-              : [[index, NarrowingCastHelper.getPromotedType(from)]];
-          }
-          return step.subscript === null &&
-            step.property === null &&
-            from !== null &&
-            bitmapFields?.has(from)
-            ? [[index, "int"]]
-            : [];
-        },
-      );
+      const steps = OperandTyper.chainOf(node, typing).steps;
+      return steps.flatMap((step, index): Array<[number, string]> => {
+        const from = step.before?.typeName ?? null;
+        if (step.subscript === "bit_single") return [[index, "int"]];
+        if (step.subscript === "bit_range") {
+          // A float's bits are read through a union's integer member, which
+          // is not promoted (ADR-007)
+          return from === null || FloatBits.rangeTypeOf(step) !== null
+            ? []
+            : [[index, NarrowingCastHelper.getPromotedType(from)]];
+        }
+        // A field's bits (#2251) are read off the field, which is promoted
+        // only where it is the value
+        return step.subscript === null &&
+          step.property === null &&
+          index === steps.length - 1 &&
+          from !== null &&
+          bitmapFields?.has(from)
+          ? [[index, "int"]]
+          : [];
+      });
     };
     const narrowings = new Map<TExpression, Map<number, TPlannedNarrowing>>();
     for (const [value, planned] of expectedTypes) {
@@ -2212,6 +2214,7 @@ class FilePlanner {
       IAssignmentSyntax,
       IBitmapFieldTarget | null
     >,
+    floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits | null>,
     compoundClamps: ReadonlyMap<
       IAssignmentSyntax,
       { operation: string; cnxType: string } | null
@@ -2236,6 +2239,7 @@ class FilePlanner {
         const atomic = this.atomicFormOf(
           site,
           bitmapFieldWrites.get(site) ?? null,
+          (floatBitWrites.get(site.target) ?? null) !== null,
           compoundClamps.get(site)?.cnxType ?? null,
         );
         forms.set(site, atomic);
@@ -2276,22 +2280,29 @@ class FilePlanner {
   private atomicFormOf(
     site: IAssignmentSyntax,
     bitmapField: IBitmapFieldTarget | null,
+    writesFloatBits: boolean,
     clampType: string | null,
   ): IPlannedAtomic | null {
     const typing = this.state.typingContext();
     const access = AtomicOwner.ofWrite(site, typing, bitmapField);
     if (access === null) return null;
     AdrProvenance.record("049", site.target.span.line);
-    const typeName = access.typeName;
+    const target = this.state.targetDescription;
+    const exclusive =
+      target?.ldrex_strex === true ? ExclusiveAccess.of(access) : null;
     const form = FilePlanner.atomicFormFor(
-      this.state.targetDescription,
-      typeName !== null && LDREX_MAP[typeName] !== undefined,
-      typeName,
+      target,
+      exclusive !== null,
+      access.bits,
     );
+    const planned = {
+      ...access,
+      form,
+      exclusive: form === "ldrex-strex" ? exclusive : null,
+    };
     if (site.operator !== "<-") {
       return {
-        ...access,
-        form,
+        ...planned,
         operandCType: AtomicOperandType.ofCompound(
           access,
           clampType,
@@ -2303,12 +2314,11 @@ class FilePlanner {
     const value = OperandTyper.typeOf(site.value, typing);
     const valueType = OperandTyper.directTypeName(value);
     return {
-      ...access,
-      form,
+      ...planned,
       operandCType: AtomicOperandType.ofBits(
         access,
         BitmapFieldStep.writesOneBit(step, bitmapField),
-        step?.before?.category === "floating",
+        writesFloatBits,
         (valueType === null ? undefined : TYPE_MAP[valueType]) ??
           value?.cType ??
           null,
@@ -2323,21 +2333,20 @@ class FilePlanner {
    */
   private static widerThanWord(
     target: ITargetDescription | null,
-    typeName: string | null,
+    bits: number | null,
   ): boolean {
-    const width = typeName === null ? undefined : TYPE_WIDTH[typeName];
-    return target !== null && width !== undefined && width > target.word_size;
+    return target !== null && bits !== null && bits > target.word_size;
   }
 
   /** The target's one answer to "how is a read-modify-write made atomic" */
   private static atomicFormFor(
     target: ITargetDescription | null,
     exclusive: boolean,
-    typeName: string | null,
+    bits: number | null,
   ): TAtomicForm {
     if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
     if (!ResolvedTarget.masksInterrupts(target)) {
-      return FilePlanner.widerThanWord(target, typeName)
+      return FilePlanner.widerThanWord(target, bits)
         ? "compare-exchange-libatomic"
         : "compare-exchange";
     }

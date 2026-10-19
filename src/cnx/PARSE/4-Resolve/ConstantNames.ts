@@ -35,6 +35,7 @@ import ELEMENT_STEP from "../../types/ELEMENT_STEP";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
+import ConstantFold from "../../utils/ConstantFold";
 import type TSettledConst from "../../types/TSettledConst";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
@@ -185,9 +186,7 @@ class ConstantNames {
     if (declaration.kind === "parameter") {
       return ConstantNames.without("parameter", walk);
     }
-    // A `volatile` is read where it is written: its value is the hardware's
-    // or an interrupt's, never its initializer (#2155 review 8)
-    if (declaration.isConst && !declaration.isVolatile) {
+    if (ConstantFold.hasCompileTimeValue(declaration)) {
       return ConstantNames.ofSettled(settled?.constValue ?? undefined, walk);
     }
     return ConstantNames.without("variable", walk);
@@ -205,7 +204,7 @@ class ConstantNames {
         walk,
       );
     }
-    if (!symbol.isConst || symbol.isVolatile) {
+    if (!ConstantFold.hasCompileTimeValue(symbol)) {
       return ConstantNames.without("variable", walk);
     }
     return ConstantNames.ofSettled(walk.facts.constValue(symbol), walk);

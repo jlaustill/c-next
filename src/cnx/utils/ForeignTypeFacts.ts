@@ -623,6 +623,17 @@ class ForeignTypeFacts {
   }
 
   /**
+   * The least width C promises a C library integer whose width it leaves to
+   * the library: `int_fastN_t`/`int_leastN_t` have N bits or more,
+   * `intmax_t` 64 (C11 7.20.1); null for any other spelling
+   */
+  static leastBits(type: string): number | null {
+    const least = /^u?int_(?:fast|least)(8|16|32|64)_t$/.exec(type);
+    if (least) return Number(least[1]);
+    return /^u?intmax_t$/.test(type) ? 64 : null;
+  }
+
+  /**
    * Whether a spelling's width is the same on every target: `uint8_t`,
    * `int_least16_t`, `char`. The rest are sized by the target's data model
    * (`size_t`, `long`, `double`) or by none (`int_fast16_t`).

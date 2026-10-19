@@ -3,6 +3,7 @@ import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import type TConstLiteral from "../types/TConstLiteral";
 import type TSettledConst from "../types/TSettledConst";
 import QualifiedCName from "./QualifiedCName";
+import ConstantFold from "./ConstantFold";
 
 /**
  * The C constant a const is written as where its value is used, or null when
@@ -26,7 +27,7 @@ class ConstLiteral {
   /** The const's answer before C spells it, or null when it has none */
   static of(program: IProgram, symbol: IVariableSymbol): TConstLiteral | null {
     if (
-      !symbol.isConst ||
+      !ConstantFold.hasCompileTimeValue(symbol) ||
       symbol.isArray ||
       symbol.initialValueExpr === undefined ||
       symbol.initialValue === undefined

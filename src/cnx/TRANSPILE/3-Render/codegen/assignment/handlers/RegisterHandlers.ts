@@ -18,13 +18,27 @@ import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
 import invariant from "../../../../../utils/invariant";
 
 /**
+ * The C type a register member's bits are written in: a bitmap member's
+ * backing integer (#2251: a bit of its field is a bit of it), else its own
+ */
+function storageOf(
+  ctx: IAssignmentContext,
+  memberName: string,
+): string | undefined {
+  const symbols = ctx.state.symbols!;
+  const cType = symbols.registerMemberCTypes.get(memberName);
+  if (cType === undefined) return undefined;
+  return symbols.bitmapBackingType.get(cType) ?? cType;
+}
+
+/**
  * A bit of a register member. A write-1 member (`wo`, `w1s`, `w1c`) is
  * written without being read, and takes the value it is given: a runtime
  * zero is written as one, which the hardware ignores (#1775).
  */
 function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
   const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
-  const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
+  const storage = storageOf(ctx, memberName);
   const bitIndex = ctx.renderSubscript(0);
 
   if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
@@ -64,7 +78,7 @@ function writeRegisterBitRange(
   regName: string,
 ): string {
   const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
-  const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
+  const storage = storageOf(ctx, memberName);
   const start = ctx.renderSubscript(0);
   // With its fold (#1096): a register's `[0, W]` masked a runtime `1U << 32`
   const width = { text: ctx.renderSubscript(1), folded: ctx.foldSubscript(1) };

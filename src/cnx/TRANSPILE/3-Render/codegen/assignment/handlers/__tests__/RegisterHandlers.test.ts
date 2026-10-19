@@ -29,6 +29,7 @@ function registerTarget(
       callee: null,
       beforeNamesType: false,
       beforeIsBitField: false,
+      fieldBits: null,
       beforeRegisterMember: member,
       beforeRegister: register,
       registerMember: null,

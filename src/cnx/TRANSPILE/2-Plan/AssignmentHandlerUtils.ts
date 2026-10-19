@@ -96,7 +96,10 @@ function writeBits(ctx: IAssignmentContext): string {
       atomic: ctx.atomic,
     });
   }
-  const value = ctx.target.last?.before ?? null;
+  const step = ctx.target.last;
+  const value = step?.fieldBits
+    ? step.fieldBits.storage
+    : (step?.before ?? null);
   invariant(
     value?.category !== "floating",
     "2.2 planned every float bit write 2.3 writes",

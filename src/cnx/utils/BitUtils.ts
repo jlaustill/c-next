@@ -59,6 +59,21 @@ class BitUtils {
    * the mask is a literal (Issue #1094, #1096: `(1U << WIDTH) - 1U` is
    * undefined at full width); its rendered text otherwise
    */
+  /**
+   * A bit index moved `offset` bits up, as a bit of a bitmap field is a bit of
+   * its bitmap (#2251): its folded value, `NU`, when it folds, else the sum
+   */
+  static shiftedIndex(
+    text: string,
+    folded: number | undefined,
+    offset: number,
+  ): string {
+    if (offset === 0) return text;
+    return folded === undefined
+      ? `(${offset}U + ${text})`
+      : `${folded + offset}U`;
+  }
+
   static widthText(width: IBitWidth): string {
     return width.folded === undefined ? width.text : `${width.folded}U`;
   }

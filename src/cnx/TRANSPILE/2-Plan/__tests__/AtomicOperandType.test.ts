@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import AtomicOperandType from "../AtomicOperandType";
 
-const U8 = { typeName: "u8", cType: "uint8_t" };
-const U32 = { typeName: "u32", cType: "uint32_t" };
-const F32 = { typeName: "f32", cType: "float" };
-const HEADER = { typeName: null, cType: "int_fast16_t" };
+const U8 = { typeName: "u8", cType: "uint8_t", bits: 8 };
+const U32 = { typeName: "u32", cType: "uint32_t", bits: 32 };
+const F32 = { typeName: "f32", cType: "float", bits: 32 };
+const HEADER = { typeName: null, cType: "int_fast16_t", bits: 16 };
 
 describe("AtomicOperandType.ofCompound", () => {
   // #2120 review 2: the temporary must not narrow before the clamp helper
@@ -43,7 +43,7 @@ describe("AtomicOperandType.ofBits", () => {
   it("keeps wider bits in the value's own C type", () => {
     expect(
       AtomicOperandType.ofBits(
-        { typeName: "i8", cType: "int8_t" },
+        { typeName: "i8", cType: "int8_t", bits: 8 },
         false,
         false,
         "uint32_t",
