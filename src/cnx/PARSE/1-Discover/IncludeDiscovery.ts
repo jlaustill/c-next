@@ -9,7 +9,8 @@ import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
 import IFileSystem from "../../types/IFileSystem";
-import ConfigFileNames from "../../utils/ConfigFileNames";
+import ConfigFileNames from "./ConfigFileNames";
+import CONFIG_FILE_NAMES from "../../types/CONFIG_FILE_NAMES";
 import type IIncludeTiers from "./types/IIncludeTiers";
 import type IProjectRootWalk from "./types/IProjectRootWalk";
 import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
@@ -19,7 +20,7 @@ import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
  * directory holding any wins, so the order decides nothing.
  */
 const PROJECT_MARKERS: readonly string[] = [
-  ...ConfigFileNames.names,
+  ...CONFIG_FILE_NAMES,
   "platformio.ini",
   ".git",
   "package.json",

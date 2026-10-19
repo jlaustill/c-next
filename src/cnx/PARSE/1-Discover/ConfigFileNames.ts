@@ -1,11 +1,9 @@
 import { basename, join } from "node:path";
-import CodedErrorText from "./CodedErrorText";
-import type IFileSystem from "../types/IFileSystem";
-import type IRenamedConfigFile from "../types/IRenamedConfigFile";
-import type ITranspileError from "../types/ITranspileError";
-
-/** The config file names, searched in this order in each directory. */
-const NAMES: readonly string[] = ["cnx.config.json", ".cnx.json", ".cnxrc"];
+import CodedErrorText from "../../utils/CodedErrorText";
+import CONFIG_FILE_NAMES from "../../types/CONFIG_FILE_NAMES";
+import type IFileSystem from "../../types/IFileSystem";
+import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
+import type ITranspileError from "../../types/ITranspileError";
 
 /** Each name read before the language was named cnx, and its successor. */
 const RENAMED: ReadonlyMap<string, string> = new Map([
@@ -15,20 +13,18 @@ const RENAMED: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * Issue #2165: the one statement of what a project's config file is called.
+ * Issue #2165: what a directory's config files mean. The names are
+ * `CONFIG_FILE_NAMES`; the config walk (`ConfigLoader`), the project-root walk
+ * (`IncludeDiscovery.findProjectRoot`) and `--pio-install` ask this about the
+ * old names. A file under one is E0918 wherever a walk meets it, so a renamed
+ * project's settings are never dropped with no diagnostic.
  *
- * The config walk (`ConfigLoader`), the project-root walk
- * (`IncludeDiscovery.findProjectRoot`), `--pio-install` and `--help` all read
- * the names here; they were written out at each, and the config walk and the
- * root walk each carried a copy. A file under an old name is E0918 wherever a
- * walk meets it, so a renamed project's settings are never dropped with no
- * diagnostic.
+ * It reads the filesystem, which only 1.1 Discover and 3.1 Write may
+ * (`filesystem-only-in-discover-and-write`), so it is 1.1's.
  */
 class ConfigFileNames {
-  static readonly names = NAMES;
-
   /** The names as prose: `cnx.config.json, .cnx.json and .cnxrc`. */
-  static readonly listed = `${NAMES.slice(0, -1).join(", ")} and ${NAMES.at(-1)}`;
+  static readonly listed = `${CONFIG_FILE_NAMES.slice(0, -1).join(", ")} and ${CONFIG_FILE_NAMES.at(-1)}`;
 
   /** The old-name config files in `dir`, in search order. */
   static renamedIn(dir: string, fs: IFileSystem): IRenamedConfigFile[] {
@@ -74,7 +70,7 @@ class ConfigFileNames {
 
   /** The first new-name config file in `dir`, empty or not. */
   private static configIn(dir: string, fs: IFileSystem): string | null {
-    for (const name of NAMES) {
+    for (const name of CONFIG_FILE_NAMES) {
       const path = join(dir, name);
       if (fs.isFile(path)) {
         return path;

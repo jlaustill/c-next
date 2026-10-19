@@ -7,7 +7,7 @@ import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
-import ConfigFileNames from "../../cnx/utils/ConfigFileNames";
+import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
 import IFileConfig from "../types/IFileConfig";
 import MockFileSystem from "./MockFileSystem";
 import IFileSystem from "../../cnx/types/IFileSystem";

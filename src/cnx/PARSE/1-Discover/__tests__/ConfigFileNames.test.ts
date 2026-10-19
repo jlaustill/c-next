@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
 import ConfigFileNames from "../ConfigFileNames";
-import TestFileSystem from "../../types/__testUtils__/TestFileSystem";
-import IFileSystem from "../../types/IFileSystem";
+import CONFIG_FILE_NAMES from "../../../types/CONFIG_FILE_NAMES";
+import TestFileSystem from "../../../types/__testUtils__/TestFileSystem";
+import IFileSystem from "../../../types/IFileSystem";
 
 /** A filesystem holding exactly these files. */
 function filesystemWith(...paths: string[]): IFileSystem {
@@ -12,7 +13,7 @@ function filesystemWith(...paths: string[]): IFileSystem {
 
 describe("ConfigFileNames (#2165)", () => {
   it("names the three config files in search order", () => {
-    expect(ConfigFileNames.names).toEqual([
+    expect(CONFIG_FILE_NAMES).toEqual([
       "cnx.config.json",
       ".cnx.json",
       ".cnxrc",

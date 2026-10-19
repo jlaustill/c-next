@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import PlatformIOCommand from "../PlatformIOCommand";
 import IFileSystem from "../../cnx/types/IFileSystem";
 import TestFileSystem from "../../cnx/types/__testUtils__/TestFileSystem";
-import ConfigFileNames from "../../cnx/utils/ConfigFileNames";
+import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
 import DiagnosticText from "../DiagnosticText";
 
 /**

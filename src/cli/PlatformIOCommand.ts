@@ -8,7 +8,7 @@ import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import Write from "../cnx/WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
 import CaughtError from "../cnx/utils/CaughtError";
-import ConfigFileNames from "../cnx/utils/ConfigFileNames";
+import CONFIG_FILE_NAMES from "../cnx/types/CONFIG_FILE_NAMES";
 import type IFileSystem from "../cnx/types/IFileSystem";
 import ConfigLoader from "./ConfigLoader";
 import ResultPrinter from "./ResultPrinter";
@@ -205,7 +205,7 @@ transpile_cnext()
     const configPath =
       found.kind === "found"
         ? found.path
-        : resolve(process.cwd(), ConfigFileNames.names[0]);
+        : resolve(process.cwd(), CONFIG_FILE_NAMES[0]);
     const pioInclude = ".pio/libdeps";
 
     let config: IFileConfig = {};

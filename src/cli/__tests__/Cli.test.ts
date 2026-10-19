@@ -14,7 +14,7 @@ import { existsSync, statSync } from "node:fs";
 import Cli from "../Cli";
 import ArgParser from "../ArgParser";
 import ConfigLoader from "../ConfigLoader";
-import ConfigFileNames from "../../cnx/utils/ConfigFileNames";
+import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
 import DiagnosticText from "../DiagnosticText";
 import ConfigPrinter from "../ConfigPrinter";
 import PlatformIOCommand from "../PlatformIOCommand";

@@ -5,7 +5,7 @@ import Preprocessor from "../../../../../cnx/PARSE/2-Parse/preprocessor/Preproce
 import RunAnchor from "../../../../../cnx/PARSE/1-Discover/RunAnchor";
 import EFileType from "../../../../../cnx/PARSE/1-Discover/types/EFileType";
 import MockFileSystem from "../../../MockFileSystem";
-import ConfigFileNames from "../../../../../cnx/utils/ConfigFileNames";
+import ConfigFileNames from "../../../../../cnx/PARSE/1-Discover/ConfigFileNames";
 import type ISourceGraph from "../../../../../cnx/PARSE/1-Discover/types/ISourceGraph";
 
 /**

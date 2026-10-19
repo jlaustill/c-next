@@ -35,7 +35,7 @@ import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
-import ConfigFileNames from "../../utils/ConfigFileNames";
+import ConfigFileNames from "./ConfigFileNames";
 
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<

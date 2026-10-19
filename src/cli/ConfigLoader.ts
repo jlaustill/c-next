@@ -11,7 +11,8 @@ import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
-import ConfigFileNames from "../cnx/utils/ConfigFileNames";
+import ConfigFileNames from "../cnx/PARSE/1-Discover/ConfigFileNames";
+import CONFIG_FILE_NAMES from "../cnx/types/CONFIG_FILE_NAMES";
 
 /**
  * Load configuration from project directory
@@ -37,7 +38,7 @@ class ConfigLoader {
   /**
    * What `dir` alone holds for the walk (#2165): an old-name file is E0918,
    * whatever else is there; otherwise the first non-empty config in
-   * `ConfigFileNames.names` order. `--pio-install` asks it about the directory
+   * `CONFIG_FILE_NAMES` order. `--pio-install` asks it about the directory
    * it configures, so the file it updates is the one a run reads.
    */
   static inDirectory(dir: string, fs: IFileSystem): TConfigInDirectory {
@@ -48,7 +49,7 @@ class ConfigLoader {
         errors: renamed.map((file) => ConfigFileNames.errorFor(file)),
       };
     }
-    for (const name of ConfigFileNames.names) {
+    for (const name of CONFIG_FILE_NAMES) {
       const path = join(dir, name);
       const content = ConfigLoader.readConfig(path, fs);
       if (content !== null && content.trim() !== "") {
