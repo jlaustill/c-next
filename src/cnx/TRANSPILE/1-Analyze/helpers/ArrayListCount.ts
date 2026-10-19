@@ -141,7 +141,7 @@ class ArrayListCount {
       if (element.kind === "arrayInitializer") {
         ArrayListCount.checkLevel(element, at, level + 1, found);
       } else if (level + 1 < at.sizes.length) {
-        if (!ExpressionShape.givesWholeArray(element, at.elementType)) {
+        if (element.span.line < 0 && !ExpressionShape.givesWholeArray(element, at.elementType)) {
           found.push(
             element === fill
               ? ArrayListCount.rowFill(fill)
