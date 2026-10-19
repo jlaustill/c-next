@@ -92,7 +92,7 @@ class CompoundAssignmentCheck {
     }
     // #2193: a whole array is no one location either; C has no array
     // assignment, and a list is given to one with `<-` alone (ADR-035)
-    if (OperandTyper.wholeArrayDimensions(target, this.context).length > 0) {
+    if (target.span.line < 0 && OperandTyper.wholeArrayDimensions(target, this.context).length > 0) {
       return "whole array";
     }
     const typing = OperandTyper.chainOf(target, this.context);
