@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import StringDeclarationAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/StringDeclarationAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -18,7 +19,10 @@ const errors = (source: string) => {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
   });
-  return new StringDeclarationAnalyzer(context).analyze(syntax);
+  return new StringDeclarationAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context),
+  );
 };
 
 const codes = (source: string) => errors(source).map((e) => e.code);
@@ -124,5 +128,16 @@ describe("StringDeclarationAnalyzer", () => {
     expect(
       codes(inMain('    string<4> src <- "abcd";\n    string<1> c <- src[3];')),
     ).toEqual([]);
+  });
+  it("checks an argument against its string<N> parameter (#2239)", () => {
+    const source =
+      "u32 take(string<4> s) {\n    return s.value_char_count;\n}\n" +
+      inMain(
+        '    string<8> wide <- "abcdefgh";\n    string<2> narrow <- "ab";\n' +
+          "    u32 r1 <- take(wide);\n    u32 r2 <- take(narrow + narrow);",
+      );
+    expect(errors(source).map((e) => e.message)).toEqual([
+      "Cannot pass string<8> to a string<4> parameter -- the source may not fit",
+    ]);
   });
 });

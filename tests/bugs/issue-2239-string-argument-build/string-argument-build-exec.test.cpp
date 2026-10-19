@@ -28,7 +28,7 @@ static inline void cnx_string_copy(char* target, const char* source, uint32_t ca
 // test-no-warnings
 // Tests: #2239 - a concatenation or a substring passed to a string<N> parameter is built into a string<N> first; a whole-string argument is the control
 /* Scope: S */
-static const char S__m[9] = "mn";
+static const char S__m[5] = "mn";
 
 uint32_t S__take(const char* s) {
     if (strcmp(s, "abcd") == 0) {

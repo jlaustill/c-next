@@ -13,6 +13,10 @@ import type TExpression from "../../types/syntax/TExpression";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TStringPart from "../../types/TStringPart";
+import type IValuePositions from "../../types/IValuePositions";
+import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import StructInitializerType from "./helpers/StructInitializerType";
+import ValuePositions from "./helpers/ValuePositions";
 /**
  * ADR-045 string writes: whether a declaration's initializer or an
  * assignment's value fits the `string<N>` it lands in, E0864-E0865.
@@ -45,7 +49,7 @@ import type TStringPart from "../../types/TStringPart";
  */
 
 /** Whether a write declares its string or assigns an existing one */
-type TWrite = "declaration" | "assignment";
+type TWrite = "declaration" | "assignment" | "argument";
 
 /** The declarations and assignments 1.2 returned, each whole-string value checked against its capacity */
 class StringDeclarationCheck {
@@ -81,6 +85,21 @@ class StringDeclarationCheck {
     const capacity = OperandTyper.stringCopyCapacity(site.target, this.context);
     if (capacity === null) return;
     this.checkFit(site.value, capacity, "assignment");
+  }
+
+  /**
+   * #2239: an argument is written into its `string<N>` parameter, so the
+   * same rules hold there -- a value that may not fit is E0864, never cut
+   * short (ADR-045, "No Silent Truncation")
+   */
+  public argument(value: TExpression, positions: IValuePositions): void {
+    const position = ValuePositions.at(positions.positions, value);
+    if (position.inList) return;
+    const target = StructInitializerType.valueTypeAt(position);
+    const capacity =
+      target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
+    if (capacity === null) return;
+    this.checkFit(value, capacity, "argument");
   }
 
   /** E0864/E0865 for the form `StringValueForm` gives the value */
@@ -196,9 +215,7 @@ class StringDeclarationCheck {
     this.report(
       value,
       "E0864",
-      write === "declaration"
-        ? `Cannot initialize string<${capacity}> from string<${sourceCapacity}> -- the source may not fit`
-        : `Cannot assign string<${sourceCapacity}> to string<${capacity}> -- the source may not fit`,
+      StringDeclarationCheck.copyMessage(write, sourceCapacity, capacity),
       `Widen ${StringDeclarationCheck.whose(write)} to string<${sourceCapacity}>, or extract a substring of the source.`,
     );
   }
@@ -226,7 +243,29 @@ class StringDeclarationCheck {
   }
 
   private static whose(write: TWrite): string {
-    return write === "declaration" ? "the declaration" : "the target";
+    switch (write) {
+      case "declaration":
+        return "the declaration";
+      case "assignment":
+        return "the target";
+      case "argument":
+        return "the parameter";
+    }
+  }
+
+  private static copyMessage(
+    write: TWrite,
+    source: number,
+    capacity: number,
+  ): string {
+    switch (write) {
+      case "declaration":
+        return `Cannot initialize string<${capacity}> from string<${source}> -- the source may not fit`;
+      case "assignment":
+        return `Cannot assign string<${source}> to string<${capacity}> -- the source may not fit`;
+      case "argument":
+        return `Cannot pass string<${source}> to a string<${capacity}> parameter -- the source may not fit`;
+    }
   }
 
   private constantOf(expr: TExpression): number | null {
@@ -252,7 +291,10 @@ class StringDeclarationCheck {
 class StringDeclarationAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(program: IProgramSyntax): IStringDeclarationError[] {
+  public analyze(
+    program: IProgramSyntax,
+    positions: IValuePositions,
+  ): IStringDeclarationError[] {
     const check = new StringDeclarationCheck(this.context);
     for (const entry of VariableDeclarations.ruled(program)) {
       check.variable(entry.declaration);
@@ -267,6 +309,14 @@ class StringDeclarationAnalyzer {
       }
     };
     for (const entry of program.declarations) visit(entry.declaration);
+    for (const [value, at] of positions.sites) {
+      if (at.site.kind !== "argument") continue;
+      const call = at.site.call.ops[at.site.op];
+      if (call?.kind !== "call" || call.arguments[at.site.argument] !== value) {
+        continue;
+      }
+      check.argument(value, positions);
+    }
     return check.errors();
   }
 }

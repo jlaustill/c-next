@@ -2,7 +2,7 @@
 // test-no-warnings
 // Tests: #2239 - a concatenation or a substring passed to a string<N> parameter is built into a string<N> first; a whole-string argument is the control
 scope S {
-    string<8> m <- "mn";
+    string<4> m <- "mn";
     public u32 take(string<8> s) {
         if (s = "abcd") {
             return 1;

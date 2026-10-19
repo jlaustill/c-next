@@ -1,0 +1,21 @@
+// test-error
+// Tests: #2239 - E0864 rejects an argument that may not fit its string<N> parameter, as for a declaration; a fitting argument beside each is the control
+u32 take(string<4> s) {
+    return s.value_char_count;
+}
+
+void f() {
+    string<4> a <- "ab";
+    string<4> b <- "cd";
+    string<8> wide <- "abcdefgh";
+    string<2> narrow <- "ab";
+    u32 r1 <- take(a + wide);
+    u32 r2 <- take(a + "c");
+    u32 r3 <- take(wide[0, 6]);
+    u32 r4 <- take(wide[0, 4]);
+    u32 r5 <- take(wide);
+    u32 r6 <- take(narrow);
+    u32 r7 <- take("toolong");
+    u32 r8 <- take("ok");
+    u32 r9 <- take(narrow + narrow);
+}
