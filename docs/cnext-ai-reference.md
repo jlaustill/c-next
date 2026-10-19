@@ -110,9 +110,9 @@ is `E0381` ("use of uninitialized variable 'y'"), and so is reading a field of a
 struct declared without an initializer. A name is defined only once its declaration
 closes, so `u32 k <- k + 1;` is `E0427`.
 
-**Modifier order:** `atomic` or `volatile`, then `mut`, then `clamp` or `wrap`:
-`atomic clamp u8`, `volatile mut u32`, `mut wrap u32`. `atomic` already makes a binding
-writable, so `atomic mut` is `E0919` (#2233). `mut atomic`, `mut volatile`
+**Modifier order:** `volatile`, then `mut`, then `clamp` or `wrap`; `atomic` takes no
+`mut` (E0919): `atomic clamp u8`, `volatile mut u32`, `mut wrap u32`. `atomic` already
+makes a binding writable (ADR-071). `mut atomic`, `mut volatile`
 and `wrap mut` are parse errors. The message names the misplaced token (`extraneous input 'atomic'`,
 `extraneous input 'mut'`) but never says where it goes.
 

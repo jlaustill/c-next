@@ -380,7 +380,7 @@ base: bare, `this.` and `global.`.
 
 | Code  | Message                                                                                                                                                                                                                                                 | Help                                                                                                        | Source                                                                                              |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| E0898 | `const` written on a declaration: every binding is already read-only                                                                                                                                                                                    | Delete `const` (ADR-071); beside `atomic`, remove `atomic`, which a read-only value does not need (ADR-049) | `PARSE/2-Parse/MutabilityForm.ts`                                                                   |
+| E0898 | `const` written on a declaration: every binding is already read-only; on `atomic const`, a read-only `atomic` protects nothing; remove `atomic`                                                                                                         | Delete `const` (ADR-071); beside `atomic`, remove `atomic`, which a read-only value does not need (ADR-049) | `PARSE/2-Parse/MutabilityForm.ts`                                                                   |
 | E0899 | A `mut` binding nothing writes (a parameter of a callback-type function, a global and a public scope member are exempt)                                                                                                                                 | Remove `mut`, or `atomic` for an `atomic` binding (ADR-071, ADR-049)                                        | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`                                                    |
 | E0900 | A write to a binding not declared `mut`: an assignment to or through it, a `safe_div`/`safe_mod` output, an argument to a `mut` C-Next parameter or a C/C++ pointer or array parameter that is not const, or an opaque handle stored in a `mut` binding | Declare the binding `mut` (ADR-071)                                                                         | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`, `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
 
@@ -442,19 +442,19 @@ base: bare, `this.` and `global.`.
 | ----- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------- |
 | E0918 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034) | Index every dimension first: `a[i].A` | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 
----
-
 ## E0919 — `atomic` and `mut` on One Declaration (ADR-049)
 
-| Code  | Description                                           | Help                                                                                                                               | Source                                               |
-| ----- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| E0919 | A declaration carries both `atomic` and `mut` (#2233) | `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
+| Code  | Message                                                       | Help                                                                                                                               | Source                                               |
+| ----- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0919 | Cannot use both 'atomic' and 'mut' on one declaration (#2233) | `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
 
 ## E0920 — A Constant Bit Index Past the Value's Width (ADR-007)
 
-| Code  | Description                                                                                                                                                  | Help                                                                                              | Source                                     |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| E0920 | A constant bit index, or a constant bit range's last bit, is past the width of the value it indexes: its declared type's, or a bitmap field's (#1808, #2251) | A bit index counts within the indexed value's own bits; index a wider value, or a bit that exists | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts` |
+| Code  | Description                                                                                                                                                                                    | Help                                                                                              | Source                                     |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| E0920 | Bit index out of range in '<expr>': bit N (or a bit range that ends at bit N), but the value has W bits -- a constant index past its declared type's width, or a bitmap field's (#1808, #2251) | A bit index counts within the indexed value's own bits; index a wider value, or a bit that exists | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts` |
+
+---
 
 ## Adding New Error Codes
 
