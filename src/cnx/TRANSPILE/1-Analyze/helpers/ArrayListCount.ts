@@ -88,14 +88,18 @@ class ArrayListCount {
   }
 
   /** A string array's slot given something other than a string literal */
-  private static notAStringLiteral(value: TExpression): IArrayDeclarationError {
+  private static notAStringLiteral(
+    value: TExpression,
+    isFill: boolean,
+  ): IArrayDeclarationError {
     return {
       code: "E0866",
       line: value.span.line,
       column: value.span.column,
       message: `A string array's element in a list must be a string literal, not '${value.written}'`,
-      helpText:
-        "Write the string out as a literal, or set the element on its own (ADR-035).",
+      helpText: isFill
+        ? 'Fill a string array with a string literal, such as [""*] (ADR-035).'
+        : "Write the string out as a literal, or set the element on its own (ADR-035).",
     };
   }
 
@@ -149,7 +153,7 @@ class ArrayListCount {
         TypeCheckUtils.isSizedStringName(at.elementType) &&
         !ExpressionShape.isStringLiteral(element)
       ) {
-        found.push(ArrayListCount.notAStringLiteral(element));
+        found.push(ArrayListCount.notAStringLiteral(element, element === fill));
       }
     }
   }

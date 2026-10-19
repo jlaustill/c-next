@@ -1,0 +1,6 @@
+28:18 error[E0866]: An array of u16 is passed for a parameter of u8
+       help: Pass an array of the parameter's element type; an array is passed by reference and is not converted (ADR-014).
+30:19 error[E0866]: An array of string<4> is passed for a parameter of string<8>
+       help: Pass an array of the parameter's element type; an array is passed by reference and is not converted (ADR-014).
+32:19 error[E0866]: An array of u16 is passed for a parameter of u8
+       help: Pass an array of the parameter's element type; an array is passed by reference and is not converted (ADR-014).

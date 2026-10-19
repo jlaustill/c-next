@@ -22,6 +22,8 @@ import StructInitializerType from "./helpers/StructInitializerType";
 import ExpressionChildren from "../../utils/ExpressionChildren";
 import ExpressionShape from "../../utils/ExpressionShape";
 import OperandTyper from "../../utils/OperandTyper";
+import ForHeaderVariable from "../../utils/ForHeaderVariable";
+import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import TypeText from "../../utils/TypeText";
 import type IValuePosition from "../../types/IValuePosition";
 import type IValuePositions from "../../types/IValuePositions";
@@ -55,7 +57,44 @@ class WholeArrayValueAnalyzer {
       }
       found.push(...WholeArrayValueAnalyzer.check(value, at, this.context));
     }
+    found.push(...this.forClauseArrays(positions));
     return found.sort((a, b) => a.line - b.line || a.column - b.column);
+  }
+
+  /**
+   * #1782: a whole array is copied element by element, a block a `for`
+   * clause cannot hold, and #1823 keeps a `for` header to scalars (E0917).
+   * A clause's assignment has no position, so it is found by its site.
+   */
+  private forClauseArrays(
+    positions: IValuePositions,
+  ): IArrayDeclarationError[] {
+    const found: IArrayDeclarationError[] = [];
+    for (const [value, at] of positions.sites) {
+      const site = at.site;
+      if (site.kind !== "assignment" || site.assignment.value !== value) {
+        continue;
+      }
+      const assignment = site.assignment;
+      if (assignment.operator !== "<-") continue;
+      if ((positions.positions.get(value)?.dimensions.length ?? 0) > 0) {
+        continue;
+      }
+      const target = assignment.target;
+      if (
+        OperandTyper.wholeArrayDimensions(target, this.context).length === 0
+      ) {
+        continue;
+      }
+      found.push({
+        code: "E0917",
+        line: target.span.line,
+        column: target.span.column,
+        message: ForHeaderVariable.assignmentMessage(target.written),
+        helpText: ForHeaderVariable.ASSIGNMENT_HELP,
+      });
+    }
+    return found;
   }
 
   /**
@@ -90,7 +129,7 @@ class WholeArrayValueAnalyzer {
           typeof taken[i] !== "number" ||
           size === taken[i],
       );
-    if (agree) return [];
+    if (agree) return this.elementMismatch(value, at);
     const shape = (sizes: ReadonlyArray<number | string>) =>
       sizes.map((size) => `[${size}]`).join("");
     return [
@@ -117,6 +156,37 @@ class WholeArrayValueAnalyzer {
     }
     if (ExpressionShape.givesWholeArray(value, element)) return [];
     return [ArrayListCount.notAList(value)];
+  }
+
+  /**
+   * #2209: the callee reads an array argument with the parameter's element
+   * layout, so a primitive or a string element agrees too -- `u16[4]` for
+   * `u8[4]`, or `string<4>[2]` for `string<8>[2]`, was misread at exit 0.
+   */
+  private elementMismatch(
+    value: TExpression,
+    at: IValuePosition,
+  ): IArrayDeclarationError[] {
+    if (at.typeText === null) return [];
+    const taken = TypeText.withoutDimensions(at.typeText);
+    const given = OperandTyper.typeOf(value, this.context)?.typeName ?? null;
+    if (given === null || given === taken) return [];
+    const compared =
+      TypeCheckUtils.isInteger(taken) ||
+      TypeCheckUtils.isFloat(taken) ||
+      taken === "bool" ||
+      TypeCheckUtils.isSizedStringName(taken);
+    if (!compared) return [];
+    return [
+      {
+        code: "E0866",
+        line: value.span.line,
+        column: value.span.column,
+        message: `An array of ${given} is passed for a parameter of ${taken}`,
+        helpText:
+          "Pass an array of the parameter's element type; an array is passed by reference and is not converted (ADR-014).",
+      },
+    ];
   }
 
   private static markAsked(

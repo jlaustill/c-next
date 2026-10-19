@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 036
+// #1782: a whole array is copied element by element, a block a `for` clause
+// cannot hold, and #1823 keeps a `for` header to scalars (E0917). In a `for`
+// clause, `pair <- src` and `pair <- [1, 2]` were emitted as C array
+// assignments, which gcc and g++ reject, at exit 0.
+mut u8[2] pair <- [0, 0];
+u8[2] src <- [1, 2];
+
+void f() {
+    // NEGATIVE CONTROL -- scalar writes in a for clause stay silent.
+    for (mut u32 i <- 0; i < 2; i +<- 1) {
+    }
+    for (u32 k <- 0; k < 2; pair[0] <- 1) {
+    }
+
+    // ASSERTION 1 -- another array in the update clause.
+    for (u32 a <- 0; a < 2; pair <- src) {
+    }
+    // ASSERTION 2 -- a list in the update clause.
+    for (u32 b <- 0; b < 2; pair <- [1, 2]) {
+    }
+    // ASSERTION 3 -- an array in the init clause.
+    for (pair <- src; pair[0] < 2; pair[0] <- 2) {
+    }
+}

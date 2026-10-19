@@ -274,7 +274,7 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-19 linked fixtures with no derivable context:
+20 linked fixtures with no derivable context:
 
 - `adr-029/callback-assign.test.cnx`
 - `adr-029/callback-basic.test.cnx`
@@ -295,6 +295,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1562-fn-type-variable-header/fn-type-variable.test.cnx`
 - `bugs/issue-1566-struct-init-all-fields/struct-init-all-fields.test.cnx`
 - `bugs/issue-1568-init-designated-position/init-designated-position.test.cnx`
+- `bugs/issue-2157-array-parameter-list/chained-call.test.cnx`
 
 ## ADR-030
 

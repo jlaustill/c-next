@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 014
+// #2209: an array argument is passed by reference, so the callee reads it
+// with the parameter's element layout. An array of another element type, or
+// a string array of another capacity, was accepted at exit 0 and misread.
+#include "readers.cnx"
+
+u8 third(u8[4] buf) {
+    return buf[2];
+}
+
+u32 count(string<8>[2] names) {
+    return names[1].value_char_count;
+}
+
+u16[4] words <- [1, 2, 3, 4];
+u8[4] bytes <- [1, 2, 3, 4];
+string<4>[2] small <- ["ab", "cd"];
+string<8>[2] labels <- ["ab", "cd"];
+
+void f() {
+    // NEGATIVE CONTROL -- an array of the parameter's element type.
+    u8 ok <- third(bytes);
+    u8 okIncluded <- fourth(bytes);
+    u32 okStrings <- count(labels);
+
+    // ASSERTION 1 -- another element type.
+    u8 a <- third(words);
+    // ASSERTION 2 -- a string array of another capacity.
+    u32 b <- count(small);
+    // ASSERTION 3 -- a callee declared across an include.
+    u8 c <- fourth(words);
+}
