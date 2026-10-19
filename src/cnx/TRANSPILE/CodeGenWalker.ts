@@ -114,6 +114,7 @@ import FormatUtils from "../utils/FormatUtils";
 import ExpressionShape from "../utils/ExpressionShape";
 import SafeDivision from "../utils/SafeDivision";
 import type IChainHead from "../types/IChainHead";
+import StringUtils from "../utils/StringUtils";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./2-Plan/IncludeGenerator";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
@@ -1674,6 +1675,10 @@ class CodeGenWalker {
       output.push(...helpers);
     }
 
+    if (plan.stringCopyHelper) {
+      output.push(...StringUtils.copyHelperDefinition());
+    }
+
     const safeDivHelpers = this.generateSafeDivHelpers(plan.safeDivOps);
     if (safeDivHelpers.length > 0) {
       output.push(...safeDivHelpers);
@@ -2977,7 +2982,7 @@ class CodeGenWalker {
         "assignment",
       ),
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
-      plannedStringCapacity: this.filePlan.stringCopies.get(site) ?? null,
+      plannedStringCopy: this.filePlan.stringCopies.get(site) ?? null,
       plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
       plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,
       state: this.host.state,

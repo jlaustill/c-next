@@ -1,3 +1,4 @@
+import type IPlannedStringCopy from "./types/IPlannedStringCopy";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import UnwrittenIncludes from "./UnwrittenIncludes";
 import ParameterConst from "../../utils/ParameterConst";
@@ -1694,14 +1695,18 @@ class FilePlanner {
    */
   private planStringCopies(
     program: IProgramSyntax,
-  ): Map<IAssignmentSyntax, number> {
-    const copies = new Map<IAssignmentSyntax, number>();
+  ): Map<IAssignmentSyntax, IPlannedStringCopy> {
+    const copies = new Map<IAssignmentSyntax, IPlannedStringCopy>();
     const typing = this.state.typingContext();
     for (const site of FilePlanner.assignmentSites(program)) {
       const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
       if (capacity === null) continue;
       AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
-      copies.set(site, capacity);
+      // #2207: only a literal cannot be the target, so `names[i] <- names[j]`
+      // must not reach `strncpy` with overlapping arguments when i == j
+      const literal =
+        site.value.kind === "literal" && site.value.literalKind === "string";
+      copies.set(site, { capacity, throughHelper: !literal });
     }
     return copies;
   }
@@ -2123,6 +2128,9 @@ class FilePlanner {
       selfIncludeAdded,
       existingIncludeTargets,
       clampOps: plan.clampOps,
+      stringCopyHelper: [...plan.stringCopies.values()].some(
+        (copy) => copy.throughHelper,
+      ),
       castHelpers: requirements.castHelpers,
       lengthHelpers: requirements.lengthHelpers,
       safeDivOps: requirements.safeDivisions,

@@ -29,6 +29,9 @@ import invariant from "../../../../../utils/invariant";
  *
  * The terminator store spells the target a second time, so a target whose
  * subscript has a side effect is reached once, through a temp (#1731 review).
+ * A copy from another string calls `cnx_string_copy` instead (#2207):
+ * `strncpy` with overlapping arguments is undefined, and `names[i]` can be
+ * `names[j]`.
  *
  * #1450 box 4: no `requireInclude("string")` here -- `needsString` is raised
  * by three independent channels before this runs (the effect channel during
@@ -39,12 +42,18 @@ const HOISTED_COPY_ANNOTATION =
   "/* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */";
 
 function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
-  const capacity = ctx.plannedStringCapacity;
+  const planned = ctx.plannedStringCopy;
   invariant(
-    capacity !== null,
+    planned !== null,
     "the classifier routes a planned write of one string<N> here",
   );
+  const { capacity } = planned;
   const target = ctx.renderTarget();
+  // #2207: a source that can be the target is copied by the helper, which is
+  // safe when the two are one object; it reaches the target once as well
+  if (planned.throughHelper) {
+    return `${StringUtils.COPY_HELPER}(${target}, ${ctx.generatedValue}, ${capacity}U);`;
+  }
   if (!ctx.targetIndexHasSideEffect) {
     return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
   }

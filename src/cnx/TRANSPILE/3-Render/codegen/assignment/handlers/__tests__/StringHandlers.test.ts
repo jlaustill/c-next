@@ -53,7 +53,7 @@ function createMockContext(
     // set its facts up on.
     state,
     // #1731 review: 2.2's decision is the case's input
-    plannedStringCapacity: null,
+    plannedStringCopy: null,
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
@@ -99,7 +99,7 @@ describe("StringHandlers", () => {
         copyHandler()!(
           createMockContext({
             isSimpleIdentifier: true,
-            plannedStringCapacity: 32,
+            plannedStringCopy: { capacity: 32, throughHelper: false },
           }),
         ),
       ).toBe("(void) strncpy(target, \"hello\", 32); target[32] = '\\0';");
@@ -114,7 +114,7 @@ describe("StringHandlers", () => {
       ]);
       const ctx = createMockContext({
         identifiers: ["person", "name"],
-        plannedStringCapacity: 50,
+        plannedStringCopy: { capacity: 50, throughHelper: false },
       });
 
       const result = copyHandler()!(ctx);
@@ -132,11 +132,26 @@ describe("StringHandlers", () => {
       const ctx = createMockContext({
         identifiers: ["config", "items"],
         ...HandlerTestUtils.subscriptsOf([{} as never]),
-        plannedStringCapacity: 32,
+        plannedStringCopy: { capacity: 32, throughHelper: false },
       });
 
       expect(copyHandler()!(ctx)).toBe(
         "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
+      );
+    });
+
+    // #2207: a source that can be the target goes through the helper, which
+    // is safe on one object and reaches a side-effecting target once
+    it("copies from a string through cnx_string_copy", () => {
+      const ctx = createMockContext({
+        isSimpleIdentifier: true,
+        targetIndexHasSideEffect: true,
+        generatedValue: "names[j]",
+        plannedStringCopy: { capacity: 8, throughHelper: true },
+      });
+
+      expect(copyHandler()!(ctx)).toBe(
+        "cnx_string_copy(target, names[j], 8U);",
       );
     });
 
@@ -149,7 +164,7 @@ describe("StringHandlers", () => {
       const ctx = createMockContext({
         isSimpleIdentifier: true,
         targetIndexHasSideEffect: true,
-        plannedStringCapacity: 8,
+        plannedStringCopy: { capacity: 8, throughHelper: false },
       });
 
       expect(copyHandler()!(ctx)).toBe(

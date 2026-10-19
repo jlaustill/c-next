@@ -641,8 +641,9 @@ copy as one declared beside it (#1595).
 
 This rule has its own matrix, so only the copy's fixtures occupy it and they
 cannot stand in for the declaration rules' fixtures above. A write is a
-statement, so it reaches only the two contexts that hold statements; a
-declaration's initializer belongs to the declaration rules.
+statement, so it reaches only the two contexts that hold statements: a `for`
+header's update cannot hold the copy (E0715, ADR-068), and a declaration's
+initializer belongs to the declaration rules.
 
 <!-- MATRIX-SEVERITY rule: string-copy -->
 
