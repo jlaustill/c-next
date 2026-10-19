@@ -23,6 +23,8 @@ u8 corner(u8[2][4] g) {
 }
 
 u32 main() {
+    u32[2][3] grid <- [[1*], [2*]];
+    u32[3] row <- [2*];
     u32[2][2][2] cube <- [[[1*], [2*]], [[3*], [4*]]];
     u8[2][3] mixed <- [[1, 2, 3], [9*]];
     mut u8[2][4] local <- [[0*], [0*]];
@@ -58,9 +60,15 @@ u32 main() {
     if (passed != 4) {
         return 9;
     }
-    // NEGATIVE CONTROL -- a spelled-out row is unchanged.
-    if (mixed[0][2] != 3) {
+    if (grid[1][2] != 2) {
         return 10;
+    }
+    // NEGATIVE CONTROL -- a spelled-out row and a 1-D fill are unchanged.
+    if (mixed[0][2] != 3) {
+        return 11;
+    }
+    if (row[2] != 2) {
+        return 12;
     }
     return 0;
 }

@@ -34,6 +34,8 @@ uint8_t corner(const uint8_t g[2][4]) {
 }
 
 int main(void) {
+    const uint32_t grid[2][3] = {{1U, 1U, 1U}, {2U, 2U, 2U}};
+    const uint32_t row[3] = {2U, 2U, 2U};
     const uint32_t cube[2][2][2] = {{{1U, 1U}, {2U, 2U}}, {{3U, 3U}, {4U, 4U}}};
     const uint8_t mixed[2][3] = {{1U, 2U, 3U}, {9U, 9U, 9U}};
     uint8_t local[2][4] = {{0U, 0U, 0U, 0U}, {0U, 0U, 0U, 0U}};
@@ -76,8 +78,14 @@ int main(void) {
     if (passed != 4) {
         return 9U;
     }
-    if (mixed[0U][2U] != 3) {
+    if (grid[1U][2U] != 2) {
         return 10U;
+    }
+    if (mixed[0U][2U] != 3) {
+        return 11U;
+    }
+    if (row[2U] != 2) {
+        return 12U;
     }
     return 0U;
 }
