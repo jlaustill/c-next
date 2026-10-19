@@ -38,8 +38,7 @@ int main(void) {
     cnx_string_copy(c.name, "cn", 8U);
     const char s[9] = "sv";
     char fromElement[9] = "";
-    (void) strncpy(fromElement, names + 1, 1);
-    fromElement[1] = '\0';
+    cnx_string_copy(fromElement, names[1], 8U);
     if (strcmp(fromElement, "n1") != 0) {
         return 1U;
     }

@@ -98,7 +98,7 @@ class StringDeclarationCheck {
       }
       return;
     }
-    const source = this.stringSourceOf(expression, at);
+    const source = this.stringSourceOf(expression);
     if (source === null) return;
     if (source.isLiteral && source.capacity > capacity) {
       this.report(
@@ -146,10 +146,7 @@ class StringDeclarationCheck {
     }
   }
 
-  private stringSourceOf(
-    expression: TExpression,
-    at: ISourceSpan,
-  ): IStringSource | null {
+  private stringSourceOf(expression: TExpression): IStringSource | null {
     if (
       expression.kind === "literal" &&
       ExpressionShape.isStringLiteral(expression)
@@ -159,7 +156,8 @@ class StringDeclarationCheck {
         isLiteral: true,
       };
     }
-    const capacity = this.capacityOfOperand(expression, at);
+    // #1731: the copy 2.2 plans, by the rule an assignment's copy is decided by
+    const capacity = OperandTyper.stringCopyCapacity(expression, this.context);
     return capacity === null ? null : { capacity, isLiteral: false };
   }
 
