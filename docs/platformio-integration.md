@@ -19,9 +19,13 @@ This command:
 ## Project Configuration (`cnx.config.json`)
 
 C-Next reads `cnx.config.json` (or `.cnx.json` / `.cnxrc`) from the project
-root. A config under an old name — `cnext.config.json`, `.cnext.json` or
-`.cnextrc` — is error E0918 and is never read: rename it. That includes one in a
-library your project includes, which only the library can fix.
+root: the nearest directory, from the entry file up, that holds a config,
+`platformio.ini`, `.git` or `package.json`. A PlatformIO project is therefore
+its own root, and a config in a directory above it is never read.
+
+A config under an old name — `cnext.config.json`, `.cnext.json` or `.cnextrc` —
+is error E0918 and is never read: rename it. That includes one in a library your
+project includes, which only the library can fix.
 
 `--pio-install` writes a working default; the fields you'll touch most:
 

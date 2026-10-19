@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { relative, resolve } from "node:path";
 import PlatformIOCommand from "../PlatformIOCommand";
+import ConfigLoader from "../ConfigLoader";
 import IFileSystem from "../../cnx/types/IFileSystem";
 import TestFileSystem from "../../cnx/types/__testUtils__/TestFileSystem";
 import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
@@ -226,6 +227,34 @@ describe("PlatformIOCommand", () => {
         const config = project.config("cnx.config.json");
         expect(config.include).toContain(".pio/libdeps");
         expect(config.headerOut).toBe("include");
+      });
+
+      // #2235, closed by #2261: platformio.ini makes the project its own root,
+      // so an ancestor's config is not the project's before the install, and
+      // the config the install writes shadows nothing.
+      it("reads no ancestor's config, before the install or after it", () => {
+        const ancestor = { target: "teensy41", cppRequired: true };
+        const project = new PioProject({
+          "platformio.ini": "[env:teensy41]\n",
+          "../cnx.config.json": JSON.stringify(ancestor),
+        });
+        const cwd = process.cwd();
+
+        expect(ConfigLoader.load(cwd, project.fs)).toEqual({
+          kind: "loaded",
+          config: {},
+        });
+        PlatformIOCommand.install(project.fs);
+
+        expect(ConfigLoader.load(cwd, project.fs)).toEqual({
+          kind: "loaded",
+          config: {
+            _path: resolve(cwd, "cnx.config.json"),
+            include: [resolve(cwd, ".pio/libdeps")],
+            headerOut: resolve(cwd, "include"),
+          },
+        });
+        expect(project.config("../cnx.config.json")).toEqual(ancestor);
       });
 
       it("appends .pio/libdeps to existing include array", () => {

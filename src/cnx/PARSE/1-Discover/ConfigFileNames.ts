@@ -25,12 +25,13 @@ const RENAMED: ReadonlyMap<string, string> = new Map(
 
 /**
  * Issue #2165: what a directory's config files mean. The names are
- * `CONFIG_FILE_NAMES`; the config walk (`ConfigLoader`), the project-root walk
- * (`IncludeDiscovery.findProjectRoot`) and `--pio-install` ask this about the
- * old names. A file under one is E0918 wherever a walk meets it, so a renamed
- * project's settings are never dropped with no diagnostic. Which new-name file
- * a directory's config is, `readIn`, is decided here once, for the walk and
- * for E0918's help alike (#2221 review).
+ * `CONFIG_FILE_NAMES`; the project-root walk
+ * (`IncludeDiscovery.findProjectRoot`), whose root `ConfigLoader` reads the
+ * config from (#2261), and `--pio-install` ask this about the old names. A
+ * file under one is E0918 wherever a walk meets it, so a renamed project's
+ * settings are never dropped with no diagnostic. Which new-name file a
+ * directory's config is, `readIn`, is decided here once, for the config read
+ * and for E0918's help alike (#2221 review).
  *
  * It reads the filesystem, which only 1.1 Discover and 3.1 Write may
  * (`filesystem-only-in-discover-and-write`), so it is 1.1's.

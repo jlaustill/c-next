@@ -176,6 +176,16 @@ cnext src/main.cnx -o build/src --header-out build/include --clean
 cnext --help
 ```
 
+### Configuration
+
+Settings such as `target`, `include` and `headerOut` go in `cnx.config.json` (or
+`.cnx.json` / `.cnxrc`), read from the project root: the nearest directory, from
+the entry file up, that holds a config, `platformio.ini`, `.git` or
+`package.json`. That directory is also where the `.cnx/` cache lives, and a config
+above it is never read, so a `~/.cnxrc` does not reach a project with a `.git` of
+its own. The options are listed by `--help` and described in
+[PlatformIO integration](docs/platformio-integration.md#project-configuration-cnxconfigjson).
+
 ## Incremental Adoption
 
 C-Next supports gradual migration from existing C/C++ codebases. Convert files one at a time, starting with leaf modules:

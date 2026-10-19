@@ -233,8 +233,9 @@ transpile_cnext()
    *
    * #2165: the file updated is this directory's config, under whichever name
    * it has. Writing `cnx.config.json` regardless shadowed a project's `.cnxrc`,
-   * silently, since the walk takes the first name. With no config here, the
-   * one written still shadows an ancestor's (#2235).
+   * silently, since the walk takes the first name. An ancestor's config is
+   * never this project's to shadow: `platformio.ini` makes this directory its
+   * own root (#2261, which closed #2235).
    */
   private static setupConfig(
     configPath: string,

@@ -10,21 +10,10 @@ import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
 import IFileSystem from "../../types/IFileSystem";
 import ConfigFileNames from "./ConfigFileNames";
-import CONFIG_FILE_NAMES from "../../types/CONFIG_FILE_NAMES";
+import PROJECT_MARKERS from "../../types/PROJECT_MARKERS";
 import type IIncludeTiers from "./types/IIncludeTiers";
 import type IProjectRootWalk from "./types/IProjectRootWalk";
 import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
-
-/**
- * What marks a project root (#1668). Every marker counts equally: the nearest
- * directory holding any wins, so the order decides nothing.
- */
-const PROJECT_MARKERS: readonly string[] = [
-  ...CONFIG_FILE_NAMES,
-  "platformio.ini",
-  ".git",
-  "package.json",
-];
 
 /**
  * Auto-discovery of include paths for C-Next compilation
@@ -269,8 +258,12 @@ class IncludeDiscovery {
    *
    * #2165: a config under an old name is not a marker. The walk passes it and
    * returns it, with every other one it passed, for the caller to report as
-   * E0918: the config walk alone cannot see them all, since a file included
-   * from another tree is walked from there.
+   * E0918: the walk from the entry alone cannot see them all, since a file
+   * included from another tree is walked from there.
+   *
+   * #2261: this is the config's walk too. `ConfigLoader` reads the config
+   * from the root it returns and from no directory above, so a run's settings
+   * and its root are one directory.
    *
    * @param startDir - Directory to start search from
    * @param fs - File system abstraction

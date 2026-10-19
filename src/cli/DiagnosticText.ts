@@ -6,7 +6,7 @@ import type ITranspileError from "../cnx/types/ITranspileError";
  * indented beneath it.
  *
  * #2165: errors (`ResultPrinter`) and 2.1's warnings (`Transpiler`) each spelled
- * this out, so the two could drift; the config walk's E0918 is a third
+ * this out, so the two could drift; the config load's E0918 is a third
  * printer. Error fixtures are generated from this output, so what a user reads
  * and what the corpus asserts are the same text.
  */
