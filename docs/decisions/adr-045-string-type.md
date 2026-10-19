@@ -360,7 +360,8 @@ member (#2223, #2237). The capacity rules above hold for an assignment as for
 a declaration (#2191): its value is E0864 when it may not fit. An assignment
 builds a concatenation or a substring in a temporary and then copies it in,
 so a part may read the string written (`message <- message[0, 58] + " World"`).
-A substring is copied by `cnx_string_copy`, which takes at most its length.
+A substring contributes at most its length, and never more than the space left in
+the string it is written into.
 A substring's length is a compile-time constant -- a literal or a constant --
 wherever the substring is read (#2240): a run-time length is E0919, because
 what it copies could not be checked to fit. Its start may be computed at run

@@ -39,6 +39,28 @@ class ExpressionShape {
    * `((cfg.total))` is `cfg.total`. The held node itself, so a plan keyed by
    * that node still finds it (#1203 review).
    */
+  /**
+   * ADR-045: a `+` chain's operands, two or more, a parenthesized chain
+   * inside one flattened (#1954, #2232); null for any other value. The one
+   * rule for "is this a concatenation" that 2.1 and 2.2 read (#2160 review).
+   */
+  static concatenationOperands(
+    expr: TExpression,
+  ): readonly TExpression[] | null {
+    const value = ExpressionShape.unparenthesized(expr);
+    if (
+      value.kind !== "binary" ||
+      value.level !== "additive" ||
+      !value.operators.every((operator) => operator === "+")
+    ) {
+      return null;
+    }
+    return value.operands.flatMap((operand) => {
+      const inner = ExpressionShape.concatenationOperands(operand);
+      return inner ?? [ExpressionShape.unparenthesized(operand)];
+    });
+  }
+
   static unparenthesized(expr: TExpression): TExpression {
     return expr.kind === "parenthesized"
       ? ExpressionShape.unparenthesized(expr.expression)

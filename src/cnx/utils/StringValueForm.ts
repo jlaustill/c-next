@@ -20,12 +20,11 @@ class StringValueForm {
     if (ExpressionShape.isStringLiteral(unwrapped)) {
       return { kind: "literal", literal: unwrapped };
     }
-    if (StringValueForm.isConcatenation(unwrapped)) {
+    const operands = ExpressionShape.concatenationOperands(unwrapped);
+    if (operands !== null) {
       return {
         kind: "concat",
-        parts: StringValueForm.operands(unwrapped).map((operand) =>
-          StringValueForm.partOf(operand, ctx),
-        ),
+        parts: operands.map((operand) => StringValueForm.partOf(operand, ctx)),
       };
     }
     const part = StringValueForm.partOf(unwrapped, ctx);
@@ -46,25 +45,6 @@ class StringValueForm {
       start: last.indexes[0],
       length: last.indexes[1] ?? null,
     };
-  }
-
-  private static isConcatenation(value: TExpression): boolean {
-    return (
-      value.kind === "binary" &&
-      value.level === "additive" &&
-      value.operators.every((operator) => operator === "+")
-    );
-  }
-
-  /** A `+` chain's operands, a parenthesized chain inside one flattened */
-  private static operands(value: TExpression): TExpression[] {
-    if (value.kind !== "binary") return [value];
-    return value.operands.flatMap((operand) => {
-      const unwrapped = StringValueForm.unwrapped(operand);
-      return StringValueForm.isConcatenation(unwrapped)
-        ? StringValueForm.operands(unwrapped)
-        : [unwrapped];
-    });
   }
 
   private static unwrapped(value: TExpression): TExpression {

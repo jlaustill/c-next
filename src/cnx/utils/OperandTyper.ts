@@ -582,14 +582,7 @@ class OperandTyper {
     value: TExpression,
   ): readonly TExpression[] | null {
     if (value.kind === "ternary") return [value.whenTrue, value.whenFalse];
-    if (
-      value.kind === "binary" &&
-      value.level === "additive" &&
-      value.operators.every((operator) => operator === "+")
-    ) {
-      return value.operands;
-    }
-    return null;
+    return ExpressionShape.concatenationOperands(value);
   }
 
   /**
