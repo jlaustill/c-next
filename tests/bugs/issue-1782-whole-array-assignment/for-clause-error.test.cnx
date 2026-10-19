@@ -9,18 +9,13 @@ u8[2] src <- [1, 2];
 
 void f() {
     // NEGATIVE CONTROL -- scalar writes in a for clause stay silent.
-    for (mut u32 i <- 0; i < 2; i +<- 1) {
-    }
-    for (u32 k <- 0; k < 2; pair[0] <- 1) {
-    }
+    for (mut u32 i <- 0; i < 2; i +<- 1) {}
+    for (u32 k <- 0; k < 2; pair[0] <- 1) {}
 
     // ASSERTION 1 -- another array in the update clause.
-    for (u32 a <- 0; a < 2; pair <- src) {
-    }
+    for (u32 a <- 0; a < 2; pair <- src) {}
     // ASSERTION 2 -- a list in the update clause.
-    for (u32 b <- 0; b < 2; pair <- [1, 2]) {
-    }
+    for (u32 b <- 0; b < 2; pair <- [1, 2]) {}
     // ASSERTION 3 -- an array in the init clause.
-    for (pair <- src; pair[0] < 2; pair[0] <- 2) {
-    }
+    for (pair <- src; pair[0] < 2; pair[0] <- 2) {}
 }

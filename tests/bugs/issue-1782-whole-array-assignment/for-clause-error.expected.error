@@ -1,6 +1,6 @@
+16:28 error[E0917]: A whole array is not assigned in a for header: assign 'pair' inside the loop
+       help: A for header works on scalars (ADR-036); a whole array is copied by a loop, which a for clause cannot hold.
 18:28 error[E0917]: A whole array is not assigned in a for header: assign 'pair' inside the loop
        help: A for header works on scalars (ADR-036); a whole array is copied by a loop, which a for clause cannot hold.
-21:28 error[E0917]: A whole array is not assigned in a for header: assign 'pair' inside the loop
-       help: A for header works on scalars (ADR-036); a whole array is copied by a loop, which a for clause cannot hold.
-24:9 error[E0917]: A whole array is not assigned in a for header: assign 'pair' inside the loop
+20:9 error[E0917]: A whole array is not assigned in a for header: assign 'pair' inside the loop
        help: A for header works on scalars (ADR-036); a whole array is copied by a loop, which a for clause cannot hold.
