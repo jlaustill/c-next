@@ -220,6 +220,51 @@ describe("IntegerConversionAnalyzer", () => {
     });
   });
 
+  describe("E0918 -- only a string lands in a string<N> (#1634)", () => {
+    const codes = (source: string) => errors(source).map((e) => e.code);
+
+    it("rejects an integer, a literal, a float's bits, a bool, a char literal and an enum", () => {
+      expect(
+        codes(
+          "enum EColor { RED, GREEN }\n" +
+            inMain(
+              "    f32 fv <- 1.5;\n    bool b <- true;\n    EColor c <- EColor.RED;\n" +
+                "    string<8> s1 <- byte;\n    string<8> s2 <- 5;\n    string<8> s3 <- fv[0, 8];\n" +
+                "    string<8> s4 <- b;\n    string<8> s5 <- 'A';\n    string<8> s6 <- c;",
+            ),
+        ),
+      ).toEqual(["E0918", "E0918", "E0918", "E0918", "E0918", "E0918"]);
+    });
+
+    it("rejects one assigned, passed and in a ternary arm", () => {
+      const found = errors(
+        "void take(string<8> v) {\n}\n" +
+          inMain(
+            '    mut string<8> s <- "x";\n    s <- byte;\n    take(wide);\n    s <- (wide = 1) ? "y" : byte;',
+          ),
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0918", 8, 9],
+        ["E0918", 9, 9],
+        ["E0918", 10, 9],
+      ]);
+    });
+
+    it("accepts every string form: a literal, a string, an element, a field, a concatenation and a substring", () => {
+      expect(
+        codes(
+          'struct C {\n    string<8> name;\n}\nC g;\nstring<8>[2] names <- ["a", "b"];\n' +
+            inMain(
+              '    string<4> s <- "ab";\n    string<8> t <- s;\n    string<8> u <- names[1];\n' +
+                '    string<8> v <- g.name;\n    string<8> w <- s + "c";\n    string<8> x <- s[0, 1];\n' +
+                '    string<8> y <- (wide = 1) ? "y" : "n";\n    string<1> z <- s[0];\n' +
+                '    mut string<8> buffer <- "";\n    u16 half <- 7;\n    buffer[0, 2] <- half;',
+            ),
+        ),
+      ).toEqual([]);
+    });
+  });
+
   describe("E0891 -- a float reaches an integer only through a cast", () => {
     const withFloat = (line: string): string =>
       `f32 read() {\n    return 1.5;\n}\n${inMain(`    f32 k <- 2.5;\n    bool c <- true;\n${line}`)}`;

@@ -20,8 +20,8 @@ codes that already have a fixture.
 | E06xx     | Sizeof Expressions                                                                                                   | 3       |
 | E07xx     | Control Flow                                                                                                         | 15      |
 | E08xx     | Arithmetic/Array Safety                                                                                              | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 18      |
-| **Total** |                                                                                                                      | **143** |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 19      |
+| **Total** |                                                                                                                      | **144** |
 
 ---
 
@@ -435,6 +435,12 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                                                                                 | Help                                                                                                    | Source                                                                                             |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) or through a header typedef (`Buf b`), or a string (#1823) | A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside. | `PARSE/2-Parse/ArrayForm.ts`, `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` (a header typedef) |
+
+## E0918 — Something Other Than a String Into a `string<N>` (ADR-045)
+
+| Code  | Message                                                                                                                                                                                                                                                | Help                                                                                              | Source                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| E0918 | A value that is not a string (an integer, a float or its bits, a bool, a char or an enum) lands in a `string<N>` -- as a declaration's initializer, an assignment's value or an argument, the value it parenthesizes or a ternary arm (ADR-045, #1634) | A `string<N>` holds only a string: a literal, another `string<N>`, a concatenation or a substring | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
 
 ---
 

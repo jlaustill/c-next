@@ -251,20 +251,13 @@ class StringDeclHelper {
       capacity,
     );
 
-    if (isLiteral) {
-      // String literal: can use direct initialization
-      return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${init.render()};`;
-    }
-
-    // TODO(#1634): only a source that is not a string reaches here, with no
-    // diagnostic, so its copy is not planned and the helper is not emitted
-    return StringDeclHelper._generateCopyDecl(
-      name,
-      capacity,
-      init.render(),
-      qualifiers,
-      state,
+    // #1634: 2.1 rejects a value that is not a string (E0918), so what 2.2 did
+    // not plan as a copy, a concatenation or a substring is a string literal
+    invariant(
+      isLiteral,
+      "a string<N> initializer that is no copy, concatenation or substring is a literal",
     );
+    return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${init.render()};`;
   }
 
   /**

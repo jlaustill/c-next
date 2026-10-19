@@ -1,0 +1,38 @@
+// test-error
+// Tests: a value that is not a string does not land in a string<N> (ADR-045,
+// #1634): a declaration, an assignment and an argument are all rejected, for an
+// integer variable, an integer literal, a float's bits, a bool, an enum and a
+// char literal.
+// NEGATIVE CONTROL -- okForms: every string form still lands.
+enum EColor {
+    RED,
+    GREEN
+}
+
+void takeName(string<8> name) {}
+
+void okForms() {
+    string<4> s <- "ab";
+    string<8> t <- s;
+    string<8> same <- t;
+    string<8> u <- s + "c";
+    string<8> v <- s[0, 1];
+    string<1> w <- s[0];
+    takeName(t);
+}
+
+void main() {
+    u8 n <- 5;
+    f32 fv <- 1.5;
+    bool b <- true;
+    EColor c <- EColor.RED;
+    string<8> fromInteger <- n;
+    string<8> fromLiteral <- 5;
+    string<8> fromBits <- fv[0, 8];
+    string<8> fromBool <- b;
+    string<8> fromEnum <- c;
+    string<8> fromChar <- 'A';
+    mut string<8> s <- "x";
+    s <- n;
+    takeName(n);
+}

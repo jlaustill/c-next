@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-647 fixture(s) assert a diagnostic; 637 carry a code.
+648 fixture(s) assert a diagnostic; 638 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -272,6 +272,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/misra-3-1-nested-line-comment.test.cnx                                            | MISRA-3.1           |
 | tests/analysis/misra-3-2-line-splice.test.cnx                                                    | MISRA-3.2           |
 | tests/analysis/modulo-by-zero.test.cnx                                                           | E0802               |
+| tests/analysis/non-string-to-string.test.cnx                                                     | E0918               |
 | tests/analysis/reserved-parameter-name.test.cnx                                                  | E0227               |
 | tests/analysis/return-value-discarded.test.cnx                                                   | E0708               |
 | tests/analysis/self-recursion.test.cnx                                                           | E0423               |
