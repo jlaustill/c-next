@@ -7,7 +7,7 @@
  */
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
-import type IPlannedAtomic from "./IPlannedAtomic";
+import type IPlannedAtomic from "../../types/IPlannedAtomic";
 import type IBitmapFieldTarget from "../../../types/IBitmapFieldTarget";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";

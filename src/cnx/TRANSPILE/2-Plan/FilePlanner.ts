@@ -64,7 +64,7 @@ import RegisterMmio from "./RegisterMmio";
 import StatementChildren from "../../utils/StatementChildren";
 import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
-import type IPlannedAtomic from "./types/IPlannedAtomic";
+import type IPlannedAtomic from "../types/IPlannedAtomic";
 import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
@@ -108,7 +108,7 @@ import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
-import AtomicOwner from "./AtomicOwner";
+import AtomicOwner from "../../utils/AtomicOwner";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
 import SymbolTypeResolver from "../../utils/TypeResolver";
@@ -1978,6 +1978,10 @@ class FilePlanner {
         );
         forms.set(site, atomic);
         if (atomic === null) continue;
+        if (atomic.form !== "interrupt-mask" && atomic.operandCType !== null) {
+          // A retry loop holds a bit write's value in `__operand` (#1807)
+          cTypes.add(atomic.operandCType);
+        }
         if (atomic.form === "ldrex-strex") {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
@@ -2012,12 +2016,10 @@ class FilePlanner {
     site: IAssignmentSyntax,
     bitmapField: IBitmapFieldTarget | null,
   ): IPlannedAtomic | null {
-    const symbols = this.state.symbols!;
     const typeName = AtomicOwner.ofWrite(
       site,
       this.state.typingContext(),
       bitmapField,
-      symbols.bitmapBackingType,
     );
     if (typeName === null) return null;
     AdrProvenance.record("049", site.target.span.line);
@@ -2028,7 +2030,38 @@ class FilePlanner {
         typeName,
       ),
       typeName,
+      operandCType: FilePlanner.bitsOperandCType(
+        site,
+        this.targetDeclaration(site.target).last,
+        bitmapField,
+        typeName,
+      ),
     };
+  }
+
+  /**
+   * ADR-049 (#2200, #2155 review): the C type a retry loop holds a bit
+   * write's value in, decided here so 2.2 plans its header (a lone `bool`
+   * needs `<stdbool.h>`): a single bit or a one-bit field takes a `bool`,
+   * wider bits the integer they are written in -- a float's is its bits'
+   * unsigned integer. Null for a compound write, whose operand the atomic
+   * generator types from its clamp and its value.
+   */
+  private static bitsOperandCType(
+    site: IAssignmentSyntax,
+    step: IChainStep | undefined,
+    bitmapField: IBitmapFieldTarget | null,
+    typeName: string,
+  ): string | null {
+    if (site.operator !== "<-") return null;
+    const isOneBit =
+      bitmapField === null
+        ? step?.subscript === "bit_single"
+        : bitmapField.layout.width === 1;
+    if (isOneBit) return "bool";
+    return step?.before?.category === "floating"
+      ? FloatBitType.of(typeName)
+      : TYPE_MAP[typeName];
   }
 
   /**

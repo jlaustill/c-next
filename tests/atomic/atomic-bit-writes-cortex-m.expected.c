@@ -57,6 +57,13 @@ static inline void __cnx_disable_irq(void) { cli(); }
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
 static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
     int64_t result = (int64_t)a + b;
     if (result > INT32_MAX) return INT32_MAX;
@@ -87,6 +94,8 @@ volatile Flags flags = {0};
 volatile int32_t sword = 0;
 
 volatile int8_t sbyte = 0;
+
+volatile int16_t shalf = 0;
 
 volatile float fl = 0.0f;
 
@@ -228,6 +237,28 @@ void set(const bool on) {
             int8_t __old = (int8_t)__LDREXB((volatile uint8_t *)&sbyte);
             int8_t __new = cnx_clamp_add_i8(__old, __operand);
             if (__STREXB((uint8_t)__new, (volatile uint8_t *)&sbyte) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. MISRA C:2012 Rule 11.3 deviation (Issue #2208): the signed value is accessed through its same-width unsigned type, because CMSIS's __LDREXH/__STREXH take a pointer to uint16_t; C11 6.5p7 makes the access defined. */
+        bool __operand = true;
+        do {
+            int16_t __old = (int16_t)__LDREXH((volatile uint16_t *)&shalf);
+            int16_t __new = (int16_t)((__old & ~(1U << 2)) | ((__operand ? 1U : 0U) << 2));
+            if (__STREXH((uint16_t)__new, (volatile uint16_t *)&shalf) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. MISRA C:2012 Rule 11.3 deviation (Issue #2208): the signed value is accessed through its same-width unsigned type, because CMSIS's __LDREXH/__STREXH take a pointer to uint16_t; C11 6.5p7 makes the access defined. */
+        int32_t __operand = 1;
+        do {
+            int16_t __old = (int16_t)__LDREXH((volatile uint16_t *)&shalf);
+            int16_t __new = cnx_clamp_add_i16(__old, __operand);
+            if (__STREXH((uint16_t)__new, (volatile uint16_t *)&shalf) == 0) {
                 break;
             }
         } while (1);

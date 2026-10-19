@@ -23,7 +23,8 @@ import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
-import type TAtomicForm from "../../../types/TAtomicForm";
+import type IPlannedAtomic from "../../../types/IPlannedAtomic";
+import atomicGenerators from "../generators/statements/AtomicGenerator";
 import InterruptMask from "./InterruptMask";
 import invariant from "../../../../utils/invariant";
 
@@ -67,10 +68,10 @@ class FloatBitHelper {
     state: TranspileState,
   ): string {
     const target = bitWrite.target;
-    if (bitWrite.atomicForm !== null) {
+    if (bitWrite.atomic !== null) {
       // The shadow no longer holds what the atomic write left in the float
       state.floatShadowCurrent.delete(BitRangeHelper.getShadowVarName(target));
-      return FloatBitHelper.atomicWrite(bitWrite, bitWrite.atomicForm);
+      return FloatBitHelper.atomicWrite(bitWrite, bitWrite.atomic);
     }
     const intType = FloatBitType.of(bitWrite.floatType);
     // The integer member is written like any other integer (#1668): a bit
@@ -130,7 +131,7 @@ class FloatBitHelper {
    */
   private static atomicWrite(
     bitWrite: IFloatBitWrite,
-    form: TAtomicForm,
+    atomic: IPlannedAtomic,
   ): string {
     const target = bitWrite.target;
     const intType = FloatBitType.of(bitWrite.floatType);
@@ -149,7 +150,7 @@ class FloatBitHelper {
         "\n",
         "\n    ",
       );
-    if (form === "interrupt-mask") {
+    if (atomic.form === "interrupt-mask") {
       return InterruptMask.wrap(
         [
           union("__bits"),
@@ -160,24 +161,30 @@ class FloatBitHelper {
       ).code;
     }
     invariant(
-      form !== "ldrex-strex",
+      atomic.form !== "ldrex-strex",
       "2.2 plans no exclusive access for a float: LDREX_MAP names none",
     );
-    const operandType = bitWrite.width === null ? "bool" : intType;
-    const wide =
-      form === "compare-exchange-libatomic"
-        ? " The type is wider than the target's word, so the compiler calls libatomic's __atomic_*_N for it."
-        : "";
-    return `{
-    /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2).${wide} The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
-    ${operandType} __operand = ${bitWrite.value};
-    ${union("__old")}
-    ${union("__new")}
-    __atomic_load(&${target}, &__old.f, __ATOMIC_RELAXED);
-    do {
-        __new.u = ${bits("__old.u", "__operand")};
-    } while (!__atomic_compare_exchange(&${target}, &__old.f, &__new.f, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
-}`;
+    invariant(
+      atomic.operandCType !== null,
+      "2.2 plans the C type of every atomic bit write's value",
+    );
+    // The one compare-exchange loop, exchanging the float through the
+    // unions' float view and computing its bits in their integer view
+    return atomicGenerators.generateCompareExchangeLoop(
+      target,
+      bitWrite.value,
+      bits("__old.u", "__operand"),
+      {
+        baseType: bitWrite.floatType,
+        bitWidth: 0,
+        isArray: false,
+        isConst: false,
+      },
+      [],
+      atomic.operandCType,
+      atomic.form === "compare-exchange-libatomic",
+      { declare: union, exchanged: ".f", computed: ".u" },
+    ).code;
   }
 }
 

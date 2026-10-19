@@ -30,6 +30,7 @@ extern volatile uint16_t wide;
 extern volatile Flags flags;
 extern volatile int32_t sword;
 extern volatile int8_t sbyte;
+extern volatile int16_t shalf;
 extern volatile float fl;
 extern uint8_t plain;
 extern volatile Flags Sc__paf;

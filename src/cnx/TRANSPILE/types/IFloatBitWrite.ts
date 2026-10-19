@@ -1,5 +1,5 @@
 import type IBitWidth from "../../types/IBitWidth";
-import type TAtomicForm from "./TAtomicForm";
+import type IPlannedAtomic from "./IPlannedAtomic";
 
 /**
  * A float bit write (ADR-007): the float written, its type, and the bits
@@ -18,8 +18,8 @@ interface IFloatBitWrite {
   readonly value: string;
   /** Whether `target` names a variable, which has a shadow union */
   readonly isVariable: boolean;
-  /** The form 2.2 planned for the bits of an `atomic` float (ADR-049), or null */
-  readonly atomicForm: TAtomicForm | null;
+  /** What 2.2 planned for the bits of an `atomic` float (ADR-049), or null */
+  readonly atomic: IPlannedAtomic | null;
 }
 
 export default IFloatBitWrite;

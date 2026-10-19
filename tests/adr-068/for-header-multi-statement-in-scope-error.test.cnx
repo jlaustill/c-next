@@ -37,4 +37,13 @@ scope Link {
         for (this.level[31] <- true; n < 2; n +<- 1) {}
         for (this.ticks <- 0; n < 2; n +<- 1) {}
     }
+
+    // ASSERTION -- a bit of an atomic member, through this. (ADR-049, #2200).
+    // CONTROL: the same write in the body stays legal.
+    public void atomicBits() {
+        u8 n <- 0;
+        for (n <- 0; n < 2; this.ticks[1] <- true) {
+            this.ticks[1] <- true;
+        }
+    }
 }

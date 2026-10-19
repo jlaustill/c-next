@@ -22,7 +22,7 @@
  */
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
-import type IPlannedAtomic from "./types/IPlannedAtomic";
+import type IPlannedAtomic from "../types/IPlannedAtomic";
 import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";

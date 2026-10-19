@@ -20,6 +20,7 @@ import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
 import ClampTypes from "../../../../2-Plan/ClampTypes";
 import TYPE_WIDTH from "../../../../../types/TYPE_WIDTH";
+import type ICompareExchangeViews from "../../../../types/ICompareExchangeViews";
 
 /**
  * ADR-049: STREX intrinsic map for atomic operations
@@ -150,6 +151,15 @@ function generateLdrexStrexLoop(
   return { code, effects };
 }
 
+/** `__old` and `__new` as the value's own C type: exchanged and computed whole */
+function plainViews(cType: string): ICompareExchangeViews {
+  return {
+    declare: (name) => `${cType} ${name};`,
+    exchanged: "",
+    computed: "",
+  };
+}
+
 /**
  * #1789: a compare-exchange retry loop, for a target with neither LDREX/STREX
  * nor interrupt masking. The generic builtins take any type the variable can
@@ -159,6 +169,8 @@ function generateLdrexStrexLoop(
  * @param innerOp - The new value, computed from `__old` and `__operand`
  * @param libatomic - The type is wider than the target's word (ADR-049
  *   `word_size`), so GCC calls libatomic for it; the comment says so
+ * @param views - How `__old` and `__new` are declared and accessed: the
+ *   value's own type, or an atomic float's bits unions (#2155 review)
  */
 function generateCompareExchangeLoop(
   target: string,
@@ -168,20 +180,20 @@ function generateCompareExchangeLoop(
   innerEffects: readonly TGeneratorEffect[],
   operandType: string = TYPE_MAP[typeInfo.baseType],
   libatomic: boolean = false,
+  views: ICompareExchangeViews = plainViews(TYPE_MAP[typeInfo.baseType]),
 ): IGeneratorOutput {
-  const cType = TYPE_MAP[typeInfo.baseType];
   const wide = libatomic
     ? " The type is wider than the target's word, so the compiler calls libatomic's __atomic_*_N for it."
     : "";
   const code = `{
     /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2).${wide} The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
     ${operandType} ${OPERAND} = ${value};
-    ${cType} __old;
-    ${cType} __new;
-    __atomic_load(&${target}, &__old, __ATOMIC_RELAXED);
+    ${views.declare("__old")}
+    ${views.declare("__new")}
+    __atomic_load(&${target}, &__old${views.exchanged}, __ATOMIC_RELAXED);
     do {
-        __new = ${innerOp};
-    } while (!__atomic_compare_exchange(&${target}, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
+        __new${views.computed} = ${innerOp};
+    } while (!__atomic_compare_exchange(&${target}, &__old${views.exchanged}, &__new${views.exchanged}, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
 }`;
   return { code, effects: [...innerEffects] };
 }

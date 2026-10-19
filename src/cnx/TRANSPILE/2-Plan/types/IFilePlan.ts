@@ -4,7 +4,7 @@ import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IEmissionPlan from "../../../types/IEmissionPlan";
 import type TPlannedNarrowing from "./TPlannedNarrowing";
-import type IPlannedAtomic from "./IPlannedAtomic";
+import type IPlannedAtomic from "../../types/IPlannedAtomic";
 import type IBitmapFieldTarget from "../../../types/IBitmapFieldTarget";
 import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";

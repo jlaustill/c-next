@@ -42,7 +42,7 @@ function createMockContext(
     targetLine: 1,
     hasValue: true,
     floatBits: null,
-    atomic: { form: "ldrex-strex", typeName: "u32" },
+    atomic: { form: "ldrex-strex", typeName: "u32", operandCType: null },
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,

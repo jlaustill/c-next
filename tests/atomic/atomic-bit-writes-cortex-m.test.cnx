@@ -21,6 +21,7 @@ atomic mut u16 wide;
 atomic mut Flags flags;
 atomic mut i32 sword;
 atomic mut i8 sbyte;
+atomic mut i16 shalf;
 atomic mut f32 fl;
 mut u8 plain;
 
@@ -46,6 +47,8 @@ void set(bool on) {
     sword[3] <- true;
     sword +<- 1;
     sbyte +<- 1;
+    shalf[2] <- true;
+    shalf +<- 1;
     fl[31] <- true;
     fl[0, 4] <- 3;
     Sc.cnt +<- 1;

@@ -52,12 +52,8 @@ function writeBitmapField(
           storage,
           ctx.foldValue(),
         )
-      : AssignmentHandlerUtils.storeBits(
-          ctx,
-          target,
-          "bool",
-          (read, bit, folded) =>
-            BitUtils.singleBitValue(read, layout.offset, bit, storage, folded),
+      : AssignmentHandlerUtils.storeBits(ctx, target, (read, bit, folded) =>
+          BitUtils.singleBitValue(read, layout.offset, bit, storage, folded),
         );
   }
   return writeOnly
@@ -68,7 +64,7 @@ function writeBitmapField(
         value,
         storage,
       )
-    : AssignmentHandlerUtils.storeBits(ctx, target, storage, (read, bits) =>
+    : AssignmentHandlerUtils.storeBits(ctx, target, (read, bits) =>
         BitUtils.multiBitValue(
           read,
           layout.offset,

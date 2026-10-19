@@ -93,7 +93,7 @@ function writeBits(ctx: IAssignmentContext): string {
       width: width ?? null,
       value: ctx.generatedValue,
       isVariable: floatBits.shared,
-      atomicForm: ctx.atomic?.form ?? null,
+      atomic: ctx.atomic,
     });
   }
   const value = ctx.target.last?.before ?? null;
@@ -103,11 +103,11 @@ function writeBits(ctx: IAssignmentContext): string {
   );
   const storage = BitUtils.storageOf(value);
   if (width === undefined) {
-    return storeBits(ctx, base, "bool", (read, bit, folded) =>
+    return storeBits(ctx, base, (read, bit, folded) =>
       BitUtils.singleBitValue(read, start, bit, storage, folded),
     );
   }
-  return storeBits(ctx, base, storage, (read, bits) =>
+  return storeBits(ctx, base, (read, bits) =>
     BitUtils.multiBitValue(read, start, width, bits, storage),
   );
 }
@@ -116,12 +116,11 @@ function writeBits(ctx: IAssignmentContext): string {
  * Store the bits a write computes from the value read (`newValue`): a plain
  * read-modify-write, or, for an `atomic` value's bits, the form 2.2 planned
  * (ADR-049, #2200). A retry loop reads the written value once, through
- * `__operand`, which `operandType` declares.
+ * `__operand`, in the C type 2.2 planned for it.
  */
 function storeBits(
   ctx: IAssignmentContext,
   target: string,
-  operandType: string | undefined,
   newValue: (read: string, value: string, folded?: number) => string,
 ): string {
   const atomic = ctx.atomic;
@@ -129,9 +128,10 @@ function storeBits(
     return `${target} = ${newValue(target, ctx.generatedValue, ctx.foldValue())};`;
   }
   const form = atomic.form;
+  const operandType = atomic.operandCType;
   invariant(
-    operandType !== undefined,
-    "2.2 plans an atomic bit write only for the bits of an atomic integer",
+    operandType !== null,
+    "2.2 plans the C type of every atomic bit write's value",
   );
   // A folded value is the written value only where it is written directly
   const folded = form === "interrupt-mask" ? ctx.foldValue() : undefined;
