@@ -79,7 +79,7 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-header-language-"));
     // A project root, so the cache is on and the second run is warm.
-    writeFileSync(join(dir, "cnext.config.json"), "{}");
+    writeFileSync(join(dir, "cnx.config.json"), "{}");
   });
 
   afterEach(() => {

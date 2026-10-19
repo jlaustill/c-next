@@ -5,6 +5,7 @@ import Preprocessor from "../../../../../cnx/PARSE/2-Parse/preprocessor/Preproce
 import RunAnchor from "../../../../../cnx/PARSE/1-Discover/RunAnchor";
 import EFileType from "../../../../../cnx/PARSE/1-Discover/types/EFileType";
 import MockFileSystem from "../../../MockFileSystem";
+import ConfigFileNames from "../../../../../cnx/utils/ConfigFileNames";
 import type ISourceGraph from "../../../../../cnx/PARSE/1-Discover/types/ISourceGraph";
 
 /**
@@ -33,9 +34,10 @@ describe("Discover", () => {
     vi.restoreAllMocks();
   });
 
+  const noIncludeDirs: string[] = [];
   const settings = {
     input: "/proj/src/app.cnx",
-    includeDirs: [],
+    includeDirs: noIncludeDirs,
     defines: { BOARD: "uno" },
     outDir: "",
     debugMode: false,
@@ -202,5 +204,106 @@ describe("Discover", () => {
 
     expect(graph.cnextFiles).toEqual([]);
     expect(graph.includes.c.size).toBe(0);
+  });
+
+  // #2165: every project-root walk reports the old-name configs it passes
+  describe("renamed config files", () => {
+    /** E0918 for an old-name file with no new-name config beside it. */
+    function renamedError(path: string, successor: string): unknown {
+      return ConfigFileNames.errorFor({ path, successor, besideConfig: null });
+    }
+
+    function discoverErrors(
+      files: MockFileSystem,
+      run = settings,
+    ): readonly unknown[] {
+      fs = files;
+      return Discover.run(
+        { kind: "files" },
+        RunAnchor.at(run.input, null, run, fs),
+        run,
+        fs,
+        [],
+      ).errors;
+    }
+
+    it("reports one that two directories' walks pass, once", () => {
+      // /proj/src and /proj/src/sub are walked separately; both pass /proj
+      const errors = discoverErrors(
+        new MockFileSystem()
+          .addFile(
+            "/proj/src/app.cnx",
+            '#include "sub/lib.cnx"\n\nvoid main() { }\n',
+          )
+          .addFile("/proj/src/sub/lib.cnx", "u32 one() { return 1; }\n")
+          .addFile("/proj/cnext.config.json", "{}"),
+      );
+
+      expect(errors).toEqual([
+        renamedError("/proj/cnext.config.json", "cnx.config.json"),
+      ]);
+    });
+
+    it("reports one beside a file included from another tree", () => {
+      const errors = discoverErrors(
+        new MockFileSystem()
+          .addFile("/proj/.git", "")
+          .addFile(
+            "/proj/src/app.cnx",
+            "#include <util.cnx>\nvoid main() { }\n",
+          )
+          .addFile("/vendor/util/util.cnx", "u32 one() { return 1; }\n")
+          .addFile("/vendor/util/.cnextrc", "{}")
+          // Negative control: the same tree under a new name is silent
+          .addFile("/proj/.cnxrc", "{}"),
+        { ...settings, includeDirs: ["/vendor/util"] },
+      );
+
+      expect(errors).toEqual([renamedError("/vendor/util/.cnextrc", ".cnxrc")]);
+    });
+
+    it("never reports one above the root the walk stops at", () => {
+      const errors = discoverErrors(
+        project()
+          .addFile("/proj/package.json", "{}")
+          .addFile("/cnext.config.json", "{}"),
+      );
+
+      expect(errors).toEqual([]);
+    });
+
+    it("reports the anchor's own walk though no file of the run is walked", () => {
+      const notCNext = { ...settings, input: "/proj/src/readme.txt" };
+
+      const errors = discoverErrors(
+        new MockFileSystem()
+          .addFile("/proj/src/readme.txt", "hello")
+          .addFile("/proj/src/.cnext.json", "{}"),
+        notCNext,
+      );
+
+      expect(errors).toEqual([
+        renamedError("/proj/src/.cnext.json", ".cnx.json"),
+      ]);
+    });
+
+    it("stops reporting it once the file is renamed, at the same anchor", () => {
+      fs = project().addFile("/proj/cnext.config.json", "{}");
+      const anchor = RunAnchor.at(settings.input, null, settings, fs);
+      const first = Discover.run({ kind: "files" }, anchor, settings, fs, []);
+      fs.rename("/proj/cnext.config.json", "/proj/cnx.config.json");
+
+      const second = Discover.run(
+        { kind: "files" },
+        first.anchor,
+        settings,
+        fs,
+        [],
+      );
+
+      expect(first.errors).toHaveLength(1);
+      expect(second.anchor).toBe(first.anchor);
+      expect(second.errors).toEqual([]);
+    });
   });
 });

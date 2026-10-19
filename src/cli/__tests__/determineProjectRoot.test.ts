@@ -69,11 +69,11 @@ describe("Transpiler.determineProjectRoot", () => {
   });
 
   describe("input file exists", () => {
-    it("finds cnext.config.json in same directory as file", () => {
+    it("finds cnx.config.json in same directory as file", () => {
       // Create project structure
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -89,7 +89,7 @@ describe("Transpiler.determineProjectRoot", () => {
     });
 
     it.each([
-      ["cnext.config.json in parent directory", "cnext.config.json", "{}"],
+      ["cnx.config.json in parent directory", "cnx.config.json", "{}"],
       ["package.json as project marker", "package.json", "{}"],
       ["platformio.ini as project marker", "platformio.ini", "[env:uno]"],
     ])("finds %s", (_label, marker, contents) => {
@@ -134,7 +134,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const projectDir = join(testDir, "project");
       const deepDir = join(projectDir, "src", "modules", "utils");
       mkdirSync(deepDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(deepDir, "helper.cnx"), "void helper() {}");
 
       const transpiler = new Transpiler(
@@ -155,7 +155,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const projectDir = join(testDir, "project");
       const srcDir = join(projectDir, "src");
       mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       // Note: newfile.cnx does NOT exist
 
       const transpiler = new Transpiler(
@@ -173,7 +173,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("handles deeply nested non-existent file", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       // Note: the nested directories and file do NOT exist
 
       const transpiler = new Transpiler(
@@ -193,7 +193,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("finds marker in same directory as input file", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -212,7 +212,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const projectDir = join(testDir, "project");
       const srcDir = join(projectDir, "src");
       mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -229,10 +229,10 @@ describe("Transpiler.determineProjectRoot", () => {
   });
 
   describe("marker priority", () => {
-    it("prefers cnext.config.json over other markers in same directory", () => {
+    it("prefers cnx.config.json over other markers in same directory", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(join(projectDir, ".git"), { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "package.json"), "{}");
       writeFileSync(join(projectDir, "platformio.ini"), "");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
@@ -246,16 +246,16 @@ describe("Transpiler.determineProjectRoot", () => {
         NodeFileSystem.instance,
       );
 
-      // Should find projectDir (all markers are there, but cnext.config.json is checked first)
+      // Should find projectDir (all markers are there, but cnx.config.json is checked first)
       expect(getProjectRoot(transpiler)).toBe(projectDir);
     });
 
     it("stops at first directory with any marker", () => {
-      // Inner directory has package.json, outer has cnext.config.json
+      // Inner directory has package.json, outer has cnx.config.json
       const outerDir = join(testDir, "outer");
       const innerDir = join(outerDir, "inner");
       mkdirSync(innerDir, { recursive: true });
-      writeFileSync(join(outerDir, "cnext.config.json"), "{}");
+      writeFileSync(join(outerDir, "cnx.config.json"), "{}");
       writeFileSync(join(innerDir, "package.json"), "{}");
       writeFileSync(join(innerDir, "main.cnx"), "void main() {}");
 
@@ -300,7 +300,7 @@ describe("Transpiler.determineProjectRoot", () => {
       // And that root has a project marker
       expect(
         existsSync(join(root!, "package.json")) ||
-          existsSync(join(root!, "cnext.config.json")) ||
+          existsSync(join(root!, "cnx.config.json")) ||
           existsSync(join(root!, ".git")) ||
           existsSync(join(root!, "platformio.ini")),
       ).toBe(true);
@@ -326,7 +326,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("disables caching even when project root is found", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -347,7 +347,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("enables caching when project root is found and noCache is false", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -368,7 +368,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("handles relative paths by resolving them", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       // Use relative path from cwd
@@ -394,7 +394,7 @@ describe("Transpiler.determineProjectRoot", () => {
       // Create .cnx as a FILE (not directory)
       writeFileSync(join(srcDir, ".cnx"), "some content");
       // Real project marker is in parent
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -413,7 +413,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("handles input that is the project root itself", () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -433,7 +433,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const project2 = join(testDir, "project2");
       mkdirSync(project1, { recursive: true });
       mkdirSync(project2, { recursive: true });
-      writeFileSync(join(project1, "cnext.config.json"), "{}");
+      writeFileSync(join(project1, "cnx.config.json"), "{}");
       writeFileSync(join(project2, "platformio.ini"), "");
       writeFileSync(join(project1, "a.cnx"), "void a() {}");
       writeFileSync(join(project2, "b.cnx"), "void b() {}");
@@ -454,7 +454,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("handles paths with special characters", () => {
       const projectDir = join(testDir, "project with spaces");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -475,7 +475,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const projectDir = join(testDir, "project");
       const srcDir = join(projectDir, "src");
       mkdirSync(srcDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(
@@ -498,7 +498,7 @@ describe("Transpiler.determineProjectRoot", () => {
     it("does not create cache directory when caching disabled", async () => {
       const projectDir = join(testDir, "project");
       mkdirSync(projectDir, { recursive: true });
-      writeFileSync(join(projectDir, "cnext.config.json"), "{}");
+      writeFileSync(join(projectDir, "cnx.config.json"), "{}");
       writeFileSync(join(projectDir, "main.cnx"), "void main() {}");
 
       const transpiler = new Transpiler(

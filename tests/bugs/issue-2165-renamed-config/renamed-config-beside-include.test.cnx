@@ -1,0 +1,17 @@
+// test-error
+// Issue #2165: a config file under an old name is E0918 wherever a project-root
+// walk meets it. The CLI's config walk goes up from this fixture's directory and
+// never visits lib/, so only discovery's walk from lib/helper.cnx reaches
+// lib/cnext.config.json: this fixture fails if that walk stops reporting.
+//
+// Negative controls, which must stay silent:
+// - ok/ holds a new-name config, so the walk from ok/okHelper.cnx stops there.
+// - nested/cnext.config.json sits above nested/inner/cnx.config.json, where the
+//   walk from nested/inner/innerHelper.cnx stops, so it is never reached.
+#include "lib/helper.cnx"
+#include "ok/okHelper.cnx"
+#include "nested/inner/innerHelper.cnx"
+
+u32 total() {
+    return helperValue() + okValue() + innerValue();
+}

@@ -13,6 +13,7 @@ import IJsonRpcRequest from "./types/IJsonRpcRequest";
 import IJsonRpcResponse from "./types/IJsonRpcResponse";
 import ConfigPrinter from "../ConfigPrinter";
 import ConfigLoader from "../ConfigLoader";
+import DiagnosticText from "../DiagnosticText";
 import Transpiler from "../Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
@@ -262,7 +263,17 @@ class ServeCommand {
     const workspacePath = params.workspacePath;
     ServeCommand.log(`initializing with workspace: ${workspacePath}`);
 
-    const config = ConfigLoader.load(workspacePath);
+    const loaded = ConfigLoader.load(workspacePath);
+    if (loaded.kind === "renamed") {
+      return {
+        success: false,
+        errorCode: JsonRpcHandler.ERROR_INVALID_PARAMS,
+        errorMessage: loaded.errors
+          .map((error) => DiagnosticText.of(error))
+          .join("\n"),
+      };
+    }
+    const config = loaded.config;
 
     ServeCommand.transpiler = new Transpiler(
       {

@@ -200,7 +200,7 @@ src/uart/config.cnx   →  CNX_SRC_UART_CONFIG_H
 Display/Utils.cnx     →  CNX_DISPLAY_UTILS_H
 ```
 
-The project root is the directory found by walking up for `cnext.config.json`, `platformio.ini`, `.git` or `package.json` — the same discovery the cache and `compile_commands.json` lookup already use. It falls back to the input directory when no marker is found, and to the basename for a file outside that base.
+The project root is the directory found by walking up for `cnx.config.json`, `platformio.ini`, `.git` or `package.json` — the same discovery the cache and `compile_commands.json` lookup already use. It falls back to the input directory when no marker is found, and to the basename for a file outside that base.
 
 Keying on the **path** rather than the basename is what makes same-basename files in different directories distinguishable (#1133 cause 2). Keying it under `CNX_` is what stops a user's `GUARDCOL_H` constant from erasing a guard (#1133 cause 3).
 

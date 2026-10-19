@@ -202,9 +202,8 @@ test("-h shows help text and exits 0", () => {
   assert(result.exitCode === 0, "Exit code should be 0");
 });
 
-// Issue #2164: the command is `cnx`, with no `cnext` alias. The pattern skips
-// the config file names (`cnext.config.json`, `.cnext.json`, `.cnextrc`),
-// which stay until #2165 renames them; they name files, not the command.
+// Issue #2164: the command is `cnx`, with no `cnext` alias. #2165 renamed the
+// config files the help lists, so no `cnext` of any kind remains to exempt.
 test("--help names the command cnx, never cnext", () => {
   const result = runCli(["--help"]);
   assert(result.success, "Command should succeed");
@@ -212,10 +211,10 @@ test("--help names the command cnx, never cnext", () => {
     result.output.includes("cnx <file.cnx>"),
     `Usage should name cnx: ${result.output}`,
   );
-  const oldCommand = /(?<![\w.-])cnext(?![\w.-])/.exec(result.output);
+  const oldName = /cnext/i.exec(result.output);
   assert(
-    oldCommand === null,
-    `Help should not name the cnext command: ${result.output}`,
+    oldName === null,
+    `Help should not name cnext, as a command or a file: ${result.output}`,
   );
 });
 
@@ -413,7 +412,7 @@ function createTempTestEnv(prefix = "cnext-test-"): ITempTestEnv {
     tempDir,
     cnxFile: join(tempDir, "test.cnx"),
     cFile: join(tempDir, "test.c"),
-    configFile: join(tempDir, "cnext.config.json"),
+    configFile: join(tempDir, "cnx.config.json"),
   };
 }
 
@@ -803,7 +802,7 @@ test("--pio-env picks the environment whose board names the target", () => {
 // Category 4: Config file target tests
 // ----------------------------------------------------------------------------
 
-test("cnext.config.json target is respected", () => {
+test("cnx.config.json target is respected", () => {
   withTempTest(
     "cnext-config-test-",
     ({ tempDir, cnxFile, cFile, configFile }) => {
@@ -826,6 +825,26 @@ test("cnext.config.json target is respected", () => {
       );
     },
   );
+});
+
+// Issue #2165: a config under an old name stops the run, naming its new name;
+// a new-name config beside it is not read instead.
+test("a config under an old name is E0918 and exits 1", () => {
+  withTempTest("cnx-renamed-config-test-", ({ tempDir, cnxFile, cFile }) => {
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    writeFileSync(join(tempDir, "cnx.config.json"), '{"target":"teensy41"}');
+    writeFileSync(join(tempDir, "cnext.config.json"), '{"target":"teensy41"}');
+
+    const result = runCliInDir(tempDir, [cnxFile], true);
+    assert(result.exitCode === 1, `Exit code should be 1: ${result.stderr}`);
+    assert(
+      result.stderr.includes(
+        "error[E0918]: a config file has its old name: cnext.config.json, beside cnx.config.json",
+      ),
+      `The error should name both files: ${result.stderr}`,
+    );
+    assert(!existsSync(cFile), "Nothing should be generated");
+  });
 });
 
 test("CLI --target overrides config file target", () => {

@@ -9,6 +9,7 @@ import ConfigPrinter from "./ConfigPrinter";
 import TargetResolver from "./TargetResolver";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IParsedArgs from "./types/IParsedArgs";
+import ConfigFileNames from "../cnx/utils/ConfigFileNames";
 
 /**
  * Interface for yargs parsed result
@@ -158,7 +159,7 @@ A safer C for embedded systems development.`,
 Target platforms: ${TargetResolver.names(NodeFileSystem.instance).join(", ")}
 
 Config files (searched in order, JSON format):
-  cnext.config.json, .cnext.json, .cnextrc
+  ${ConfigFileNames.names.join(", ")}
 
 Config options:
   cppRequired    Output .cpp (true) or .c (false); unset: detected (boolean)

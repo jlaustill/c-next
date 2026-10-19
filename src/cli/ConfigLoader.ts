@@ -5,16 +5,13 @@
 
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
+import TConfigInDirectory from "./types/TConfigInDirectory";
+import TConfigLoad from "./types/TConfigLoad";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
-
-/**
- * Searched in this order in each directory. `cnx --help` documents these
- * three names and JSON as the only format.
- */
-const SEARCH_PLACES = ["cnext.config.json", ".cnext.json", ".cnextrc"];
+import ConfigFileNames from "../cnx/utils/ConfigFileNames";
 
 /**
  * Load configuration from project directory
@@ -23,15 +20,50 @@ class ConfigLoader {
   /**
    * Load config from project directory, searching up the directory tree
    * @param startDir - Directory to start searching from
-   * @returns Loaded configuration (empty object if no config found)
+   * @returns The loaded configuration (empty if none was found), or E0918
+   *   for each file under an old name the walk met first (#2165)
    */
   static load(
     startDir: string,
     fs: IFileSystem = NodeFileSystem.instance,
-  ): IFileConfig {
+  ): TConfigLoad {
     const found = ConfigLoader.find(resolve(startDir), fs);
-    if (!found) {
-      return {}; // No config found
+    if (found.kind === "renamed") {
+      return found;
+    }
+    return { kind: "loaded", config: ConfigLoader.parse(found) };
+  }
+
+  /**
+   * What `dir` alone holds for the walk (#2165): an old-name file is E0918,
+   * whatever else is there; otherwise the first non-empty config in
+   * `ConfigFileNames.names` order. `--pio-install` asks it about the directory
+   * it configures, so the file it updates is the one a run reads.
+   */
+  static inDirectory(dir: string, fs: IFileSystem): TConfigInDirectory {
+    const renamed = ConfigFileNames.renamedIn(dir, fs);
+    if (renamed.length > 0) {
+      return {
+        kind: "renamed",
+        errors: renamed.map((file) => ConfigFileNames.errorFor(file)),
+      };
+    }
+    for (const name of ConfigFileNames.names) {
+      const path = join(dir, name);
+      const content = ConfigLoader.readConfig(path, fs);
+      if (content !== null && content.trim() !== "") {
+        return { kind: "found", path, content };
+      }
+    }
+    return { kind: "none" };
+  }
+
+  /** The config a walk found, parsed and anchored; empty when there is none. */
+  private static parse(
+    found: Exclude<TConfigInDirectory, { kind: "renamed" }>,
+  ): IFileConfig {
+    if (found.kind === "none") {
+      return {};
     }
 
     let config: unknown;
@@ -64,26 +96,19 @@ class ConfigLoader {
    * searched the OS config directory for `config`, `config.json`,
    * `config.yaml`, `config.js`, `config.ts` and more, and a JavaScript one
    * would be executed. Only the documented search remains: the three names,
-   * JSON, and the upward walk.
+   * JSON, and the upward walk. #2165: the first directory holding an
+   * old-name file ends it, as E0918.
    *
    * An empty file is skipped and the search continues, as cosmiconfig's
    * default `ignoreEmptySearchPlaces` did. So is a file that cannot be read,
    * as cosmiconfig skipped EACCES, now with a warning (#1826 review: letting
    * the error escape aborted every run under an unreadable ancestor config).
    */
-  private static find(
-    startDir: string,
-    fs: IFileSystem,
-  ): { path: string; content: string } | null {
+  private static find(startDir: string, fs: IFileSystem): TConfigInDirectory {
     for (let dir = startDir; ; dir = dirname(dir)) {
-      for (const place of SEARCH_PLACES) {
-        const content = ConfigLoader.readConfig(join(dir, place), fs);
-        if (content !== null && content.trim() !== "") {
-          return { path: join(dir, place), content };
-        }
-      }
-      if (dirname(dir) === dir) {
-        return null;
+      const found = ConfigLoader.inDirectory(dir, fs);
+      if (found.kind !== "none" || dirname(dir) === dir) {
+        return found;
       }
     }
   }

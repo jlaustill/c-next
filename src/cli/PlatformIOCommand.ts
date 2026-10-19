@@ -3,11 +3,16 @@
  * Setup and uninstall PlatformIO integration
  */
 
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import Write from "../cnx/WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
 import CaughtError from "../cnx/utils/CaughtError";
+import ConfigFileNames from "../cnx/utils/ConfigFileNames";
+import type IFileSystem from "../cnx/types/IFileSystem";
+import ConfigLoader from "./ConfigLoader";
+import ResultPrinter from "./ResultPrinter";
+import type TConfigInDirectory from "./types/TConfigInDirectory";
 
 /**
  * Resolved paths for PlatformIO project.
@@ -21,11 +26,11 @@ interface IPioProjectPaths {
  * Get PlatformIO project paths and validate that platformio.ini exists.
  * Exits with error if not in a PlatformIO project directory.
  */
-function getPioProjectPaths(): IPioProjectPaths {
+function getPioProjectPaths(fs: IFileSystem): IPioProjectPaths {
   const pioIniPath = resolve(process.cwd(), "platformio.ini");
   const scriptPath = resolve(process.cwd(), "cnext_build.py");
 
-  if (!NodeFileSystem.instance.exists(pioIniPath)) {
+  if (!fs.exists(pioIniPath)) {
     console.error("Error: platformio.ini not found in current directory");
     console.error("Run this command from your PlatformIO project root");
     process.exit(1);
@@ -80,9 +85,20 @@ class PlatformIOCommand {
   /**
    * Setup PlatformIO integration
    * Creates cnext_build.py and modifies platformio.ini
+   *
+   * #2165: a config under an old name stops it with E0918 before anything is
+   * written. Writing a new-name config beside the old one would leave the
+   * project failing every run on the pair.
    */
-  static install(): void {
-    const { pioIniPath, scriptPath } = getPioProjectPaths();
+  static install(fs: IFileSystem = NodeFileSystem.instance): void {
+    const { pioIniPath, scriptPath } = getPioProjectPaths(fs);
+    const config = ConfigLoader.inDirectory(process.cwd(), fs);
+    if (config.kind === "renamed") {
+      for (const error of config.errors) {
+        ResultPrinter.printError(error);
+      }
+      process.exit(1);
+    }
 
     // Create cnext_build.py script
     // Issue #833: Run transpilation at import time (before compilation),
@@ -127,11 +143,11 @@ def transpile_cnext():
 transpile_cnext()
 `;
 
-    Write.file(NodeFileSystem.instance, scriptPath, buildScript);
+    Write.file(fs, scriptPath, buildScript);
     console.log(`✓ Created: ${scriptPath}`);
 
     // Read platformio.ini
-    let pioIni = NodeFileSystem.instance.readFile(pioIniPath);
+    let pioIni = fs.readFile(pioIniPath);
 
     // Check if extra_scripts is already present
     if (pioIni.includes("cnext_build.py")) {
@@ -154,11 +170,10 @@ transpile_cnext()
       );
     }
 
-    Write.file(NodeFileSystem.instance, pioIniPath, pioIni);
+    Write.file(fs, pioIniPath, pioIni);
     console.log(`✓ Modified: ${pioIniPath}`);
 
-    // Setup cnext.config.json for PlatformIO
-    this.setupConfig();
+    this.setupConfig(config, fs);
 
     console.log("");
     console.log("✓ PlatformIO integration configured!");
@@ -175,24 +190,33 @@ transpile_cnext()
   }
 
   /**
-   * Setup cnext.config.json with PlatformIO-appropriate defaults
+   * Give the project's config PlatformIO-appropriate defaults
    * - Appends .pio/libdeps to include array
    * - Sets headerOut to "include" if not already set
+   *
+   * #2165: the file updated is the one a run in this directory reads, under
+   * whichever name it has. Writing `cnx.config.json` regardless shadowed a
+   * project's `.cnxrc`, silently, since the walk takes the first name.
    */
-  private static setupConfig(): void {
-    const configPath = resolve(process.cwd(), "cnext.config.json");
+  private static setupConfig(
+    found: Exclude<TConfigInDirectory, { kind: "renamed" }>,
+    fs: IFileSystem,
+  ): void {
+    const configPath =
+      found.kind === "found"
+        ? found.path
+        : resolve(process.cwd(), ConfigFileNames.names[0]);
     const pioInclude = ".pio/libdeps";
 
     let config: IFileConfig = {};
 
-    if (NodeFileSystem.instance.exists(configPath)) {
+    if (found.kind === "found") {
       try {
-        const content = NodeFileSystem.instance.readFile(configPath);
-        config = JSON.parse(content) as IFileConfig;
+        config = JSON.parse(found.content) as IFileConfig;
       } catch (e) {
         const msg = CaughtError.messageOf(e);
         console.log(
-          `⚠ Could not parse existing cnext.config.json (${msg}), creating new one`,
+          `⚠ Could not parse existing ${basename(configPath)} (${msg}), creating new one`,
         );
         config = {};
       }
@@ -210,11 +234,7 @@ transpile_cnext()
     }
 
     // Write config (with pretty formatting)
-    Write.file(
-      NodeFileSystem.instance,
-      configPath,
-      JSON.stringify(config, null, 2) + "\n",
-    );
+    Write.file(fs, configPath, JSON.stringify(config, null, 2) + "\n");
     console.log(`✓ Updated: ${configPath}`);
   }
 
@@ -222,15 +242,15 @@ transpile_cnext()
    * Remove PlatformIO integration
    * Deletes cnext_build.py and removes extra_scripts from platformio.ini
    */
-  static uninstall(): void {
-    const { pioIniPath, scriptPath } = getPioProjectPaths();
+  static uninstall(fs: IFileSystem = NodeFileSystem.instance): void {
+    const { pioIniPath, scriptPath } = getPioProjectPaths(fs);
 
     let hasChanges = false;
 
     // Remove cnext_build.py if it exists
-    if (NodeFileSystem.instance.exists(scriptPath)) {
+    if (fs.exists(scriptPath)) {
       try {
-        Write.remove(NodeFileSystem.instance, scriptPath);
+        Write.remove(fs, scriptPath);
         console.log(`✓ Removed: ${scriptPath}`);
         hasChanges = true;
       } catch (err) {
@@ -242,7 +262,7 @@ transpile_cnext()
     }
 
     // Read platformio.ini
-    let pioIni = NodeFileSystem.instance.readFile(pioIniPath);
+    let pioIni = fs.readFile(pioIniPath);
 
     // Check if extra_scripts includes cnext_build.py
     if (pioIni.includes("cnext_build.py")) {
@@ -258,7 +278,7 @@ transpile_cnext()
       // Clean up multiple consecutive blank lines
       pioIni = pioIni.replaceAll(/\n\n\n+/g, "\n\n");
 
-      Write.file(NodeFileSystem.instance, pioIniPath, pioIni);
+      Write.file(fs, pioIniPath, pioIni);
       console.log(`✓ Modified: ${pioIniPath}`);
       hasChanges = true;
     } else {

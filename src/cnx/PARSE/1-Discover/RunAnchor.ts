@@ -30,7 +30,7 @@ class RunAnchor {
    * Adopt the compiler's own view from the project's compile_commands.json, if
    * present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
    * Make) emits this database; reading it — rather than mirroring framework
-   * include paths in cnext.config.json — lets cnext resolve external headers
+   * include paths in cnx.config.json — lets cnx resolve external headers
    * exactly as the compiler will, which is the same reason clangd reads it.
    * The include paths + defines + compiler are the contract every build system
    * converges on. (Issue #985 external-symbol recovery; unblocks ADR-062.)
@@ -142,8 +142,11 @@ class RunAnchor {
       startDir = dirname(resolvedInput);
     }
 
-    // No project root disables caching, so no .cnx directory is left behind
-    return IncludeDiscovery.findProjectRoot(startDir, fs) ?? undefined;
+    // No project root disables caching, so no .cnx directory is left behind.
+    // #2165: the walk's renamed configs are discovery's to report. An anchor
+    // is reused across runs, so a finding kept here would outlive the rename
+    // that fixed it; `Discover.run` walks the anchor's directory fresh.
+    return IncludeDiscovery.findProjectRoot(startDir, fs).root ?? undefined;
   }
 }
 

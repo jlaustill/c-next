@@ -93,6 +93,31 @@ describe("ServeCommand", () => {
         },
       });
     });
+
+    it("fails with E0918 for a workspace config under an old name (#2165)", async () => {
+      const workspace = mkdtempSync(join(tmpdir(), "serve-renamed-config-"));
+      try {
+        writeFileSync(join(workspace, ".cnextrc"), "{}");
+
+        const response = await sendRequest({
+          id: 12,
+          method: "initialize",
+          params: { workspacePath: workspace },
+        });
+
+        expect(response).toMatchObject({
+          id: 12,
+          error: {
+            code: JsonRpcHandler.ERROR_INVALID_PARAMS,
+            message: expect.stringContaining(
+              "error[E0918]: a config file has its old name: .cnextrc is now .cnxrc",
+            ),
+          },
+        });
+      } finally {
+        rmSync(workspace, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("transpile", () => {
