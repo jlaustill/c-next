@@ -1852,11 +1852,10 @@ class FilePlanner {
       for (const part of parts) {
         if (part.kind !== "substring") continue;
         const count = part.length === null ? 1 : this.constantOf(part.length);
-        if (count === undefined) {
-          throw new Error(
-            `Internal: substring length '${part.length?.written}' is not a constant; 2.1's E0919 rejects it`,
-          );
-        }
+        invariant(
+          count !== undefined,
+          "2.1's E0919 rejects a substring length that is not a constant",
+        );
         counts.set(part.chain, count);
       }
     }

@@ -2811,9 +2811,7 @@ class CodeGenWalker {
   /** #2240: the substring's length 2.2 folded */
   private substringCount(chain: TExpression): number {
     const count = this.filePlan.substringCounts.get(chain);
-    if (count === undefined) {
-      throw new Error("Internal: 2.2 planned no length for this substring");
-    }
+    invariant(count !== undefined, "2.2 folds every substring's length");
     return count;
   }
 
