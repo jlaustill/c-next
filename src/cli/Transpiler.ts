@@ -36,7 +36,7 @@ import Discover from "../cnx/PARSE/1-Discover/Discover";
 import RunAnchor from "../cnx/PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../cnx/types/TTranspileInput";
 import ITranspileError from "../cnx/types/ITranspileError";
-import DeclarationSite from "../cnx/utils/DeclarationSite";
+import DiagnosticText from "./DiagnosticText";
 import type IDeclaredSource from "../cnx/PARSE/3-Declare/types/IDeclaredSource";
 import type IDeclaredSources from "../cnx/PARSE/3-Declare/types/IDeclaredSources";
 import type TRunFacts from "../cnx/PARSE/2-Parse/types/TRunFacts";
@@ -621,10 +621,7 @@ class Transpiler {
     for (const file of files) {
       for (const e of diagnostics.forFile(file.path)) {
         if (e.severity !== "warning") continue;
-        const help = e.helpText ? `\n       help: ${e.helpText}` : "";
-        result.warnings.push(
-          `${DeclarationSite.displayPath(file.path)}:${e.line}:${e.column} ${e.message}${help}`,
-        );
+        result.warnings.push(DiagnosticText.of(e, file.path));
       }
     }
   }
