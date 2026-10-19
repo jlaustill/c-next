@@ -1,0 +1,40 @@
+#pragma target host
+// test-execution
+// test-adr: 049
+// #2245: a compound write to a whole `atomic` bitmap is a read-modify-write
+// of its backing integer, as a write to one of its fields is. On host both
+// are compare-exchange loops on `uint16_t`; `main` crashed here with
+// "reading 'split'". The non-atomic bitmap is the control: plain C.
+bitmap16 F {
+    A,
+    Mode[3],
+    Rest[12]
+}
+
+atomic F fl;
+mut F pl;
+
+void set(u8 m) {
+    fl +<- 1;
+    fl.Mode <- m;
+    pl +<- 1;
+    pl.Mode <- m;
+}
+
+u32 main() {
+    set(2);
+    // A set by +<- 1, then Mode = 2
+    if (fl.A != true) {
+        return 1;
+    }
+    if (fl.Mode != 2) {
+        return 2;
+    }
+    if (pl.A != true) {
+        return 3;
+    }
+    if (pl.Mode != 2) {
+        return 4;
+    }
+    return 0;
+}
