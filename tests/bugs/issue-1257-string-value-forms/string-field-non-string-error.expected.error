@@ -1,0 +1,2 @@
+7:20 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'n'
+       help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string

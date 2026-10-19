@@ -66,7 +66,7 @@ describe("StringUtils.build", () => {
       ]),
     ).toEqual([
       "cnx_string_copy(t, a + 0, 2U);",
-      "(void) strncat(t, b + 1, 1);",
+      "cnx_string_copy(t + strlen(t), b + 1, 1U);",
       "t[8] = '\\0';",
     ]);
   });

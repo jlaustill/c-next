@@ -52,7 +52,12 @@ class StringUtils {
     for (const part of rest) {
       lines.push(
         part.kind === "substring"
-          ? `(void) strncat(${buffer}, ${part.source} + ${part.start}, ${part.length});`
+          ? StringUtils.substring(
+              `${buffer} + strlen(${buffer})`,
+              part.source,
+              part.start,
+              part.length,
+            )[0]
           : `(void) strncat(${buffer}, ${part.code}, ${capacity} - strlen(${buffer}));`,
       );
     }
@@ -81,12 +86,16 @@ class StringUtils {
 
   /**
    * Whether `build` calls `cnx_string_copy`, so 2.2 decides the helper by
-   * the rule that emits it: a copy does, and so does a substring and a
-   * concatenation whose first part is one
+   * the rule that emits it: a copy does, and so does every substring, a
+   * concatenation's parts among them (an appended one is copied in at the
+   * end of what is built, without `strncat`'s `-Wstringop-truncation`)
    */
   static usesCopyHelper(form: TStringValueForm): boolean {
     if (form.kind === "copy" || form.kind === "substring") return true;
-    return form.kind === "concat" && form.parts[0]?.kind === "substring";
+    return (
+      form.kind === "concat" &&
+      form.parts.some((part) => part.kind === "substring")
+    );
   }
 
   /**

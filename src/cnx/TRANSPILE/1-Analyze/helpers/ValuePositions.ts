@@ -311,9 +311,11 @@ function fieldPosition(
   const stored =
     symbols.structFieldDimensions.get(structName)?.get(fieldName) ?? [];
   const dimensions = stringlessDimensions(typeText, stored);
+  const element =
+    typeText === null ? null : TypeText.withoutDimensions(typeText);
   const isArray =
-    dimensions.length < stored.length
-      ? dimensions.length > 0
+    element !== null && TypeCheckUtils.isSizedStringName(element)
+      ? element !== typeText
       : (symbols.structFieldArrays.get(structName)?.has(fieldName) ?? false);
   return { ...NO_TYPE, typeText, isArray, dimensions };
 }
