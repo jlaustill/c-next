@@ -1,0 +1,50 @@
+// test-error
+// Tests: #2191 - E0864 rejects an over-capacity assignment at every target spelling; a fitting write beside each is the control
+#include "lib.cnx"
+
+struct Inner {
+    string<3> name;
+}
+
+struct Outer {
+    Inner inner;
+}
+
+mut string<3> g <- "";
+
+scope S {
+    mut string<3> m <- "";
+    public mut string<3> pm <- "";
+
+    public void set() {
+        this.m <- "toolong";
+        this.m <- "ok";
+    }
+}
+
+void viaParam(mut Outer o) {
+    o.inner.name <- "toolong";
+    o.inner.name <- "ok";
+}
+
+void f() {
+    string<8> wide <- "abc";
+    string<2> narrow <- "ab";
+    mut string<3> v <- "";
+    v <- "toolong";
+    v <- "ok";
+    v <- wide;
+    v <- narrow;
+    global.g <- "toolong";
+    global.g <- "ok";
+    S.pm <- "toolong";
+    S.pm <- "ok";
+    mut Outer o;
+    o.inner.name <- "toolong";
+    o.inner.name <- "ok";
+    mut string<3>[2][2] grid;
+    grid[1][0] <- "toolong";
+    grid[1][0] <- "ok";
+    Lib.name <- "toolong";
+    Lib.name <- "ok";
+}

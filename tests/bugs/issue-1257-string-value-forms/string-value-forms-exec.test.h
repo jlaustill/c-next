@@ -20,6 +20,9 @@ typedef struct Box {
     char name[41];
 } Box;
 
+/* External variables */
+extern const char S__pm[9];
+
 /* Function prototypes */
 uint32_t S__run(void);
 

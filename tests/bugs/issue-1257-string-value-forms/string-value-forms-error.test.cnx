@@ -1,5 +1,5 @@
 // test-error
-// Tests: #2191 - E0864 checks an assignment as a declaration; a fitting assignment is the control
+// Tests: #2191, #2237 - E0864 checks an assignment as a declaration, and a concatenation part by the whole-string rule; a fitting write is the control
 struct Cfg {
     string<8> name;
 }
@@ -14,4 +14,5 @@ void f() {
     t <- "ok";
     Cfg c <- { name: "xy" };
     string<6> y <- c.name + "z";
+    string<9> y2 <- c.name + "z";
 }

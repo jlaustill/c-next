@@ -10,6 +10,7 @@ struct Box {
 
 scope S {
     string<8> m <- "mm";
+    public string<8> pm <- "pq";
 
     public u32 run() {
         string<8> a <- "ab";
@@ -17,6 +18,16 @@ scope S {
         mut Cfg c;
         c.name <- "xy";
         string<8>[3] arr <- ["e0", "e1", "e2"];
+
+        // Controls: a bare-name concatenation and substring
+        string<40> d0 <- a + b;
+        if (d0 != "abcd") {
+            return 13;
+        }
+        string<8> d6 <- a[0, 1];
+        if (d6 != "a") {
+            return 14;
+        }
 
         // Declarations: operands and substring sources through a field, an element and this. (#2237, #2223)
         string<40> d1 <- c.name + "z";
@@ -83,5 +94,10 @@ scope S {
 }
 
 u32 main() {
+    // A substring through a scope-qualified member (#2223)
+    string<8> q <- S.pm[0, 1];
+    if (q != "p") {
+        return 20;
+    }
     return S.run();
 }

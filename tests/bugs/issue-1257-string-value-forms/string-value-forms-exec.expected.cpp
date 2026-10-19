@@ -29,6 +29,7 @@ static inline void cnx_string_copy(char* target, const char* source, uint32_t ca
 // Tests: #1257, #2237, #1954, #2223, #2232 - one decision for a value written whole into a string<N>, in a declaration and an assignment alike
 /* Scope: S */
 static const char S__m[9] = "mm";
+const char S__pm[9] = "pq";
 
 uint32_t S__run(void) {
     const char a[9] = "ab";
@@ -38,6 +39,18 @@ uint32_t S__run(void) {
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
     const char arr[3][9] = {"e0", "e1", "e2"};
+    char d0[41] = "";
+    (void) strncpy(d0, a, 40);
+    (void) strncat(d0, b, 40 - strlen(d0));
+    d0[40] = '\0';
+    if (strcmp(d0, "abcd") != 0) {
+        return 13U;
+    }
+    char d6[9] = "";
+    cnx_string_copy(d6, a + 0, 1U);
+    if (strcmp(d6, "a") != 0) {
+        return 14U;
+    }
     char d1[41] = "";
     (void) strncpy(d1, c.name, 40);
     (void) strncat(d1, "z", 40 - strlen(d1));
@@ -148,5 +161,10 @@ uint32_t S__run(void) {
 }
 
 int main(void) {
+    char q[9] = "";
+    cnx_string_copy(q, S__pm + 0, 1U);
+    if (strcmp(q, "p") != 0) {
+        return 20U;
+    }
     return S__run();
 }
