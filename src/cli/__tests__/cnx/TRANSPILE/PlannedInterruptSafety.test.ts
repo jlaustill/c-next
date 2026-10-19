@@ -56,3 +56,40 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
     expect(code).not.toContain(WRAPPERS);
   });
 });
+
+// #2200: a bit, a bit range or a bitmap field of an atomic is a read-modify-
+// write of the whole value, so it takes the form 2.2 plans for one (ADR-049).
+describe("2.2 plans the atomic form for the bits of an atomic", () => {
+  const BITS = [
+    "bitmap8 Flags { A, B, Mode[3], C, D, E }",
+    "atomic mut u32 word <- 0;",
+    "atomic mut u64 wide <- 0;",
+    "atomic mut Flags flags;",
+    "void f() {",
+    "    word[1] <- true;",
+    "    wide[9, 4] <- 11;",
+    "    flags.Mode <- 3;",
+    "}",
+    "",
+  ].join("\n");
+
+  it("writes an LDREX/STREX loop where the target has exclusive access", async () => {
+    const code = await generate(`#pragma target teensy41\n${BITS}`);
+    expect(code).toContain("__LDREXW(&word)");
+    expect(code).toContain("__LDREXB(&flags)");
+    expect(code).toContain("#include <cmsis_gcc.h>");
+  });
+
+  it("masks interrupts for a type with no exclusive access", async () => {
+    const code = await generate(`#pragma target teensy41\n${BITS}`);
+    expect(code).toContain("__cnx_disable_irq();");
+    expect(code).toContain(WRAPPERS);
+  });
+
+  it("writes a compare-exchange loop on a host target", async () => {
+    const code = await generate(`#pragma target host\n${BITS}`);
+    expect(code).toContain("__atomic_compare_exchange(&word");
+    expect(code).toContain("__atomic_compare_exchange(&flags");
+    expect(code).not.toContain("word = (uint32_t)((word");
+  });
+});
