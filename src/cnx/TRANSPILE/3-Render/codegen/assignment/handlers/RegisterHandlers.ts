@@ -29,10 +29,10 @@ function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
 
   if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.foldValue(),
       ctx.generatedValue,
       memberName,
       bitIndex,
-      true,
     );
     return BitUtils.writeOnlySingleBit(
       memberName,
@@ -71,10 +71,10 @@ function writeRegisterBitRange(
 
   if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.foldValue(),
       ctx.generatedValue,
       memberName,
       `${start}, ${width.text}`,
-      false,
     );
 
     const mmio = RegisterUtils.tryGenerateMMIO(

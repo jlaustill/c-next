@@ -159,7 +159,10 @@ describe("RegisterHandlers", () => {
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
-      const ctx = createMockContext({ generatedValue: "false" });
+      const ctx = createMockContext({
+        generatedValue: "false",
+        foldValue: () => 0,
+      });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
@@ -171,7 +174,10 @@ describe("RegisterHandlers", () => {
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "w1s"]]),
       });
-      const ctx = createMockContext({ generatedValue: "0" });
+      const ctx = createMockContext({
+        generatedValue: "0",
+        foldValue: () => 0,
+      });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
@@ -273,6 +279,7 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "0",
+        foldValue: () => 0,
       });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
@@ -284,8 +291,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
-          Number(node.mockValue),
+        // The value is not a constant; each subscript folds to its mock
+        tryEvaluateConstant: vi.fn((node: { mockValue: string } | null) =>
+          node === null ? undefined : Number(node.mockValue),
         ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
@@ -320,8 +328,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("8")
           .mockReturnValueOnce("16"),
-        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
-          Number(node.mockValue),
+        // The value is not a constant; each subscript folds to its mock
+        tryEvaluateConstant: vi.fn((node: { mockValue: string } | null) =>
+          node === null ? undefined : Number(node.mockValue),
         ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
@@ -411,6 +420,7 @@ describe("RegisterHandlers", () => {
         target: registerTarget("Motor__GPIO7__DR_SET"),
         hasThis: true,
         generatedValue: "false",
+        foldValue: () => 0,
       });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
@@ -484,8 +494,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("32"),
-        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
-          Number(node.mockValue),
+        // The value is not a constant; each subscript folds to its mock
+        tryEvaluateConstant: vi.fn((node: { mockValue: string } | null) =>
+          node === null ? undefined : Number(node.mockValue),
         ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
@@ -542,6 +553,7 @@ describe("RegisterHandlers", () => {
         ]),
         hasThis: true,
         generatedValue: "0",
+        foldValue: () => 0,
       });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");

@@ -13,70 +13,31 @@ describe("AssignmentHandlerUtils", () => {
   // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts`.
 
   describe("validateWriteOnlyValue (an assertion since #1322: E0872 owns the rule)", () => {
-    describe("single bit access", () => {
-      it("should not throw for true value", () => {
-        expect(() =>
-          AssignmentHandlerUtils.validateWriteOnlyValue(
-            "true",
-            "REG",
-            "5",
-            true,
-          ),
-        ).not.toThrow();
-      });
-
-      it("should throw for false value", () => {
-        expect(() =>
-          AssignmentHandlerUtils.validateWriteOnlyValue(
-            "false",
-            "REG",
-            "5",
-            true,
-          ),
-        ).toThrow("E0872 rejects");
-      });
-
-      it("should throw for 0 value", () => {
-        expect(() =>
-          AssignmentHandlerUtils.validateWriteOnlyValue("0", "REG", "5", true),
-        ).toThrow("E0872 rejects");
-      });
+    it("passes a non-zero or non-constant value", () => {
+      expect(() =>
+        AssignmentHandlerUtils.validateWriteOnlyValue(1, "true", "REG", "5"),
+      ).not.toThrow();
+      expect(() =>
+        AssignmentHandlerUtils.validateWriteOnlyValue(
+          undefined,
+          "v",
+          "REG",
+          "0, 8",
+        ),
+      ).not.toThrow();
     });
 
-    describe("bit range access", () => {
-      it("should not throw for non-zero value", () => {
+    it("rejects a value that folds to zero, however it is spelled", () => {
+      for (const spelling of ["false", "0", "0x0", "!true", "OFF"]) {
         expect(() =>
           AssignmentHandlerUtils.validateWriteOnlyValue(
-            "0xFF",
+            0,
+            spelling,
             "REG",
-            "0, 8",
-            false,
-          ),
-        ).not.toThrow();
-      });
-
-      it("should throw for 0 value", () => {
-        expect(() =>
-          AssignmentHandlerUtils.validateWriteOnlyValue(
-            "0",
-            "REG",
-            "0, 8",
-            false,
+            "5",
           ),
         ).toThrow("E0872 rejects");
-      });
-
-      it("should allow false for bit range (multi-bit)", () => {
-        // "false" as a string is not "0", so it's allowed for multi-bit
-        expect(() =>
-          AssignmentHandlerUtils.validateWriteOnlyValue(
-            "false",
-            "REG",
-            "0, 8",
-            false,
-          ),
-        ).not.toThrow();
-      });
+      }
     });
   });
 });

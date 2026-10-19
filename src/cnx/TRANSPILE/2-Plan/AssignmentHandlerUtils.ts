@@ -24,26 +24,25 @@ import type IAssignmentContext from "./types/IAssignmentContext";
 /**
  * A write-1 register bit is never assigned a zero here.
  *
- * #1322: E0872 rejects it in pass 2.1 (ADR-004), by VALUE -- `0x0` and a
- * zero-valued const included, which the text comparison below let through and
- * turned into a SET of the bit the author meant to clear. The generated form
- * for a single bit is `REG = (1U << bit)`, so a zero reaching this point would
- * be emitted as a set; the assertion holds the emission to the rule.
+ * #1322: E0872 rejects it in pass 2.1 (ADR-004), by VALUE -- `0x0`, `!true`
+ * and a zero-valued const included. The generated form for a single bit is
+ * `REG = (1U << bit)`, so a zero reaching this point would be emitted as a
+ * set; the assertion holds the emission to the rule, and reads the same
+ * constant folder E0872 does rather than the value's spelling.
  *
- * @param value - The generated value being assigned
+ * @param folded - The value's constant fold, undefined when not constant
+ * @param value - The generated value, for the assertion's text
  * @param targetName - The full register name, for the assertion's text
  * @param bitIndex - The bit index expression, for the assertion's text
- * @param isSingleBit - True for single bit access, false for bit range
  */
 function validateWriteOnlyValue(
+  folded: number | undefined,
   value: string,
   targetName: string,
   bitIndex: string,
-  isSingleBit: boolean,
 ): void {
-  const zero = isSingleBit ? value === "false" || value === "0" : value === "0";
   invariant(
-    !zero,
+    folded !== 0,
     `a write-1 register bit takes a non-zero value -- E0872 rejects ` +
       `'${value}' on ${targetName}[${bitIndex}] in pass 2.1, before this runs`,
   );
