@@ -114,6 +114,7 @@ class ArrayListCount {
     const elements = fill === null ? initializer.elements : [fill];
     const declared = at.sizes[level];
     if (
+      initializer.span.line < 0 &&
       fill !== null &&
       typeof declared === "string" &&
       !ArrayListCount.fillsWithZero(fill, at)
