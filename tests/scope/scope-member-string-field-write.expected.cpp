@@ -8,6 +8,20 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1731 part (2): a string field of a scope's struct member, written through
@@ -21,8 +35,8 @@ char S__sname[9] = "";
 Cfg S__cfgs[2] = {};
 
 void S__setInside(void) {
-    (void) strncpy(S__cfg.name, "abc", 16); S__cfg.name[16] = '\0';
-    (void) strncpy(S__cfgs[1].name, "in1", 16); S__cfgs[1].name[16] = '\0';
+    cnx_string_copy(S__cfg.name, "abc", 16U);
+    cnx_string_copy(S__cfgs[1].name, "in1", 16U);
 }
 
 uint32_t S__insideLength(void) {
@@ -38,7 +52,7 @@ int main(void) {
     if (strcmp(S__cfg.name, "abc") != 0) {
         return 2U;
     }
-    (void) strncpy(S__cfg.name, "wxyz", 16); S__cfg.name[16] = '\0';
+    cnx_string_copy(S__cfg.name, "wxyz", 16U);
     const uint32_t n2 = strlen(S__cfg.name);
     if (n2 != 4) {
         return 3U;
@@ -46,14 +60,14 @@ int main(void) {
     if (strcmp(S__cfg.name, "wxyz") != 0) {
         return 4U;
     }
-    (void) strncpy(S__sname, "out", 8); S__sname[8] = '\0';
+    cnx_string_copy(S__sname, "out", 8U);
     if (strcmp(S__sname, "out") != 0) {
         return 5U;
     }
     if (strcmp(S__cfgs[1U].name, "in1") != 0) {
         return 6U;
     }
-    (void) strncpy(S__cfgs[0].name, "out0", 16); S__cfgs[0].name[16] = '\0';
+    cnx_string_copy(S__cfgs[0].name, "out0", 16U);
     if (strcmp(S__cfgs[0U].name, "out0") != 0) {
         return 7U;
     }
@@ -61,7 +75,7 @@ int main(void) {
         return 8U;
     }
     Cfg c = {};
-    (void) strncpy(c.name, "loc", 16); c.name[16] = '\0';
+    cnx_string_copy(c.name, "loc", 16U);
     if (strcmp(c.name, "loc") != 0) {
         return 9U;
     }

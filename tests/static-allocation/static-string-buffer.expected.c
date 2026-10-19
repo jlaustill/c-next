@@ -46,7 +46,7 @@ void copyMessage(const char* source) {
 
 // Issue #139 fixed: string literal assignment in function body now works
 void setDefaultMessage(void) {
-    (void) strncpy(messageBuffer, "DefaultValue", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "DefaultValue", 64U);
 }
 
 int main(void) {
@@ -82,7 +82,7 @@ int main(void) {
     if (logLen != 13) {
         return 10U;
     }
-    (void) strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "Modified", 64U);
     if (strlen(messageBuffer) != 8) {
         return 11U;
     }

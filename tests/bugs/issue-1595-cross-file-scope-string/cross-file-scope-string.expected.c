@@ -16,24 +16,38 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // A scope method writing another file's scope member: matrix cell scope
 // method, imported direct
 /* Scope: Writer */
 
 void Writer__relabel(void) {
-    (void) strncpy(Cfg__label, "method", 16); Cfg__label[16] = '\0';
+    cnx_string_copy(Cfg__label, "method", 16U);
 }
 
 int main(void) {
-    (void) strncpy(Cfg__label, "hello", 16); Cfg__label[16] = '\0';
+    cnx_string_copy(Cfg__label, "hello", 16U);
     if (strcmp(Cfg__label, "hello") != 0) {
         return 1U;
     }
-    (void) strncpy(Cfg__tags[1], "tag", 8); Cfg__tags[1][8] = '\0';
+    cnx_string_copy(Cfg__tags[1], "tag", 8U);
     if (strcmp(Cfg__tags[1U], "tag") != 0) {
         return 2U;
     }
-    (void) strncpy(Cfg__structField.member, "fld", 12); Cfg__structField.member[12] = '\0';
+    cnx_string_copy(Cfg__structField.member, "fld", 12U);
     if (strcmp(Cfg__structField.member, "fld") != 0) {
         return 3U;
     }

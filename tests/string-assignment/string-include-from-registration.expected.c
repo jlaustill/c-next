@@ -8,6 +8,20 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1450 box 4: `<string.h>` is decided by TYPE REGISTRATION, which runs before
@@ -34,7 +48,7 @@
 // change that required `<string.h>` unconditionally would not be caught by the
 // assertions alone.
 void setIt(char* s) {
-    (void) strncpy(s, "hi", 8); s[8] = '\0';
+    cnx_string_copy(s, "hi", 8U);
 }
 
 int main(void) {

@@ -17,22 +17,36 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 /* Scope: Writer */
 
 void Writer__relabel(void) {
-    (void) strncpy(Store__label, "method", 16); Store__label[16] = '\0';
+    cnx_string_copy(Store__label, "method", 16U);
 }
 
 int main(void) {
-    (void) strncpy(Store__label, "hello", 16); Store__label[16] = '\0';
+    cnx_string_copy(Store__label, "hello", 16U);
     if (strcmp(Store__label, "hello") != 0) {
         return 1U;
     }
-    (void) strncpy(Store__tags[1], "tag", 8); Store__tags[1][8] = '\0';
+    cnx_string_copy(Store__tags[1], "tag", 8U);
     if (strcmp(Store__tags[1U], "tag") != 0) {
         return 2U;
     }
-    (void) strncpy(Store__structField.member, "fld", 12); Store__structField.member[12] = '\0';
+    cnx_string_copy(Store__structField.member, "fld", 12U);
     if (strcmp(Store__structField.member, "fld") != 0) {
         return 3U;
     }

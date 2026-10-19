@@ -8,12 +8,26 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test empty string assignment
 char msg[33] = "Initial";
 
 void clearMessage(void) {
-    (void) strncpy(msg, "", 32); msg[32] = '\0';
+    cnx_string_copy(msg, "", 32U);
 }
 
 int main(void) {
@@ -24,17 +38,17 @@ int main(void) {
     if (strlen(msg) != 0) {
         return 2U;
     }
-    (void) strncpy(msg, "", 32); msg[32] = '\0';
+    cnx_string_copy(msg, "", 32U);
     if (strlen(msg) != 0) {
         return 3U;
     }
-    (void) strncpy(msg, "Back", 32); msg[32] = '\0';
+    cnx_string_copy(msg, "Back", 32U);
     if (strlen(msg) != 4) {
         return 4U;
     }
-    (void) strncpy(msg, "", 32); msg[32] = '\0';
-    (void) strncpy(msg, "", 32); msg[32] = '\0';
-    (void) strncpy(msg, "", 32); msg[32] = '\0';
+    cnx_string_copy(msg, "", 32U);
+    cnx_string_copy(msg, "", 32U);
+    cnx_string_copy(msg, "", 32U);
     if (strlen(msg) != 0) {
         return 5U;
     }

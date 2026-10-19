@@ -53,7 +53,7 @@ function createMockContext(
     // set its facts up on.
     state,
     // #1731 review: 2.2's decision is the case's input
-    plannedStringCopy: null,
+    plannedStringCapacity: null,
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
@@ -67,7 +67,7 @@ function createMockContext(
 // here, one per handler. The handlers no longer raise it -- `needsString` is
 // over-determined, raised by the effect channel, by `generateType` and by type
 // registration, so six more raisers in the handlers changed nothing. What these
-// tests are FOR is the emitted `strncpy`, and that is untouched.
+// tests are FOR is the emitted copy, and that is untouched.
 let state = new TranspileState();
 
 function copyHandler() {
@@ -99,10 +99,10 @@ describe("StringHandlers", () => {
         copyHandler()!(
           createMockContext({
             isSimpleIdentifier: true,
-            plannedStringCopy: { capacity: 32, throughHelper: false },
+            plannedStringCapacity: 32,
           }),
         ),
-      ).toBe("(void) strncpy(target, \"hello\", 32); target[32] = '\\0';");
+      ).toBe('cnx_string_copy(target, "hello", 32U);');
     });
 
     // #1731: the target is the renderer's, not re-spelled from the chain's
@@ -114,14 +114,12 @@ describe("StringHandlers", () => {
       ]);
       const ctx = createMockContext({
         identifiers: ["person", "name"],
-        plannedStringCopy: { capacity: 50, throughHelper: false },
+        plannedStringCapacity: 50,
       });
 
       const result = copyHandler()!(ctx);
 
-      expect(result).toBe(
-        "(void) strncpy(target, \"hello\", 50); target[50] = '\\0';",
-      );
+      expect(result).toBe('cnx_string_copy(target, "hello", 50U);');
       expect(result).not.toContain("person");
     });
 
@@ -132,44 +130,26 @@ describe("StringHandlers", () => {
       const ctx = createMockContext({
         identifiers: ["config", "items"],
         ...HandlerTestUtils.subscriptsOf([{} as never]),
-        plannedStringCopy: { capacity: 32, throughHelper: false },
+        plannedStringCapacity: 32,
       });
 
       expect(copyHandler()!(ctx)).toBe(
-        "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
+        'cnx_string_copy(target, "hello", 32U);',
       );
     });
 
-    // #2207: a source that can be the target goes through the helper, which
-    // is safe on one object and reaches a side-effecting target once
+    // #2207: one call, safe when the source is the target, and it reaches a
+    // side-effecting target once (#1731 review)
     it("copies from a string through cnx_string_copy", () => {
       const ctx = createMockContext({
         isSimpleIdentifier: true,
         targetIndexHasSideEffect: true,
         generatedValue: "names[j]",
-        plannedStringCopy: { capacity: 8, throughHelper: true },
+        plannedStringCapacity: 8,
       });
 
       expect(copyHandler()!(ctx)).toBe(
         "cnx_string_copy(target, names[j], 8U);",
-      );
-    });
-
-    // #1731 review: the terminator store spells the target again, so a
-    // subscript with a side effect is reached once, through a temp
-    it("reaches a target with a side-effecting subscript once", () => {
-      HandlerTestUtils.declareTypes(state, [
-        ["testVar", { stringCapacity: 8, baseType: "string", isString: true }],
-      ]);
-      const ctx = createMockContext({
-        isSimpleIdentifier: true,
-        targetIndexHasSideEffect: true,
-        plannedStringCopy: { capacity: 8, throughHelper: false },
-      });
-
-      expect(copyHandler()!(ctx)).toBe(
-        "/* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */\n" +
-          "{ char* cnx_tmp0 = target; (void) strncpy(cnx_tmp0, \"hello\", 8); cnx_tmp0[8] = '\\0'; }",
       );
     });
 

@@ -8,12 +8,26 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1569: a file whose only string is a struct's string<N>[M] field, written
 // and never read, still includes <string.h> for the strncpy the write emits
 int main(void) {
     Config cfg = {0};
-    (void) strncpy(cfg.items[2], "hi", 8); cfg.items[2][8] = '\0';
+    cnx_string_copy(cfg.items[2], "hi", 8U);
     return 0;
 }

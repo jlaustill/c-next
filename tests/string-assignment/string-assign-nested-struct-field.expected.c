@@ -8,6 +8,20 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1898: a string written to a nested struct's string field is a bounded
@@ -16,11 +30,11 @@ Outer g = {0};
 
 int main(void) {
     Outer o = {0};
-    (void) strncpy(o.inner.name, "hi", 8); o.inner.name[8] = '\0';
+    cnx_string_copy(o.inner.name, "hi", 8U);
     if (strcmp(o.inner.name, "hi") != 0) {
         return 1U;
     }
-    (void) strncpy(g.inner.name, "glob", 8); g.inner.name[8] = '\0';
+    cnx_string_copy(g.inner.name, "glob", 8U);
     if (strcmp(g.inner.name, "glob") != 0) {
         return 2U;
     }
@@ -29,7 +43,7 @@ int main(void) {
         return 3U;
     }
     Inner i = {0};
-    (void) strncpy(i.name, "one", 8); i.name[8] = '\0';
+    cnx_string_copy(i.name, "one", 8U);
     if (strcmp(i.name, "one") != 0) {
         return 4U;
     }

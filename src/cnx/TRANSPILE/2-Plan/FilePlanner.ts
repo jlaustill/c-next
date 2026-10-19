@@ -1,4 +1,3 @@
-import type IPlannedStringCopy from "./types/IPlannedStringCopy";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import UnwrittenIncludes from "./UnwrittenIncludes";
 import ParameterConst from "../../utils/ParameterConst";
@@ -1690,9 +1689,8 @@ class FilePlanner {
   }
 
   /**
-   * #1731: how each write of one whole `string<N>` copies -- its capacity,
-   * and whether through `cnx_string_copy` (#2207) -- whatever spells its
-   * target. ADR-045's copy, recorded where it is decided. The typer's answer,
+   * #1731: the capacity of each write of one whole `string<N>`, which is one
+   * `cnx_string_copy` (#2207) whatever spells its target. ADR-045's copy, recorded where it is decided. The typer's answer,
    * asked as 2.1's E0715 asks it, so a `for` header cannot be handed a copy
    * 2.1 did not see (#1731 review). Whether the file defines the helper, and
    * the `uint32_t` it counts in, are decided here with it, as `planClamps`
@@ -1702,22 +1700,19 @@ class FilePlanner {
     program: IProgramSyntax,
     cTypes: Set<string>,
   ): {
-    readonly copies: ReadonlyMap<IAssignmentSyntax, IPlannedStringCopy>;
+    readonly copies: ReadonlyMap<IAssignmentSyntax, number>;
     readonly helper: boolean;
   } {
-    const copies = new Map<IAssignmentSyntax, IPlannedStringCopy>();
-    let helper = false;
+    const copies = new Map<IAssignmentSyntax, number>();
     const typing = this.state.typingContext();
     for (const site of FilePlanner.assignmentSites(program)) {
       const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
       if (capacity === null) continue;
       AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
-      // #2207: only a literal cannot be the target, so `names[i] <- names[j]`
-      // must not reach `strncpy` with overlapping arguments when i == j
-      const throughHelper = !ExpressionShape.isStringLiteral(site.value);
-      helper ||= throughHelper;
-      copies.set(site, { capacity, throughHelper });
+      copies.set(site, capacity);
     }
+    // #2207: every copy calls `cnx_string_copy`, which counts in `uint32_t`
+    const helper = copies.size > 0;
     if (helper) cTypes.add("uint32_t");
     return { copies, helper };
   }

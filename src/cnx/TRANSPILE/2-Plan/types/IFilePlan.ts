@@ -1,4 +1,3 @@
-import type IPlannedStringCopy from "./IPlannedStringCopy";
 import type IPlannedArgument from "./IPlannedArgument";
 import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
 import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
@@ -86,9 +85,9 @@ interface IFilePlan {
   >;
   /** #1081: how each slice write reads its source */
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
-  /** #1731: each assignment that writes one whole `string<N>`, and how it copies */
-  readonly stringCopies: ReadonlyMap<IAssignmentSyntax, IPlannedStringCopy>;
-  /** #2207: whether any of them copies through `cnx_string_copy` */
+  /** #1731: each assignment that writes one whole `string<N>`, and its capacity */
+  readonly stringCopies: ReadonlyMap<IAssignmentSyntax, number>;
+  /** #2207: whether the file copies a string, through `cnx_string_copy` */
   readonly stringCopyHelper: boolean;
 
   /**

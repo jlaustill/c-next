@@ -37,7 +37,7 @@ int main(void) {
     if (strlen(dest) != 8) {
         return 1U;
     }
-    (void) strncpy(source, "NewValue", 64); source[64] = '\0';
+    cnx_string_copy(source, "NewValue", 64U);
     cnx_string_copy(dest, source, 64U);
     if (strlen(dest) != 8) {
         return 2U;

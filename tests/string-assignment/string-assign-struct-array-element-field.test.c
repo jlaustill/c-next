@@ -8,6 +8,20 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1748: a string written to the string field of an element of a struct array
@@ -20,19 +34,19 @@ Pkt gp = {0};
 char names[2][9] = {0};
 
 int main(void) {
-    (void) strncpy(parr[0].name, "zero", 8); parr[0].name[8] = '\0';
-    (void) strncpy(parr[1].name, "abc", 8); parr[1].name[8] = '\0';
+    cnx_string_copy(parr[0].name, "zero", 8U);
+    cnx_string_copy(parr[1].name, "abc", 8U);
     if (strcmp(parr[1U].name, "abc") != 0) {
         return 1U;
     }
     if (strcmp(parr[0U].name, "zero") != 0) {
         return 2U;
     }
-    (void) strncpy(gp.name, "abc", 8); gp.name[8] = '\0';
+    cnx_string_copy(gp.name, "abc", 8U);
     if (strcmp(gp.name, "abc") != 0) {
         return 3U;
     }
-    (void) strncpy(names[1], "abc", 8); names[1][8] = '\0';
+    cnx_string_copy(names[1], "abc", 8U);
     if (strcmp(names[1U], "abc") != 0) {
         return 4U;
     }

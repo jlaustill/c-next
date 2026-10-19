@@ -95,7 +95,7 @@ function withPlannedCopy(
 ): IAssignmentContext {
   return {
     ...ctx,
-    plannedStringCopy: overrides.plannedStringCopy ?? null,
+    plannedStringCapacity: overrides.plannedStringCapacity ?? null,
   };
 }
 
@@ -450,7 +450,7 @@ describe("AssignmentClassifier - String Assignments", () => {
     const planned = createMockContext(state, {
       identifiers: ["name"],
       isSimpleIdentifier: true,
-      plannedStringCopy: { capacity: 32, throughHelper: false },
+      plannedStringCapacity: 32,
     });
     expect(AssignmentClassifier.classify(planned)).toBe(
       AssignmentKind.STRING_COPY,

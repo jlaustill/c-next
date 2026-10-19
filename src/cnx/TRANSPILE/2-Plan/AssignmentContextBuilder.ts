@@ -20,7 +20,6 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
-import type IPlannedStringCopy from "./types/IPlannedStringCopy";
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import type TAtomicForm from "../types/TAtomicForm";
@@ -52,7 +51,7 @@ interface IContextBuilderDeps {
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
   /** 2.2's decision: the capacity of the one `string<N>` this write copies, or null (#1731) */
-  readonly plannedStringCopy: IPlannedStringCopy | null;
+  readonly plannedStringCapacity: number | null;
   readonly plannedCompoundCast: string | null;
   readonly plannedRegisterAccess: string | null;
 
@@ -289,7 +288,7 @@ function buildAssignmentContext(
     atomicForm: deps.atomicForm,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
-    plannedStringCopy: deps.plannedStringCopy,
+    plannedStringCapacity: deps.plannedStringCapacity,
     plannedCompoundCast: deps.plannedCompoundCast,
     plannedRegisterAccess: deps.plannedRegisterAccess,
     hasValue: valueExpr.kind !== "missing",

@@ -27,43 +27,26 @@ import invariant from "../../../../../utils/invariant";
  * qualification included; the capacity is 2.2's decision, planned with the
  * write (#1731 review).
  *
- * The terminator store spells the target a second time, so a target whose
- * subscript has a side effect is reached once, through a temp (#1731 review).
- * A copy from another string calls `cnx_string_copy` instead (#2207):
- * `strncpy` with overlapping arguments is undefined, and `names[i]` can be
- * `names[j]`.
+ * Every copy is one `cnx_string_copy` call (#2207): `strncpy` with
+ * overlapping arguments is undefined, and `names[i]` can be `names[j]`. A
+ * call reaches its target once, so a subscript with a side effect runs once
+ * (#1731 review), and one form leaves the same bytes however the value is
+ * spelled (#2207 review).
  *
  * #1450 box 4: no `requireInclude("string")` here -- `needsString` is raised
  * by three independent channels before this runs (the effect channel during
  * expression rendering, `CodeGenerator.generateType`, type registration),
  * which is why deleting the six calls this file had moved no fixture.
  */
-const HOISTED_COPY_ANNOTATION =
-  "/* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */";
-
 function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
-  const planned = ctx.plannedStringCopy;
+  const capacity = ctx.plannedStringCapacity;
   invariant(
-    planned !== null,
+    capacity !== null,
     "the classifier routes a planned write of one string<N> here",
   );
-  const { capacity } = planned;
-  const target = ctx.renderTarget();
-  // #2207: a source that can be the target is copied by the helper, which is
-  // safe when the two are one object; it reaches the target once as well
-  if (planned.throughHelper) {
-    return `${StringUtils.COPY_HELPER}(${target}, ${ctx.generatedValue}, ${capacity}U);`;
-  }
-  if (!ctx.targetIndexHasSideEffect) {
-    return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
-  }
-  // `names[pick()] <- "x"` calls pick() once: the copy and its terminator both
-  // write through one pointer to the element, as #1887's clamp does.
-  // TODO(#2192): `char*` drops a volatile element's qualifier, as `strncpy`'s
-  // own parameter does on the plain path; a fix changes both sites.
-  const element = ctx.state.getNextTempVarName();
-  const copy = StringUtils.copyWithNull(element, ctx.generatedValue, capacity);
-  return `${HOISTED_COPY_ANNOTATION}\n{ char* ${element} = ${target}; ${copy} }`;
+  // TODO(#2192): the helper's `char*` drops a volatile element's qualifier,
+  // as `strncpy`'s own parameter did
+  return `${StringUtils.COPY_HELPER}(${ctx.renderTarget()}, ${ctx.generatedValue}, ${capacity}U);`;
 }
 
 const stringHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [

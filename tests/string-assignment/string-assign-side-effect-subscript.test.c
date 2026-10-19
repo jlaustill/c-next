@@ -21,6 +21,20 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    uint32_t i = 0U;
+    while ((i < capacity) && (source[i] != '\0')) {
+        target[i] = source[i];
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1731 review: a string write's terminator store must not evaluate the target
@@ -37,8 +51,7 @@ uint32_t pick(void) {
 int main(void) {
     char names[3][9] = {0};
     Item items[3] = {0};
-    /* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */
-    { char* cnx_tmp0 = names[pick()]; (void) strncpy(cnx_tmp0, "abc", 8); cnx_tmp0[8] = '\0'; }
+    cnx_string_copy(names[pick()], "abc", 8U);
     if (calls != 1) {
         return 1U;
     }
@@ -48,15 +61,14 @@ int main(void) {
     if (strcmp(names[2U], "") != 0) {
         return 3U;
     }
-    /* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */
-    { char* cnx_tmp1 = items[pick()].name; (void) strncpy(cnx_tmp1, "def", 8); cnx_tmp1[8] = '\0'; }
+    cnx_string_copy(items[pick()].name, "def", 8U);
     if (calls != 2) {
         return 4U;
     }
     if (strcmp(items[2U].name, "def") != 0) {
         return 5U;
     }
-    (void) strncpy(names[0], "ok", 8); names[0][8] = '\0';
+    cnx_string_copy(names[0], "ok", 8U);
     if (calls != 2) {
         return 6U;
     }

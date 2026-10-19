@@ -40,8 +40,8 @@ char t[9] = "";
 
 // #2207 review: the copy zero-fills past the terminator, as a literal's does
 uint8_t staleByte(void) {
-    (void) strncpy(s, "hello", 8); s[8] = '\0';
-    (void) strncpy(t, "hi", 8); t[8] = '\0';
+    cnx_string_copy(s, "hello", 8U);
+    cnx_string_copy(t, "hi", 8U);
     cnx_string_copy(s, t, 8U);
     return s[3U];
 }
@@ -63,7 +63,7 @@ int main(void) {
     if (strcmp(names[0U], "ab") != 0) {
         return 3U;
     }
-    (void) strncpy(c.name, "nm", 8); c.name[8] = '\0';
+    cnx_string_copy(c.name, "nm", 8U);
     cnx_string_copy(c.name, c.name, 8U);
     if (strcmp(c.name, "nm") != 0) {
         return 4U;
@@ -72,7 +72,7 @@ int main(void) {
     if (stale != 0) {
         return 7U;
     }
-    (void) strncpy(s, "abc", 8); s[8] = '\0';
+    cnx_string_copy(s, "abc", 8U);
     copyName(0U, 1U);
     if (strcmp(names[0U], "cd") != 0) {
         return 5U;

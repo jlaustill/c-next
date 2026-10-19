@@ -80,7 +80,7 @@ class AssignmentClassifier {
     // Asked before any shape: what decides it is the type the target writes,
     // and the shape rules below would claim `this.cfg.name` or
     // `parr[1].name` first. 2.2 planned it (`OperandTyper.stringCopyCapacity`).
-    if (ctx.plannedStringCopy !== null) {
+    if (ctx.plannedStringCapacity !== null) {
       return AssignmentKind.STRING_COPY;
     }
 
