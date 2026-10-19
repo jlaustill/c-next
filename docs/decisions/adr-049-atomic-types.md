@@ -161,7 +161,7 @@ x <- x + 1;       // ERROR: Use x.increment()
 **Option B: Allow direct access (implicit atomic)**
 
 ```cnx
-atomic mut u32 x <- 0;
+atomic u32 x <- 0;
 x <- 5; // OK: Generates atomic store
 x <- x + 1; // OK: Generates atomic RMW
 ```
@@ -261,15 +261,17 @@ atomic bool ready <- false;
 - Makes `atomic` a first-class citizen in the language
 - Clear and explicit without being verbose
 
+_(Clarified 2026-10-19, owner ruling on #2233: `atomic` implies ADR-071's `mut`. Only a value something writes can be torn, so an `atomic` nothing writes protects nothing, and these examples declare writable bindings as written. `atomic mut` is E0919, as `atomic volatile` is E0889. An `atomic` local or private scope member nothing writes is ADR-071's E0899, which asks for `atomic` to be removed.)_
+
 ### Q2 & Q3: Operation Syntax ✓
 
 **Decision: Natural syntax with type-level behavior**
 
 ```cnx
 // Declaration combines atomic + overflow behavior
-atomic mut clamp u8 brightness <- 0;
-atomic mut wrap u32 counter <- 0;
-atomic mut bool ready <- false;
+atomic clamp u8 brightness <- 0;
+atomic wrap u32 counter <- 0;
+atomic bool ready <- false;
 
 // Operations use standard C-Next syntax
 brightness +<- 10; // Atomic add with clamp
@@ -696,6 +698,7 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 | Code  | Reported when                                                                                                               | Asserted by                                                                                                                                    |
 | ----- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`, `atomic-volatile-in-function-error.test.cnx`, `atomic-volatile-in-scope-method-error.test.cnx` |
+| E0919 | A declaration carries both `atomic` and `mut` (#2233)                                                                       | `tests/adr-049/atomic-mut-error.test.cnx`, `atomic-mut-in-function-error.test.cnx`, `atomic-mut-in-scope-method-error.test.cnx`                |
 | E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                                                                        |
 | E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx`                                                     |
 | E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                                                                    |
@@ -705,8 +708,9 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
-which. The rule is entirely syntactic -- two modifier tokens on one declaration
--- so it needs no type, no scope and no symbols.
+which. `atomic` also implies `mut` (#2233), so writing both is E0919. Both
+rules are entirely syntactic -- two modifier tokens on one declaration -- so
+they need no type, no scope and no symbols.
 
 E0510 and E0511 are the two ways a program's one target can fail to exist
 (Q6). E0510 is reported at the naming pragma, or on the entry file when the

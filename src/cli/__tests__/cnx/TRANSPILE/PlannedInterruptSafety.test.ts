@@ -31,7 +31,7 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 
   it("an atomic on an LDREX target is a loop, with CMSIS", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic mut u32 c <- 0;\nvoid f() { c +<- 1; }\n",
+      "#pragma target teensy41\natomic u32 c <- 0;\nvoid f() { c +<- 1; }\n",
     );
     expect(code).toContain("__LDREXW(&c)");
     expect(code).toContain("#include <cmsis_gcc.h>");
@@ -40,7 +40,7 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 
   it("an atomic with no exclusive access is masked, with the wrappers", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic mut u64 c <- 0;\nvoid f() { c +<- 1; }\n",
+      "#pragma target teensy41\natomic u64 c <- 0;\nvoid f() { c +<- 1; }\n",
     );
     expect(code).toContain("__cnx_disable_irq();");
     expect(code).toContain(WRAPPERS);
@@ -49,7 +49,7 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 
   it("a plain store to an atomic is neither", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic mut u32 c <- 0;\nvoid f() { c <- 1; }\n",
+      "#pragma target teensy41\natomic u32 c <- 0;\nvoid f() { c <- 1; }\n",
     );
     expect(code).not.toContain("__LDREXW");
     expect(code).not.toContain("#include <cmsis_gcc.h>");
@@ -62,9 +62,9 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 describe("2.2 plans the atomic form for the bits of an atomic", () => {
   const BITS = [
     "bitmap8 Flags { A, B, Mode[3], C, D, E }",
-    "atomic mut u32 word <- 0;",
-    "atomic mut u64 wide <- 0;",
-    "atomic mut Flags flags;",
+    "atomic u32 word <- 0;",
+    "atomic u64 wide <- 0;",
+    "atomic Flags flags;",
     "void f() {",
     "    word[1] <- true;",
     "    wide[9, 4] <- 11;",
@@ -95,7 +95,7 @@ describe("2.2 plans the atomic form for the bits of an atomic", () => {
 
   it("writes a float's bits through its integer view, in the planned form", async () => {
     const source = [
-      "atomic mut f32 fl;",
+      "atomic f32 fl;",
       "void f() {",
       "    fl[31] <- true;",
       "    fl[0, 4] <- 3;",
@@ -116,7 +116,7 @@ describe("2.2 plans the atomic form for the bits of an atomic", () => {
 
   it("accesses a signed atomic through its unsigned type", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic mut i32 s;\nvoid f() {\n    s[3] <- true;\n    s +<- 1;\n}\n",
+      "#pragma target teensy41\natomic i32 s;\nvoid f() {\n    s[3] <- true;\n    s +<- 1;\n}\n",
     );
     expect(code).toContain(
       "int32_t __old = (int32_t)__LDREXW((volatile uint32_t *)&s);",
@@ -128,7 +128,7 @@ describe("2.2 plans the atomic form for the bits of an atomic", () => {
 
   it("writes a scope member's compound write atomically in every spelling", async () => {
     const code = await generate(
-      "#pragma target teensy41\nscope Sc {\n    public atomic mut wrap u32 cnt;\n    public void go() {\n        this.cnt +<- 1;\n    }\n}\nvoid f() {\n    Sc.cnt +<- 1;\n}\n",
+      "#pragma target teensy41\nscope Sc {\n    public atomic wrap u32 cnt;\n    public void go() {\n        this.cnt +<- 1;\n    }\n}\nvoid f() {\n    Sc.cnt +<- 1;\n}\n",
     );
     expect(code.match(/__LDREXW\(&Sc__cnt\)/g)).toHaveLength(2);
     expect(code).not.toContain("Sc__cnt += 1U");

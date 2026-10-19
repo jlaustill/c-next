@@ -440,7 +440,7 @@ void main() {
   describe("Target resolution parity (ADR-049, #1668)", () => {
     const atomicMain = `#include "helper.cnx"
 
-atomic mut u32 counter <- 0;
+atomic u32 counter <- 0;
 
 void increment() {
     counter +<- 1;

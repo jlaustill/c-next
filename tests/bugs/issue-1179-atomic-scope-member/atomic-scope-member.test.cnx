@@ -5,8 +5,8 @@
 // atomic global is (ADR-049 Q7). this.counter +<- 1 was a plain counter += 1U.
 
 scope S {
-    atomic mut wrap u32 counter;
-    public atomic mut wrap u32 shared;
+    atomic wrap u32 counter;
+    public atomic wrap u32 shared;
 
     public void go() {
         this.counter +<- 1;
@@ -14,7 +14,7 @@ scope S {
     }
 }
 
-atomic mut wrap u32 counter;
+atomic wrap u32 counter;
 
 void main() {
     S.go();

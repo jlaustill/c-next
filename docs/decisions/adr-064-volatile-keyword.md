@@ -337,7 +337,7 @@ void ISR_Handler() {
 
 ```cnx
 // CORRECT: ISR-safe
-atomic mut u32 counter <- 0;
+atomic u32 counter <- 0;
 
 void ISR_Handler() {
     counter +<- 1; // Atomic RMW operation

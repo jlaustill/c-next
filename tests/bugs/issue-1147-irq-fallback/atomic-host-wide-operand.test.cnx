@@ -5,11 +5,11 @@
 // as the non-atomic form does. A wider float keeps its precision.
 #pragma target host
 
-atomic mut u8 counter <- 0;
-atomic mut u8 falling <- 10;
-atomic mut i8 signed_up <- 0;
-atomic mut i8 signed_down <- 0;
-atomic mut f32 sum <- 0.0;
+atomic u8 counter <- 0;
+atomic u8 falling <- 10;
+atomic i8 signed_up <- 0;
+atomic i8 signed_down <- 0;
+atomic f32 sum <- 0.0;
 mut u8 plain <- 0;
 mut u32 big <- 256;
 mut i32 wide <- 300;

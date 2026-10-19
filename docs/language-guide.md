@@ -420,13 +420,15 @@ ISR-safe variables with hardware-assisted atomicity:
 ```cnx
 #pragma target teensy41
 
-atomic mut u32 counter <- 0;           // ISR-safe with LDREX/STREX
-atomic mut clamp u8 brightness <- 100; // Combines atomic + clamp
+atomic u32 counter <- 0;           // ISR-safe with LDREX/STREX
+atomic clamp u8 brightness <- 100; // Combines atomic + clamp
 
 void increment() {
     counter +<- 1;   // Lock-free atomic increment
 }
 ```
+
+`atomic` already makes a binding writable, so it takes no `mut`: `atomic mut` is E0919 (#2233).
 
 Generates optimized code based on target platform:
 

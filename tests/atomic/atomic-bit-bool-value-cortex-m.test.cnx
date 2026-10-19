@@ -13,8 +13,8 @@ bitmap8 Flags {
     E
 }
 
-atomic mut u32 word;
-atomic mut Flags flags;
+atomic u32 word;
+atomic Flags flags;
 
 void set(u32 x) {
     word[3] <- x > 5;

@@ -3,7 +3,7 @@
 // for the helper's teensy41; it used to get the default platform's PRIMASK.
 #include "teensy-pinned.cnx"
 
-atomic mut u32 counter <- 0;
+atomic u32 counter <- 0;
 
 void increment() {
     counter +<- pinnedValue;

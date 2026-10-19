@@ -77,8 +77,9 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     return (uint64_t)(a + (uint64_t)b);
 }
 
-// Edge case 1: atomic + const combination
-const volatile uint32_t CONFIG = 42U;
+// Edge case 1: an atomic is writable without mut (#2233), so the const
+// this case once paired with atomic no longer exists
+volatile uint32_t CONFIG = 42U;
 
 // Edge case 2: atomic 2D array
 volatile uint8_t matrix[4][4] = {0};
@@ -90,7 +91,7 @@ volatile int64_t bigSignedCounter = 0;
 volatile uint64_t bigUnsignedCounter = 0ULL;
 
 // Edge case 5: atomic string type
-const volatile char statusMessage[17] = "";
+volatile char statusMessage[17] = "";
 
 // Edge case 6: atomic struct (non-array)
 volatile TStatus currentStatus = {0};

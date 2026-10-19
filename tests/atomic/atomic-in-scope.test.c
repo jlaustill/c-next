@@ -34,6 +34,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Counter */
 static volatile uint32_t Counter__value = 0U;
+static volatile uint8_t Counter__overflowCount = 0U;
 
 void Counter__increment(void) {
     {
@@ -65,6 +66,7 @@ void Counter__incrementBy(const uint32_t delta) {
 
 void Counter__reset(void) {
     Counter__value = 0U;
+    Counter__overflowCount = 0U;
 }
 
 uint32_t Counter__get(void) {

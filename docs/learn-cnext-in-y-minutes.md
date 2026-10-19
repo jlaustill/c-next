@@ -546,8 +546,9 @@ GPIO7.DR_SET[3] <- true;        // Set bit 3 (atomic)
 // 15. ATOMIC & CRITICAL SECTIONS
 // =============================================================================
 
-// Atomic variables - ISR-safe
-atomic mut u32 counter <- 0;
+// Atomic variables - ISR-safe. `atomic` already makes a binding writable,
+// so it takes no `mut` (`atomic mut` is E0919).
+atomic u32 counter <- 0;
 
 void increment() {
     counter +<- 1;              // Lock-free on Cortex-M3+

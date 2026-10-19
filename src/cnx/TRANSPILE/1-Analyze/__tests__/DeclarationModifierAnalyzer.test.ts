@@ -73,3 +73,37 @@ describe("DeclarationModifierAnalyzer (E0889)", () => {
     expect(found.map((e) => e.code)).toEqual(["E0889"]);
   });
 });
+
+describe("DeclarationModifierAnalyzer (E0919)", () => {
+  // #2233: `atomic` already implies `mut`, so writing both says nothing more
+  it("rejects atomic mut at file scope, in a function, in a scope and in a for header", () => {
+    const found = errors(
+      [
+        "atomic mut u32 atFile <- 0;",
+        "void f() {",
+        "    atomic mut u32 inBody <- 0;",
+        "    for (atomic mut u32 i <- 0; i < 2; i +<- 1) {",
+        "    }",
+        "}",
+        "scope S {",
+        "    atomic mut u32 member <- 0;",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => [e.code, e.line])).toEqual([
+      ["E0919", 1],
+      ["E0919", 3],
+      ["E0919", 4],
+      ["E0919", 8],
+    ]);
+  });
+
+  it("accepts atomic and mut alone", () => {
+    expect(errors("atomic u32 a <- 0;\nmut u32 b <- 0;")).toEqual([]);
+  });
+
+  it("reports both rules on atomic volatile mut", () => {
+    const found = errors("atomic volatile mut u32 a <- 0;");
+    expect(found.map((e) => e.code)).toEqual(["E0919", "E0889"]);
+  });
+});

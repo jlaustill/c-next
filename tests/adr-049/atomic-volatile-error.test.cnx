@@ -5,7 +5,7 @@
 #pragma target stm32f4
 
 // This should error - can't use both atomic and volatile
-atomic volatile mut u32 tick_count <- 0;
+atomic volatile u32 tick_count <- 0;
 
 void main() {
     tick_count +<- 1;

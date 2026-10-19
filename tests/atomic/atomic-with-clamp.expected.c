@@ -60,9 +60,9 @@ volatile uint32_t counter = 0U;
 // Signed atomic clamp
 volatile int8_t temperature = 0;
 
-const volatile int16_t offset = 0;
+volatile int16_t offset = 0;
 
-const volatile int32_t position = 0;
+volatile int32_t position = 0;
 
 void adjustBrightness(const uint8_t delta) {
     {

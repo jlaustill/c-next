@@ -7,8 +7,8 @@
 
 scope Worker {
     public void run() {
-        atomic volatile mut u8 y <- 0;
-        atomic mut u8 z <- 0;
+        atomic volatile u8 y <- 0;
+        atomic u8 z <- 0;
         volatile mut u8 v <- 0;
         y +<- 1;
         z +<- 1;

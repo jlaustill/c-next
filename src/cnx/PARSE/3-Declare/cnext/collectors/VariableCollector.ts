@@ -102,6 +102,7 @@ class VariableCollector {
         // The constructor form has no modifier slot; a C++ object built this
         // way is written through its own methods, so it stays writable.
         mut: true,
+        atomicMut: false,
         overflow: null,
       },
       type: declaration.type,

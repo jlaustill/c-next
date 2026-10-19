@@ -41,6 +41,7 @@ import WrittenBinding from "./helpers/WrittenBinding";
 import MutArgument from "./helpers/MutArgument";
 import MutSite from "./helpers/MutSite";
 import type IMutSite from "../../types/IMutSite";
+import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import type IWrittenBinding from "./types/IWrittenBinding";
 import type TValueBinding from "../../types/TValueBinding";
 import SafeDivision from "../../utils/SafeDivision";
@@ -296,7 +297,11 @@ class ConstAssignmentCheck {
           fn !== null &&
           (callbacks.has(fn) || typedefCallbacks.has(fn));
         if (isCallbackParameter) continue;
-        this.reportUnusedMut(declaration.span, declaration.name);
+        this.reportUnusedMut(
+          declaration.span,
+          declaration.name,
+          declaration.isAtomic,
+        );
       }
       for (const child of frame.children) visit(child, fn);
     };
@@ -306,7 +311,7 @@ class ConstAssignmentCheck {
     );
     for (const symbol of program.symbolsInFile(this.context.sourceFile)) {
       if (ConstAssignmentCheck.isUnwrittenPrivateMember(symbol, this.written)) {
-        this.reportUnusedMut(symbol.span, symbol.name);
+        this.reportUnusedMut(symbol.span, symbol.name, symbol.isAtomic);
       }
     }
   }
@@ -314,7 +319,7 @@ class ConstAssignmentCheck {
   private static isUnwrittenPrivateMember(
     symbol: TSymbol,
     written: ReadonlySet<object>,
-  ): boolean {
+  ): symbol is IVariableSymbol {
     return (
       symbol.kind === "variable" &&
       symbol.sourceLanguage === ESourceLanguage.CNext &&
@@ -326,7 +331,17 @@ class ConstAssignmentCheck {
     );
   }
 
-  private reportUnusedMut(at: TPosition, name: string): void {
+  /** An `atomic` is writable without `mut` (#2233), so it is `atomic` that goes */
+  private reportUnusedMut(at: TPosition, name: string, atomic: boolean): void {
+    if (atomic) {
+      this.report(
+        at,
+        "E0899",
+        `'${name}' is never written; remove \`atomic\``,
+        "`atomic` makes a binding writable, and only a value something writes needs a read or write that cannot be torn (ADR-049, ADR-071).",
+      );
+      return;
+    }
     this.report(
       at,
       "E0899",

@@ -253,7 +253,7 @@ u32 BLINK_DELAY_MS <- 2000;
 
 // Millisecond counter incremented by SysTick ISR
 // Must be atomic since it's shared between main and ISR
-atomic mut u32 tick_count <- 0;
+atomic u32 tick_count <- 0;
 
 // =============================================================================
 // SysTick Interrupt Service Routine

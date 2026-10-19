@@ -13,7 +13,7 @@ describe("Transpiler -- requirement sites (#1997)", () => {
     const fs = new MockFileSystem();
     fs.addFile(
       "/project/src/main.cnx",
-      "atomic mut u32 n <- 0;\nvoid bump() { n +<- 1; }\n",
+      "atomic u32 n <- 0;\nvoid bump() { n +<- 1; }\n",
     );
     const transpiler = new Transpiler(
       {

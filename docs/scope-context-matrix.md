@@ -422,7 +422,7 @@ cell is declared by the ADR that owns it.
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | -      | -          | n/a         | n/a        |
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
-| scope member       | warn      | -      | -          | n/a         | n/a        |
+| scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 

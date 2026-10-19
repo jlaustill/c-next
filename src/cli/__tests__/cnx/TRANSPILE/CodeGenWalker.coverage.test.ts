@@ -1265,7 +1265,7 @@ describe("CodeGenWalker Coverage Tests", () => {
   describe("Final code generation paths", () => {
     it("should handle atomic variable", () => {
       const source = `
-        atomic mut u32 counter;
+        atomic u32 counter;
         void increment() {
           counter +<- 1;
         }

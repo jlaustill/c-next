@@ -145,7 +145,7 @@ void f(u8 p) {
 
   it("records the modifiers a local declares", () => {
     const source = `void f() {
-    atomic mut wrap u8 a <- 1;
+    atomic wrap u8 a <- 1;
     volatile u16 b <- 2;
 }`;
     const program = build({ "a.cnx": source });

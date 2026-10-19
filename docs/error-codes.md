@@ -20,8 +20,8 @@ codes that already have a fixture.
 | E06xx     | Sizeof Expressions                                                                                                   | 3       |
 | E07xx     | Control Flow                                                                                                         | 15      |
 | E08xx     | Arithmetic/Array Safety                                                                                              | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 19      |
-| **Total** |                                                                                                                      | **144** |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 20      |
+| **Total** |                                                                                                                      | **145** |
 
 ---
 
@@ -443,6 +443,12 @@ base: bare, `this.` and `global.`.
 | E0918 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034) | Index every dimension first: `a[i].A` | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 
 ---
+
+## E0919 — `atomic` and `mut` on One Declaration (ADR-049)
+
+| Code  | Description                                           | Help                                                                                                                               | Source                                               |
+| ----- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0919 | A declaration carries both `atomic` and `mut` (#2233) | `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
 
 ## Adding New Error Codes
 

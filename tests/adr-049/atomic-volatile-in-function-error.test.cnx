@@ -6,8 +6,8 @@
 #pragma target stm32f4
 
 void main() {
-    atomic volatile mut u8 x <- 0;
-    atomic mut u8 z <- 0;
+    atomic volatile u8 x <- 0;
+    atomic u8 z <- 0;
     volatile mut u8 v <- 0;
     x +<- 1;
     z +<- 1;

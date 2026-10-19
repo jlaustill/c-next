@@ -20,11 +20,11 @@ typedef struct TStatus {
 } TStatus;
 
 /* External variables */
-extern volatile const uint32_t CONFIG;
+extern volatile uint32_t CONFIG;
 extern volatile uint8_t matrix[4][4];
 extern volatile int64_t bigSignedCounter;
 extern volatile uint64_t bigUnsignedCounter;
-extern volatile const char statusMessage[17];
+extern volatile char statusMessage[17];
 extern volatile TStatus currentStatus;
 extern volatile uint16_t sequence;
 extern volatile int8_t temperature;

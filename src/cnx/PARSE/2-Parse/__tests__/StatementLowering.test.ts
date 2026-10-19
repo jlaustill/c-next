@@ -50,14 +50,16 @@ describe("StatementLowering", () => {
   });
 
   it("records a declaration's modifiers, name, dimensions and initializer", () => {
-    const decl = only("atomic mut clamp u8 buf[4][] <- [1, 2];");
+    const decl = only("atomic clamp u8 buf[4][] <- [1, 2];");
     expect(decl).toMatchObject({
       kind: "variableDeclaration",
       modifiers: {
         atomic: true,
         volatile: false,
         const: false,
+        // #2233: `atomic` implies `mut`
         mut: true,
+        atomicMut: false,
         overflow: "clamp",
       },
       name: "buf",
@@ -67,8 +69,20 @@ describe("StatementLowering", () => {
     if (decl.kind !== "variableDeclaration") throw new Error("kind");
     expect(decl.dimensions.map((d) => d?.written ?? null)).toEqual(["4", null]);
     expect(decl.nameSpan.column).toBe(
-      decl.span.column + "atomic mut clamp u8 ".length,
+      decl.span.column + "atomic clamp u8 ".length,
     );
+  });
+
+  it("records `mut` beside `atomic` only so it can be rejected (#2233)", () => {
+    expect(only("atomic mut u8 a <- 0;")).toMatchObject({
+      modifiers: { atomic: true, mut: true, atomicMut: true },
+    });
+    expect(only("mut u8 b <- 0;")).toMatchObject({
+      modifiers: { atomic: false, mut: true, atomicMut: false },
+    });
+    expect(only("u8 c <- 0;")).toMatchObject({
+      modifiers: { atomic: false, mut: false, atomicMut: false },
+    });
   });
 
   it("records an assignment's lowered target, operator and value", () => {

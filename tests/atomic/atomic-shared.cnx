@@ -10,5 +10,5 @@ bitmap8 SharedFlags {
     Spare[3]
 }
 
-atomic mut wrap u32 sharedCount;
-atomic mut SharedFlags sharedFlags;
+atomic wrap u32 sharedCount;
+atomic SharedFlags sharedFlags;

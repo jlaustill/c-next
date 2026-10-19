@@ -15,14 +15,14 @@ bitmap8 Flags {
     E
 }
 
-atomic mut u8 word;
-atomic mut u16 wide;
-atomic mut Flags flags;
+atomic u8 word;
+atomic u16 wide;
+atomic Flags flags;
 mut u8 plain;
 
 scope Sc {
-    public atomic mut Flags paf;
-    public atomic mut wrap u8 cnt;
+    public atomic Flags paf;
+    public atomic wrap u8 cnt;
 
     public void viaThis() {
         this.paf.Mode <- 2;
