@@ -325,8 +325,11 @@ describe("BitmapHandlers", () => {
         }),
       );
 
-      expect(result).toContain("Motor__GPIO7__ICR1 =");
-      expect(result).toContain("<< 6");
+      // A read-modify-write of the field's two bits at offset 6: a plain
+      // write of the value would pass the old `toContain(" =")` check
+      expect(result).toMatch(
+        /^Motor__GPIO7__ICR1 = .*\(Motor__GPIO7__ICR1 & ~\(.*0x3U.* << 6\)\) \| \(\(value & .*0x3U.*\) << 6\)/,
+      );
     });
 
     // Review of #2155: E0872 rejects a zero on a write-1 member's field in

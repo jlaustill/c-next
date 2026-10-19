@@ -18,7 +18,7 @@ import TestExpression from "../../../../../../types/__testUtils__/testExpression
  */
 function registerTarget(
   member: string,
-  register: string = member.slice(0, member.lastIndexOf("__")),
+  register: string,
 ): IAssignmentContext["target"] {
   return {
     last: {
@@ -94,7 +94,11 @@ function createMockContext(
     // it is handed, so the mock context carries the same instance the test
     // set its facts up on.
     state,
-    target: registerTarget(identifiers.join("__")),
+    // The typer names the register as the chain's names before the member
+    target: registerTarget(
+      identifiers.join("__"),
+      identifiers.slice(0, -1).join("__"),
+    ),
     ...overrides,
   } as IAssignmentContext;
 }
@@ -374,7 +378,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
-        target: registerTarget("Motor__GPIO7__DR_SET"),
+        target: registerTarget("Motor__GPIO7__DR_SET", "Motor__GPIO7"),
         hasThis: true,
       });
 
@@ -394,7 +398,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
-        target: registerTarget("Motor__GPIO7__DR_SET"),
+        target: registerTarget("Motor__GPIO7__DR_SET", "Motor__GPIO7"),
         hasThis: true,
       });
 
@@ -419,7 +423,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
-        target: registerTarget("Motor__GPIO7__DR_SET"),
+        target: registerTarget("Motor__GPIO7__DR_SET", "Motor__GPIO7"),
         hasThis: true,
         generatedValue: "false",
         foldValue: () => 0,
@@ -445,7 +449,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
-        target: registerTarget("Motor__GPIO7__ICR1"),
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
@@ -474,7 +478,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
-        target: registerTarget("Motor__GPIO7__ICR1"),
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
@@ -512,7 +516,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
-        target: registerTarget("Motor__GPIO7__ICR1"),
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
           { mockValue: "32" } as never,
@@ -548,7 +552,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
-        target: registerTarget("Motor__GPIO7__ICR1"),
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
