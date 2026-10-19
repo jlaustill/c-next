@@ -14,9 +14,7 @@ import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TStringPart from "../../types/TStringPart";
 import type IValuePositions from "../../types/IValuePositions";
-import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import StructInitializerType from "./helpers/StructInitializerType";
-import ValuePositions from "./helpers/ValuePositions";
+import StringWriteSites from "./helpers/StringWriteSites";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import ProgramExpressions from "../../utils/ProgramExpressions";
 /**
@@ -94,9 +92,7 @@ class StringDeclarationCheck {
    * same rules hold there -- a value that may not fit is E0864, never cut
    * short (ADR-045, "No Silent Truncation")
    */
-  public argument(value: TExpression, positions: IValuePositions): void {
-    const capacity = StringDeclarationCheck.capacityAt(value, positions);
-    if (capacity === null) return;
+  public argument(value: TExpression, capacity: number): void {
     this.checkFit(value, capacity, "argument");
   }
 
@@ -107,11 +103,9 @@ class StringDeclarationCheck {
    */
   public field(
     value: TExpression,
-    positions: IValuePositions,
+    capacity: number,
     atFileScope: boolean,
   ): void {
-    const capacity = StringDeclarationCheck.capacityAt(value, positions);
-    if (capacity === null) return;
     if (atFileScope && !ExpressionShape.isStringLiteral(value)) {
       this.report(
         value,
@@ -122,17 +116,6 @@ class StringDeclarationCheck {
       return;
     }
     this.checkFit(value, capacity, "field");
-  }
-
-  /** The `string<N>` a value's position types it, or null */
-  private static capacityAt(
-    value: TExpression,
-    positions: IValuePositions,
-  ): number | null {
-    const position = ValuePositions.at(positions.positions, value);
-    if (position.inList) return null;
-    const target = StructInitializerType.valueTypeAt(position);
-    return target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
   }
 
   /**
@@ -371,21 +354,12 @@ class StringDeclarationAnalyzer {
       }
     };
     for (const entry of program.declarations) visit(entry.declaration);
-    for (const [value, at] of positions.sites) {
-      const site = at.site;
-      if (site.kind === "field") {
-        const own = site.initializer.fields.some(
-          (field) => field.name === site.field && field.value === value,
-        );
-        if (own) check.field(value, positions, fileScope.has(value));
-        continue;
+    for (const { value, write, capacity } of StringWriteSites.of(positions)) {
+      if (write === "field") {
+        check.field(value, capacity, fileScope.has(value));
+      } else {
+        check.argument(value, capacity);
       }
-      if (at.site.kind !== "argument") continue;
-      const call = at.site.call.ops[at.site.op];
-      if (call?.kind !== "call" || call.arguments[at.site.argument] !== value) {
-        continue;
-      }
-      check.argument(value, positions);
     }
     for (const node of ProgramExpressions.of(program).flatMap((expression) =>
       ExpressionNodes.direct(expression),

@@ -63,7 +63,7 @@ import TypeText from "../../utils/TypeText";
 import ExpressionShape from "../../utils/ExpressionShape";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import MutArgument from "../1-Analyze/helpers/MutArgument";
-import StructInitializerType from "../1-Analyze/helpers/StructInitializerType";
+import StringWriteSites from "../1-Analyze/helpers/StringWriteSites";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
@@ -1807,7 +1807,7 @@ class FilePlanner {
       forms.set(site.value, StringValueForm.of(site.value, typing));
     }
     FilePlanner.planStringInits(program, typing, forms);
-    const builtArguments = this.planStringArguments(
+    const builtArguments = FilePlanner.planStringArguments(
       valuePositions,
       typing,
       forms,
@@ -1845,19 +1845,10 @@ class FilePlanner {
     const fields = new Map<TExpression, number>();
     if (valuePositions === null) return fields;
     const fileScope = VariableDeclarations.fileScopeValues(program);
-    for (const [value, at] of valuePositions.sites) {
-      const site = at.site;
-      if (site.kind !== "field") continue;
-      const own = site.initializer.fields.some(
-        (field) => field.name === site.field && field.value === value,
-      );
-      const position = valuePositions.positions.get(value);
-      if (!own || position === undefined || position.inList) continue;
-      if (fileScope.has(value)) continue;
-      const target = StructInitializerType.valueTypeAt(position);
-      const capacity =
-        target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
-      if (capacity === null) continue;
+    for (const { value, write, capacity } of StringWriteSites.of(
+      valuePositions,
+    )) {
+      if (write !== "field" || fileScope.has(value)) continue;
       forms.set(value, StringValueForm.of(value, typing));
       fields.set(value, capacity);
     }
@@ -1869,26 +1860,21 @@ class FilePlanner {
    * by the parameter's capacity -- built apart like an assignment's, by the
    * same value form. Any other argument is passed as it is written.
    */
-  private planStringArguments(
+  private static planStringArguments(
     valuePositions: IValuePositions | null,
     typing: ITypingContext,
     forms: Map<TExpression, TStringValueForm>,
   ): ReadonlyMap<TExpression, number> {
     const built = new Map<TExpression, number>();
     if (valuePositions === null) return built;
-    for (const [expression, site] of FilePlanner.argumentSites(
+    for (const { value, write, capacity } of StringWriteSites.of(
       valuePositions,
     )) {
-      const passing = this.argumentPassing(site);
-      if (passing.mode !== "reference") continue;
-      const base = passing.param?.baseType;
-      const capacity =
-        base === undefined ? null : TypeCheckUtils.sizedStringCapacity(base);
-      if (capacity === null) continue;
-      const form = StringValueForm.of(expression, typing);
+      if (write !== "argument") continue;
+      const form = StringValueForm.of(value, typing);
       if (form.kind !== "concat" && form.kind !== "substring") continue;
-      forms.set(expression, form);
-      built.set(expression, capacity);
+      forms.set(value, form);
+      built.set(value, capacity);
     }
     return built;
   }
