@@ -442,6 +442,12 @@ base: bare, `this.` and `global.`.
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | E0918 | A value that is not a string (an integer, a float or its bits, a bool, a char, an enum, a struct or an array that is not a C `char` array) lands in a `string<N>` -- as a declaration's initializer, an assignment's value or an argument, the value it parenthesizes or a ternary arm, but not a string array's list element, which is E0866's (ADR-045, #1634) | A `string<N>` holds only a string: a literal, another `string<N>`, a concatenation, a substring or a C string (`char*`, `char[]`) | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
 
+## E0919 — A Substring With a Run-Time Length (ADR-045)
+
+| Code  | Message                                                                                                                                   | Help                                                                                                                                        | Source                                             |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| E0919 | A substring's length is not a compile-time constant (`src[0, n]` with `n` known only at run time), wherever the substring is read (#2240) | Write the length as a literal or a constant, so the substring is known to fit what it is copied into; the start may be computed at run time | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts` |
+
 ---
 
 ## Adding New Error Codes

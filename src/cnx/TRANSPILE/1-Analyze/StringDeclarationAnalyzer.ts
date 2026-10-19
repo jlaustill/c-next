@@ -17,6 +17,8 @@ import type IValuePositions from "../../types/IValuePositions";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ValuePositions from "./helpers/ValuePositions";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import ProgramExpressions from "../../utils/ProgramExpressions";
 /**
  * ADR-045 string writes: whether a declaration's initializer or an
  * assignment's value fits the `string<N>` it lands in, E0864-E0865.
@@ -131,6 +133,25 @@ class StringDeclarationCheck {
     if (position.inList) return null;
     const target = StructInitializerType.valueTypeAt(position);
     return target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
+  }
+
+  /**
+   * #2240: a substring's length is a compile-time constant, wherever the
+   * substring is read, so E0864 and E0865 can check what it copies (ADR-045)
+   */
+  public substringLength(node: TExpression): void {
+    if (node.kind !== "postfix") return;
+    if (!OperandTyper.isSubstring(node, this.context)) return;
+    const last = node.ops.at(-1);
+    if (last?.kind !== "subscript") return;
+    const length = last.indexes.at(1);
+    if (length === undefined || this.constantOf(length) !== null) return;
+    this.report(
+      length,
+      "E0919",
+      `A substring's length must be a compile-time constant, not '${length.written}'`,
+      "Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.",
+    );
   }
 
   /** E0864/E0865 for the form `StringValueForm` gives the value */
@@ -335,12 +356,15 @@ class StringDeclarationAnalyzer {
       check.variable(entry.declaration);
     }
     const fileScope = VariableDeclarations.fileScopeValues(program);
+    // A slice write's range is ADR-007's, not a substring read
+    const targets = new Set<TExpression>();
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);
         return;
       }
       for (const site of StatementNodes.assignments(declaration)) {
+        targets.add(site.target);
         check.assignment(site);
       }
     };
@@ -360,6 +384,11 @@ class StringDeclarationAnalyzer {
         continue;
       }
       check.argument(value, positions);
+    }
+    for (const node of ProgramExpressions.of(program).flatMap((expression) =>
+      ExpressionNodes.direct(expression),
+    )) {
+      if (!targets.has(node)) check.substringLength(node);
     }
     return check.errors();
   }

@@ -150,4 +150,15 @@ describe("StringDeclarationAnalyzer", () => {
       );
     expect(errors(source).map((e) => e.code)).toEqual(["E0863", "E0864"]);
   });
+  it("takes a substring's length only as a compile-time constant (#2240)", () => {
+    const source =
+      "void g(u8 n) {\n" +
+      '    string<8> src <- "abcdefgh";\n' +
+      "    string<4> t <- src[0, n];\n" +
+      "    string<4> u <- src[n, 2];\n" +
+      "}\n";
+    expect(errors(source).map((e) => e.message)).toEqual([
+      "A substring's length must be a compile-time constant, not 'n'",
+    ]);
+  });
 });
