@@ -22,7 +22,7 @@ import SaturatingCast from "./SaturatingCast";
 import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
-import type IFloatBitWrite from "../../../../types/IFloatBitWrite";
+import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import type TAtomicForm from "../../../types/TAtomicForm";
 import InterruptMask from "./InterruptMask";
 import invariant from "../../../../utils/invariant";

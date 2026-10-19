@@ -1,5 +1,5 @@
-import type IBitWidth from "./IBitWidth";
-import type TAtomicForm from "../TRANSPILE/types/TAtomicForm";
+import type IBitWidth from "../../types/IBitWidth";
+import type TAtomicForm from "./TAtomicForm";
 
 /**
  * A float bit write (ADR-007): the float written, its type, and the bits

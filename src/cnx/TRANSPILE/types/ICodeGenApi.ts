@@ -11,7 +11,7 @@
  * type, so the two modules imported each other. A member that no caller needs
  * is not a channel; it is a second way to ask, which is what this card removes.
  */
-import type IFloatBitWrite from "../../types/IFloatBitWrite";
+import type IFloatBitWrite from "./IFloatBitWrite";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type TAtomicForm from "./TAtomicForm";
 

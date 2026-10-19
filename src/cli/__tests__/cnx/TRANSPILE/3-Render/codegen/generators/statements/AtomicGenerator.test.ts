@@ -194,8 +194,14 @@ describe("AtomicGenerator", () => {
         [],
       );
 
-      expect(result.code).toContain("int32_t __old = __LDREXW(&signed_val)");
+      // #2208: CMSIS takes an unsigned pointer of the same width
+      expect(result.code).toContain(
+        "int32_t __old = (int32_t)__LDREXW((volatile uint32_t *)&signed_val)",
+      );
       expect(result.code).toContain("int32_t __new");
+      expect(result.code).toContain(
+        "__STREXW((uint32_t)__new, (volatile uint32_t *)&signed_val)",
+      );
     });
 
     it("preserves inner effects", () => {

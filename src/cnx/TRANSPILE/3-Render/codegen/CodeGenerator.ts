@@ -4,7 +4,7 @@
  */
 
 import PlanQueries from "../../2-Plan/PlanQueries";
-import type IFloatBitWrite from "../../../types/IFloatBitWrite";
+import type IFloatBitWrite from "../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
