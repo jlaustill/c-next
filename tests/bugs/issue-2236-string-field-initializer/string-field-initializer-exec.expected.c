@@ -32,6 +32,7 @@ uint8_t use(const Cfg* c) {
 }
 
 Cfg make(const char* s) {
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp0 = { .name = { 0 }, .id = 3U };
     cnx_string_copy(cnx_tmp0.name, s, 8U);
     return cnx_tmp0;
@@ -40,6 +41,7 @@ Cfg make(const char* s) {
 int main(void) {
     const char s[5] = "ab";
     const char t[5] = "cd";
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp1 = { .name = { 0 }, .id = 1U };
     cnx_string_copy(cnx_tmp1.name, s, 8U);
     const Cfg k = cnx_tmp1;
@@ -49,9 +51,11 @@ int main(void) {
     if (k.id != 1) {
         return 2U;
     }
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp2 = { .name = { 0 }, .id = 2U };
     cnx_string_copy(cnx_tmp2.name, "x", 8U);
     Cfg m = cnx_tmp2;
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp3 = { .name = { 0 }, .id = 4U };
     cnx_string_copy(cnx_tmp3.name, m.name + 0U, (uint32_t)(1U));
     (void) strncat(cnx_tmp3.name, s, 8 - strlen(cnx_tmp3.name));
@@ -60,6 +64,7 @@ int main(void) {
     if (strcmp(m.name, "xab") != 0) {
         return 3U;
     }
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp4 = { .name = { 0 }, .id = 5U };
     cnx_string_copy(cnx_tmp4.name, s, 8U);
     const uint8_t r = use(&cnx_tmp4);
@@ -71,14 +76,17 @@ int main(void) {
     if (strcmp(mk.name, "cd") != 0) {
         return 5U;
     }
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp5 = { .name = { 0 }, .id = 6U };
     cnx_string_copy(cnx_tmp5.name, s + 1U, (uint32_t)(1U));
     const Cfg sub = cnx_tmp5;
     if (strcmp(sub.name, "b") != 0) {
         return 6U;
     }
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp6 = { .name = { 0 }, .id = 7U };
     cnx_string_copy(cnx_tmp6.name, t, 8U);
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Outer cnx_tmp7 = { .cfg = cnx_tmp6, .tag = { 0 } };
     cnx_string_copy(cnx_tmp7.tag, s, 4U);
     const Outer o = cnx_tmp7;
@@ -88,6 +96,7 @@ int main(void) {
     if (strcmp(o.tag, "ab") != 0) {
         return 8U;
     }
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp8 = { .name = { 0 }, .id = 9U };
     cnx_string_copy(cnx_tmp8.name, "lit", 8U);
     const Cfg lit = cnx_tmp8;

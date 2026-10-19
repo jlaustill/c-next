@@ -29,6 +29,7 @@ static inline void cnx_string_copy(char* target, const char* source, uint32_t ca
 // Tests: #2160 review - a substring appended after a part of unknown length (an unsized string) is bounded by the space left, so the field after the string keeps its value; a whole-part append is the control
 uint32_t joinAll(const char* p) {
     const char s[9] = "abcdefgh";
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Box cnx_tmp0 = { .t = { 0 }, .canary = 90U };
     (void) strncpy(cnx_tmp0.t, p, 8);
     {
@@ -68,6 +69,7 @@ uint32_t joinAll(const char* p) {
     if (strcmp(e, "12345678") != 0) {
         return 4U;
     }
+    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Box cnx_tmp2 = { .t = { 0 }, .canary = 91U };
     (void) strncpy(cnx_tmp2.t, p, 8);
     (void) strncat(cnx_tmp2.t, "xyz", 8 - strlen(cnx_tmp2.t));

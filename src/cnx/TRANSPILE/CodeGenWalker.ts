@@ -2262,6 +2262,7 @@ class CodeGenWalker {
     });
     const inits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
     this.host.state.pendingTempDeclarations.push(
+      "/* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */",
       `${castType} ${temp} = { ${inits.join(", ")} };`,
       ...lines,
     );

@@ -179,6 +179,7 @@ class ArgumentGenerator {
   ): string {
     const temp = state.getNextTempVarName();
     state.pendingTempDeclarations.push(
+      "/* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */",
       `char ${temp}[${capacity + 1}] = "";`,
       ...StringUtils.build(temp, capacity, parts),
     );

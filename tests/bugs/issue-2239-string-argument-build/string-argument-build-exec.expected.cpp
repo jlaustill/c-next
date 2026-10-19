@@ -46,6 +46,7 @@ uint32_t S__take(const char* s) {
 uint32_t S__run(void) {
     const char a[5] = "ab";
     const char b[5] = "cd";
+    /* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */
     char cnx_tmp0[9] = "";
     (void) strncpy(cnx_tmp0, a, 8);
     (void) strncat(cnx_tmp0, b, 8 - strlen(cnx_tmp0));
@@ -54,12 +55,14 @@ uint32_t S__run(void) {
     if (r1 != 1) {
         return 1U;
     }
+    /* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */
     char cnx_tmp1[9] = "";
     cnx_string_copy(cnx_tmp1, a + 1U, (uint32_t)(1U));
     const uint32_t r2 = S__take(cnx_tmp1);
     if (r2 != 2) {
         return 2U;
     }
+    /* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */
     char cnx_tmp2[9] = "";
     (void) strncpy(cnx_tmp2, S__m, 8);
     (void) strncat(cnx_tmp2, a, 8 - strlen(cnx_tmp2));
