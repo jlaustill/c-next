@@ -1,8 +1,10 @@
 import { basename, join } from "node:path";
+import CaughtError from "../../utils/CaughtError";
 import CodedErrorText from "../../utils/CodedErrorText";
 import CONFIG_FILE_NAMES from "../../types/CONFIG_FILE_NAMES";
 import type IFileSystem from "../../types/IFileSystem";
 import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
+import type IConfigRead from "./types/IConfigRead";
 import type ITranspileError from "../../types/ITranspileError";
 
 /**
@@ -26,7 +28,9 @@ const RENAMED: ReadonlyMap<string, string> = new Map(
  * `CONFIG_FILE_NAMES`; the config walk (`ConfigLoader`), the project-root walk
  * (`IncludeDiscovery.findProjectRoot`) and `--pio-install` ask this about the
  * old names. A file under one is E0918 wherever a walk meets it, so a renamed
- * project's settings are never dropped with no diagnostic.
+ * project's settings are never dropped with no diagnostic. Which new-name file
+ * a directory's config is, `readIn`, is decided here once, for the walk and
+ * for E0918's help alike (#2221 review).
  *
  * It reads the filesystem, which only 1.1 Discover and 3.1 Write may
  * (`filesystem-only-in-discover-and-write`), so it is 1.1's.
@@ -37,18 +41,42 @@ class ConfigFileNames {
 
   /** The old-name config files in `dir`, in search order. */
   static renamedIn(dir: string, fs: IFileSystem): IRenamedConfigFile[] {
-    const found: IRenamedConfigFile[] = [];
-    for (const [oldName, successor] of RENAMED) {
-      const path = join(dir, oldName);
-      if (fs.isFile(path)) {
-        found.push({
-          path,
-          successor,
-          besideConfig: ConfigFileNames.configIn(dir, fs),
-        });
+    const found = [...RENAMED]
+      .map(([oldName, successor]) => ({ path: join(dir, oldName), successor }))
+      .filter((file) => fs.isFile(file.path));
+    if (found.length === 0) {
+      return [];
+    }
+    const besideConfig = ConfigFileNames.besideConfigIn(dir, fs);
+    return found.map((file) => ({ ...file, besideConfig }));
+  }
+
+  /**
+   * The config a run reads in `dir`: the first new-name file, in
+   * `CONFIG_FILE_NAMES` order, that can be read and is not empty. An empty one
+   * is skipped, as is one that cannot be read, which is returned for the
+   * caller to warn about (#1826 review: letting the error escape aborted every
+   * run under an unreadable ancestor config).
+   */
+  static readIn(dir: string, fs: IFileSystem): IConfigRead {
+    const unreadable: { path: string; message: string }[] = [];
+    for (const name of CONFIG_FILE_NAMES) {
+      const path = join(dir, name);
+      if (!fs.isFile(path)) {
+        continue;
+      }
+      let content: string;
+      try {
+        content = fs.readFile(path);
+      } catch (err) {
+        unreadable.push({ path, message: CaughtError.messageOf(err) });
+        continue;
+      }
+      if (content.trim() !== "") {
+        return { config: { path, content }, unreadable };
       }
     }
-    return found;
+    return { config: null, unreadable };
   }
 
   /**
@@ -77,15 +105,21 @@ class ConfigFileNames {
     };
   }
 
-  /** The first new-name config file in `dir`, empty or not. */
-  private static configIn(dir: string, fs: IFileSystem): string | null {
-    for (const name of CONFIG_FILE_NAMES) {
-      const path = join(dir, name);
-      if (fs.isFile(path)) {
-        return path;
-      }
+  /**
+   * The new-name config beside an old file: the one a run reads (`readIn`),
+   * or, when every one is empty, the first that exists, which a run reads once
+   * the old file's settings are moved into it.
+   */
+  private static besideConfigIn(dir: string, fs: IFileSystem): string | null {
+    const read = ConfigFileNames.readIn(dir, fs).config;
+    if (read !== null) {
+      return read.path;
     }
-    return null;
+    return (
+      CONFIG_FILE_NAMES.map((name) => join(dir, name)).find((path) =>
+        fs.isFile(path),
+      ) ?? null
+    );
   }
 }
 

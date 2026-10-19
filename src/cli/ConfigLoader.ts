@@ -3,7 +3,7 @@
  * Loads configuration from project config files, read through the port.
  */
 
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
 import TConfigInDirectory from "./types/TConfigInDirectory";
 import TConfigLoad from "./types/TConfigLoad";
@@ -12,7 +12,6 @@ import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
 import ConfigFileNames from "../cnx/PARSE/1-Discover/ConfigFileNames";
-import CONFIG_FILE_NAMES from "../cnx/types/CONFIG_FILE_NAMES";
 
 /**
  * Load configuration from project directory
@@ -37,9 +36,10 @@ class ConfigLoader {
 
   /**
    * What `dir` alone holds for the walk (#2165): an old-name file is E0918,
-   * whatever else is there; otherwise the first non-empty config in
-   * `CONFIG_FILE_NAMES` order. `--pio-install` asks it about the directory
-   * it configures, so the file it updates is the one a run reads.
+   * whatever else is there; otherwise `ConfigFileNames.readIn`'s config, the
+   * one decision of which new-name file that is. `--pio-install` asks it about
+   * the directory it configures and updates that directory's config (#2235:
+   * with none there, the one it writes shadows an ancestor's).
    */
   static inDirectory(dir: string, fs: IFileSystem): TConfigInDirectory {
     const renamed = ConfigFileNames.renamedIn(dir, fs);
@@ -49,14 +49,15 @@ class ConfigLoader {
         errors: renamed.map((file) => ConfigFileNames.errorFor(file)),
       };
     }
-    for (const name of CONFIG_FILE_NAMES) {
-      const path = join(dir, name);
-      const content = ConfigLoader.readConfig(path, fs);
-      if (content !== null && content.trim() !== "") {
-        return { kind: "found", path, content };
-      }
+    const read = ConfigFileNames.readIn(dir, fs);
+    for (const file of read.unreadable) {
+      console.error(
+        `Warning: Failed to read config ${file.path}: ${file.message}`,
+      );
     }
-    return { kind: "none" };
+    return read.config === null
+      ? { kind: "none" }
+      : { kind: "found", ...read.config };
   }
 
   /** The config a walk found, parsed and anchored; empty when there is none. */
@@ -111,18 +112,6 @@ class ConfigLoader {
       if (found.kind !== "none" || dirname(dir) === dir) {
         return found;
       }
-    }
-  }
-
-  /** A config file's text, or null when there is none or it cannot be read. */
-  private static readConfig(path: string, fs: IFileSystem): string | null {
-    if (!fs.isFile(path)) return null;
-    try {
-      return fs.readFile(path);
-    } catch (err) {
-      const message = CaughtError.messageOf(err);
-      console.error(`Warning: Failed to read config ${path}: ${message}`);
-      return null;
     }
   }
 

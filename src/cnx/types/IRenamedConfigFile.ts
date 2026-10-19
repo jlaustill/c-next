@@ -10,7 +10,10 @@ interface IRenamedConfigFile {
   /** The name it is read under now, in the same directory. */
   readonly successor: string;
 
-  /** The config already in its directory under a new name, if any. */
+  /**
+   * The new-name config in its directory a run reads, or the first that
+   * exists when every one is empty; null at none.
+   */
   readonly besideConfig: string | null;
 }
 
