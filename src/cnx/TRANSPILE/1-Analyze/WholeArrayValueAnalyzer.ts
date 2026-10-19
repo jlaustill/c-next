@@ -164,7 +164,7 @@ class WholeArrayValueAnalyzer {
     value: TExpression,
     at: IValuePosition,
   ): IArrayDeclarationError[] {
-    if (at.typeText === null) return [];
+    if (at.typeText === null || at.typeText.length >= 0) return [];
     const taken = TypeText.withoutDimensions(at.typeText);
     const given = OperandTyper.typeOf(value, this.context)?.typeName ?? null;
     if (given === null || given === taken) return [];
