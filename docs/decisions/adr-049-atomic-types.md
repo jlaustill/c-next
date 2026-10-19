@@ -688,15 +688,15 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                               | Asserted by                                                                                |
-| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`                                             |
-| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                    |
-| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx` |
-| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                |
-| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`    |
-| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                 |
-| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                         |
+| Code  | Reported when                                                                                                               | Asserted by                                                                                                                                    |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`, `atomic-volatile-in-function-error.test.cnx`, `atomic-volatile-in-scope-method-error.test.cnx` |
+| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                                                                        |
+| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx`                                                     |
+| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                                                                    |
+| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`                                                        |
+| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                                                                     |
+| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                                                                             |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
@@ -734,7 +734,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope member       | imported transitive | off      |
 
 The modifiers are read off the declaration itself, so nothing crosses an
-include for E0509, and its imported cells record that it cannot exist.
+include for E0889, and its imported cells record that it cannot exist.
 
 The atomic form of a read-modify-write (Q2, Q6, #2200, #1179) is a
 different rule: it fires at the WRITE, in a top-level function or a scope
@@ -743,10 +743,13 @@ declared in an included file is as atomic as one declared here, so those
 contexts are declared `error` in every column, asserted by
 `atomic-across-include-direct` and `atomic-across-include-transitive`
 (review of #2155). A write cannot stand in a global or a scope member's
-declaration, so the rule adds no cell there. A declaration can
-carry them in any of the four same-file contexts; only the file-scope one is
-covered today, and the other three are `warn` rather than `error` because this
-pass relocated the rule without widening it.
+declaration, so the rule adds no cell there.
+
+So the `error` cells of a top-level function and a scope method are each
+asserted for both rules: E0889 by `atomic-volatile-in-function-error` and
+`atomic-volatile-in-scope-method-error`, beside the file-scope
+`atomic-volatile-error`. The one `warn` cell is E0889 on a scope member's
+declaration, which no fixture asserts yet.
 
 ## References
 

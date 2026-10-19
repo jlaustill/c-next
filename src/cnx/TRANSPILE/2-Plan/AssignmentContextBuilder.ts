@@ -22,7 +22,7 @@
  */
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
-import type TAtomicForm from "../types/TAtomicForm";
+import type IPlannedAtomic from "./types/IPlannedAtomic";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
@@ -45,7 +45,7 @@ interface IContextBuilderDeps {
   /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
   readonly floatBits: IPlannedFloatBits | null;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
-  readonly atomicForm: TAtomicForm | null;
+  readonly atomic: IPlannedAtomic | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
@@ -283,7 +283,7 @@ function buildAssignmentContext(
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
     floatBits: deps.floatBits,
-    atomicForm: deps.atomicForm,
+    atomic: deps.atomic,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
     plannedCompoundCast: deps.plannedCompoundCast,

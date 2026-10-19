@@ -200,7 +200,7 @@ void set(const bool on) {
         } while (1);
     }
     {
-        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. MISRA C:2012 Rule 11.3 deviation (Issue #2208): the signed value is accessed through its same-width unsigned type, because CMSIS's __LDREXW/__STREXW take a pointer to uint32_t; C11 6.5p7 makes the access defined. */
         bool __operand = true;
         do {
             int32_t __old = (int32_t)__LDREXW((volatile uint32_t *)&sword);
@@ -211,7 +211,7 @@ void set(const bool on) {
         } while (1);
     }
     {
-        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. MISRA C:2012 Rule 11.3 deviation (Issue #2208): the signed value is accessed through its same-width unsigned type, because CMSIS's __LDREXW/__STREXW take a pointer to uint32_t; C11 6.5p7 makes the access defined. */
         int64_t __operand = 1;
         do {
             int32_t __old = (int32_t)__LDREXW((volatile uint32_t *)&sword);

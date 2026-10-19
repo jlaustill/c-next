@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-650 fixture(s) assert a diagnostic; 640 carry a code.
+652 fixture(s) assert a diagnostic; 642 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -207,6 +207,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-imported-transitive-global-error.test.cnx                                   | E0863               |
 | tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
 | tests/adr-049/atomic-volatile-error.test.cnx                                                     | E0889               |
+| tests/adr-049/atomic-volatile-in-function-error.test.cnx                                         | E0889               |
+| tests/adr-049/atomic-volatile-in-scope-method-error.test.cnx                                     | E0889               |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853               |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |

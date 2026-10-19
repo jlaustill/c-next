@@ -38,7 +38,7 @@ function createMockContext(
   const ctx = {
     state,
     renderTarget: () => resolvedTarget,
-    atomicForm: null,
+    atomic: null,
     analyzeTargetForBitAccess: () =>
       ({
         isBitAccess: false,
@@ -639,7 +639,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "+=",
-      atomicForm: "ldrex-strex",
+      atomic: { form: "ldrex-strex", typeName: "u32" },
       cnextOp: "+<-",
     });
 

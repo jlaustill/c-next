@@ -128,10 +128,15 @@ function generateLdrexStrexLoop(
       ? `${ldrex}(${address})`
       : `(${cType})${ldrex}(${address})`;
   const stored = exclusiveType === cType ? "__new" : `(${exclusiveType})__new`;
+  // Rule 11.3 allows a cast to a pointer to a character type (uint8_t)
+  const deviation =
+    exclusiveType === cType || exclusiveType === "uint8_t"
+      ? ""
+      : ` MISRA C:2012 Rule 11.3 deviation (Issue #2208): the signed value is accessed through its same-width unsigned type, because CMSIS's ${ldrex}/${strex} take a pointer to ${exclusiveType}; C11 6.5p7 makes the access defined.`;
 
   // Uses do-while because we always need at least one attempt
   const code = `{
-    /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+    /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again.${deviation} */
     ${operandType} ${OPERAND} = ${value};
     do {
         ${cType} __old = ${loaded};
@@ -212,6 +217,16 @@ function generatePrimaskWrapper(
   return { code: masked.code, effects: [...effects, ...masked.effects] };
 }
 
+/** The type info of an atomic value accessed as the C-Next integer `baseType` */
+function accessedAs(baseType: string): TTypeInfo {
+  return {
+    baseType,
+    bitWidth: TYPE_WIDTH[baseType] ?? 0,
+    isArray: false,
+    isConst: false,
+  };
+}
+
 /**
  * ADR-049: Generate atomic Read-Modify-Write operation.
  * Written in the form 2.2 decided: LDREX/STREX, the masked region, or a
@@ -220,7 +235,7 @@ function generatePrimaskWrapper(
  * @param target - The target variable expression
  * @param cOp - The C compound assignment operator (+=, -=, etc.)
  * @param value - The value expression
- * @param typeInfo - Type information for the target
+ * @param baseType - The C-Next integer 2.2 planned the atomic value as
  * @param clampOp - ADR-044 helper operation from
  *   `AssignmentClassifier.compoundClamp`, or null for plain arithmetic
  * @param form - The form 2.2 planned for this write
@@ -231,12 +246,12 @@ function generateAtomicRMW(
   target: string,
   cOp: string,
   value: string,
-  typeInfo: TTypeInfo,
+  baseType: string,
   clampOp: string | null,
   form: TAtomicForm,
   valueType: string | null = null,
 ): IGeneratorOutput {
-  const baseType = typeInfo.baseType;
+  const typeInfo = accessedAs(baseType);
   const operandType = operandCType(typeInfo, clampOp, valueType);
 
   if (form === "interrupt-mask") {
@@ -291,12 +306,7 @@ function generateAtomicStore(
   if (form === "interrupt-mask") {
     return InterruptMask.wrap(`${target} = ${newValue(target, value)};`);
   }
-  const typeInfo: TTypeInfo = {
-    baseType,
-    bitWidth: TYPE_WIDTH[baseType] ?? 0,
-    isArray: false,
-    isConst: false,
-  };
+  const typeInfo = accessedAs(baseType);
   const inner = newValue("__old", OPERAND);
   if (form === "ldrex-strex") {
     return generateLdrexStrexLoop(

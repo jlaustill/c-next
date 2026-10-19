@@ -7,7 +7,6 @@
 
 import invariant from "../../utils/invariant";
 import BitUtils from "../../utils/BitUtils";
-import AtomicOwner from "./AtomicOwner";
 import type IAssignmentContext from "./types/IAssignmentContext";
 
 /**
@@ -95,7 +94,7 @@ function writeBits(ctx: IAssignmentContext): string {
       width: width ?? null,
       value: ctx.generatedValue,
       isVariable: floatBits.shared,
-      atomicForm: ctx.atomicForm,
+      atomicForm: ctx.atomic?.form ?? null,
     });
   }
   const value = ctx.target.last?.before ?? null;
@@ -126,18 +125,13 @@ function storeBits(
   operandType: string | undefined,
   newValue: (read: string, value: string, folded?: number) => string,
 ): string {
-  const form = ctx.atomicForm;
-  if (form === null) {
+  const atomic = ctx.atomic;
+  if (atomic === null) {
     return `${target} = ${newValue(target, ctx.generatedValue, ctx.foldValue())};`;
   }
-  const symbols = ctx.state.symbols!;
-  const baseType = AtomicOwner.ofBits(
-    ctx.target.last,
-    symbols.bitmapFields,
-    symbols.bitmapBackingType,
-  );
+  const form = atomic.form;
   invariant(
-    baseType !== null && operandType !== undefined,
+    operandType !== undefined,
     "2.2 plans an atomic bit write only for the bits of an atomic integer",
   );
   // A folded value is the written value only where it is written directly
@@ -148,7 +142,7 @@ function storeBits(
       target,
       ctx.generatedValue,
       operandType,
-      baseType,
+      atomic.typeName,
       (read, value) => newValue(read, value, folded),
       form,
     );

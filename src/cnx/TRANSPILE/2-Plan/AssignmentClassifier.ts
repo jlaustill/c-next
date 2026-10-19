@@ -548,8 +548,8 @@ class AssignmentClassifier {
 
   /**
    * Classify atomic and overflow-clamped compound assignments. Atomics are
-   * the simple identifier and global.member patterns; a clamp is any target
-   * that writes a `clamp` integer.
+   * the writes 2.2 planned atomic, however the target spells them (#1179); a
+   * clamp is any target that writes a `clamp` integer.
    */
   private static classifySpecialCompound(
     ctx: IAssignmentContext,
@@ -559,7 +559,7 @@ class AssignmentClassifier {
     }
 
     // ADR-049: 2.2 planned which writes are atomic read-modify-writes
-    if (ctx.atomicForm !== null) {
+    if (ctx.atomic !== null) {
       return AssignmentKind.ATOMIC_RMW;
     }
 

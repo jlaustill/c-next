@@ -2968,7 +2968,7 @@ class CodeGenWalker {
         this.rendering.floatBitWrites,
         "assignment target",
       ),
-      atomicForm: CodeGenWalker.plannedAt(
+      atomic: CodeGenWalker.plannedAt(
         this.filePlan.atomicForms,
         site,
         this.rendering.atomicForms,

@@ -21,23 +21,20 @@ import invariant from "../../../../../utils/invariant";
  * operation saturates is the classifier's decision, passed in.
  */
 function handleAtomicRMW(ctx: IAssignmentContext): string {
-  invariant(ctx.atomicForm !== null, "2.2 planned every atomic 2.3 writes");
-  // #1179: the value 2.2 found atomic, however the target spells it
-  const typeInfo = ctx.target.typeInfo;
-  invariant(typeInfo !== undefined, "2.2 planned an atomic of a typed value");
+  const atomic = ctx.atomic;
+  invariant(atomic !== null, "2.2 planned every atomic 2.3 writes");
   const target = ctx.renderTarget();
 
-  return ctx.state
-    .requireGenerator()
-    .generateAtomicRMW(
-      target,
-      ctx.cOp,
-      ctx.generatedValue,
-      typeInfo,
-      AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
-      ctx.atomicForm,
-      ctx.valueExpressionType(),
-    );
+  return ctx.state.requireGenerator().generateAtomicRMW(
+    target,
+    ctx.cOp,
+    ctx.generatedValue,
+    // #1179: the value 2.2 found atomic, however the target spells it
+    atomic.typeName,
+    AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
+    atomic.form,
+    ctx.valueExpressionType(),
+  );
 }
 
 /**

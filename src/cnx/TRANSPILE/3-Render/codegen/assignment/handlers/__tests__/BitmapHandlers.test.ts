@@ -45,7 +45,7 @@ function createMockContext(
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
-    atomicForm: null,
+    atomic: null,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],

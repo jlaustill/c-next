@@ -12,7 +12,6 @@
  * is not a channel; it is a second way to ask, which is what this card removes.
  */
 import type IFloatBitWrite from "./IFloatBitWrite";
-import type TTypeInfo from "../../types/TTypeInfo";
 import type TAtomicForm from "./TAtomicForm";
 
 interface ICodeGenApi {
@@ -26,7 +25,7 @@ interface ICodeGenApi {
     target: string,
     op: string,
     value: string,
-    typeInfo: TTypeInfo,
+    baseType: string,
     clampOp: string | null,
     form: TAtomicForm,
     valueType: string | null,

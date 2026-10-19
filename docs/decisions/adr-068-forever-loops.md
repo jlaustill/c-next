@@ -390,8 +390,8 @@ so nothing can skip it.
   to. A one-element slice happens to lower to one write today. It is rejected
   anyway, so the rule never depends on the slice's element arithmetic.
 - **Atomic scope members:** `this.c +<- 1` is rejected as well. ADR-049 Q7 makes
-  it an atomic read-modify-write. That it lowers non-atomically today is
-  #1179's defect, not a reason to accept it in a header.
+  it an atomic read-modify-write, which is how it lowers outside a header
+  (#1179), so a header could not hold it as one write either.
 - **Compound operators** on a string or slice are E0857 already, reported
   earlier in the same pass. E0715 does not report them again, so one mistake
   gets one diagnostic.

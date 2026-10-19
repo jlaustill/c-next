@@ -20,7 +20,7 @@ scope Link {
     }
 
     // ASSERTIONS 1-6 -- string member, slice member, atomic member (ADR-049
-    // Q7 makes `this.ticks +<- 1` atomic; #1179 tracks that it is not yet),
+    // Q7 makes `this.ticks +<- 1` an atomic read-modify-write, #1179),
     // a `global.` atomic, a bit write on a float member, and a plain store to
     // an atomic member.
     public void offenders() {

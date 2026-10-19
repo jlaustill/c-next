@@ -64,6 +64,7 @@ import RegisterMmio from "./RegisterMmio";
 import StatementChildren from "../../utils/StatementChildren";
 import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
+import type IPlannedAtomic from "./types/IPlannedAtomic";
 import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
@@ -1556,7 +1557,7 @@ class FilePlanner {
    */
   private planAssignmentCTypes(
     program: IProgramSyntax,
-    atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm | null>,
+    atomicForms: ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null>,
     compoundClamps: ReadonlyMap<IAssignmentSyntax, unknown>,
     sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
     compoundCasts: Map<IAssignmentSyntax, string>,
@@ -1917,8 +1918,8 @@ class FilePlanner {
     program: IProgramSyntax,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
-  ): ReadonlyMap<IAssignmentSyntax, TAtomicForm | null> {
-    const forms = new Map<IAssignmentSyntax, TAtomicForm | null>();
+  ): ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null> {
+    const forms = new Map<IAssignmentSyntax, IPlannedAtomic | null>();
     const visit = (statements: readonly TStatement[]): void => {
       for (const statement of statements) {
         visit(StatementChildren.of(statement));
@@ -1933,7 +1934,7 @@ class FilePlanner {
       visit(StatementNodes.roots(entry.declaration));
       for (const site of StatementNodes.assignments(entry.declaration)) {
         const atomic = this.atomicFormOf(site);
-        forms.set(site, atomic?.form ?? null);
+        forms.set(site, atomic);
         if (atomic === null) continue;
         if (atomic.form === "ldrex-strex") {
           requirements.require("cmsis");
@@ -1965,9 +1966,7 @@ class FilePlanner {
    * value is modified, from the typer, whatever spells it (#1179). Null when
    * the write is not atomic.
    */
-  private atomicFormOf(
-    site: IAssignmentSyntax,
-  ): { readonly form: TAtomicForm; readonly typeName: string } | null {
+  private atomicFormOf(site: IAssignmentSyntax): IPlannedAtomic | null {
     const symbols = this.state.symbols!;
     const typeName = AtomicOwner.ofWrite(
       site,

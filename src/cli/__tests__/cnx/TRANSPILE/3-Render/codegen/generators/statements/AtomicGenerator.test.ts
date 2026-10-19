@@ -315,14 +315,7 @@ describe("AtomicGenerator", () => {
 
   describe("generateAtomicRMW", () => {
     const rmw = (baseType: string, form: "ldrex-strex" | "interrupt-mask") =>
-      generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        createTypeInfo(baseType, "clamp"),
-        "add",
-        form,
-      );
+      generateAtomicRMW("counter", "+=", "1", baseType, "add", form);
 
     it("writes the LDREX/STREX loop 2.2 planned", () => {
       const result = rmw("u32", "ldrex-strex");
@@ -356,7 +349,7 @@ describe("AtomicGenerator", () => {
           "counter",
           "+=",
           "step()",
-          createTypeInfo("u32", "clamp"),
+          "u32",
           "add",
           form,
         ).code;
@@ -377,7 +370,7 @@ describe("AtomicGenerator", () => {
           "counter",
           "+=",
           "big",
-          createTypeInfo("u8", "clamp"),
+          "u8",
           "add",
           form,
           "u32",
@@ -391,7 +384,7 @@ describe("AtomicGenerator", () => {
         "sum",
         "+=",
         "tiny",
-        createTypeInfo("f32", "wrap"),
+        "f32",
         null,
         "compare-exchange",
         "f64",
@@ -404,7 +397,7 @@ describe("AtomicGenerator", () => {
         "counter",
         "+=",
         "big",
-        createTypeInfo("u8", "wrap"),
+        "u8",
         null,
         "compare-exchange",
         "u32",
@@ -421,7 +414,7 @@ describe("AtomicGenerator", () => {
           "counter",
           "+=",
           "1",
-          createTypeInfo("u32", "clamp"),
+          "u32",
           "add",
           "compare-exchange",
         ).code,
