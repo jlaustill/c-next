@@ -170,6 +170,7 @@ import type IPlannedType from "./2-Plan/types/IPlannedType";
 import CTypeIncludes from "./2-Plan/CTypeIncludes";
 import WrittenCTypes from "./3-Render/codegen/helpers/WrittenCTypes";
 import invariant from "../utils/invariant";
+import StringUtils from "../utils/StringUtils";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
@@ -2188,11 +2189,25 @@ class CodeGenWalker {
     // non-nullable in the generated parser and `{}` is a parse error. The
     // branch went with it rather than being left as a shape nothing can build.
 
+    const copied = expr.fields.filter((field) =>
+      this.filePlan.stringFields.has(field.value),
+    );
+    // #2236: a string field copied in starts zeroed, where it is written, so
+    // the list stays whole and in order for C++'s designated initializers
     const fields = expr.fields.map((field) => {
       const fieldName = field.name;
-      const value = this.renderExpression(field.value);
+      const value = copied.includes(field)
+        ? "{ 0 }"
+        : this.renderExpression(field.value);
       return { fieldName, value };
     });
+    if (copied.length > 0) {
+      invariant(
+        !isCppClass,
+        "a C++ class with a constructor has no string<N> field",
+      );
+      return this.builtStructInitializer(castType, fields, copied);
+    }
 
     // Issue #517: For C++ classes, store assignments for later and return {}
     if (isCppClass) {
@@ -2213,6 +2228,44 @@ class CodeGenWalker {
 
     const initializer = `{ ${fieldInits.join(", ")} }`;
     return form === "compound" ? `(${castType})${initializer}` : initializer;
+  }
+
+  /**
+   * #2236: a struct initializer with a `string<N>` field written from a
+   * string, built before the statement: C initializes a `char[]` only from a
+   * literal (and GCC 10's C++ not even from one), so the fields initialize a
+   * temporary, each such string field zeroed, and each string is then copied
+   * into its field, as any string is.
+   * The value is the temporary.
+   */
+  private builtStructInitializer(
+    castType: string,
+    fields: readonly { readonly fieldName: string; readonly value: string }[],
+    copied: readonly { readonly name: string; readonly value: TExpression }[],
+  ): string {
+    const temp = this.host.state.getNextTempVarName();
+    const lines = copied.flatMap((field) => {
+      const capacity = this.filePlan.stringFields.get(field.value);
+      const form = this.filePlan.stringValueForms.get(field.value);
+      invariant(
+        capacity !== undefined && form !== undefined,
+        "2.2 planned each string field it copies",
+      );
+      const target = `${temp}.${field.name}`;
+      if (form.kind === "copy" || form.kind === "literal") {
+        const whole = form.kind === "copy" ? form.value : form.literal;
+        return [
+          StringUtils.copy(target, this.renderExpression(whole), capacity),
+        ];
+      }
+      return StringUtils.build(target, capacity, this.renderStringParts(form));
+    });
+    const inits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
+    this.host.state.pendingTempDeclarations.push(
+      `${castType} ${temp} = { ${inits.join(", ")} };`,
+      ...lines,
+    );
+    return temp;
   }
 
   /**

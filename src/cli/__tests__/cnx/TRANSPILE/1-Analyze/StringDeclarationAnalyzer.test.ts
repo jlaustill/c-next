@@ -140,4 +140,14 @@ describe("StringDeclarationAnalyzer", () => {
       "Cannot pass string<8> to a string<4> parameter -- the source may not fit",
     ]);
   });
+  it("checks a struct initializer's string<N> field as any string<N> (#2236)", () => {
+    const source =
+      "struct Cfg {\n    string<4> name;\n    u8 id;\n}\n" +
+      'string<4> gs <- "ab";\nCfg g <- { name: gs, id: 1 };\n' +
+      inMain(
+        '    string<8> wide <- "abcdefgh";\n    string<2> narrow <- "ab";\n' +
+          "    Cfg c <- { name: wide, id: 3 };\n    Cfg d <- { name: narrow, id: 4 };",
+      );
+    expect(errors(source).map((e) => e.code)).toEqual(["E0863", "E0864"]);
+  });
 });

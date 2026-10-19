@@ -49,7 +49,7 @@ import ValuePositions from "./helpers/ValuePositions";
  */
 
 /** Whether a write declares its string or assigns an existing one */
-type TWrite = "declaration" | "assignment" | "argument";
+type TWrite = "declaration" | "assignment" | "argument" | "field";
 
 /** The declarations and assignments 1.2 returned, each whole-string value checked against its capacity */
 class StringDeclarationCheck {
@@ -93,13 +93,44 @@ class StringDeclarationCheck {
    * short (ADR-045, "No Silent Truncation")
    */
   public argument(value: TExpression, positions: IValuePositions): void {
-    const position = ValuePositions.at(positions.positions, value);
-    if (position.inList) return;
-    const target = StructInitializerType.valueTypeAt(position);
-    const capacity =
-      target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
+    const capacity = StringDeclarationCheck.capacityAt(value, positions);
     if (capacity === null) return;
     this.checkFit(value, capacity, "argument");
+  }
+
+  /**
+   * #2236: a struct initializer's `string<N>` field is written as any
+   * `string<N>` is (E0864). At file scope only a literal can be, for the
+   * reason E0863 gives a file-scope string.
+   */
+  public field(
+    value: TExpression,
+    positions: IValuePositions,
+    atFileScope: boolean,
+  ): void {
+    const capacity = StringDeclarationCheck.capacityAt(value, positions);
+    if (capacity === null) return;
+    if (atFileScope && !ExpressionShape.isStringLiteral(value)) {
+      this.report(
+        value,
+        "E0863",
+        `A string field at file scope may only be initialized by a literal, not '${value.written}'`,
+        "Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize the field empty and assign it later.",
+      );
+      return;
+    }
+    this.checkFit(value, capacity, "field");
+  }
+
+  /** The `string<N>` a value's position types it, or null */
+  private static capacityAt(
+    value: TExpression,
+    positions: IValuePositions,
+  ): number | null {
+    const position = ValuePositions.at(positions.positions, value);
+    if (position.inList) return null;
+    const target = StructInitializerType.valueTypeAt(position);
+    return target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
   }
 
   /** E0864/E0865 for the form `StringValueForm` gives the value */
@@ -250,6 +281,8 @@ class StringDeclarationCheck {
         return "the target";
       case "argument":
         return "the parameter";
+      case "field":
+        return "the field";
     }
   }
 
@@ -265,6 +298,8 @@ class StringDeclarationCheck {
         return `Cannot assign string<${source}> to string<${capacity}> -- the source may not fit`;
       case "argument":
         return `Cannot pass string<${source}> to a string<${capacity}> parameter -- the source may not fit`;
+      case "field":
+        return `Cannot initialize a string<${capacity}> field from string<${source}> -- the source may not fit`;
     }
   }
 
@@ -299,6 +334,7 @@ class StringDeclarationAnalyzer {
     for (const entry of VariableDeclarations.ruled(program)) {
       check.variable(entry.declaration);
     }
+    const fileScope = VariableDeclarations.fileScopeValues(program);
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);
@@ -310,6 +346,14 @@ class StringDeclarationAnalyzer {
     };
     for (const entry of program.declarations) visit(entry.declaration);
     for (const [value, at] of positions.sites) {
+      const site = at.site;
+      if (site.kind === "field") {
+        const own = site.initializer.fields.some(
+          (field) => field.name === site.field && field.value === value,
+        );
+        if (own) check.field(value, positions, fileScope.has(value));
+        continue;
+      }
       if (at.site.kind !== "argument") continue;
       const call = at.site.call.ops[at.site.op];
       if (call?.kind !== "call" || call.arguments[at.site.argument] !== value) {

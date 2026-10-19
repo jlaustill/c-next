@@ -95,6 +95,11 @@ interface IFilePlan {
    * `stringCopies` -- as `StringValueForm` decides it (#1257)
    */
   readonly stringValueForms: ReadonlyMap<TExpression, TStringValueForm>;
+  /**
+   * #2236: each struct initializer field value copied into its `string<N>`
+   * field, by the field's capacity; its form is in `stringValueForms`
+   */
+  readonly stringFields: ReadonlyMap<TExpression, number>;
   /** #2207: whether the file copies a string, through `cnx_string_copy` */
   readonly stringCopyHelper: boolean;
   /**

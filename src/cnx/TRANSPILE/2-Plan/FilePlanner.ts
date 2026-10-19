@@ -63,6 +63,7 @@ import TypeText from "../../utils/TypeText";
 import ExpressionShape from "../../utils/ExpressionShape";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import MutArgument from "../1-Analyze/helpers/MutArgument";
+import StructInitializerType from "../1-Analyze/helpers/StructInitializerType";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
@@ -1091,6 +1092,7 @@ class FilePlanner {
       sliceSources,
       stringCopies: stringCopies.copies,
       stringValueForms: stringCopies.forms,
+      stringFields: stringCopies.fields,
       stringCopyHelper: stringCopies.helper,
       wholeArrayWrites,
       fillSizes,
@@ -1791,6 +1793,7 @@ class FilePlanner {
     readonly copies: ReadonlyMap<IAssignmentSyntax, number>;
     readonly forms: ReadonlyMap<TExpression, TStringValueForm>;
     readonly arguments: ReadonlyMap<TExpression, number>;
+    readonly fields: ReadonlyMap<TExpression, number>;
     readonly helper: boolean;
   } {
     const copies = new Map<IAssignmentSyntax, number>();
@@ -1809,14 +1812,56 @@ class FilePlanner {
       typing,
       forms,
     );
+    const fields = FilePlanner.planStringFields(
+      program,
+      valuePositions,
+      typing,
+      forms,
+    );
     // #2207: every assignment ends in `cnx_string_copy`, a concatenation's
     // and a substring's after they are built apart (#1257), and so does a
     // declaration's copy; the helper counts in `uint32_t`
     const helper =
       copies.size > 0 ||
+      fields.size > 0 ||
       [...forms.values()].some((f) => StringUtils.usesCopyHelper(f));
     if (helper) cTypes.add("uint32_t");
-    return { copies, forms, arguments: builtArguments, helper };
+    return { copies, forms, arguments: builtArguments, fields, helper };
+  }
+
+  /**
+   * #2236: each struct initializer field in a function that writes a
+   * `string<N>`, by the field's capacity. C has no initializer for a `char[]`
+   * from a string, and C++ before C++20's GCC 11 takes no designated string
+   * literal for one, so every one is copied in like any string. At file scope
+   * only a literal reaches one (E0863), and it stays in the initializer.
+   */
+  private static planStringFields(
+    program: IProgramSyntax,
+    valuePositions: IValuePositions | null,
+    typing: ITypingContext,
+    forms: Map<TExpression, TStringValueForm>,
+  ): ReadonlyMap<TExpression, number> {
+    const fields = new Map<TExpression, number>();
+    if (valuePositions === null) return fields;
+    const fileScope = VariableDeclarations.fileScopeValues(program);
+    for (const [value, at] of valuePositions.sites) {
+      const site = at.site;
+      if (site.kind !== "field") continue;
+      const own = site.initializer.fields.some(
+        (field) => field.name === site.field && field.value === value,
+      );
+      const position = valuePositions.positions.get(value);
+      if (!own || position === undefined || position.inList) continue;
+      if (fileScope.has(value)) continue;
+      const target = StructInitializerType.valueTypeAt(position);
+      const capacity =
+        target === null ? null : TypeCheckUtils.sizedStringCapacity(target);
+      if (capacity === null) continue;
+      forms.set(value, StringValueForm.of(value, typing));
+      fields.set(value, capacity);
+    }
+    return fields;
   }
 
   /**

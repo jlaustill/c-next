@@ -364,6 +364,10 @@ A substring is copied by `cnx_string_copy`, which takes at most its length.
 An argument is written into its `string<N>` parameter, so the same rules hold
 there (#2239): a value that may not fit the parameter is E0864, and a
 concatenation or a substring is built into a `string<N>` before the call.
+A struct initializer's `string<N>` field is written the same way (#2236): its
+value is E0864 when it may not fit, and inside a function it is copied into
+the field like any string. At file scope only a literal can initialize one
+(E0863), for the reason a file-scope string takes only a literal.
 
 ### No Silent Truncation
 
