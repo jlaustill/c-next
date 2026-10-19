@@ -60,6 +60,17 @@ class ComplianceAnnotations {
   };
 
   /**
+   * #1257: an assignment's concatenation or substring is built in a
+   * temporary and then copied in, because a part can read the string written
+   * (`s <- s[0, 2] + "z"`).
+   */
+  static readonly STRING_BUILT_APART: IComplianceAnnotation = {
+    citation: `${ComplianceAnnotations.MISRA} 19.1`,
+    what: "string built in a temporary, then copied in by `cnx_string_copy`",
+    why: "`strncpy` and `strncat` would be passed overlapping arguments when a part reads the string written",
+  };
+
+  /**
    * A slice copy unrolled to per-element writes.
    *
    * Only cited when an equivalent `memcpy` would genuinely violate the rule --

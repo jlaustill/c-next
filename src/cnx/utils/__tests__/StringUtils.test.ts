@@ -19,32 +19,56 @@ describe("StringUtils.copy", () => {
 });
 
 // ========================================================================
-// concat
+// build
 // ========================================================================
-describe("StringUtils.concat", () => {
-  it("generates concatenation without indent", () => {
-    const result = StringUtils.concat("result", '"Hello"', '" World"', 64);
-    expect(result).toEqual([
+describe("StringUtils.build", () => {
+  it("copies the first part and appends the second, then terminates", () => {
+    expect(
+      StringUtils.build("result", 64, [
+        { kind: "whole", code: '"Hello"' },
+        { kind: "whole", code: '" World"' },
+      ]),
+    ).toEqual([
       '(void) strncpy(result, "Hello", 64);',
       '(void) strncat(result, " World", 64 - strlen(result));',
       "result[64] = '\\0';",
     ]);
   });
 
-  it("generates concatenation with indent", () => {
-    const result = StringUtils.concat("msg", "a", "b", 128, "    ");
-    expect(result).toEqual([
-      "    (void) strncpy(msg, a, 128);",
-      "    (void) strncat(msg, b, 128 - strlen(msg));",
-      "    msg[128] = '\\0';",
+  it("appends every later part of a longer concatenation (#1954)", () => {
+    expect(
+      StringUtils.build("buf", 12, [
+        { kind: "whole", code: "a" },
+        { kind: "whole", code: "b" },
+        { kind: "whole", code: "c" },
+      ]),
+    ).toEqual([
+      "(void) strncpy(buf, a, 12);",
+      "(void) strncat(buf, b, 12 - strlen(buf));",
+      "(void) strncat(buf, c, 12 - strlen(buf));",
+      "buf[12] = '\\0';",
     ]);
   });
 
-  it("handles variable expressions", () => {
-    const result = StringUtils.concat("buf", "prefix", "suffix", 256);
-    expect(result[0]).toBe("(void) strncpy(buf, prefix, 256);");
-    expect(result[1]).toBe("(void) strncat(buf, suffix, 256 - strlen(buf));");
-    expect(result[2]).toBe("buf[256] = '\\0';");
+  it("extracts a lone substring", () => {
+    expect(
+      StringUtils.build("t", 8, [
+        { kind: "substring", source: "s", start: "1", length: "2" },
+      ]),
+    ).toEqual(["cnx_string_copy(t, s + 1, 2U);"]);
+  });
+
+  it("appends a substring part by its length", () => {
+    expect(
+      StringUtils.build("t", 8, [
+        { kind: "substring", source: "a", start: "0", length: "2" },
+        { kind: "substring", source: "b", start: "1", length: "1" },
+      ]),
+    ).toEqual([
+      "cnx_string_copy(t, a + 0, 2U);",
+      "(void) strncat(t, b + 1, 1);",
+      "t[8] = '\\0';",
+    ]);
   });
 });
 
@@ -52,25 +76,16 @@ describe("StringUtils.concat", () => {
 // substring
 // ========================================================================
 describe("StringUtils.substring", () => {
-  it("generates substring extraction without indent", () => {
-    const result = StringUtils.substring("part", "source", "5", 10);
-    expect(result).toEqual([
-      "(void) strncpy(part, source + 5, 10);",
-      "part[10] = '\\0';",
+  it("copies a literal count of characters from the start offset", () => {
+    expect(StringUtils.substring("part", "source", "5", "10")).toEqual([
+      "cnx_string_copy(part, source + 5, 10U);",
     ]);
   });
 
-  it("generates substring extraction with indent", () => {
-    const result = StringUtils.substring("sub", "str", "offset", 20, "  ");
-    expect(result).toEqual([
-      "  (void) strncpy(sub, str + offset, 20);",
-      "  sub[20] = '\\0';",
+  it("casts a count that is an expression to the helper's type", () => {
+    expect(StringUtils.substring("out", "input", "i * 2", "n")).toEqual([
+      "cnx_string_copy(out, input + i * 2, (uint32_t)(n));",
     ]);
-  });
-
-  it("handles expression as start position", () => {
-    const result = StringUtils.substring("out", "input", "i * 2", 8);
-    expect(result[0]).toBe("(void) strncpy(out, input + i * 2, 8);");
   });
 });
 

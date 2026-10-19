@@ -53,8 +53,7 @@ int main(void) {
         return 3U;
     }
     char fromSlice[9] = "";
-    (void) strncpy(fromSlice, s + 1, 1);
-    fromSlice[1] = '\0';
+    cnx_string_copy(fromSlice, s + 1, 1U);
     if (strcmp(fromSlice, "v") != 0) {
         return 4U;
     }

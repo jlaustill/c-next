@@ -14,6 +14,9 @@
  * build these calls themselves, or the cast would have to be repeated.
  */
 /** C null terminator character literal for generated code */
+import type TRenderedStringPart from "../types/TRenderedStringPart";
+import type TStringValueForm from "../types/TStringValueForm";
+
 const C_NULL_CHAR = String.raw`'\0'`;
 
 class StringUtils {
@@ -29,61 +32,61 @@ class StringUtils {
   }
 
   /**
-   * Generate string concatenation sequence.
-   * Used for: result <- left + right
-   *
-   * Pattern:
-   *   (void) strncpy(target, left, capacity);
-   *   (void) strncat(target, right, capacity - strlen(target));
-   *   target[capacity] = '\0';
-   *
-   * @param target - The destination variable
-   * @param left - Left operand string expression
-   * @param right - Right operand string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @param indent - Indentation for multi-line output
-   * @returns Array of C code lines for the concatenation
+   * ADR-045: the lines that build a string into `buffer` from its parts --
+   * one substring, or a concatenation of two or more parts, each a whole
+   * string or a substring (#1954). A concatenation copies its first part,
+   * appends each later one bounded by what is left, then terminates at the
+   * capacity. The `(void)` casts are MISRA 17.7's (ADR-070 Case 1).
    */
-  static concat(
-    target: string,
-    left: string,
-    right: string,
+  static build(
+    buffer: string,
     capacity: number,
-    indent: string = "",
+    parts: readonly TRenderedStringPart[],
   ): string[] {
-    return [
-      `${indent}(void) strncpy(${target}, ${left}, ${capacity});`,
-      `${indent}(void) strncat(${target}, ${right}, ${capacity} - strlen(${target}));`,
-      `${indent}${target}[${capacity}] = ${C_NULL_CHAR};`,
-    ];
+    const [first, ...rest] = parts;
+    const lines =
+      first.kind === "substring"
+        ? StringUtils.substring(buffer, first.source, first.start, first.length)
+        : [`(void) strncpy(${buffer}, ${first.code}, ${capacity});`];
+    if (rest.length === 0 && first.kind === "substring") return lines;
+    for (const part of rest) {
+      lines.push(
+        part.kind === "substring"
+          ? `(void) strncat(${buffer}, ${part.source} + ${part.start}, ${part.length});`
+          : `(void) strncat(${buffer}, ${part.code}, ${capacity} - strlen(${buffer}));`,
+      );
+    }
+    lines.push(`${buffer}[${capacity}] = ${C_NULL_CHAR};`);
+    return lines;
   }
 
   /**
-   * Generate substring extraction.
-   * Used for: result <- source[start, length]
-   *
-   * Pattern:
-   *   (void) strncpy(target, source + start, length);
-   *   target[length] = '\0';
-   *
-   * @param target - The destination variable
-   * @param source - Source string expression
-   * @param start - Starting position expression
-   * @param length - Length to extract
-   * @param indent - Indentation for multi-line output
-   * @returns Array of C code lines for the substring
+   * Generate substring extraction: `result <- source[start, length]` is
+   * `cnx_string_copy(result, source + start, length)`, which copies at most
+   * `length` characters, zero-fills to it and terminates there, as `strncpy`
+   * and a terminator did, without gcc's `-Wstringop-truncation` on a source
+   * longer than the count (#2160 review).
    */
   static substring(
     target: string,
     source: string,
     start: string,
-    length: number | string,
-    indent: string = "",
+    length: string,
   ): string[] {
+    const count = /^\d+$/.test(length) ? `${length}U` : `(uint32_t)(${length})`;
     return [
-      `${indent}(void) strncpy(${target}, ${source} + ${start}, ${length});`,
-      `${indent}${target}[${length}] = ${C_NULL_CHAR};`,
+      `${StringUtils.COPY_HELPER}(${target}, ${source} + ${start}, ${count});`,
     ];
+  }
+
+  /**
+   * Whether `build` calls `cnx_string_copy`, so 2.2 decides the helper by
+   * the rule that emits it: a copy does, and so does a substring and a
+   * concatenation whose first part is one
+   */
+  static usesCopyHelper(form: TStringValueForm): boolean {
+    if (form.kind === "copy" || form.kind === "substring") return true;
+    return form.kind === "concat" && form.parts[0]?.kind === "substring";
   }
 
   /**

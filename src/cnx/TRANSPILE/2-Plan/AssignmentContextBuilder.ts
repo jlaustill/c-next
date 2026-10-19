@@ -20,6 +20,7 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
+import type TRenderedStringPart from "../../types/TRenderedStringPart";
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import type IPlannedWholeArrayWrite from "./types/IPlannedWholeArrayWrite";
@@ -53,6 +54,8 @@ interface IContextBuilderDeps {
   readonly plannedSliceSource: IPlannedSliceSource | null;
   /** 2.2's decision: the capacity of the one `string<N>` this write copies, or null (#1731) */
   readonly plannedStringCapacity: number | null;
+  /** 2.2's decision: a concatenation's or a substring's parts, or null (#1257) */
+  readonly plannedStringParts: (() => readonly TRenderedStringPart[]) | null;
   /** 2.2's decision: the shape a whole array is copied in (#1782), or null */
   readonly plannedWholeArray: IPlannedWholeArrayWrite | null;
   readonly plannedCompoundCast: string | null;
@@ -292,6 +295,7 @@ function buildAssignmentContext(
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
     plannedStringCapacity: deps.plannedStringCapacity,
+    plannedStringParts: deps.plannedStringParts,
     plannedWholeArray: deps.plannedWholeArray,
     plannedCompoundCast: deps.plannedCompoundCast,
     plannedRegisterAccess: deps.plannedRegisterAccess,

@@ -33,9 +33,9 @@ import type IRenderedSource from "./3-Render/codegen/types/IRenderedSource";
  * `CodeGenerator` and never the reverse. Fourteen of its methods are reached
  * through `this.host`, all of them already public.
  */
-import type ISubstringOps from "./3-Render/codegen/types/ISubstringOps";
 import type IChainStep from "../types/IChainStep";
-import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
+import type TRenderedStringPart from "../types/TRenderedStringPart";
+import type TStringValueForm from "../types/TStringValueForm";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
@@ -140,7 +140,6 @@ import type IBitAccessAnalysis from "../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../types/TPlannedTargetOp";
 import ArgumentGenerator from "./3-Render/codegen/helpers/ArgumentGenerator";
 import VariableDeclHelper from "./3-Render/codegen/helpers/VariableDeclHelper";
-import StringOperationsHelper from "./3-Render/codegen/helpers/StringOperationsHelper";
 import MemberSeparatorResolver from "./3-Render/codegen/helpers/MemberSeparatorResolver";
 import ParameterDereferenceResolver from "./3-Render/codegen/helpers/ParameterDereferenceResolver";
 import PostfixChainBuilder from "./3-Render/codegen/helpers/PostfixChainBuilder";
@@ -1696,52 +1695,6 @@ class CodeGenWalker {
   /**
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
-  /**
-   * ADR-045: Check if an expression is a string concatenation.
-   *
-   * #1445: the shape question is read from the lowered expression and the
-   * capacity question is `StringOperationsHelper`'s, so neither holds both.
-   */
-  private _getStringConcatOperands(
-    expression: TExpression,
-  ): IStringConcatOps | null {
-    const operands = ExpressionShape.additionOperands(expression);
-    if (operands === null) return null;
-    return StringOperationsHelper.getStringConcatOperands(
-      CodeGenWalker.stringTextOf(operands[0]),
-      CodeGenWalker.stringTextOf(operands[1]),
-      this.declaredTypeAt(expression.span),
-    );
-  }
-
-  /**
-   * ADR-045: Check if an expression is a substring extraction.
-   *
-   * The indexes go over as a thunk rather than as generated code: generating
-   * one queues a pending temp declaration in some shapes, and only the helper
-   * knows whether this is a substring at all. See its comment.
-   */
-  private _getSubstringOperands(expression: TExpression): ISubstringOps | null {
-    const subscripted = ExpressionShape.subscriptedIdentifier(expression);
-    if (subscripted === null) return null;
-    return StringOperationsHelper.getSubstringOperands(
-      subscripted.name,
-      () => subscripted.indexes.map((index) => this.renderExpression(index)),
-      this.declaredTypeAt(expression.span),
-    );
-  }
-
-  /**
-   * #1668 (C7): a bare name's declared type where `ctx` is, for a helper
-   * that holds only an operand's text
-   */
-  private declaredTypeAt(
-    at: ISourcePosition,
-  ): (name: string) => TTypeInfo | undefined {
-    const position = { line: at.line, column: at.column };
-    return (name) => this.host.state.declarationTypeInfo(null, name, position);
-  }
-
   private generateDeclaration(declaration: TDeclarationSyntax): string {
     switch (declaration.kind) {
       case "scope":
@@ -2761,29 +2714,56 @@ class CodeGenWalker {
   }
 
   /**
-   * The four ways a bounded string's initializer can be written, ready to be
-   * asked in ADR-045's order.
-   *
-   * `concat` is eager because deciding it reads the typer and generates
-   * nothing. The other two are unevaluated: `renderSubstring`
-   * generates the index expressions once it decides the source IS a string,
-   * and `render` generates the whole initializer -- either can request an
-   * include or queue a C++ temp, so raising those effects for an arm that is
-   * not taken would change the emitted C.
+   * A bounded string's initializer in the form 2.2 planned (#1257). A file
+   * or scope string, which 2.2 does not plan, is a literal (E0863). Both
+   * renders are unevaluated: either can request an include or queue a C++
+   * temp, so raising those effects for an arm that is not taken would change
+   * the emitted C.
    */
   private planStringInit(expression: TExpression): IPlannedStringInit {
-    const text = CodeGenWalker.stringTextOf(expression);
-    return {
-      copies: this.filePlan.stringInitCopies.has(expression),
-      concat: this._getStringConcatOperands(expression),
-      renderSubstring: () => this._getSubstringOperands(expression),
-      text,
-      sourceCapacity: StringOperationsHelper.getStringExprCapacity(
-        text,
-        this.declaredTypeAt(expression.span),
-      ),
-      render: () => this.renderExpression(expression),
+    const form = this.filePlan.stringValueForms.get(expression) ?? {
+      kind: "literal",
+      literal: expression,
     };
+    const whole =
+      form.kind === "literal"
+        ? form.literal
+        : form.kind === "copy"
+          ? form.value
+          : expression;
+    return {
+      form: form.kind,
+      text: CodeGenWalker.stringTextOf(whole),
+      render: () => this.renderExpression(whole),
+      renderParts: () => this.renderStringParts(form),
+    };
+  }
+
+  /** A concatenation's or a substring's parts as generated C (ADR-045) */
+  private renderStringParts(
+    form: TStringValueForm,
+  ): readonly TRenderedStringPart[] {
+    const parts =
+      form.kind === "concat"
+        ? form.parts
+        : form.kind === "substring"
+          ? [form.part]
+          : [];
+    return parts.map((part): TRenderedStringPart => {
+      if (part.kind === "whole") {
+        return { kind: "whole", code: this.renderExpression(part.value) };
+      }
+      return {
+        kind: "substring",
+        // The chain read up to the string it subscripts, as a target is
+        source: this.generateAssignmentTarget(
+          part.chain,
+          AssignmentTarget.parts(part.chain).ops.length - 1,
+        ),
+        start: this.renderExpression(part.start),
+        length: part.length === null ? "1" : this.renderExpression(part.length),
+      };
+    });
   }
 
   /**
@@ -2934,7 +2914,13 @@ class CodeGenWalker {
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
     const target = this.planner.targetDeclaration(targetExpr);
-    const value = this.renderExpression(site.value);
+    // #1257: a concatenation or a substring is built from its parts, so the
+    // value as one C expression is never rendered
+    const stringForm = this.filePlan.stringValueForms.get(site.value);
+    const builtApart =
+      stringForm !== undefined &&
+      (stringForm.kind === "concat" || stringForm.kind === "substring");
+    const value = builtApart ? "" : this.renderExpression(site.value);
 
     // #1322: the operator was mapped to its C form here and used for nothing
     // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
@@ -2986,6 +2972,10 @@ class CodeGenWalker {
       ),
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
       plannedStringCapacity: this.filePlan.stringCopies.get(site) ?? null,
+      plannedStringParts:
+        builtApart && stringForm !== undefined
+          ? () => this.renderStringParts(stringForm)
+          : null,
       plannedWholeArray: this.filePlan.wholeArrayWrites.get(site) ?? null,
       plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
       plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,

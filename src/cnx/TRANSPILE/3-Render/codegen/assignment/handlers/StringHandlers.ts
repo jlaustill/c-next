@@ -2,11 +2,13 @@
  * String assignment handler (ADR-065).
  *
  * STRING_COPY: a write of one `string<N>` -- `str <- "hello"`,
- * `this.cfg.name <- "x"`, `parr[1].name <- "x"` -- through any spelling.
+ * `this.cfg.name <- "x"`, `parr[1].name <- "x"` -- through any spelling,
+ * of any ADR-045 value: a copy, a concatenation or a substring (#1257).
  */
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import StringUtils from "../../../../../utils/StringUtils";
+import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
 import TAssignmentHandler from "./TAssignmentHandler";
 import invariant from "../../../../../utils/invariant";
 
@@ -44,9 +46,25 @@ function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
     capacity !== null,
     "the classifier routes a planned write of one string<N> here",
   );
+  const renderParts = ctx.plannedStringParts;
   // TODO(#2192): the helper's `char*` drops a volatile element's qualifier,
   // as `strncpy`'s own parameter did
-  return StringUtils.copy(ctx.renderTarget(), ctx.generatedValue, capacity);
+  if (renderParts === null) {
+    return StringUtils.copy(ctx.renderTarget(), ctx.generatedValue, capacity);
+  }
+  // #1257: a concatenation or a substring is built apart, then copied in
+  // whole, so a part that reads the target reads it unchanged
+  const temp = ctx.state.getNextTempVarName();
+  return [
+    ComplianceAnnotations.render(ComplianceAnnotations.STRING_BUILT_APART),
+    "{",
+    `    char ${temp}[${capacity + 1}] = "";`,
+    ...StringUtils.build(temp, capacity, renderParts()).map(
+      (line) => `    ${line}`,
+    ),
+    `    ${StringUtils.copy(ctx.renderTarget(), temp, capacity)}`,
+    "}",
+  ].join("\n");
 }
 
 const stringHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [

@@ -6,6 +6,22 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // ADR-045: Test chained/nested string operations
 // Validates: operations on results of other operations
@@ -27,8 +43,7 @@ int main(void) {
     }
     const char source[65] = "Hello, World!";
     char sub[6] = "";
-    (void) strncpy(sub, source + 0, 5);
-    sub[5] = '\0';
+    cnx_string_copy(sub, source + 0, 5U);
     if (strlen(sub) != 5) {
         return 4;
     }
@@ -52,14 +67,12 @@ int main(void) {
     }
     const char text[21] = "Testing123";
     char letters[8] = "";
-    (void) strncpy(letters, text + 0, 7);
-    letters[7] = '\0';
+    cnx_string_copy(letters, text + 0, 7U);
     if (strcmp(letters, "Testing") != 0) {
         return 9;
     }
     char numbers[4] = "";
-    (void) strncpy(numbers, text + 7, 3);
-    numbers[3] = '\0';
+    cnx_string_copy(numbers, text + 7, 3U);
     if (strcmp(numbers, "123") != 0) {
         return 10;
     }

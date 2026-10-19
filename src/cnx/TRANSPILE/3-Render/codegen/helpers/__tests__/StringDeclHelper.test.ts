@@ -13,7 +13,6 @@
  * imitating is tested in VariableDeclHelper.test.ts where it now lives.
  */
 
-import StringOperationsHelper from "../StringOperationsHelper";
 import type TTypeInfo from "../../../../../types/TTypeInfo";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper";
@@ -35,18 +34,11 @@ const NO_MODS: IRenderedModifiers = {
  * about substrings cannot accidentally take that branch.
  */
 function init(overrides: Partial<IPlannedStringInit> = {}): IPlannedStringInit {
-  const text = overrides.text ?? '""';
   return {
-    copies: false,
-    concat: null,
-    renderSubstring: () => null,
-    text,
+    form: "literal",
+    text: '""',
     render: () => '""',
-    // As the walker plans it (#1668): a literal's length, or a declared
-    // string's capacity
-    sourceCapacity: StringOperationsHelper.getStringExprCapacity(text, (name) =>
-      sourcesDeclared.get(name),
-    ),
+    renderParts: () => [],
     ...overrides,
   };
 }
@@ -183,7 +175,7 @@ describe("StringDeclHelper", () => {
       });
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(16, init({ copies: true, text: "src", render: () => "src" })),
+        bounded(16, init({ form: "copy", text: "src", render: () => "src" })),
         "s",
         ATOMIC,
         false,
@@ -204,7 +196,7 @@ describe("StringDeclHelper", () => {
       });
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(16, init({ copies: true, text: "src", render: () => "src" })),
+        bounded(16, init({ form: "copy", text: "src", render: () => "src" })),
         "s",
         { ...NO_MODS, const: "const " },
         false,
@@ -220,12 +212,11 @@ describe("StringDeclHelper", () => {
         bounded(
           16,
           init({
-            concat: {
-              left: "a",
-              right: "b",
-              leftCapacity: 4,
-              rightCapacity: 4,
-            },
+            form: "concat",
+            renderParts: () => [
+              { kind: "whole", code: "a" },
+              { kind: "whole", code: "b" },
+            ],
           }),
         ),
         "s",
@@ -242,12 +233,10 @@ describe("StringDeclHelper", () => {
         bounded(
           16,
           init({
-            renderSubstring: () => ({
-              source: "src",
-              start: "0",
-              lengthExpression: "3",
-              sourceCapacity: 8,
-            }),
+            form: "substring",
+            renderParts: () => [
+              { kind: "substring", source: "src", start: "0", length: "3" },
+            ],
           }),
         ),
         "s",
@@ -260,55 +249,23 @@ describe("StringDeclHelper", () => {
     });
   });
 
-  // ADR-045 asks the four initializer forms in a fixed order and the order is
-  // load-bearing, because asking costs something on two of the arms: taking a
-  // substring generates the index expressions, and rendering the initializer
-  // generates the whole thing -- either can request an include or queue a C++
-  // temp into the enclosing block. An arm that is not taken must raise no
-  // effect at all, so these assert that the unused thunks are never called,
-  // not merely that the right code comes out.
-  describe("initializer discrimination order", () => {
-    it("does not ask for a substring when the initializer is a concatenation", () => {
-      const renderSubstring = vi.fn(() => null);
+  // 2.2 planned the form (#1257). Rendering costs something -- either thunk
+  // can request an include or queue a C++ temp into the enclosing block -- so
+  // the arm not taken must raise no effect at all: these assert that its
+  // thunk is never called, not merely that the right code comes out.
+  describe("renders only the planned form", () => {
+    it("does not render the initializer whole when it is a concatenation", () => {
       const render = vi.fn(() => "unused");
 
       StringDeclHelper.generateStringDecl(
         bounded(
           16,
           init({
-            concat: {
-              left: "a",
-              right: "b",
-              leftCapacity: 4,
-              rightCapacity: 4,
-            },
-            renderSubstring,
-            render,
-          }),
-        ),
-        "s",
-        NO_MODS,
-        false,
-        state,
-      );
-
-      expect(renderSubstring).not.toHaveBeenCalled();
-      expect(render).not.toHaveBeenCalled();
-    });
-
-    it("does not render the initializer when it is a substring", () => {
-      const render = vi.fn(() => "unused");
-
-      StringDeclHelper.generateStringDecl(
-        bounded(
-          16,
-          init({
-            renderSubstring: () => ({
-              source: "src",
-              start: "0",
-              lengthExpression: "3",
-              sourceCapacity: 8,
-            }),
+            form: "concat",
+            renderParts: () => [
+              { kind: "whole", code: "a" },
+              { kind: "whole", code: "b" },
+            ],
             render,
           }),
         ),
@@ -321,18 +278,18 @@ describe("StringDeclHelper", () => {
       expect(render).not.toHaveBeenCalled();
     });
 
-    it("renders the initializer only when neither operand form matched", () => {
-      const render = vi.fn(() => '"x"');
+    it("does not render parts when it is a literal", () => {
+      const renderParts = vi.fn(() => []);
 
       StringDeclHelper.generateStringDecl(
-        bounded(16, init({ text: '"x"', render })),
+        bounded(16, init({ text: '"x"', render: () => '"x"', renderParts })),
         "s",
         NO_MODS,
         false,
         state,
       );
 
-      expect(render).toHaveBeenCalledTimes(1);
+      expect(renderParts).not.toHaveBeenCalled();
     });
   });
 
@@ -348,32 +305,11 @@ describe("StringDeclHelper", () => {
       });
     }
 
-    it("asserts the invariant when source string capacity exceeds destination", () => {
-      declareSource("bigString", 100);
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          bounded(
-            10,
-            init({
-              copies: true,
-              text: "bigString",
-              render: () => "bigString",
-            }),
-          ),
-          "small",
-          NO_MODS,
-          false,
-          state,
-        ),
-      ).toThrow("a string source fits its destination");
-    });
-
     it("allows assignment when source capacity fits", () => {
       declareSource("src", 20);
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, init({ copies: true, text: "src", render: () => "src" })),
+        bounded(50, init({ form: "copy", text: "src", render: () => "src" })),
         "dest",
         NO_MODS,
         false,
@@ -388,7 +324,7 @@ describe("StringDeclHelper", () => {
       declareSource("src", 20);
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, init({ copies: true, text: "src", render: () => "src" })),
+        bounded(50, init({ form: "copy", text: "src", render: () => "src" })),
         "dest",
         NO_MODS,
         false,
@@ -406,7 +342,7 @@ describe("StringDeclHelper", () => {
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          bounded(50, init({ copies: true, text: "src", render: () => "src" })),
+          bounded(50, init({ form: "copy", text: "src", render: () => "src" })),
           "dest",
           NO_MODS,
           false,
@@ -417,16 +353,17 @@ describe("StringDeclHelper", () => {
   });
 
   describe("string concatenation", () => {
-    const CONCAT = {
-      left: "first",
-      right: "second",
-      leftCapacity: 10,
-      rightCapacity: 10,
+    const CONCAT: Partial<IPlannedStringInit> = {
+      form: "concat",
+      renderParts: () => [
+        { kind: "whole", code: "first" },
+        { kind: "whole", code: "second" },
+      ],
     };
 
     it("generates concatenation code in function body", () => {
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, init({ concat: CONCAT })),
+        bounded(50, init(CONCAT)),
         "full",
         NO_MODS,
         false,
@@ -443,7 +380,7 @@ describe("StringDeclHelper", () => {
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          bounded(50, init({ concat: CONCAT })),
+          bounded(50, init(CONCAT)),
           "full",
           NO_MODS,
           false,
@@ -452,26 +389,9 @@ describe("StringDeclHelper", () => {
       ).toThrow("a string at file scope is initialized by a literal");
     });
 
-    it("asserts the invariant when combined capacity exceeds destination", () => {
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          bounded(
-            10,
-            init({
-              concat: { ...CONCAT, leftCapacity: 20, rightCapacity: 20 },
-            }),
-          ),
-          "tooSmall",
-          NO_MODS,
-          false,
-          state,
-        ),
-      ).toThrow("a concatenation fits its destination");
-    });
-
     it("never makes a read-only concatenation a C const array (ADR-071)", () => {
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, init({ concat: CONCAT })),
+        bounded(50, init(CONCAT)),
         "full",
         { ...NO_MODS, const: "const " },
         true,
@@ -489,17 +409,24 @@ describe("StringDeclHelper", () => {
         source: string;
         start: string;
         lengthExpression: string;
-        sourceCapacity: number;
       }> = {},
     ): IPlannedStringInit {
+      const part = {
+        source: "source",
+        start: "0",
+        lengthExpression: "5",
+        ...overrides,
+      };
       return init({
-        renderSubstring: () => ({
-          source: "source",
-          start: "0",
-          lengthExpression: "5",
-          sourceCapacity: 20,
-          ...overrides,
-        }),
+        form: "substring",
+        renderParts: () => [
+          {
+            kind: "substring",
+            source: part.source,
+            start: part.start,
+            length: part.lengthExpression,
+          },
+        ],
       });
     }
 
@@ -513,7 +440,7 @@ describe("StringDeclHelper", () => {
       );
 
       expect(code).toContain('char part[11] = "";');
-      expect(code).toContain("strncpy");
+      expect(code).toContain("cnx_string_copy(part, source + 0, 5U);");
     });
 
     it("asserts the invariant for substring at global scope", () => {
@@ -528,44 +455,6 @@ describe("StringDeclHelper", () => {
           state,
         ),
       ).toThrow("a string at file scope is initialized by a literal");
-    });
-
-    it("asserts the invariant when substring bounds exceed source capacity", () => {
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          bounded(
-            50,
-            substring({
-              start: "15",
-              lengthExpression: "10",
-              sourceCapacity: 20,
-            }),
-          ),
-          "part",
-          NO_MODS,
-          false,
-          state,
-        ),
-      ).toThrow("substring bounds stay within the source");
-    });
-
-    it("asserts the invariant when substring length exceeds destination capacity", () => {
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          bounded(
-            5,
-            substring({
-              start: "0",
-              lengthExpression: "10",
-              sourceCapacity: 20,
-            }),
-          ),
-          "part",
-          NO_MODS,
-          false,
-          state,
-        ),
-      ).toThrow("a substring fits its destination");
     });
 
     it("skips bounds check when start is not numeric", () => {

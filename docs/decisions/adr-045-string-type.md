@@ -351,6 +351,17 @@ ADR-035's E0866, which takes only a string literal there (#2195). E0914
 an assignment's is by its target: every initializer but a literal, a
 concatenation and a substring is copied in.
 
+A value written whole into a `string<N>` has one of four forms, decided once
+for a declaration and an assignment alike (#1257), parentheses looked through
+(#2232): a literal, one string copied in, a substring, or a concatenation of
+two or more parts (#1954), each part a whole string or a substring. A
+substring's source may be any string -- a field, an element or a `this.`
+member (#2223, #2237). The capacity rules above hold for an assignment as for
+a declaration (#2191): its value is E0864 when it may not fit. An assignment
+builds a concatenation or a substring in a temporary and then copies it in,
+so a part may read the string written (`message <- message[0, 58] + " World"`).
+A substring is copied by `cnx_string_copy`, which takes at most its length.
+
 ### No Silent Truncation
 
 Unlike C's `strncpy`, CNX **never silently truncates**. If data might not fit, it's a compile error.

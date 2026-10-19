@@ -1,3 +1,4 @@
+import type TStringValueForm from "../../../types/TStringValueForm";
 import type IPlannedArgument from "./IPlannedArgument";
 import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
 import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
@@ -88,8 +89,12 @@ interface IFilePlan {
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
   /** #1731: each assignment that writes one whole `string<N>`, and its capacity */
   readonly stringCopies: ReadonlyMap<IAssignmentSyntax, number>;
-  /** each function's string initializer that copies one whole string in */
-  readonly stringInitCopies: ReadonlySet<TExpression>;
+  /**
+   * ADR-045: the form of each value written whole into a `string<N>` -- a
+   * function's string initializer, and the value of each assignment in
+   * `stringCopies` -- as `StringValueForm` decides it (#1257)
+   */
+  readonly stringValueForms: ReadonlyMap<TExpression, TStringValueForm>;
   /** #2207: whether the file copies a string, through `cnx_string_copy` */
   readonly stringCopyHelper: boolean;
   /**

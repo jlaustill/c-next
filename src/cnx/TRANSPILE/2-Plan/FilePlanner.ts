@@ -34,6 +34,9 @@ import type ILengthName from "../../utils/types/ILengthName";
 import type TLengthRule from "../../utils/types/TLengthRule";
 import LengthSubject from "../../utils/LengthSubject";
 import OperandTyper from "../../utils/OperandTyper";
+import StringValueForm from "../../utils/StringValueForm";
+import StringUtils from "../../utils/StringUtils";
+import type TStringValueForm from "../../types/TStringValueForm";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import headerCType from "../../utils/headerCType";
 import HeaderTypeNames from "./HeaderTypeNames";
@@ -1082,7 +1085,7 @@ class FilePlanner {
       clampOps: clamps.ops,
       sliceSources,
       stringCopies: stringCopies.copies,
-      stringInitCopies: stringCopies.initCopies,
+      stringValueForms: stringCopies.forms,
       stringCopyHelper: stringCopies.helper,
       wholeArrayWrites,
       fillSizes,
@@ -1754,57 +1757,59 @@ class FilePlanner {
    * `cnx_string_copy` (#2207) whatever spells its target. ADR-045's copy,
    * recorded where it is decided. The typer's answer, asked as 2.1's E0715
    * asks it, so a `for` header cannot be handed a copy 2.1 did not see (#1731
-   * review). Whether the file defines the helper, and the `uint32_t` it counts
-   * in, are decided here with it, as `planClamps` decides its helpers and
-   * their types.
+   * review). The form of each value it copies in is decided here with it,
+   * by `StringValueForm`, as 2.1's E0864 reads it (#1257). Whether the file
+   * defines the helper, and the `uint32_t` it counts in, are decided here
+   * too, as `planClamps` decides its helpers and their types.
    */
   private planStringCopies(
     program: IProgramSyntax,
     cTypes: Set<string>,
   ): {
     readonly copies: ReadonlyMap<IAssignmentSyntax, number>;
-    readonly initCopies: ReadonlySet<TExpression>;
+    readonly forms: ReadonlyMap<TExpression, TStringValueForm>;
     readonly helper: boolean;
   } {
     const copies = new Map<IAssignmentSyntax, number>();
+    const forms = new Map<TExpression, TStringValueForm>();
     const typing = this.state.typingContext();
     for (const site of FilePlanner.assignmentSites(program)) {
       const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
       if (capacity === null) continue;
       AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
       copies.set(site, capacity);
+      forms.set(site.value, StringValueForm.of(site.value, typing));
     }
-    const initCopies = FilePlanner.stringInitCopies(program, typing);
-    // #2207: every copy calls `cnx_string_copy`, which counts in `uint32_t`
-    const helper = copies.size > 0 || initCopies.size > 0;
+    FilePlanner.planStringInits(program, typing, forms);
+    // #2207: every assignment ends in `cnx_string_copy`, a concatenation's
+    // and a substring's after they are built apart (#1257), and so does a
+    // declaration's copy; the helper counts in `uint32_t`
+    const helper =
+      copies.size > 0 ||
+      [...forms.values()].some((f) => StringUtils.usesCopyHelper(f));
     if (helper) cTypes.add("uint32_t");
-    return { copies, initCopies, helper };
+    return { copies, forms, helper };
   }
 
   /**
-   * #1731 sweep: a function's `string<N> t <- s` copies one whole string in,
-   * decided as an assignment's copy is, by the `string<N>` it lands in (#1731
-   * review): every initializer but ADR-045's other three forms -- a literal,
-   * which initializes the array, a concatenation and a substring. 2.1 has
-   * rejected a value that is no string (E0918), so what is left is a string:
-   * a C-Next one, or a C `char*` or `char[]`.
+   * #1731 sweep: a function's `string<N> t <- v` takes the form of `v` by the
+   * rule an assignment's value does (#1257): a literal initializes the array,
+   * and a copy, a concatenation and a substring are written into it. 2.1 has
+   * rejected a value that is no string (E0918), so a copy's is a string: a
+   * C-Next one, or a C `char*` or `char[]`.
    */
-  private static stringInitCopies(
+  private static planStringInits(
     program: IProgramSyntax,
     typing: ITypingContext,
-  ): ReadonlySet<TExpression> {
-    const found = new Set<TExpression>();
+    forms: Map<TExpression, TStringValueForm>,
+  ): void {
     for (const { declaration, site } of VariableDeclarations.ruled(program)) {
       const initializer = declaration.initializer;
       if (site !== "statement" || initializer === null) continue;
       if (declaration.type.kind !== "string") continue;
       if (declaration.type.capacity === null) continue;
-      if (ExpressionShape.isStringLiteral(initializer)) continue;
-      if (ExpressionShape.additionOperands(initializer) !== null) continue;
-      if (OperandTyper.isSubstring(initializer, typing)) continue;
-      found.add(initializer);
+      forms.set(initializer, StringValueForm.of(initializer, typing));
     }
-    return found;
   }
 
   /**

@@ -6,14 +6,29 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // ADR-045: Validate substring extraction at runtime
 // Issue #140 fixed: Single-character substring source[i] now generates valid C
 int main(void) {
     const char source[65] = "Hello, World!";
     char hello[6] = "";
-    (void) strncpy(hello, source + 0, 5);
-    hello[5] = '\0';
+    cnx_string_copy(hello, source + 0, 5U);
     if (strlen(hello) != 5) {
         return 1;
     }
@@ -24,8 +39,7 @@ int main(void) {
         return 3;
     }
     char world[7] = "";
-    (void) strncpy(world, source + 7, 6);
-    world[6] = '\0';
+    cnx_string_copy(world, source + 7, 6U);
     if (strlen(world) != 6) {
         return 4;
     }
@@ -33,8 +47,7 @@ int main(void) {
         return 5;
     }
     char h[2] = "";
-    (void) strncpy(h, source + 0, 1);
-    h[1] = '\0';
+    cnx_string_copy(h, source + 0, 1U);
     if (strlen(h) != 1) {
         return 6;
     }
@@ -42,14 +55,12 @@ int main(void) {
         return 7;
     }
     char comma[2] = "";
-    (void) strncpy(comma, source + 5, 1);
-    comma[1] = '\0';
+    cnx_string_copy(comma, source + 5, 1U);
     if (strcmp(comma, ",") != 0) {
         return 8;
     }
     char middle[6] = "";
-    (void) strncpy(middle, source + 3, 5);
-    middle[5] = '\0';
+    cnx_string_copy(middle, source + 3, 5U);
     if (strlen(middle) != 5) {
         return 9;
     }
@@ -57,8 +68,7 @@ int main(void) {
         return 10;
     }
     char full[14] = "";
-    (void) strncpy(full, source + 0, 13);
-    full[13] = '\0';
+    cnx_string_copy(full, source + 0, 13U);
     if (strlen(full) != 13) {
         return 11;
     }
@@ -66,8 +76,7 @@ int main(void) {
         return 12;
     }
     char two[3] = "";
-    (void) strncpy(two, source + 0, 2);
-    two[2] = '\0';
+    cnx_string_copy(two, source + 0, 2U);
     if (strlen(two) != 2) {
         return 13;
     }
@@ -75,8 +84,7 @@ int main(void) {
         return 14;
     }
     char last[2] = "";
-    (void) strncpy(last, source + 12, 1);
-    last[1] = '\0';
+    cnx_string_copy(last, source + 12, 1U);
     if (strcmp(last, "!") != 0) {
         return 15;
     }

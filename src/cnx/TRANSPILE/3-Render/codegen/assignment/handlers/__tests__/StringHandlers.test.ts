@@ -54,6 +54,7 @@ function createMockContext(
     state,
     // #1731 review: 2.2's decision is the case's input
     plannedStringCapacity: null,
+    plannedStringParts: null,
     plannedWholeArray: null,
     ...overrides,
   } as IAssignmentContext;
