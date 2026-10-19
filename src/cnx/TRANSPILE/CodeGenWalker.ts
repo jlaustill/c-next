@@ -773,9 +773,24 @@ class CodeGenWalker {
       simpleId,
       declared,
       planned.form,
-      { generateExpression: () => this.renderExpression(expr) },
+      {
+        generateExpression: () => this.renderExpression(expr),
+        renderStringParts: () => this.renderArgumentParts(expr),
+      },
       this.host.state,
     );
+  }
+
+  /** #2239: the parts of a string argument 2.2 planned built apart */
+  private renderArgumentParts(
+    expr: TExpression,
+  ): readonly TRenderedStringPart[] {
+    const form = this.filePlan.stringValueForms.get(expr);
+    invariant(
+      form !== undefined,
+      "2.2 planned the value form of every string argument it builds apart",
+    );
+    return this.renderStringParts(form);
   }
 
   /** #1969: the parameter a bare-name expression binds to, where it is */

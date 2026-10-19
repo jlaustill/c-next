@@ -19,6 +19,11 @@ type TArgumentForm =
   /** C: a struct literal, by the address of its own compound literal (#1530) */
   | { readonly kind: "literal-address" }
   /** #2157: a list for an array parameter, passed as a temporary of its shape */
-  | { readonly kind: "array-temp"; readonly array: IPlannedWholeArrayWrite };
+  | { readonly kind: "array-temp"; readonly array: IPlannedWholeArrayWrite }
+  /**
+   * #2239: a concatenation or a substring for a `string<N>` parameter, built
+   * into a `string<capacity>` temporary before the statement and passed as it
+   */
+  | { readonly kind: "string-built"; readonly capacity: number };
 
 export default TArgumentForm;

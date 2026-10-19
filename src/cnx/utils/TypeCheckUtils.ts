@@ -93,6 +93,12 @@ class TypeCheckUtils {
     return /^string<\d+>$/.test(typeName);
   }
 
+  /** The capacity a `string<N>` spelling names, or null for any other */
+  static sizedStringCapacity(typeName: string): number | null {
+    const match = /^string<(\d+)>$/.exec(typeName);
+    return match === null ? null : Number.parseInt(match[1], 10);
+  }
+
   /**
    * Check if a bit width is a standard MMIO-optimizable width.
    *

@@ -938,7 +938,11 @@ class FilePlanner {
       selfIncludeAdded,
     );
     const decidedCTypes = new Set<string>();
-    const stringCopies = this.planStringCopies(program, decidedCTypes);
+    const stringCopies = this.planStringCopies(
+      program,
+      valuePositions,
+      decidedCTypes,
+    );
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
     const types = this.planTypeSites(program, inlinedConsts);
     // Each planned type is written once 2.3 is done, so its include is decided here
@@ -1033,6 +1037,7 @@ class FilePlanner {
     );
     const argumentPlans = this.planArguments(
       valuePositions,
+      stringCopies.arguments,
       structInitializers,
       wholeArrayArguments,
       decidedCTypes,
@@ -1254,6 +1259,7 @@ class FilePlanner {
    */
   private planArguments(
     valuePositions: IValuePositions,
+    stringArguments: ReadonlyMap<TExpression, number>,
     structInitializers: ReadonlyMap<
       TExpressionOf<"structInitializer">,
       TStructInitializerForm
@@ -1262,21 +1268,21 @@ class FilePlanner {
     cTypes: Set<string>,
   ): ReadonlyMap<TExpression, IPlannedArgument> {
     const planned = new Map<TExpression, IPlannedArgument>();
-    for (const [expression, at] of valuePositions.sites) {
-      const site = at.site;
-      if (site.kind !== "argument") continue;
-      const call = site.call.ops[site.op];
-      invariant(call?.kind === "call", "an argument site names a call");
-      if (call.arguments[site.argument] !== expression) continue;
-
+    for (const [expression, site] of FilePlanner.argumentSites(
+      valuePositions,
+    )) {
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
-      const form = this.argumentForm(
-        expression,
-        passing,
-        wholeArrayArguments.get(expression),
-        structInitializers,
-      );
+      const built = stringArguments.get(expression);
+      const form: TArgumentForm | null =
+        built === undefined
+          ? this.argumentForm(
+              expression,
+              passing,
+              wholeArrayArguments.get(expression),
+              structInitializers,
+            )
+          : { kind: "string-built", capacity: built };
       const enumCast =
         passing.mode === "reference"
           ? null
@@ -1295,6 +1301,21 @@ class FilePlanner {
     }
     return planned;
   }
+  /** Each argument where it is written, with the call site it binds at */
+  private static *argumentSites(
+    valuePositions: IValuePositions,
+  ): Generator<[TExpression, Extract<TValueSite, { kind: "argument" }>]> {
+    for (const [expression, at] of valuePositions.sites) {
+      const site = at.site;
+      if (site.kind !== "argument") continue;
+      const call = site.call.ops[site.op];
+      invariant(call?.kind === "call", "an argument site names a call");
+      if (call.arguments[site.argument] === expression) {
+        yield [expression, site];
+      }
+    }
+  }
+
   /** A by-reference argument's form; a list for an array parameter is its temporary */
   private argumentForm(
     expression: TExpression,
@@ -1764,10 +1785,12 @@ class FilePlanner {
    */
   private planStringCopies(
     program: IProgramSyntax,
+    valuePositions: IValuePositions | null,
     cTypes: Set<string>,
   ): {
     readonly copies: ReadonlyMap<IAssignmentSyntax, number>;
     readonly forms: ReadonlyMap<TExpression, TStringValueForm>;
+    readonly arguments: ReadonlyMap<TExpression, number>;
     readonly helper: boolean;
   } {
     const copies = new Map<IAssignmentSyntax, number>();
@@ -1781,6 +1804,11 @@ class FilePlanner {
       forms.set(site.value, StringValueForm.of(site.value, typing));
     }
     FilePlanner.planStringInits(program, typing, forms);
+    const builtArguments = this.planStringArguments(
+      valuePositions,
+      typing,
+      forms,
+    );
     // #2207: every assignment ends in `cnx_string_copy`, a concatenation's
     // and a substring's after they are built apart (#1257), and so does a
     // declaration's copy; the helper counts in `uint32_t`
@@ -1788,7 +1816,36 @@ class FilePlanner {
       copies.size > 0 ||
       [...forms.values()].some((f) => StringUtils.usesCopyHelper(f));
     if (helper) cTypes.add("uint32_t");
-    return { copies, forms, helper };
+    return { copies, forms, arguments: builtArguments, helper };
+  }
+
+  /**
+   * #2239: a concatenation or a substring passed to a `string<N>` parameter,
+   * by the parameter's capacity -- built apart like an assignment's, by the
+   * same value form. Any other argument is passed as it is written.
+   */
+  private planStringArguments(
+    valuePositions: IValuePositions | null,
+    typing: ITypingContext,
+    forms: Map<TExpression, TStringValueForm>,
+  ): ReadonlyMap<TExpression, number> {
+    const built = new Map<TExpression, number>();
+    if (valuePositions === null) return built;
+    for (const [expression, site] of FilePlanner.argumentSites(
+      valuePositions,
+    )) {
+      const passing = this.argumentPassing(site);
+      if (passing.mode !== "reference") continue;
+      const base = passing.param?.baseType;
+      const capacity =
+        base === undefined ? null : TypeCheckUtils.sizedStringCapacity(base);
+      if (capacity === null) continue;
+      const form = StringValueForm.of(expression, typing);
+      if (form.kind !== "concat" && form.kind !== "substring") continue;
+      forms.set(expression, form);
+      built.set(expression, capacity);
+    }
+    return built;
   }
 
   /**
