@@ -86,6 +86,11 @@ interface IFilePlan {
   >;
   /** #1081: how each slice write reads its source */
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
+  /**
+   * #2110 (ADR-035): how many slots each fill-all fills, at every level of a
+   * whole array's list. A fill whose size does not fold is absent.
+   */
+  readonly fillSizes: ReadonlyMap<TExpressionOf<"arrayInitializer">, number>;
   /** #1782: each assignment that writes a whole array, and its copy's shape */
   readonly wholeArrayWrites: ReadonlyMap<
     IAssignmentSyntax,

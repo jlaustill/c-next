@@ -233,9 +233,13 @@ as well (#1782). Another array, a scalar, or a list of the wrong length there
 is E0866. These had been emitted as a C array assignment (`a = b;`,
 `a = {1U, 2U};`), which C rejects, at exit 0. An accepted list cannot be
 assigned in C either, so it fills a temporary of the target's own type, written
-as a declaration's initializer is (struct elements designated, and a top-level
-fill-all expanded where the size folds; a fill-all row (#2110) is not yet
-expanded), and the temporary is copied element by element. A fill-all other
+as a declaration's initializer is (struct elements designated, and each
+fill-all expanded where its size folds), and the temporary is copied element by
+element. A fill-all expands to one value per slot at every level of a whole
+array's list, at a declaration, a scope member, an assignment target, a field
+and an argument (#2110): `[[1*], [2*]]` for a `u32[2][3]` is
+`{{1U, 1U, 1U}, {2U, 2U, 2U}}`. A fill-all row had been emitted as C's `{v}`,
+which sets only its first slot, so the rest read 0 at exit 0. A fill-all other
 than zero needs a size C-Next can fold: C has no initializer that repeats a
 value for a size it is not told, so `u8[SIZE] a <- [5*]` with `SIZE` a C macro
 had set only `a[0]`. It is E0866 at a declaration, a scope member, an assignment
@@ -253,7 +257,8 @@ array passed there must have the parameter's shape (#2194). Fixtures:
 `tests/bugs/issue-1782-whole-array-assignment/`,
 `tests/bugs/issue-2157-array-parameter-list/`,
 `tests/bugs/issue-2194-array-argument-shape/`,
-`tests/bugs/issue-2195-array-row-slot/`.
+`tests/bugs/issue-2195-array-row-slot/`,
+`tests/bugs/issue-2110-nested-fill-all/`.
 
 ## Scope-Context Matrix (#1219)
 

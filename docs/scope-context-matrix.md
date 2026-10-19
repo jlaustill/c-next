@@ -357,10 +357,11 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | -          | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+3 linked fixtures with no derivable context:
 
 - `adr-035/empty-dimension-included.test.cnx`
 - `adr-035/inferred-size-render.test.cnx`
+- `bugs/issue-2110-nested-fill-all/nested-fill.test.cnx`
 
 ## ADR-036
 

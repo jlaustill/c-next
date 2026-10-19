@@ -85,13 +85,7 @@ class ArrayInitHelper {
       ? ArrayInitHelper._processSizeInference(name, declaredSize, state)
       : ArrayInitHelper._processExplicitSize(declaredSize, callbacks, state);
 
-    const finalInitValue = ArrayInitHelper.expandFillAll(
-      initValue,
-      declaredSize,
-      state,
-    );
-
-    return { isArrayInit: true, dimensionSuffix, initValue: finalInitValue };
+    return { isArrayInit: true, dimensionSuffix, initValue };
   }
 
   /**
@@ -170,8 +164,7 @@ class ArrayInitHelper {
   /**
    * A temporary of a whole array's own type, initialized by its rendered
    * value as a declaration is (#1782, #2157): C can neither assign an array
-   * nor pass a list for one. Called right after the value renders, so a
-   * fill-all is read off that render.
+   * nor pass a list for one.
    */
   static temporaryArray(
     array: IPlannedWholeArrayWrite,
@@ -181,7 +174,7 @@ class ArrayInitHelper {
     const name = state.getNextTempVarName();
     return {
       name,
-      declaration: `const ${array.elementCType} ${name}${ArrayInitHelper.shapeOf(array)} = ${ArrayInitHelper.initializerOf(array, renderedValue, state)};`,
+      declaration: `const ${array.elementCType} ${name}${ArrayInitHelper.shapeOf(array)} = ${renderedValue};`,
     };
   }
 
@@ -201,10 +194,9 @@ class ArrayInitHelper {
     if (!state.pendingTempDeclarations.includes(ARGUMENT_COMMENT)) {
       state.pendingTempDeclarations.push(ARGUMENT_COMMENT);
     }
-    const rendered = ArrayInitHelper.initializerOf(array, renderedValue, state);
     // A compound literal and a functional cast take a braced list; a string
     // in braces initializes a `uint8_t` array (C11 6.7.9p14, C++ [dcl.init.string])
-    const init = array.fromList ? rendered : `{${rendered}}`;
+    const init = array.fromList ? renderedValue : `{${renderedValue}}`;
     const shape = ArrayInitHelper.shapeOf(array);
     if (!state.cppMode) return `(const ${array.elementCType}${shape})${init}`;
     const type = `${state.getNextTempVarName()}_t`;
@@ -218,39 +210,14 @@ class ArrayInitHelper {
     return array.dimensions.map((size) => `[${size}]`).join("");
   }
 
-  private static initializerOf(
-    array: IPlannedWholeArrayWrite,
-    renderedValue: string,
-    state: TranspileState,
-  ): string {
-    if (!array.fromList) return renderedValue;
-    const leading = array.dimensions[0];
-    const size = typeof leading === "number" ? leading : null;
-    return ArrayInitHelper.expandFillAll(renderedValue, size, state);
-  }
-
   /**
-   * Expand fill-all syntax (e.g., [0*] with size 5 -> {0, 0, 0, 0, 0}), read
-   * off the list's render just before. A declaration's list and a whole-array
-   * assignment's temporary (#1782) are both expanded here.
+   * A fill-all's list (ADR-035): its value once per slot of its level, the
+   * count 2.2 planned (#2110). C fills every slot `{v}` leaves out with zero,
+   * so a zero or empty-string fill, or a size that does not fold, stays `{v}`.
    */
-  static expandFillAll(
-    initValue: string,
-    declaredSize: number | null,
-    state: TranspileState,
-  ): string {
-    if (state.lastArrayFillValue === undefined || declaredSize === null) {
-      return initValue;
-    }
-
-    const fillVal = state.lastArrayFillValue;
-    // C handles {0} correctly, no need to expand
-    if (fillVal === "0") {
-      return initValue;
-    }
-
-    const elements = new Array<string>(declaredSize).fill(fillVal);
-    return `{${elements.join(", ")}}`;
+  static fillAll(value: string, size: number | null): string {
+    if (size === null || value === "0" || value === '""') return `{${value}}`;
+    return `{${new Array<string>(size).fill(value).join(", ")}}`;
   }
 }
 

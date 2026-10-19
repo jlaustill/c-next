@@ -24,7 +24,7 @@ uint8_t corner(const uint8_t grid[2][2]) {
 }
 
 uint8_t viaCallback(peak_fp cb, const uint8_t a[4], const uint8_t b[4]) {
-    return cb(&(uint8_t){(a[0U] < b[0U]) ? a : b});
+    return cb((a[0U] < b[0U]) ? a : b);
 }
 
 const uint8_t lowGear[4] = {10U, 20U, 30U, 40U};
@@ -41,12 +41,12 @@ const Gears gears = { .low = {1U, 1U, 1U, 9U}, .high = {2U, 2U, 2U, 8U} };
 
 int main(void) {
     const uint8_t gear = lowGear[0U] / 5U;
-    const uint8_t high = peak(&(uint8_t){(gear > 1) ? highGear : lowGear});
-    const uint8_t low = peak(&(uint8_t){(gear > 5) ? highGear : lowGear});
-    const uint32_t sum = sumFour(&(uint8_t){(gear > 5) ? highGear : lowGear});
-    const uint8_t member = peak(&(uint8_t){(gear > 1) ? gears.high : gears.low});
-    const uint8_t row = peak(&(uint8_t){(gear > 1) ? table[1U] : table[0U]});
-    const uint8_t square = corner(&(uint8_t){(gear > 1) ? two : one});
+    const uint8_t high = peak((gear > 1) ? highGear : lowGear);
+    const uint8_t low = peak((gear > 5) ? highGear : lowGear);
+    const uint32_t sum = sumFour((gear > 5) ? highGear : lowGear);
+    const uint8_t member = peak((gear > 1) ? gears.high : gears.low);
+    const uint8_t row = peak((gear > 1) ? table[1U] : table[0U]);
+    const uint8_t square = corner((gear > 1) ? two : one);
     const uint8_t called = viaCallback(peak, lowGear, highGear);
     if (high != 80) {
         return 1U;

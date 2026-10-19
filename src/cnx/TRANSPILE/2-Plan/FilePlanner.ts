@@ -95,6 +95,7 @@ import TypeGenerationHelper from "./TypeGenerationHelper";
 import type IPlannedType from "./types/IPlannedType";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
 import type IValuePositions from "../../types/IValuePositions";
+import type IValuePosition from "../../types/IValuePosition";
 import type IValueSite from "../../types/IValueSite";
 import type TValueSite from "../../types/TValueSite";
 import type IPlannedExpectedType from "./types/IPlannedExpectedType";
@@ -1018,6 +1019,7 @@ class FilePlanner {
       valuePositions,
       decidedCTypes,
     );
+    const fillSizes = this.planFillSizes(valuePositions);
     const structInitializers = this.planStructInitializers(
       program,
       inlinedConsts,
@@ -1081,6 +1083,7 @@ class FilePlanner {
       clampOps: clamps.ops,
       sliceSources,
       wholeArrayWrites,
+      fillSizes,
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1822,6 +1825,63 @@ class FilePlanner {
       cTypes.add(shape.elementCType);
     }
     return planned;
+  }
+
+  /**
+   * #2110 (ADR-035): how many slots each fill-all fills, at every level of a
+   * whole array's list -- a declaration's, an assignment target's, a field's
+   * or a parameter's. A size that does not fold is absent: 2.1 rejects any
+   * fill there but zero (#2196), which C's `{v}` already gives every slot.
+   */
+  private planFillSizes(
+    valuePositions: IValuePositions,
+  ): ReadonlyMap<TExpressionOf<"arrayInitializer">, number> {
+    const found = new Map<TExpressionOf<"arrayInitializer">, number>();
+    for (const [value, at] of valuePositions.positions) {
+      if (value.kind !== "arrayInitializer" || at.inList) continue;
+      FilePlanner.fillSizesOf(
+        value,
+        this.listSizes(value, at, valuePositions),
+        0,
+        found,
+      );
+    }
+    return found;
+  }
+
+  /** The sizes a whole array's list fills, leading first; null: not folded */
+  private listSizes(
+    value: TExpression,
+    at: IValuePosition,
+    valuePositions: IValuePositions,
+  ): ReadonlyArray<number | null> {
+    if (!at.isDeclaration) {
+      return at.dimensions.map((size) =>
+        typeof size === "number" ? size : null,
+      );
+    }
+    const site = valuePositions.sites.get(value)?.site;
+    if (site?.kind !== "declaration") return [];
+    const { type, dimensions } = site.declaration;
+    return [
+      ...(type.kind === "array" ? type.dimensions : []),
+      ...dimensions,
+    ].map((size) => (size === null ? null : (this.constantOf(size) ?? null)));
+  }
+
+  private static fillSizesOf(
+    list: TExpressionOf<"arrayInitializer">,
+    sizes: ReadonlyArray<number | null>,
+    level: number,
+    found: Map<TExpressionOf<"arrayInitializer">, number>,
+  ): void {
+    const size = sizes[level];
+    if (list.fill !== null && typeof size === "number") found.set(list, size);
+    for (const element of list.fill === null ? list.elements : [list.fill]) {
+      if (element.kind === "arrayInitializer") {
+        FilePlanner.fillSizesOf(element, sizes, level + 1, found);
+      }
+    }
   }
 
   /**
