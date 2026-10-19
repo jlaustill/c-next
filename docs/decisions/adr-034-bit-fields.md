@@ -361,6 +361,14 @@ bitmap's value in either place: `{ Running: 1 }` is E0358 (ADR-014). Owner
 ruling, 2026-09-28: _"a bitmap should be defined the exact same way it is
 anywhere else, being inside a struct changes nothing"_.
 
+Arithmetic on a whole bitmap is legal and operates on its backing integer:
+`flags +<- 1` and `flags <- flags + 1` are integer arithmetic on the bitmap's
+fixed-size value, carries into the next field included. Owner ruling,
+2026-10-19 (#2245): _"it's the entire reason for making bitmaps a fixed size
+and requiring a full definition"_. An `atomic` bitmap's compound write is a
+read-modify-write of that integer, the same as a write to one of its fields
+(ADR-049, `tests/bugs/issue-2245-atomic-whole-bitmap`).
+
 ### Overflow Behavior
 
 - **Compile-time literals**: Error if value exceeds field width
