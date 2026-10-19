@@ -1301,7 +1301,7 @@ class FilePlanner {
     >,
   ): TArgumentForm | null {
     if (passing.mode !== "reference") return null;
-    if (array !== undefined) return { kind: "array-temp", array };
+    if (array !== undefined && expression.span.line < 0) return { kind: "array-temp", array };
     if (this.isArrayTernary(expression, passing)) {
       return { kind: "array" };
     }
