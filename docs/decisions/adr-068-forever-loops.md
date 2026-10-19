@@ -367,6 +367,10 @@ Rule 7.2's suffix as a statement does. But a header clause is a C
 | any write to an `atomic` target (`<-` or compound) | an LDREX/STREX loop or a PRIMASK critical section (ADR-049 Q4, Q7) |
 | a bit index or bit range on a float target         | a write through a `union` of the float and its bits (ADR-007)      |
 
+Since #2207 a string copy is one call, `cnx_string_copy(s, "x", 8U)`, so the
+reason in the table no longer holds for it. E0715 still rejects it, and #2234
+asks whether it should.
+
 Before #1647 the header concatenated target, operator and value, so each form
 emitted C that either failed to compile (`s = "abc"`, `f[31] = true`) or
 compiled to the wrong program: `buf[0, 4] = v` is C's comma operator, and
@@ -377,7 +381,7 @@ that holds it. The help says where the assignment goes instead, which differs
 by clause:
 
 ```
-error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
+error[E0715]: a for-loop header cannot hold this assignment: a string copy, which ADR-068 keeps out of a header (#2234)
   help: assign before the loop and leave the init clause empty
 error[E0715]: a for-loop header cannot hold this assignment: a slice write is more than one statement
   help: assign at the end of the loop body and write it as a while loop

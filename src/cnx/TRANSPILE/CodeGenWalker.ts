@@ -3236,11 +3236,11 @@ class CodeGenWalker {
   private planForAssignment(site: IAssignmentSyntax): IPlannedForAssignment {
     return {
       render: () => {
-        const form = ForHeaderAssignment.multiStatementForm(
+        const form = ForHeaderAssignment.rejectedForm(
           site,
           this.host.state.typingContext(),
         );
-        invariant(form === null, `E0715 rejects ${form} in a for header`);
+        invariant(form === null, `E0715 rejects this in a for header: ${form}`);
         const code = this.generateAssignment(site);
         invariant(
           code.endsWith(";"),

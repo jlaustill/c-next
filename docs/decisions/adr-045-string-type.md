@@ -343,10 +343,11 @@ Only a string lands in a `string<N>`: a literal, another string, a
 concatenation, a substring, or a C string (a `char*` or a `char[]`). Anything
 else -- an integer, a float or its bits, a bool, a char, an enum, a struct or
 an array -- is E0918, as a declaration's initializer, an assignment's value or
-an argument (#1634). A string array's list element is ADR-035's E0866, which
-takes only a string literal there (#2195). Until then each was accepted at exit 0 and emitted as the
-string copy, which C reads as an address. E0914 (ADR-024) is the other
-direction. A declaration's copy is decided by the `string<N>` it declares, as
+an argument (#1634). Until then each was accepted at exit 0 and emitted as the
+string copy, which C reads as an address. A string array's list element is
+ADR-035's E0866, which takes only a string literal there (#2195). E0914
+(ADR-024) is the other direction. A declaration's copy is decided by the
+`string<N>` it declares, as
 an assignment's is by its target: every initializer but a literal, a
 concatenation and a substring is copied in.
 

@@ -142,14 +142,14 @@ class LoopCheck {
     this.checkAlwaysTrue(statement.condition);
   }
 
-  /** E0715: a header clause holds one expression; these forms lower to more. */
+  /** E0715: the assignment forms ADR-068 keeps out of a header clause */
   private checkHeaderAssignment(site: IAssignmentSyntax, help: string): void {
-    const form = ForHeaderAssignment.multiStatementForm(site, this.context);
+    const form = ForHeaderAssignment.rejectedForm(site, this.context);
     if (form === null) return;
     this.report(
       site,
       "E0715",
-      `a for-loop header cannot hold this assignment: ${form} is more than one statement`,
+      `a for-loop header cannot hold this assignment: ${form}`,
       help,
     );
   }
