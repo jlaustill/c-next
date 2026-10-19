@@ -59,7 +59,9 @@ class WholeArrayValueAnalyzer {
         for (const arm of arms) found.push(...this.shapeMismatch(arm, at));
         continue;
       }
-      found.push(...WholeArrayValueAnalyzer.check(value, at, this.context));
+      if (site?.kind !== "argument") {
+        found.push(...WholeArrayValueAnalyzer.check(value, at, this.context));
+      }
     }
     found.push(...this.forClauseArrays(positions));
     return found.sort((a, b) => a.line - b.line || a.column - b.column);
