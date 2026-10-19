@@ -76,7 +76,7 @@ class StringFormCheck {
         stringType.span,
         "E0862",
         "An `atomic` string requires an explicit capacity",
-        "`atomic` makes a binding writable (ADR-071), and only a read-only string can have its capacity inferred. An atomic read-modify-write is of a scalar, not a string (ADR-049): declare `mut string<64>` and write it inside a `critical` block (ADR-050).",
+        "`atomic` makes a binding writable (ADR-071), and only a read-only string can have its capacity inferred. Give it a capacity: `atomic string<64>`.",
       );
       return;
     }
