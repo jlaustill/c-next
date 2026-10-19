@@ -1,8 +1,8 @@
-30:4 error[E0918]: Field 'A' of an array of 'F' names no element
+30:4 error[E0921]: Field 'A' of an array of 'F' names no element
        help: A field belongs to one 'F' value; index every dimension first, e.g. NAME[i].A (ADR-034).
-31:4 error[E0918]: Field 'A' of an array of 'F' names no element
+31:4 error[E0921]: Field 'A' of an array of 'F' names no element
        help: A field belongs to one 'F' value; index every dimension first, e.g. NAME[i].A (ADR-034).
-32:4 error[E0918]: Field 'A' of an array of 'F' names no element
+32:4 error[E0921]: Field 'A' of an array of 'F' names no element
        help: A field belongs to one 'F' value; index every dimension first, e.g. NAME[i].A (ADR-034).
-36:11 error[E0918]: Field 'A' of an array of 'F' names no element
+36:11 error[E0921]: Field 'A' of an array of 'F' names no element
        help: A field belongs to one 'F' value; index every dimension first, e.g. NAME[i].A (ADR-034).

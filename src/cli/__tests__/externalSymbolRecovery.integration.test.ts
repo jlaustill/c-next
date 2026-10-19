@@ -178,13 +178,13 @@ describe("external-symbol recovery (integration)", () => {
     if (!available) ctx.skip();
 
     // Fresh project dir with a project marker so on-disk caching activates
-    // (determineProjectRoot needs a marker like cnext.config.json). The first
+    // (determineProjectRoot needs a marker like cnx.config.json). The first
     // run populates .cnx/ with the DEGRADED header symbols (cached before the
     // recovery pass runs); the second run restores them from cache. The
     // recovery gate must survive caching so warm builds re-apply the fix.
     const cacheDir = mkdtempSync(join(tmpdir(), "cnext-recovery-cache-"));
     try {
-      writeFileSync(join(cacheDir, "cnext.config.json"), "{}\n");
+      writeFileSync(join(cacheDir, "cnx.config.json"), "{}\n");
       writeFileSync(join(cacheDir, "guard.h"), GUARD_H);
       writeFileSync(join(cacheDir, "widget.h"), WIDGET_H);
       writeFileSync(join(cacheDir, "pthread_impl.h"), PTHREAD_IMPL_H);

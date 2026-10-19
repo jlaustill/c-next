@@ -2,7 +2,7 @@
 // test-adr: 034
 // Issue #2186: a field of a bitmap array that names no whole element -- a 1-D
 // array, a partially indexed 2-D array, an array struct member, and a read --
-// is E0918. A field belongs to one bitmap value; transpiling it gave C that gcc
+// is E0921. A field belongs to one bitmap value; transpiling it gave C that gcc
 // rejects (`a1.A = true;`) at exit 0.
 //
 // NEGATIVE CONTROL: the fully indexed `g2[1][0].A` writes one bitmap value and

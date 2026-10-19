@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nothing writes is E0899 ("remove `atomic`"), and `atomic const` is E0898.
 - **New errors for bitmap and bit access** (ADR-007, ADR-034): a compound operator on a bitmap
   field (`flags.Mode +<- 1`) is E0857 (#2159); a field of a bitmap array that names no whole
-  element (`a.A` on `F[2]`) is E0918 (#2186); a constant bit index or range past the indexed
+  element (`a.A` on `F[2]`) is E0921 (#2186); a constant bit index or range past the indexed
   value's width (`small[20]` on a `u8`, `p.Mode[3]` on a 3-bit field) is E0920 (#1808).
 - **A bit of a bitmap field is a bit of the bitmap** (ADR-034, Issue #2251): `p.Mode[1]`, with
   `Mode` at bits 4-6, reads and writes bit 5 of `p`, on a variable and on a register member.
@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   script, Makefile or `package.json` that runs `cnext` must run `cnx` instead. `cnx --version`
   prints `cnx v<version>`, and `cnx --help` names `cnx` throughout. The config file names, the
   PlatformIO build script and the npm package name move to cnx separately (#2165, #2174, #2181).
+- **Config files are `cnx.config.json`, `.cnx.json` and `.cnxrc`** (Issue #2165), searched
+  in that order by the same upward walk as before. A file under an old name (`cnext.config.json`,
+  `.cnext.json`, `.cnextrc`) is never read: it is error E0918, naming the file and its new name, and
+  so is an old name beside a new one. Discovery reports one in any directory a project-root walk
+  passes, so a library still shipping `cnext.config.json` stops the build of a consumer that includes
+  one of its `.cnx` files until it is renamed in the library. A consumer of its C headers alone is
+  unaffected. The editor's server reports a workspace config's E0918 on every transpile, and picks up
+  the renamed file at the next one, with no restart. `--pio-install` updates whichever config the
+  project already has, where it used to write `cnext.config.json` beside a `.cnextrc` and shadow it.
 - **The repository moved to [smeltworks/cnx](https://github.com/smeltworks/cnx)** (Issue #2180).
   Old `github.com/jlaustill/c-next` links and git remotes redirect; update a clone with
   `git remote set-url origin https://github.com/smeltworks/cnx.git`. The coverage report moved

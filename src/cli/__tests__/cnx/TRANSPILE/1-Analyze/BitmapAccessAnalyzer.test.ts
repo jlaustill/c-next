@@ -189,7 +189,7 @@ describe("BitmapAccessAnalyzer -- positions and rooted chains", () => {
 
 // #2186: a field belongs to one bitmap value, so a field of an array of
 // bitmaps, or of a row of one, names no storage.
-describe("BitmapAccessAnalyzer (E0918)", () => {
+describe("BitmapAccessAnalyzer (E0921)", () => {
   it("rejects a field of an array or a row, and accepts a whole element's", () => {
     const found = errors(
       [
@@ -204,8 +204,8 @@ describe("BitmapAccessAnalyzer (E0918)", () => {
       ].join("\n"),
     );
     expect(found.map((e) => [e.code, e.line])).toEqual([
-      ["E0918", 5],
-      ["E0918", 6],
+      ["E0921", 5],
+      ["E0921", 6],
     ]);
     expect(found[0].message).toBe(
       "Field 'Enable' of an array of 'Flags' names no element",

@@ -1,0 +1,3 @@
+u32 innerValue() {
+    return 3;
+}

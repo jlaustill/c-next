@@ -51,13 +51,13 @@ describe("ConfigPrinter", () => {
         parseOnly: false,
       };
       const fileConfig: IFileConfig = {
-        _path: "/path/to/cnext.config.json",
+        _path: "/path/to/cnx.config.json",
       };
 
       ConfigPrinter.showConfig(config, fileConfig);
 
       const fullOutput = output.join("\n");
-      expect(fullOutput).toContain("/path/to/cnext.config.json");
+      expect(fullOutput).toContain("/path/to/cnx.config.json");
     });
 
     it("displays (none) when no config file is loaded", () => {

@@ -14,12 +14,16 @@ This command:
 
 - Creates `cnext_build.py` (pre-build transpilation script)
 - Modifies `platformio.ini` to add `extra_scripts = pre:cnext_build.py`
-- Creates/updates `cnext.config.json` (adds `.pio/libdeps` to `include`, sets `headerOut: include`)
+- Creates/updates `cnx.config.json` (adds `.pio/libdeps` to `include`, sets `headerOut: include`)
 
-## Project Configuration (`cnext.config.json`)
+## Project Configuration (`cnx.config.json`)
 
-C-Next reads `cnext.config.json` (or `.cnext.json` / `.cnextrc`) from the project
-root. `--pio-install` writes a working default; the fields you'll touch most:
+C-Next reads `cnx.config.json` (or `.cnx.json` / `.cnxrc`) from the project
+root. A config under an old name — `cnext.config.json`, `.cnext.json` or
+`.cnextrc` — is error E0918 and is never read: rename it. That includes one in a
+library your project includes, which only the library can fix.
+
+`--pio-install` writes a working default; the fields you'll touch most:
 
 | Field         | Purpose                                                                                                                                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -30,7 +34,7 @@ root. `--pio-install` writes a working default; the fields you'll touch most:
 | `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                             |
 | `cppRequired` | `true` emits C++ (`.cpp`/`.hpp`) regardless; `false` requires C. Unset, the mode is detected from the headers your sources reach — see below.                                                                 |
 
-Relative paths in `cnext.config.json` resolve against the directory holding the
+Relative paths in `cnx.config.json` resolve against the directory holding the
 config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve
 against the current working directory. So `"headerOut": "include"` names the same
 directory whether you run `cnext` from the project root or from `src/`, while
@@ -63,7 +67,7 @@ usually need not name it: when no `#pragma target` and no `--target` (or config
 - A board names a target when the catalog has that name (`teensy41`), or when its
   platform is `atmelavr` (target `avr`) or `native` (target `host`). Any other
   board is E0510 — name the target with `#pragma target <name>` or `target` in
-  `cnext.config.json`. `cnext --help` lists the known targets.
+  `cnx.config.json`. `cnext --help` lists the known targets.
 
 The run prints the target it used and where it came from, e.g.
 `Target: teensy41 (platformio)`, and `pio run` shows that line.
@@ -78,7 +82,7 @@ sets no `default_envs`, every build fails with E0511.
 C-Next emits **C** (`.c` + `.h`) unless a header your sources reach is C++: a
 `.hpp`, or a `.h` whose preprocessed text holds templates, classes, namespaces or
 access specifiers (`FlexCAN_T4.h`, Arduino classes). Then it emits **C++**
-(`.cpp` + `.hpp`). Set `cppRequired: true` in `cnext.config.json` (or pass `--cpp`)
+(`.cpp` + `.hpp`). Set `cppRequired: true` in `cnx.config.json` (or pass `--cpp`)
 to emit C++ regardless, or `cppRequired: false` (or `--no-cpp`) to require C.
 
 A run that requires C and `#include`s a C++ header **fails with E0507**, at the

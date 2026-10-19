@@ -35,7 +35,7 @@ describe("Cli path normalization (integration)", () => {
     process.env.HOME = homeDir;
 
     writeFileSync(
-      join(tempDir, "cnext.config.json"),
+      join(tempDir, "cnx.config.json"),
       JSON.stringify({ include: ["~/sdk/include"] }),
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
@@ -56,7 +56,7 @@ describe("Cli path normalization (integration)", () => {
     // Create directory structure
     mkdirSync(join(tempDir, "include", "sub"), { recursive: true });
     writeFileSync(
-      join(tempDir, "cnext.config.json"),
+      join(tempDir, "cnx.config.json"),
       JSON.stringify({ include: [`${tempDir}/include/**`] }),
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
@@ -82,7 +82,7 @@ describe("Cli path normalization (integration)", () => {
    */
   it("does not anchor a CLI --header-out path to the config file directory", () => {
     writeFileSync(
-      join(tempDir, "cnext.config.json"),
+      join(tempDir, "cnx.config.json"),
       JSON.stringify({ headerOut: "include" }),
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
@@ -106,7 +106,7 @@ describe("Cli path normalization (integration)", () => {
     const srcDir = join(tempDir, "src");
     mkdirSync(srcDir, { recursive: true });
     writeFileSync(
-      join(tempDir, "cnext.config.json"),
+      join(tempDir, "cnx.config.json"),
       JSON.stringify({ headerOut: "include" }),
     );
     writeFileSync(join(srcDir, "test.cnx"), "void main() {}");

@@ -73,7 +73,7 @@ class BitmapAccessCheck {
   /**
    * Walk one chain as the typer typed it, whatever spells its prefix (#1749
    * review): every step off a bitmap value is a named field of it. Reports
-   * E0918, E0883 and E0882 where they apply, and returns the bitmap field the
+   * E0921, E0883 and E0882 where they apply, and returns the bitmap field the
    * chain ends at when it ends at one.
    */
   private checkChain(
@@ -90,7 +90,7 @@ class BitmapAccessCheck {
         if (step.member === null || step.property !== null) continue;
         this.report(
           node,
-          "E0918",
+          "E0921",
           `Field '${step.member}' of an array of '${bitmap}' names no element`,
           `A field belongs to one '${bitmap}' value; index every dimension first, e.g. NAME[i].${step.member} (ADR-034).`,
         );

@@ -379,33 +379,21 @@ describe("IncludeResolver", () => {
 
   describe("buildSearchPaths()", () => {
     it("should put source directory first", () => {
-      const paths = IncludeResolver.buildSearchPaths(
-        srcDir,
-        [includeDir],
-        [],
-        undefined,
-        NodeFileSystem.instance,
-      );
+      const paths = IncludeResolver.buildSearchPaths(srcDir, [includeDir], []);
 
       expect(paths[0]).toBe(srcDir);
     });
 
     it("should include additional include dirs before config dirs", () => {
       const extraDir = join(testDir, "extra");
-      mkdirSync(extraDir, { recursive: true });
 
       const paths = IncludeResolver.buildSearchPaths(
         srcDir,
         [includeDir],
         [extraDir],
-        undefined,
-        NodeFileSystem.instance,
       );
 
-      const extraIndex = paths.indexOf(extraDir);
-      const includeIndex = paths.indexOf(includeDir);
-
-      expect(extraIndex).toBeLessThan(includeIndex);
+      expect(paths).toEqual([srcDir, extraDir, includeDir]);
     });
 
     it("should deduplicate paths", () => {
@@ -413,50 +401,21 @@ describe("IncludeResolver", () => {
         srcDir,
         [srcDir, includeDir, srcDir], // duplicates
         [],
-        undefined,
-        NodeFileSystem.instance,
       );
 
-      const srcCount = paths.filter((p) => p === srcDir).length;
-      expect(srcCount).toBe(1);
+      expect(paths).toEqual([srcDir, includeDir]);
     });
 
-    it("should not include project dirs when projectRoot is null", () => {
-      // Use a directory without project markers
-      const isolatedDir = join(testDir, "isolated");
-      mkdirSync(isolatedDir, { recursive: true });
+    // #2165: the project tier is discoverIncludePaths' alone. This walked to
+    // the root again and appended include/, src/ and lib/, which the
+    // discovered tiers already carry, so the dedupe dropped every one.
+    it("adds no project directory of its own", () => {
+      mkdirSync(join(testDir, "include"), { recursive: true });
+      writeFileSync(join(testDir, "platformio.ini"), "");
 
-      // Create include/ subdirectory that should NOT be added
-      // since there's no project root
-      mkdirSync(join(isolatedDir, "include"), { recursive: true });
-
-      // Pass undefined projectRoot and use a path with no markers
-      const paths = IncludeResolver.buildSearchPaths(
-        isolatedDir,
-        [],
-        [],
-        undefined,
-        NodeFileSystem.instance,
-      );
-
-      // Should just have the source dir (no project root found)
-      expect(paths).toContain(isolatedDir);
-    });
-
-    it("should add project common dirs when projectRoot is provided", () => {
-      // Create a project structure with include/ dir
-      const projectRoot = testDir;
-      const projectInclude = join(projectRoot, "include");
-
-      const paths = IncludeResolver.buildSearchPaths(
+      expect(IncludeResolver.buildSearchPaths(srcDir, [], [])).toEqual([
         srcDir,
-        [],
-        [],
-        projectRoot,
-        NodeFileSystem.instance,
-      );
-
-      expect(paths).toContain(projectInclude);
+      ]);
     });
   });
 

@@ -1,0 +1,2 @@
+tests/bugs/issue-2165-renamed-config/lib/cnext.config.json:1:0 error[E0918]: a config file has its old name: cnext.config.json is now cnx.config.json
+       help: cnx reads cnx.config.json, .cnx.json and .cnxrc. Rename this file to cnx.config.json; a library's config is renamed in the library.
