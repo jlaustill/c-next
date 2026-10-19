@@ -46,7 +46,7 @@ assessment claimed N/A.
 | Directives (1-4) | 1        | 8         | 1       | 0       | 1   | 1            | 1         |
 | Rules 1-5        | 4        | 3         | 5       | 0       | 0   | 10           | 1         |
 | Rules 6-10       | 4        | 13        | 9       | 0       | 0   | 7            | 0         |
-| Rules 11-15      | 2        | 13        | 7       | 0       | 1   | 8            | 0         |
+| Rules 11-15      | 2        | 12        | 7       | 0       | 1   | 8            | 1         |
 | Rules 16-22      | 6        | 26        | 6       | 0       | 1   | 17           | 1         |
 
 Counted from the guideline tables below by `npm run docs:toolchain` (157 guidelines).
