@@ -67,8 +67,14 @@ uint32_t S__run(void) {
     }
     char d3[41] = "";
     cnx_string_copy(d3, S__m + 0, 1U);
-    cnx_string_copy(d3 + strlen(d3), c.name + 1, 1U);
-    cnx_string_copy(d3 + strlen(d3), arr[2] + 1, 1U);
+    {
+        const uint32_t cnx_used = (uint32_t) strlen(d3);
+        cnx_string_copy(d3 + cnx_used, c.name + 1, ((40U - cnx_used) < 1U) ? (40U - cnx_used) : 1U);
+    }
+    {
+        const uint32_t cnx_used = (uint32_t) strlen(d3);
+        cnx_string_copy(d3 + cnx_used, arr[2] + 1, ((40U - cnx_used) < 1U) ? (40U - cnx_used) : 1U);
+    }
     d3[40] = '\0';
     if (strcmp(d3, "my2") != 0) {
         return 3U;
@@ -125,7 +131,10 @@ uint32_t S__run(void) {
     {
         char cnx_tmp3[41] = "";
         (void) strncpy(cnx_tmp3, "z", 40);
-        cnx_string_copy(cnx_tmp3 + strlen(cnx_tmp3), S__m + 0U, (uint32_t)(1U));
+        {
+            const uint32_t cnx_used = (uint32_t) strlen(cnx_tmp3);
+            cnx_string_copy(cnx_tmp3 + cnx_used, S__m + 0U, ((40U - cnx_used) < (uint32_t)(1U)) ? (40U - cnx_used) : (uint32_t)(1U));
+        }
         cnx_tmp3[40] = '\0';
         cnx_string_copy(o[1], cnx_tmp3, 40U);
     }
@@ -137,7 +146,10 @@ uint32_t S__run(void) {
     {
         char cnx_tmp4[9] = "";
         (void) strncpy(cnx_tmp4, "z", 8);
-        cnx_string_copy(cnx_tmp4 + strlen(cnx_tmp4), s + 0U, (uint32_t)(2U));
+        {
+            const uint32_t cnx_used = (uint32_t) strlen(cnx_tmp4);
+            cnx_string_copy(cnx_tmp4 + cnx_used, s + 0U, ((8U - cnx_used) < (uint32_t)(2U)) ? (8U - cnx_used) : (uint32_t)(2U));
+        }
         cnx_tmp4[8] = '\0';
         cnx_string_copy(s, cnx_tmp4, 8U);
     }

@@ -243,15 +243,17 @@ class StringDeclarationCheck {
     capacity: number,
     write: TWrite,
   ): void {
+    // A part of unknown length (a C string, an unsized `string`) is bounded
+    // when it is built; the parts that can be measured still have to fit
     const each = parts.map((part) => this.capacityOf(part));
-    if (each.includes(null)) return;
     const required = each.reduce<number>((sum, n) => sum + (n ?? 0), 0);
     if (required <= capacity) return;
     const where = StringDeclarationCheck.whose(write);
+    const least = each.includes(null) ? "at least " : "";
     this.report(
       value,
       "E0864",
-      `String concatenation requires capacity ${required}, but ${where} is string<${capacity}>`,
+      `String concatenation requires ${least}capacity ${required}, but ${where} is string<${capacity}>`,
       `Widen ${where} to string<${required}>, or shorten the operands.`,
     );
   }

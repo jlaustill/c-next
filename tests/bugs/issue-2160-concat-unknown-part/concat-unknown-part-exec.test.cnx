@@ -1,0 +1,36 @@
+// test-execution
+// test-no-warnings
+// Tests: #2160 review - a substring appended after a part of unknown length (an unsized string) is bounded by the space left, so the field after the string keeps its value; a whole-part append is the control
+struct Box {
+    string<8> t;
+    u8 canary;
+}
+
+u32 joinAll(string p) {
+    string<8> s <- "abcdefgh";
+    Box b <- { t: p + s[0, 4], canary: 90 };
+    if (b.canary != 90) {
+        return 1;
+    }
+    if (b.t != "12345678") {
+        return 2;
+    }
+    string<8> d <- p + s[0, 4];
+    if (d != "12345678") {
+        return 3;
+    }
+    mut string<8> e <- "";
+    e <- p + s[0, 4];
+    if (e != "12345678") {
+        return 4;
+    }
+    Box c <- { t: p + "xyz", canary: 91 };
+    if (c.canary != 91) {
+        return 5;
+    }
+    return 0;
+}
+
+u32 main() {
+    return joinAll("12345678");
+}

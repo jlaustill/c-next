@@ -50,16 +50,13 @@ class StringUtils {
         : [`(void) strncpy(${buffer}, ${first.code}, ${capacity});`];
     if (rest.length === 0 && first.kind === "substring") return lines;
     for (const part of rest) {
-      lines.push(
-        part.kind === "substring"
-          ? StringUtils.substring(
-              `${buffer} + strlen(${buffer})`,
-              part.source,
-              part.start,
-              part.length,
-            )[0]
-          : `(void) strncat(${buffer}, ${part.code}, ${capacity} - strlen(${buffer}));`,
-      );
+      if (part.kind === "substring") {
+        lines.push(...StringUtils.appendSubstring(buffer, capacity, part));
+      } else {
+        lines.push(
+          `(void) strncat(${buffer}, ${part.code}, ${capacity} - strlen(${buffer}));`,
+        );
+      }
     }
     lines.push(`${buffer}[${capacity}] = ${C_NULL_CHAR};`);
     return lines;
@@ -72,13 +69,37 @@ class StringUtils {
    * and a terminator did, without gcc's `-Wstringop-truncation` on a source
    * longer than the count (#2160 review).
    */
+  /**
+   * A substring appended to what is built, bounded by the space left as
+   * `strncat` bounds a whole part: a part before it may be a C string or an
+   * unsized `string`, whose length 2.1 cannot measure (#2160 review)
+   */
+  private static appendSubstring(
+    buffer: string,
+    capacity: number,
+    part: Extract<TRenderedStringPart, { kind: "substring" }>,
+  ): string[] {
+    const count = StringUtils.count(part.length);
+    const left = `(${capacity}U - cnx_used)`;
+    return [
+      "{",
+      `    const uint32_t cnx_used = (uint32_t) strlen(${buffer});`,
+      `    ${StringUtils.COPY_HELPER}(${buffer} + cnx_used, ${part.source} + ${part.start}, (${left} < ${count}) ? ${left} : ${count});`,
+      "}",
+    ];
+  }
+
+  private static count(length: string): string {
+    return /^\d+$/.test(length) ? `${length}U` : `(uint32_t)(${length})`;
+  }
+
   static substring(
     target: string,
     source: string,
     start: string,
     length: string,
   ): string[] {
-    const count = /^\d+$/.test(length) ? `${length}U` : `(uint32_t)(${length})`;
+    const count = StringUtils.count(length);
     return [
       `${StringUtils.COPY_HELPER}(${target}, ${source} + ${start}, ${count});`,
     ];
