@@ -39,6 +39,7 @@ describe("FloatBitHelper", () => {
         bitIndex,
         width: width === null ? null : { text: width, folded: undefined },
         value,
+        folded: undefined,
         isVariable,
         atomic: null,
       },

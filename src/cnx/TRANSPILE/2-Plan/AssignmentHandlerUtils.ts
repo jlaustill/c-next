@@ -94,6 +94,7 @@ function writeBits(ctx: IAssignmentContext): string {
       bitIndex: start,
       width: width ?? null,
       value: ctx.generatedValue,
+      folded: ctx.foldValue(),
       isVariable: floatBits.shared,
       atomic: ctx.atomic,
     });

@@ -81,6 +81,7 @@ class FloatBitHelper {
             bitWrite.bitIndex,
             bitWrite.value,
             intType,
+            bitWrite.folded,
           )
         : BitUtils.multiBitWrite(
             bits,
@@ -135,7 +136,13 @@ class FloatBitHelper {
     const intType = FloatBitType.of(bitWrite.floatType);
     const bits = (read: string, value: string): string =>
       bitWrite.width === null
-        ? BitUtils.singleBitValue(read, bitWrite.bitIndex, value, intType)
+        ? BitUtils.singleBitValue(
+            read,
+            bitWrite.bitIndex,
+            value,
+            intType,
+            value === bitWrite.value ? bitWrite.folded : undefined,
+          )
         : BitUtils.multiBitValue(
             read,
             bitWrite.bitIndex,

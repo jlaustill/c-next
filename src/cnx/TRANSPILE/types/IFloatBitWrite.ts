@@ -16,6 +16,8 @@ interface IFloatBitWrite {
   readonly width: IBitWidth | null;
   /** The value written */
   readonly value: string;
+  /** The value's constant fold, as an integer bit write folds it (Rule 14.3) */
+  readonly folded: number | undefined;
   /** Whether `target` names a variable, which has a shadow union */
   readonly isVariable: boolean;
   /** What 2.2 planned for the bits of an `atomic` float (ADR-049), or null */
