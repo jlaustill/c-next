@@ -26,6 +26,7 @@ typedef struct Shadow {
 /* Function prototypes */
 uint8_t viaLocal(void);
 void viaParam(Shadow& viaParam__MOTOR);
+void viaRegister(void);
 
 #ifdef __cplusplus
 }

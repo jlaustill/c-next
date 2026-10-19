@@ -29,7 +29,8 @@ function fieldOfTarget(ctx: IAssignmentContext): IBitmapFieldTarget {
  * A bitmap field write: the field's bits of the bitmap's backing scalar,
  * written by `BitUtils`, whose width decisions read the backing type (#1668).
  * A write-1 register member takes a plain write, never a read-modify-write:
- * the member cannot be read (#1776).
+ * the member cannot be read (#1776). A zero there is E0872 in pass 2.1, and
+ * asserted here as the register bit's is, so the field form keeps the pair.
  */
 function writeBitmapField(
   target: string,
@@ -43,6 +44,18 @@ function writeBitmapField(
     `a bitmap the resolver collected has a backing type ('${bitmapType}')`,
   );
   const value = ctx.generatedValue;
+  if (writeOnly) {
+    const bits =
+      layout.width === 1
+        ? `${layout.offset}`
+        : `${layout.offset}, ${layout.width}`;
+    AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.foldValue(),
+      value,
+      target,
+      bits,
+    );
+  }
   if (layout.width === 1) {
     return writeOnly
       ? BitUtils.writeOnlySingleBit(

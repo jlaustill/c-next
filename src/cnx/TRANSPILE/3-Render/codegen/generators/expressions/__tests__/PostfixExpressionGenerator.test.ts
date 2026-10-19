@@ -265,6 +265,7 @@ function memberStep(
     beforeIsBitField: false,
     beforeRegisterMember: null,
     beforeRegister: null,
+    registerMember: null,
     member: null,
   };
 }
@@ -472,6 +473,7 @@ function withPropertySteps(
               beforeIsBitField: false,
               beforeRegisterMember: null,
               beforeRegister: null,
+              registerMember: null,
               member: null,
             },
           };

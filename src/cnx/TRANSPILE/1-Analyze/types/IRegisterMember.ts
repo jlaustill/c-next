@@ -1,5 +1,5 @@
 /**
- * A register member (ADR-004), resolved from a chain as the author wrote it.
+ * A register member (ADR-004) a chain names, as the typer resolved it.
  */
 interface IRegisterMember {
   /** The member's key in `registerMemberAccess`, e.g. `Board__R__ST`. */
@@ -10,8 +10,6 @@ interface IRegisterMember {
   readonly member: string;
   /** The chain up to the member as written, e.g. `this.R.ST`. */
   readonly spelling: string;
-  /** How many chain names the register and member consumed. */
-  readonly consumed: number;
 }
 
 export default IRegisterMember;

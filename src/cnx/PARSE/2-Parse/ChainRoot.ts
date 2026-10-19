@@ -2,7 +2,7 @@
  * Which of ADR-016's three spellings a member chain is written in.
  *
  * #1322 review. Four copies of this two-line decision existed --
- * `RegisterMemberReference` held two, `BitAccessAnalyzer` held one as a method
+ * a register-member resolver held two, `BitAccessAnalyzer` held one as a method
  * and one as an inline nested ternary -- and they are one decision, not four.
  *
  * The two overloads are not a convenience: a POSTFIX EXPRESSION carries its

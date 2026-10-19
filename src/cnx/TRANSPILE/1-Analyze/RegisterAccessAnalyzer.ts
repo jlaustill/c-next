@@ -26,13 +26,12 @@
  *   to clear a bit SET it, because the check compared the generated text
  *   against the two spellings `"false"` and `"0"`.
  *
- * Here E0870 and E0871 resolve the chain once, through
- * `RegisterMemberReference`, to the member's key in the per-file symbol view,
- * and read the access modifier from that. E0872 reads the typer's step instead
- * (#2027, review of #2155): the step that writes a bit, a bit range or a
- * bitmap field names the register member before it, the fact the renderer
- * writes with, so the rule and the C it guards cannot disagree on the member,
- * whatever spells it. The zero rule evaluates the value as a constant rather
+ * Here all three read the typer's chain (#2027, review of #2155): E0870 and
+ * E0871 the step that names a register member, E0872 the step that writes a
+ * bit, a bit range or a bitmap field of one. That is the fact the renderer
+ * writes with, so a rule and the C it guards cannot disagree on the member,
+ * whatever spells it -- a second resolver of the spelling, which these rules
+ * had, was free to. The zero rule evaluates the value as a constant rather
  * than reading its spelling.
  *
  * ## What is reproduced, not closed
@@ -50,7 +49,6 @@ import type TExpression from "../../types/syntax/TExpression";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
-import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import ZeroValue from "./helpers/ZeroValue";
@@ -73,7 +71,7 @@ class RegisterAccessCheck {
 
   /** Every postfix expression is a read: targets are `assignmentTarget`. */
   public checkExpression(expr: TExpression): void {
-    const found = RegisterMemberReference.ofChain(expr, this.context);
+    const found = this.memberOf(expr);
     if (found === null) return;
     this.reportRead(found, expr);
   }
@@ -82,7 +80,7 @@ class RegisterAccessCheck {
   public checkSite(site: IAssignmentSyntax): void {
     const target = site.target;
     if (site.operator === "<-") this.checkZeroBits(site);
-    const found = RegisterMemberReference.ofChain(target, this.context);
+    const found = this.memberOf(target);
     if (found === null) return;
     if (found.access === "ro") {
       this.report(
@@ -129,6 +127,39 @@ class RegisterAccessCheck {
   }
 
   // --- Resolution ---------------------------------------------------------
+
+  /**
+   * The register member a chain names: the typer's step that reads it. Its
+   * spelling, for the message, is the chain's names up to that step -- a
+   * register member is reached only through `.name` steps.
+   */
+  private memberOf(chain: TExpression): IRegisterMember | null {
+    if (chain.kind !== "postfix") return null;
+    const steps = OperandTyper.chainOf(chain, this.context).steps;
+    const at = steps.findIndex((step) => step.registerMember !== null);
+    if (at === -1) return null;
+    const step = steps[at];
+    const key = step.registerMember;
+    const member = step.member;
+    const access =
+      key === null
+        ? undefined
+        : this.context.symbols.registerMemberAccess.get(key);
+    if (key === null || member === null || access === undefined) return null;
+    const root = chain.primary.kind === "root" ? `${chain.primary.root}.` : "";
+    const names = [
+      ...(chain.primary.kind === "identifier" ? [chain.primary.name] : []),
+      ...chain.ops.map((op) => (op.kind === "member" ? op.name : "")),
+    ];
+    // Step `at` reads names[at + 1]: the head (or a root's first `.name`) is
+    // what step 0 applies to
+    return {
+      key,
+      access,
+      member,
+      spelling: root + names.slice(0, at + 2).join("."),
+    };
+  }
 
   // --- Reporting ----------------------------------------------------------
 

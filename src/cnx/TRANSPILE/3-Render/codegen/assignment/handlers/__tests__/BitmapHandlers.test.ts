@@ -132,6 +132,7 @@ describe("BitmapHandlers", () => {
             beforeIsBitField: false,
             beforeRegisterMember: null,
             beforeRegister: null,
+            registerMember: null,
             member: identifiers.at(-1)!,
           },
         },
@@ -243,6 +244,7 @@ describe("BitmapHandlers", () => {
             beforeIsBitField: false,
             beforeRegisterMember: member,
             beforeRegister: null,
+            registerMember: null,
             member: identifiers.at(-1)!,
           },
         },
@@ -324,5 +326,27 @@ describe("BitmapHandlers", () => {
       expect(result).toContain("Motor__GPIO7__ICR1 =");
       expect(result).toContain("<< 6");
     });
+
+    // Review of #2155: E0872 rejects a zero on a write-1 member's field in
+    // 2.1; 2.3 asserts it, as it does for the member's bit, so a zero that
+    // got past 2.1 is a crash rather than a write the hardware ignores
+    it.each([
+      ["a single-bit field", { offset: 0, width: 1 }, "0"],
+      ["a multi-bit field", { offset: 2, width: 3 }, "2, 3"],
+    ])(
+      "asserts a zero never reaches %s of a write-1 member",
+      (_, layout, bits) => {
+        declareMember("MOTOR__FLAGS", ["Field", layout], "w1c");
+
+        expect(() =>
+          write(
+            memberWrite("MOTOR__FLAGS", ["MOTOR", "FLAGS", "Field"], {
+              generatedValue: "0U",
+              foldValue: () => 0,
+            }),
+          ),
+        ).toThrow(`E0872 rejects '0U' on MOTOR__FLAGS[${bits}]`);
+      },
+    );
   });
 });

@@ -31,6 +31,13 @@ interface IChainStep {
   readonly beforeRegisterMember: string | null;
   /** The register `beforeRegisterMember` is a member of, by its C name (`Drive__PWM`) */
   readonly beforeRegister: string | null;
+  /**
+   * ADR-004: for a `.name` step that reads a register member, the member's C
+   * name, however the register was spelled; null for any other step. The rule
+   * on a member's access (E0870/E0871) asks the typer which member a chain
+   * names, as the renderer does, rather than resolving the spelling again.
+   */
+  readonly registerMember: string | null;
   readonly after: IOperandType | null;
   /** A call's: the C name of the function it calls, when the chain names one (#1991) */
   readonly callee: string | null;

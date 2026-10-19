@@ -31,6 +31,7 @@ function registerTarget(
       beforeIsBitField: false,
       beforeRegisterMember: member,
       beforeRegister: register,
+      registerMember: null,
       member: null,
     },
   } as IAssignmentContext["target"];

@@ -29,7 +29,9 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // writes as for its reads. A plain write, a bit and a bit range through the
 // local land on the local; the register is never written (it is not mapped
 // on the host, so a write to it would fault). A parameter of the same name
-// is the control.
+// is a second assertion of the same rule (it was miscompiled too). The
+// control is `viaRegister`, never called: with nothing shadowing it, the
+// register is written, and the snapshot pins its C.
 uint8_t viaLocal(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `MOTOR` emitted as `viaLocal__MOTOR` (a plain `MOTOR` would hide the file-scope `MOTOR` for the rest of its scope, so `global.MOTOR` would reach the local). */
     Shadow viaLocal__MOTOR = { .FLAGS = 0U, .CONFIG = 0U };
@@ -44,6 +46,11 @@ void viaParam(Shadow& viaParam__MOTOR) {
     viaParam__MOTOR.CONFIG = 7U;
     viaParam__MOTOR.FLAGS = (uint8_t)((viaParam__MOTOR.FLAGS & ~(1U << 0)) | (1U << 0));
     viaParam__MOTOR.CONFIG = (uint8_t)((viaParam__MOTOR.CONFIG & ~(0x3U << 4)) | ((3U & 0x3U) << 4));
+}
+
+void viaRegister(void) {
+    MOTOR__CONFIG = 7U;
+    MOTOR__FLAGS = (uint8_t)(1U << 0);
 }
 
 int main(void) {

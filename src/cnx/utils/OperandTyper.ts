@@ -371,6 +371,8 @@ class OperandTyper {
           current.k === "value"
             ? (current.registerMember?.register ?? null)
             : null,
+        registerMember:
+          next.k === "value" ? (next.registerMember?.cName ?? null) : null,
         subscript,
         after: next.k === "value" ? next.t : null,
         callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,

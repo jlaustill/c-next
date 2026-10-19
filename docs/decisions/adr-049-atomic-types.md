@@ -745,10 +745,11 @@ contexts are declared `error` in every column, asserted by
 (review of #2155). A write cannot stand in a global or a scope member's
 declaration, so the rule adds no cell there.
 
-So the `error` cells of a top-level function and a scope method are each
-asserted for both rules: E0889 by `atomic-volatile-in-function-error` and
+So a top-level function's and a scope method's same-file cells are asserted
+for both rules -- E0889 by `atomic-volatile-in-function-error` and
 `atomic-volatile-in-scope-method-error`, beside the file-scope
-`atomic-volatile-error`. The one `warn` cell is E0889 on a scope member's
+`atomic-volatile-error` -- and their imported cells by the read-modify-write
+rule only. The one `warn` cell is E0889 on a scope member's
 declaration, which no fixture asserts yet.
 
 ## References

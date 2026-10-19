@@ -4,15 +4,15 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 
 ## Status Legend
 
-| Status           | Meaning                                                    |
-| ---------------- | ---------------------------------------------------------- |
-| **Enforced**     | Compiler produces an error if violated                     |
-| **By Design**    | Language design makes violation impossible                 |
-| **Partial**      | Some cases enforced, others not yet                        |
-| **Planned**      | On roadmap for future implementation                       |
-| **N/A**          | Rule not applicable to C-Next                              |
-| **Not Enforced** | Currently not checked                                      |
-| **Deviation**    | Documented deviation with inline suppression for valid use |
+| Status           | Meaning                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| **Enforced**     | Compiler produces an error if violated                          |
+| **By Design**    | Language design makes violation impossible                      |
+| **Partial**      | Some cases enforced, others not yet                             |
+| **Planned**      | On roadmap for future implementation                            |
+| **N/A**          | Rule not applicable to C-Next                                   |
+| **Not Enforced** | Currently not checked                                           |
+| **Deviation**    | Documented deviation for a valid use, recorded where it applies |
 
 <!-- BEGIN GENERATED: toolchain-guidelines -->
 
@@ -290,17 +290,17 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 11 - Pointer Type Conversions
 
-| Rule | Description                            | Status        | Reference                                                                                                                                                                                                            |
-| ---- | -------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 11.1 | No function pointer conversion         | **By Design** | No raw pointers                                                                                                                                                                                                      |
-| 11.2 | No incomplete type pointer conversion  | **By Design** | No raw pointers                                                                                                                                                                                                      |
-| 11.3 | No cast between object pointer types   | **Deviation** | One cast, recorded where it is emitted: a signed `atomic` integer's LDREX/STREX loop accesses it through its same-width unsigned type, because CMSIS takes an unsigned pointer (C11 6.5p7 defines the access): #2208 |
-| 11.4 | No object pointer/integer conversion   | Not Enforced  | Register bindings convert an address to a `volatile` pointer; fix or deviation undecided: #867, #1413                                                                                                                |
-| 11.5 | No void\* to object pointer            | **By Design** | No void pointers                                                                                                                                                                                                     |
-| 11.6 | No pointer to void to arithmetic       | **By Design** | No void pointers                                                                                                                                                                                                     |
-| 11.7 | No cast between pointer and arithmetic | **By Design** | No raw pointers                                                                                                                                                                                                      |
-| 11.8 | No cast removing const/volatile        | **Enforced**  | Const-discard fixed with ADR-070 (#1259): the explicit `(void)` discard no longer hides a callee from modification tracking                                                                                          |
-| 11.9 | NULL for null pointer constant         | **By Design** | NULL handling in transpiler                                                                                                                                                                                          |
+| Rule | Description                            | Status        | Reference                                                                                                                                                                                                                                                                                                                           |
+| ---- | -------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11.1 | No function pointer conversion         | **By Design** | No raw pointers                                                                                                                                                                                                                                                                                                                     |
+| 11.2 | No incomplete type pointer conversion  | **By Design** | No raw pointers                                                                                                                                                                                                                                                                                                                     |
+| 11.3 | No cast between object pointer types   | **Deviation** | Signed 16/32-bit `atomic` LDREX/STREX loops pass the value's address as a pointer to its same-width unsigned type, at the `__LDREX*` and the `__STREX*`, because CMSIS takes an unsigned pointer (C11 6.5p7 defines the access); each loop's generated comment records it, and `i8` falls under the character-type exception: #2208 |
+| 11.4 | No object pointer/integer conversion   | Not Enforced  | Register bindings convert an address to a `volatile` pointer; fix or deviation undecided: #867, #1413                                                                                                                                                                                                                               |
+| 11.5 | No void\* to object pointer            | **By Design** | No void pointers                                                                                                                                                                                                                                                                                                                    |
+| 11.6 | No pointer to void to arithmetic       | **By Design** | No void pointers                                                                                                                                                                                                                                                                                                                    |
+| 11.7 | No cast between pointer and arithmetic | **By Design** | No raw pointers                                                                                                                                                                                                                                                                                                                     |
+| 11.8 | No cast removing const/volatile        | **Enforced**  | Const-discard fixed with ADR-070 (#1259): the explicit `(void)` discard no longer hides a callee from modification tracking                                                                                                                                                                                                         |
+| 11.9 | NULL for null pointer constant         | **By Design** | NULL handling in transpiler                                                                                                                                                                                                                                                                                                         |
 
 ---
 

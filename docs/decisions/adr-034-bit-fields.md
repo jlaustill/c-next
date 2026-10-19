@@ -395,25 +395,23 @@ uint8_t mode = ((status.flags >> 3) & 0x7);
 
 | Code  | Reported when                                                                    | Asserted by                                                                                                          |
 | ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| E0857 | A compound operator such as `+<-` writes a bitmap field (#2159)                  | `tests/compound-assign/bitmap-field-compound.test.cnx`                                                               |
 | E0881 | A value written to a bitmap field does not fit the field's declared width        | `tests/adr-034/bitmap-error-overflow.test.cnx`                                                                       |
 | E0882 | A member access names something the bitmap does not declare                      | `tests/adr-034/bitmap-unknown-field-error.test.cnx`                                                                  |
 | E0883 | A bitmap is addressed by bit index rather than by named field                    | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`                                                               |
-| E0857 | A compound operator such as `+<-` writes a bitmap field (#2159)                  | `tests/compound-assign/bitmap-field-compound.test.cnx`                                                               |
 | E0893 | A bitmap's field widths do not add up to its size, at the bitmap                 | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx` |
 | E0918 | A field is read or written on a bitmap array that names no whole element (#2186) | `tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx`                                               |
 
 A bitmap is reached two ways -- through a variable declared with a bitmap type,
-and through a register member typed by one -- and all three rules ask the same
-question of both. The distinction matters: bracket indexing was rejected only
+and through a register member typed by one -- and E0881, E0882, E0883 and
+E0918 ask the same question of both. The distinction matters: bracket indexing was rejected only
 through a register until #1322, so indexing a bitmap variable was accepted and
 lowered to a bit index, which is the shape ADR-034 exists to replace.
 
-Since the #1749 review all three read the typer's chain, step by step, so a
-bitmap reached through a struct member, an array element, a scope member or
-`this.` is checked as a bitmap variable is. Until then E0882 found the bitmap
-only as a chain's first name or a register member, and a field it did not
-declare through any other prefix reached codegen as an internal error
-(`tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx`).
+A bitmap reached through a struct member, an array element, a scope member or
+`this.` is checked by E0881, E0882, E0883 and E0918 exactly as a bitmap
+variable is (#1749,
+`tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx`).
 
 The four shape properties ADR-058 defines describe the type rather than name a
 field, so they are not unknown members.
