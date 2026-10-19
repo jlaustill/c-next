@@ -87,9 +87,9 @@ class PlatformIOCommand {
    *
    * #2165: a config under an old name stops it with E0918 before anything is
    * written. Writing a new-name config beside the old one would leave the
-   * project failing every run on the pair. So does a config that holds no
-   * config object (#2221 review), which it used to replace, dropping every
-   * setting in it.
+   * project failing every run on the pair. So does a config it cannot read or
+   * that holds no config object (#2221 review): it used to write on, dropping
+   * the settings or shadowing the file.
    */
   static install(fs: IFileSystem = NodeFileSystem.instance): void {
     const { pioIniPath, scriptPath } = getPioProjectPaths(fs);
@@ -98,6 +98,16 @@ class PlatformIOCommand {
       for (const error of config.errors) {
         ResultPrinter.printError(error);
       }
+      process.exit(1);
+    }
+    // #2221 review: a config it cannot read was only a warning, so install
+    // wrote on: a crash half-installed, or a cnx.config.json shadowing it
+    for (const file of config.unreadable) {
+      console.error(
+        `Error: Failed to read config ${file.path}: ${file.message}; nothing was written. Fix it and run --pio-install again.`,
+      );
+    }
+    if (config.unreadable.length > 0) {
       process.exit(1);
     }
     const existing: TConfigObject =

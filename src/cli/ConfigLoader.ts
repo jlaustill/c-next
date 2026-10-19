@@ -51,14 +51,9 @@ class ConfigLoader {
       };
     }
     const read = ConfigFileNames.readIn(dir, fs);
-    for (const file of read.unreadable) {
-      console.error(
-        `Warning: Failed to read config ${file.path}: ${file.message}`,
-      );
-    }
     return read.config === null
-      ? { kind: "none" }
-      : { kind: "found", ...read.config };
+      ? { kind: "none", unreadable: read.unreadable }
+      : { kind: "found", ...read.config, unreadable: read.unreadable };
   }
 
   /**
@@ -126,6 +121,13 @@ class ConfigLoader {
   private static find(startDir: string, fs: IFileSystem): TConfigInDirectory {
     for (let dir = startDir; ; dir = dirname(dir)) {
       const found = ConfigLoader.inDirectory(dir, fs);
+      if (found.kind !== "renamed") {
+        for (const file of found.unreadable) {
+          console.error(
+            `Warning: Failed to read config ${file.path}: ${file.message}`,
+          );
+        }
+      }
       if (found.kind !== "none" || dirname(dir) === dir) {
         return found;
       }

@@ -342,6 +342,39 @@ describe("PlatformIOCommand", () => {
         );
       });
 
+      // #2221 review: a config it cannot read was only a warning, so install
+      // went on to write; the first case crashed half-installed on EACCES,
+      // the second wrote a cnx.config.json shadowing the unreadable one
+      it.each([["cnx.config.json"], [".cnx.json"]])(
+        "stops at a %s it cannot read, writing nothing",
+        (name) => {
+          const unreadable = resolve(process.cwd(), name);
+          const project = new PioProject(
+            {
+              "platformio.ini": "[env:esp32]\n",
+              [name]: JSON.stringify({ target: "teensy41" }),
+            },
+            {
+              readFile: (path: string) => {
+                if (path === unreadable) {
+                  throw new Error("EACCES: permission denied");
+                }
+                return "[env:esp32]\n";
+              },
+            },
+          );
+
+          expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+            "process.exit(1)",
+          );
+
+          expect(project.written).toEqual([]);
+          expect(consoleErrorSpy).toHaveBeenCalledWith(
+            `Error: Failed to read config ${unreadable}: EACCES: permission denied; nothing was written. Fix it and run --pio-install again.`,
+          );
+        },
+      );
+
       it("rewrites no config that already has the defaults", () => {
         const project = new PioProject({
           "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",

@@ -384,8 +384,12 @@ describe("ConfigLoader", () => {
         kind: "found",
         path: "/p/app/.cnxrc",
         content: "{}",
+        unreadable: [],
       });
-      expect(ConfigLoader.inDirectory("/q", fs)).toEqual({ kind: "none" });
+      expect(ConfigLoader.inDirectory("/q", fs)).toEqual({
+        kind: "none",
+        unreadable: [],
+      });
     });
   });
 });
