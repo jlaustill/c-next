@@ -126,7 +126,7 @@ class WholeArrayValueAnalyzer {
           typeof taken[i] !== "number" ||
           size === taken[i],
       );
-    if (agree) return this.elementMismatch(value, at);
+    if (agree || value.span.line >= 0) return this.elementMismatch(value, at);
     const shape = (sizes: ReadonlyArray<number | string>) =>
       sizes.map((size) => `[${size}]`).join("");
     return [
