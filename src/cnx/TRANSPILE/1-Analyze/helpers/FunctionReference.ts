@@ -112,11 +112,15 @@ class FunctionReference {
     chain: TExpressionOf<"postfix">,
     scopePath: string,
     context: IAnalysisContext,
+    callAt: number = chain.ops.findIndex((op) => op.kind === "call"),
   ): IFunctionSymbol | null {
-    const named = FunctionReference.ofCallChain(chain, scopePath, context);
-    if (named !== null) return named;
-    const callAt = chain.ops.findIndex((op) => op.kind === "call");
     if (callAt < 0) return null;
+    // Only the chain's first call is named; a later one calls what the chain
+    // before it gives (`make().op(...)`)
+    if (callAt === chain.ops.findIndex((op) => op.kind === "call")) {
+      const named = FunctionReference.ofCallChain(chain, scopePath, context);
+      if (named !== null) return named;
+    }
     const target: TExpression =
       callAt === 0
         ? chain.primary

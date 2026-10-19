@@ -53,7 +53,7 @@ import StatementNodes from "../../utils/StatementNodes";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
-import ConstantExpression from "./helpers/ConstantExpression";
+import ZeroValue from "./helpers/ZeroValue";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import OperandTyper from "../../utils/OperandTyper";
@@ -115,7 +115,7 @@ class RegisterAccessCheck {
     if (!BitmapFieldStep.writesBits(step, field)) return;
     const access = this.context.symbols.registerMemberAccess.get(member);
     if (!RegisterAccessMode.isWriteOne(access)) return;
-    if (!this.isZero(site.value)) return;
+    if (!ZeroValue.of(site.value, this.context)) return;
     const single =
       field === null
         ? step.subscript === "bit_single"
@@ -129,10 +129,6 @@ class RegisterAccessCheck {
   }
 
   // --- Resolution ---------------------------------------------------------
-
-  private isZero(expr: TExpression): boolean {
-    return ConstantExpression.valueAt(expr, this.context) === 0;
-  }
 
   // --- Reporting ----------------------------------------------------------
 

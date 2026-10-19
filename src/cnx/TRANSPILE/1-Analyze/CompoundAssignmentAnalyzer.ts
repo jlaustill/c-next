@@ -3,7 +3,7 @@
  *
  * `+<-` and friends are read-modify-write. C-Next implements them where the
  * target names one location it can read and write back, and rejects them on a
- * bit index, a bit range, a slice, a bitmap field or a string.
+ * bit index, a bit range, a slice, a bitmap field, a string or a whole array.
  *
  * #1322. This was the audit's largest duplicate group: **six** throws with four
  * message variants, across `AccessPatternHandlers`, `BitAccessHandlers`,
@@ -42,7 +42,8 @@ type TRejection =
   | "bit index"
   | "bit range or slice"
   | "bitmap field"
-  | "string";
+  | "string"
+  | "whole array";
 
 class CompoundAssignmentCheck {
   private readonly found: ICompoundAssignmentError[] = [];
@@ -94,6 +95,11 @@ class CompoundAssignmentCheck {
       )
     ) {
       return "bit range or slice";
+    }
+    // #2193: a whole array is no one location either; C has no array
+    // assignment, and a list is given to one with `<-` alone (ADR-035)
+    if (OperandTyper.wholeArrayDimensions(target, this.context).length > 0) {
+      return "whole array";
     }
     const typing = OperandTyper.chainOf(target, this.context);
     if (typing.steps.some((step) => step.subscript === "bit_single")) {

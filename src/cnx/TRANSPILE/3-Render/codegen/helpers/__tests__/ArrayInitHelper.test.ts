@@ -142,12 +142,12 @@ describe("ArrayInitHelper", () => {
       ).toThrow("E0866 rejects 2 for [3]");
     });
 
-    it("expands fill-all for non-zero values", () => {
+    it("leaves a fill-all as rendered: the walker expands it (#2110)", () => {
       const callbacks = {
         state: new TranspileState(),
         generateExpression: vi.fn(() => {
           state.lastArrayFillValue = "1";
-          return "{1}";
+          return "{1, 1, 1}";
         }),
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
@@ -184,6 +184,21 @@ describe("ArrayInitHelper", () => {
 
       expect(result).not.toBeNull();
       expect(result!.initValue).toBe("{0}"); // Not expanded
+    });
+  });
+  describe("fillAll", () => {
+    it("repeats the value once per planned slot (#2110)", () => {
+      expect(ArrayInitHelper.fillAll("7U", 3)).toBe("{7U, 7U, 7U}");
+      expect(ArrayInitHelper.fillAll('"ab"', 2)).toBe('{"ab", "ab"}');
+    });
+
+    it("leaves a fill whose size did not fold as C's {v}", () => {
+      expect(ArrayInitHelper.fillAll("7U", null)).toBe("{7U}");
+    });
+
+    it("leaves a zero or empty-string fill as {v}, which C zero-fills", () => {
+      expect(ArrayInitHelper.fillAll("0", 4)).toBe("{0}");
+      expect(ArrayInitHelper.fillAll('""', 4)).toBe('{""}');
     });
   });
 });

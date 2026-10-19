@@ -292,6 +292,60 @@ class OperandTyper {
     return OperandTyper.walkChain(target, ctx).last;
   }
 
+  /** What a target's chain is rooted in: the declaration it writes into */
+  static rootOfTarget(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): TValueBinding | null {
+    return OperandTyper.walkChain(target, ctx).typing.root;
+  }
+
+  /**
+   * ADR-014: the arrays a value passes by reference -- itself, or each value
+   * arm of a ternary, through parentheses. Null when one is not an array: a
+   * list, a string literal or a scalar is not passed as it stands, and nor is
+   * a value the typer cannot type (a C macro such as `#define LIMIT 5`), which
+   * is asked for a list as a scalar is.
+   */
+  static arrayArms(
+    expr: TExpression,
+    ctx: ITypingContext,
+  ): TExpression[] | null {
+    const inner = ExpressionShape.unparenthesized(expr);
+    if (inner.kind === "ternary") {
+      const whenTrue = OperandTyper.arrayArms(inner.whenTrue, ctx);
+      const whenFalse = OperandTyper.arrayArms(inner.whenFalse, ctx);
+      return whenTrue === null || whenFalse === null
+        ? null
+        : [...whenTrue, ...whenFalse];
+    }
+    if (
+      inner.kind === "arrayInitializer" ||
+      inner.kind === "structInitializer" ||
+      ExpressionShape.isStringLiteral(inner)
+    ) {
+      return null;
+    }
+    const typed = OperandTyper.typeOf(inner, ctx);
+    return typed !== null && typed.dimensions.length > 0 ? [inner] : null;
+  }
+
+  /**
+   * The dimensions an assignment target takes a whole array of (#1782):
+   * none for a scalar, an element, or an ADR-007 slice, which writes a
+   * value's bytes rather than an array.
+   */
+  static wholeArrayDimensions(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): ReadonlyArray<number | string> {
+    const { typing, last } = OperandTyper.walkChain(target, ctx);
+    if (last === null || typing.steps.at(-1)?.subscript === "array_slice") {
+      return [];
+    }
+    return last.dimensions;
+  }
+
   /** The chain typed, and the value it ends on */
   private static walkChain(
     chain: TExpression,

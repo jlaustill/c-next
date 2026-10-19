@@ -193,8 +193,9 @@ describe("StructLiteralAnalyzer (E0358)", () => {
 });
 
 // #1760 second review: ADR-014 makes an array's whole initializer ADR-035's
-// list, E0866, at every position -- only a declaration asked
-describe("StructLiteralAnalyzer (E0866 at a whole-array position)", () => {
+// list, E0866, at every position. #1782: that rule is
+// WholeArrayValueAnalyzer's, so a struct initializer there is not E0358 here.
+describe("StructLiteralAnalyzer (a whole-array position)", () => {
   const types = [
     "struct S { u32 a; }",
     "struct D { S[2] items; u32 n; }",
@@ -209,15 +210,7 @@ describe("StructLiteralAnalyzer (E0866 at a whole-array position)", () => {
     ["an array of scalars as a field", "    B b <- { data: { a: 1 } };"],
     ["an assignment target", "    S[2] sa;\n    sa <- { a: 3 };"],
     ["an array parameter", "    take({ a: 1 });"],
-  ])("rejects a struct initializer at %s", (_label, body) => {
-    expect(codes(body)).toEqual(["E0866"]);
-  });
-
-  it.each([
-    ["a list in a field", "    D d <- { items: [{ a: 1 }, { a: 2 }], n: 1 };"],
-    ["an element of a list", "    S[2] sa <- [{ a: 1 }, { a: 2 }];"],
-    ["a declaration, which ADR-035's rule checks", "    S[2] sa <- { a: 1 };"],
-  ])("stays silent on %s", (_label, body) => {
+  ])("leaves a struct initializer at %s to E0866", (_label, body) => {
     expect(codes(body)).toEqual([]);
   });
 });

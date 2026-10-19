@@ -195,6 +195,16 @@ void process(uint8_t data[4][4]) {
 
 **Medium** - Useful but many embedded apps don't need.
 
+### Research Note: A Whole Array in a `for` Clause (#1782, 2026-10-19)
+
+#1823 keeps a `for` header to scalars: an array or a string declared there is E0917. An
+assignment in a `for` clause that takes a whole array, `for (u32 i <- 0; i < 2; pair <- src)`
+or `pair <- [1, 2]`, reached C as `pair = src` / `pair = {1U, 2U}`, which gcc and g++ reject.
+ADR-014 lowers a whole-array assignment to an element-by-element copy, a block a `for` clause
+cannot hold, so the same E0917 now reports a whole-array target in a `for` init or update
+clause; an element write such as `pair[0] <- 1` stays legal there. This note records the
+lowering; the Status and Decision above are unchanged.
+
 ## MISRA C Research
 
 ### Relevant MISRA C:2012 Rules

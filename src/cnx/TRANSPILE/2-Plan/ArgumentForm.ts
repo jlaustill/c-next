@@ -79,7 +79,7 @@ class ArgumentForm {
     shape: TArgumentShape,
   ): TArgumentForm {
     const arrayStatus = shape.getMemberAccessArrayStatus();
-    if (arrayStatus === "array") return { kind: "array-member" };
+    if (arrayStatus === "array") return { kind: "array" };
     if (
       arrayStatus === "not-array" &&
       targetParamBaseType &&
@@ -102,6 +102,8 @@ class ArgumentForm {
         return form.cast;
       case "rvalue":
         return form.compoundLiteral;
+      case "array-temp":
+        return form.array.elementCType;
       default:
         return null;
     }

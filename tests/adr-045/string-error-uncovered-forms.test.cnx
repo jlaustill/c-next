@@ -8,8 +8,9 @@
 
 // NEGATIVE CONTROL -- the correct form of each rule below, so an over-broad
 // fix fails here before reaching the assertions. The second one matters: a LIST
-// whose elements are variables is a valid array initializer, and only an
-// initializer that is not a list at all is rejected.
+// whose elements are variables is not E0862, which rejects only an initializer
+// that is not a list at all. Its elements are #2195's to ask: a string array's
+// slot is a string literal, else E0866, which pass 2.1 reports after E0862.
 string<8>[2] OK_ARRAY <- ["a", "b"];
 
 u32 okListOfVariables() {

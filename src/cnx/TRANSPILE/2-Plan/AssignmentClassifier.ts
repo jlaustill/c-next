@@ -79,6 +79,11 @@ class AssignmentClassifier {
    * Classify an assignment context into an AssignmentKind.
    */
   static classify(ctx: IAssignmentContext): AssignmentKind {
+    // #1782: a whole array given its list, whatever the target's shape
+    if (ctx.plannedWholeArray !== null) {
+      return AssignmentKind.WHOLE_ARRAY;
+    }
+
     // === Priority 0: Atomic/overflow compound assignments ===
     // #1411/#1887: asked before any shape, because a field or an element
     // saturates like a variable does; the shape kinds below write `+=`.

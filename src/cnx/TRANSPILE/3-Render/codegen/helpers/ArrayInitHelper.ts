@@ -13,6 +13,7 @@
 
 import invariant from "../../../../utils/invariant";
 import type TranspileState from "../../../TranspileState";
+import type IPlannedWholeArrayWrite from "../../../2-Plan/types/IPlannedWholeArrayWrite";
 
 /**
  * Result from processing array initialization.
@@ -50,6 +51,9 @@ interface IArrayInitCallbacks {
 /**
  * Handles array initialization with size inference and fill-all syntax.
  */
+const ARGUMENT_COMMENT =
+  "/* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */";
+
 class ArrayInitHelper {
   /**
    * Process array initialization expression.
@@ -81,13 +85,7 @@ class ArrayInitHelper {
       ? ArrayInitHelper._processSizeInference(name, declaredSize, state)
       : ArrayInitHelper._processExplicitSize(declaredSize, callbacks, state);
 
-    const finalInitValue = ArrayInitHelper._expandFillAllSyntax(
-      initValue,
-      declaredSize,
-      state,
-    );
-
-    return { isArrayInit: true, dimensionSuffix, initValue: finalInitValue };
+    return { isArrayInit: true, dimensionSuffix, initValue };
   }
 
   /**
@@ -164,25 +162,62 @@ class ArrayInitHelper {
   }
 
   /**
-   * Expand fill-all syntax (e.g., [0*] with size 5 -> {0, 0, 0, 0, 0})
+   * A temporary of a whole array's own type, initialized by its rendered
+   * value as a declaration is (#1782, #2157): C can neither assign an array
+   * nor pass a list for one.
    */
-  private static _expandFillAllSyntax(
-    initValue: string,
-    declaredSize: number | null,
+  static temporaryArray(
+    array: IPlannedWholeArrayWrite,
+    renderedValue: string,
+    state: TranspileState,
+  ): { readonly name: string; readonly declaration: string } {
+    const name = state.getNextTempVarName();
+    return {
+      name,
+      declaration: `const ${array.elementCType} ${name}${ArrayInitHelper.shapeOf(array)} = ${renderedValue};`,
+    };
+  }
+
+  /**
+   * A list passed for an array parameter (#2157), evaluated where it stands,
+   * as any argument is: under `&&`, `||` or `?:` it is not evaluated when
+   * its operand is not. C writes it as a compound literal. C++ has none, so
+   * the array type is named before the statement -- a typedef evaluates
+   * nothing -- and the list is that type's temporary, which lives to the end
+   * of the full expression.
+   */
+  static arrayArgument(
+    array: IPlannedWholeArrayWrite,
+    renderedValue: string,
     state: TranspileState,
   ): string {
-    if (state.lastArrayFillValue === undefined || declaredSize === null) {
-      return initValue;
+    if (!state.pendingTempDeclarations.includes(ARGUMENT_COMMENT)) {
+      state.pendingTempDeclarations.push(ARGUMENT_COMMENT);
     }
+    // A compound literal and a functional cast take a braced list; a string
+    // in braces initializes a `uint8_t` array (C11 6.7.9p14, C++ [dcl.init.string])
+    const init = array.fromList ? renderedValue : `{${renderedValue}}`;
+    const shape = ArrayInitHelper.shapeOf(array);
+    if (!state.cppMode) return `(const ${array.elementCType}${shape})${init}`;
+    const type = `${state.getNextTempVarName()}_t`;
+    state.pendingTempDeclarations.push(
+      `typedef const ${array.elementCType} ${type}${shape};`,
+    );
+    return `static_cast<${type}&>(${type}${init})`;
+  }
 
-    const fillVal = state.lastArrayFillValue;
-    // C handles {0} correctly, no need to expand
-    if (fillVal === "0") {
-      return initValue;
-    }
+  private static shapeOf(array: IPlannedWholeArrayWrite): string {
+    return array.dimensions.map((size) => `[${size}]`).join("");
+  }
 
-    const elements = new Array<string>(declaredSize).fill(fillVal);
-    return `{${elements.join(", ")}}`;
+  /**
+   * A fill-all's list (ADR-035): its value once per slot of its level, the
+   * count 2.2 planned (#2110). C fills every slot `{v}` leaves out with zero,
+   * so a zero or empty-string fill, or a size that does not fold, stays `{v}`.
+   */
+  static fillAll(value: string, size: number | null): string {
+    if (size === null || value === "0" || value === '""') return `{${value}}`;
+    return `{${new Array<string>(size).fill(value).join(", ")}}`;
   }
 }
 

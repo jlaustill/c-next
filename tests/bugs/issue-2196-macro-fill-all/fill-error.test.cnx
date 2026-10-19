@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 035
+// test-adr: 014
+// #2196: a fill-all other than zero needs a size C-Next can fold, wherever a
+// whole array is taken (ADR-014): an assignment target, a scope member through
+// this, a field and an argument, as well as a declaration
+// (fill-declaration-error.test.cnx). The struct and the callee are declared in
+// fill-readers.cnx, across an include.
+#include "fill-readers.cnx"
+
+u8 ZERO <- 0;
+
+scope Lab {
+    mut u8[NDIM] rows <- [0*];
+
+    public void set() {
+        // NEGATIVE CONTROL -- a zero fill for the macro size.
+        this.rows <- [0*];
+        // ASSERTION 1 -- a scope member through this.
+        this.rows <- [6*];
+    }
+}
+
+void f() {
+    // NEGATIVE CONTROL -- zero however it is spelled, a folded size, a list.
+    mut u8[NDIM] a <- [0*];
+    a <- [0*];
+    a <- [0x0*];
+    a <- [ZERO*];
+    mut bool[NDIM] flags <- [false*];
+    flags <- [false*];
+    mut u8[4] b <- [0*];
+    b <- [7*];
+    a <- [1, 2, 3, 4];
+    Packet ok <- { data: [0*] };
+    u8 fine <- last([0*]);
+
+    // ASSERTION 2 -- an assignment target.
+    a <- [7*];
+    // ASSERTION 3 -- a field of a struct from an include.
+    Packet p <- { data: [7*] };
+    // ASSERTION 4 -- an argument to a callee from an include.
+    u8 x <- last([9*]);
+}
