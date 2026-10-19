@@ -34,7 +34,10 @@ u32 main() {
     if (r != 5) {
         return 4;
     }
-    Cfg mk <- make(t);
+    // An assignment, not a declaration: cppcheck's MISRA 9.3 reads
+    // `const Cfg mk = make(t);` as a partial initializer (#2260)
+    mut Cfg mk;
+    mk <- make(t);
     if (mk.name != "cd") {
         return 5;
     }

@@ -66,7 +66,8 @@ int main(void) {
     if (r != 5) {
         return 4U;
     }
-    const Cfg mk = make(t);
+    Cfg mk = {0};
+    mk = make(t);
     if (strcmp(mk.name, "cd") != 0) {
         return 5U;
     }
