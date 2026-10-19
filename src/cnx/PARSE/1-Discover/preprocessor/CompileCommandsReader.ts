@@ -5,7 +5,7 @@
  *
  * cnext is a source consumer that must resolve external C/C++ headers exactly as
  * the compiler will. Rather than couple to any one build system's path logic (or
- * hand-mirror it in cnext.config.json), it reads the build-system-agnostic
+ * hand-mirror it in cnx.config.json), it reads the build-system-agnostic
  * contract every build system converges on: the compiler command line, serialized
  * per translation unit in `compile_commands.json` (the LLVM compilation database
  * that clangd/clang-tidy also consume). Framework include paths are project-global

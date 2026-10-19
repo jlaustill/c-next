@@ -1,4 +1,4 @@
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
@@ -669,43 +669,29 @@ class IncludeResolver {
    *
    * Search order (highest to lowest priority):
    * 1. Source file's directory (for relative includes)
-   * 2. Additional include directories (e.g., from --include flag)
+   * 2. Additional include directories (e.g., from --include flag, and the
+   *    tiers `IncludeDiscovery.discoverIncludePaths` found)
    * 3. Config include directories
-   * 4. Project-level common directories (include/, src/, lib/)
+   *
+   * #2165: this walked to the project root a second time and appended its
+   * `include/`, `src/` and `lib/`, which the discovered tiers already carry
+   * from the same walk; the dedupe dropped every one. The project tier is
+   * `discoverIncludePaths`' alone.
    *
    * @param sourceDir - Directory containing the source file
    * @param includeDirs - Include directories from config
    * @param additionalIncludeDirs - Extra include directories (e.g., from API options)
-   * @param projectRoot - Project root for common directory discovery, or undefined
-   * @param fs - File system abstraction
    * @returns Array of search paths in priority order
    */
   static buildSearchPaths(
     sourceDir: string,
-    includeDirs: string[],
-    additionalIncludeDirs: string[],
-    projectRoot: string | undefined,
-    fs: IFileSystem,
+    includeDirs: readonly string[],
+    additionalIncludeDirs: readonly string[],
   ): string[] {
-    const paths: string[] = [];
-
-    // Search path priority: 1) source dir, 2) additional dirs, 3) config dirs
-    paths.push(sourceDir, ...additionalIncludeDirs, ...includeDirs);
-
-    // 4. Project-level common directories
-    const root = projectRoot ?? IncludeDiscovery.findProjectRoot(sourceDir, fs);
-    if (root) {
-      const commonDirs = ["include", "src", "lib"];
-      for (const dir of commonDirs) {
-        const includePath = join(root, dir);
-        if (fs.exists(includePath) && fs.isDirectory(includePath)) {
-          paths.push(includePath);
-        }
-      }
-    }
-
     // Remove duplicates while preserving order
-    return Array.from(new Set(paths));
+    return Array.from(
+      new Set([sourceDir, ...additionalIncludeDirs, ...includeDirs]),
+    );
   }
 }
 

@@ -1,0 +1,3 @@
+u32 helperValue() {
+    return 1;
+}

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-666 fixture(s) assert a diagnostic; 656 carry a code.
+667 fixture(s) assert a diagnostic; 657 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -272,7 +272,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/misra-3-1-nested-line-comment.test.cnx                                            | MISRA-3.1           |
 | tests/analysis/misra-3-2-line-splice.test.cnx                                                    | MISRA-3.2           |
 | tests/analysis/modulo-by-zero.test.cnx                                                           | E0802               |
-| tests/analysis/non-string-to-string.test.cnx                                                     | E0918               |
+| tests/analysis/non-string-to-string.test.cnx                                                     | E0920               |
 | tests/analysis/reserved-parameter-name.test.cnx                                                  | E0227               |
 | tests/analysis/return-value-discarded.test.cnx                                                   | E0708               |
 | tests/analysis/self-recursion.test.cnx                                                           | E0423               |
@@ -381,7 +381,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-direct.test.cnx          | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-transitive.test.cnx      | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx                | E0805               |
-| tests/bugs/issue-1257-string-value-forms/string-field-non-string-error.test.cnx                  | E0918               |
+| tests/bugs/issue-1257-string-value-forms/string-field-non-string-error.test.cnx                  | E0920               |
 | tests/bugs/issue-1257-string-value-forms/string-value-forms-error.test.cnx                       | E0864               |
 | tests/bugs/issue-1268-qualified-zero-const/float-cast-index.test.cnx                             | E0854               |
 | tests/bugs/issue-1268-qualified-zero-const/float-cast-shift.test.cnx                             | E0873               |
@@ -591,6 +591,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2096-inactive-header-branch/inactive-branch-error.test.cnx                      | E0422               |
 | tests/bugs/issue-2157-array-parameter-list/non-array-argument-error.test.cnx                     | E0866               |
 | tests/bugs/issue-2157-array-parameter-list/transitive-argument-error.test.cnx                    | E0866               |
+| tests/bugs/issue-2165-renamed-config/renamed-config-beside-include.test.cnx                      | E0918               |
 | tests/bugs/issue-2191-assignment-capacity/assignment-capacity-every-target-error.test.cnx        | E0864               |
 | tests/bugs/issue-2194-array-argument-shape/shape-error.test.cnx                                  | E0866               |
 | tests/bugs/issue-2195-array-row-slot/row-slot-declaration-error.test.cnx                         | E0866               |

@@ -1,8 +1,8 @@
 /**
  * C-Next configuration file options
  *
- * This interface represents the structure of cnext.config.json,
- * .cnext.json, or .cnextrc files.
+ * This interface represents the structure of a config file: cnx.config.json,
+ * .cnx.json or .cnxrc (`ConfigFileNames`).
  */
 interface IFileConfig {
   /**

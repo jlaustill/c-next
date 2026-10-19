@@ -75,7 +75,7 @@ describe("cache parity (integration, #1225)", () => {
     // A project marker is what enables caching at all: determineProjectRoot
     // walks up for one, and returns undefined (caching off) if it finds none.
     // Putting it in the temp dir also keeps this test's cache out of the repo.
-    writeFileSync(join(dir, "cnext.config.json"), "{}\n");
+    writeFileSync(join(dir, "cnx.config.json"), "{}\n");
     writeFileSync(join(dir, "external.hpp"), EXTERNAL_HPP);
     writeFileSync(join(dir, "main.cnx"), MAIN_CNX);
   });

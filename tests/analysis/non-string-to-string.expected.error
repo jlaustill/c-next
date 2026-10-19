@@ -1,22 +1,22 @@
-37:29 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'n'
+37:29 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'n'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-38:29 error[E0918]: A value that is not a string cannot be assigned to string<8>: '5'
+38:29 error[E0920]: A value that is not a string cannot be assigned to string<8>: '5'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-39:26 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'fv[0, 8]'
+39:26 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'fv[0, 8]'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-40:26 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'b'
+40:26 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'b'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-41:26 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'c'
+41:26 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'c'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-42:26 error[E0918]: A value that is not a string cannot be assigned to string<8>: ''A''
+42:26 error[E0920]: A value that is not a string cannot be assigned to string<8>: ''A''
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-43:27 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'C_CHAR'
+43:27 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'C_CHAR'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-44:28 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'p'
+44:28 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'p'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-45:27 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'bytes'
+45:27 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'bytes'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-47:9 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'n'
+47:9 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'n'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string
-48:13 error[E0918]: A value that is not a string cannot be assigned to string<8>: 'n'
+48:13 error[E0920]: A value that is not a string cannot be assigned to string<8>: 'n'
        help: A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string

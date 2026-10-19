@@ -5,7 +5,7 @@
  * the build-system-agnostic contract every build system emits — the
  * `compile_commands.json` compilation database — from the project root, the way
  * clangd does. This proves the wiring end-to-end: a header reachable ONLY through
- * the compile database's `-I` (never passed via includeDirs / cnext.config.json)
+ * the compile database's `-I` (never passed via includeDirs / cnx.config.json)
  * must resolve during a real transpile, and its pointer-parameter signature must
  * drive `&` codegen.
  *
@@ -50,7 +50,7 @@ describe("compile_commands.json auto-discovery (integration)", () => {
     writeFileSync(join(dir, "ext", "widget.h"), WIDGET_H);
     writeFileSync(join(dir, "main.cnx"), MAIN_CNX);
     // Project-root marker so discovery locates the database.
-    writeFileSync(join(dir, "cnext.config.json"), "{}\n");
+    writeFileSync(join(dir, "cnx.config.json"), "{}\n");
     // The compiler's own view: <widget.h> is reachable ONLY via this -I.
     writeFileSync(
       join(dir, "compile_commands.json"),

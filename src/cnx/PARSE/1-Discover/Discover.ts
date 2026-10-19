@@ -35,6 +35,7 @@ import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import ConfigFileNames from "./ConfigFileNames";
 
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
@@ -87,10 +88,23 @@ interface IResolvedFileIncludes {
  */
 class Discover {
   /**
-   * The run's discovery errors: E0509, each at its header's marker (#1542) and
-   * E0518 for an input whose C-Next extension is not lowercase (#1833).
+   * The run's discovery errors: E0509, each at its header's marker (#1542),
+   * E0518 for an input whose C-Next extension is not lowercase (#1833), and
+   * E0918 for each config under an old name a project-root walk passed
+   * (#2165).
    */
   private readonly errors: ITranspileError[] = [];
+
+  /**
+   * `discoverIncludePaths` answers, per directory, for this run. It reads only
+   * the directory of the path it is given, the filesystem and $HOME, none of
+   * which change within one run, so the files of one directory share one
+   * answer -- and a source run makes this run on every editor request.
+   */
+  private readonly tiersByDirectory = new Map<string, readonly string[]>();
+
+  /** The renamed configs reported so far, so each is E0918 once. */
+  private readonly reportedConfigs = new Set<string>();
 
   /**
    * #1844: each file's includes as resolved, in visiting order. They are
@@ -177,6 +191,10 @@ class Discover {
       new ReadOnceFileSystem(fs),
       warnings,
     );
+    // #2165: the anchor's own walk reports its renamed configs by construction,
+    // not because the run's first file happens to sit beside it; the anchor
+    // reads only the root, since it is reused across runs.
+    discovery._tiersFor(anchor.path);
     const files =
       input.kind === "source" && root !== null
         ? discovery._fromSource(root, input.includeDirs ?? [])
@@ -461,11 +479,10 @@ class Discover {
   private _fromCppEntryPoint(entryPath: string): TDiscoveredFiles {
     // #1706: the entry point's search path and each discovered .cnx file's
     // are the ones .cnx discovery computes, discovered tiers included.
-    const tiersByDirectory = new Map<string, readonly string[]>();
-    const searchPaths = this._searchPathsFor(entryPath, [], tiersByDirectory);
+    const searchPaths = this._searchPathsFor(entryPath, []);
 
     const scanner = new CppEntryPointScanner(searchPaths, this.fs, (cnxPath) =>
-      this._searchPathsFor(cnxPath, [], tiersByDirectory),
+      this._searchPathsFor(cnxPath, []),
     );
     const scanResult = scanner.scan(entryPath);
 
@@ -617,7 +634,6 @@ class Discover {
     // #1435: the include graph, kept. It is resolved here once, with the full
     // search path, and 1.4 takes every file's visibility closure over it.
     const includesByPath = new Map<string, IDiscoveredFile[]>();
-    const tiersByDirectory = new Map<string, readonly string[]>();
     // #1835 review: the text discovery read, which 1.2 parses -- one read, so
     // a save between the passes cannot give them different directives.
     const sourcesByPath = new Map<string, string>();
@@ -630,7 +646,6 @@ class Discover {
       const discovered = this._resolveCnxIncludes(
         cnxFile,
         callerIncludeDirs,
-        tiersByDirectory,
         inMemory?.path === cnxFile.path ? inMemory : undefined,
       );
       const resolved = discovered.resolved;
@@ -725,11 +740,6 @@ class Discover {
    * in-memory root used to get a path without the PlatformIO and Arduino
    * tiers, so the editor preview could not see a library the CLI compiled.
    *
-   * @param tiersByDirectory - `discoverIncludePaths` answers, per directory,
-   *   for this discovery pass. It reads only the directory of the path it is
-   *   given, the filesystem and $HOME, none of which change within one pass,
-   *   so the files of one directory share one answer -- and a source run makes
-   *   this pass on every editor request.
    * @returns the resolution, the search path it was made along -- which
    *   the C headers this file reaches are searched along too (#1723) -- and
    *   the text it was read from
@@ -737,7 +747,6 @@ class Discover {
   private _resolveCnxIncludes(
     cnxFile: IDiscoveredFile,
     callerIncludeDirs: readonly string[],
-    tiersByDirectory: Map<string, readonly string[]>,
     inMemory?: IInMemorySource,
   ): {
     readonly resolved: ReturnType<IncludeResolver["resolve"]>;
@@ -749,7 +758,6 @@ class Discover {
     const searchPaths = this._searchPathsFor(
       join(sourceDir, basename(cnxFile.path)),
       callerIncludeDirs,
-      tiersByDirectory,
     );
 
     const resolver = new IncludeResolver(searchPaths, this.fs, sourceDir);
@@ -771,30 +779,39 @@ class Discover {
    * list of its own without the tiers.
    *
    * @param file - The file, or where an in-memory file lives
-   * @param tiersByDirectory - `discoverIncludePaths` answers, per directory,
-   *   for this discovery pass. It reads only the directory of the path it is
-   *   given, the filesystem and $HOME, none of which change within one pass,
-   *   so the files of one directory share one answer -- and a source run makes
-   *   this pass on every editor request.
    */
   private _searchPathsFor(
     file: string,
     callerIncludeDirs: readonly string[],
-    tiersByDirectory: Map<string, readonly string[]>,
   ): string[] {
-    const directory = dirname(resolve(file));
-    let tiers = tiersByDirectory.get(directory);
-    if (tiers === undefined) {
-      tiers = IncludeDiscovery.discoverIncludePaths(file, this.fs);
-      tiersByDirectory.set(directory, tiers);
-    }
     return IncludeResolver.buildSearchPaths(
       dirname(file),
-      [...this.anchor.includeDirs],
-      [...callerIncludeDirs, ...tiers],
-      undefined,
-      this.fs,
+      this.anchor.includeDirs,
+      [...callerIncludeDirs, ...this._tiersFor(file)],
     );
+  }
+
+  /**
+   * What `discoverIncludePaths` finds from `file`'s directory, walked once
+   * per directory per run. #2165: the walk's renamed configs are E0918 here,
+   * each once however many directories' walks pass it. Every project-root
+   * walk a run makes comes through here, the anchor's first.
+   */
+  private _tiersFor(file: string): readonly string[] {
+    const directory = dirname(resolve(file));
+    const cached = this.tiersByDirectory.get(directory);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const tiers = IncludeDiscovery.discoverIncludePaths(file, this.fs);
+    for (const renamed of tiers.projectRoot.renamedConfigs) {
+      if (!this.reportedConfigs.has(renamed.path)) {
+        this.reportedConfigs.add(renamed.path);
+        this.errors.push(ConfigFileNames.errorFor(renamed));
+      }
+    }
+    this.tiersByDirectory.set(directory, tiers.paths);
+    return tiers.paths;
   }
 
   /**

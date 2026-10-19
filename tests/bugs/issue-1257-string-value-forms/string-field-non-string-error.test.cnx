@@ -1,5 +1,5 @@
 // test-error
-// Tests: #2236 - E0918 reaches a string<N> struct field's value; a literal field is the control
+// Tests: #2236 - E0920 reaches a string<N> struct field's value; a literal field is the control
 enum Mode {
     OFF,
     ON

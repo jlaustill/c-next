@@ -159,13 +159,13 @@ class IntegerConversionCheck {
     this.check(targetType, site.value, "assign", true);
   }
 
-  /** E0914, then E0918: a string lands only in a string, and only a string does */
+  /** E0914, then E0920: a string lands only in a string, and only a string does */
   private checkStringsAt(value: TExpression): boolean {
     return this.checkStringAt(value) || this.checkNonStringAt(value);
   }
 
   /**
-   * E0918: a value that is not a string at a position that types it one
+   * E0920: a value that is not a string at a position that types it one
    * string<N> (ADR-045, #1634) -- whatever it is, as `OperandTyper.isStringValue`
    * decides. True when reported. Unreported, it reached the string copy, which
    * takes the value as an address. A string array's list element is E0866's
@@ -183,7 +183,7 @@ class IntegerConversionCheck {
     }
     this.report(
       value,
-      "E0918",
+      "E0920",
       `A value that is not a string cannot be assigned to ${target}: '${value.written}'`,
       "A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string",
     );

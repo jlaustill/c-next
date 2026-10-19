@@ -1897,7 +1897,7 @@ class FilePlanner {
    * #1731 sweep: a function's `string<N> t <- v` takes the form of `v` by the
    * rule an assignment's value does (#1257): a literal initializes the array,
    * and a copy, a concatenation and a substring are written into it. 2.1 has
-   * rejected a value that is no string (E0918), so a copy's is a string: a
+   * rejected a value that is no string (E0920), so a copy's is a string: a
    * C-Next one, or a C `char*` or `char[]`.
    */
   private static planStringInits(
