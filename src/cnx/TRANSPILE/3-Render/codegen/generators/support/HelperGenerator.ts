@@ -246,16 +246,20 @@ const generateLengthHelpers = (used: readonly string[]): string[] => {
  * one character at a time, so a source that is the target copies each
  * character onto itself, where `strncpy` with overlapping arguments is
  * undefined. Then it zero-fills to the capacity as `strncpy` does, so the
- * bytes past the terminator are the same however the value was spelled.
+ * bytes past the terminator are the same however the value was spelled. The
+ * source is walked by pointer, not indexed by the target's count, so cppcheck
+ * does not read `capacity` as a bound on a shorter literal (#2207 review).
  */
 const generateStringCopyHelper = (needed: boolean): string[] =>
   needed
     ? [
         ComplianceAnnotations.render(ComplianceAnnotations.STRING_SELF_COPY),
         `static inline void ${StringUtils.COPY_HELPER}(char* target, const char* source, uint32_t capacity) {`,
+        "    const char* next = source;",
         "    uint32_t i = 0U;",
-        "    while ((i < capacity) && (source[i] != '\\0')) {",
-        "        target[i] = source[i];",
+        "    while ((i < capacity) && (*next != '\\0')) {",
+        "        target[i] = *next;",
+        "        next++;",
         "        i++;",
         "    }",
         "    while (i < capacity) {",

@@ -23,9 +23,11 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 /* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
 static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
     uint32_t i = 0U;
-    while ((i < capacity) && (source[i] != '\0')) {
-        target[i] = source[i];
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
         i++;
     }
     while (i < capacity) {
