@@ -1,8 +1,7 @@
 import type IChainStep from "../../types/IChainStep";
-import type IBitmapFieldLayout from "../../types/IBitmapFieldLayout";
+import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type ITypingContext from "../../types/ITypingContext";
-import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import OperandTyper from "../../utils/OperandTyper";
 import TYPE_MAP from "./types/TYPE_MAP";
@@ -20,13 +19,13 @@ class AtomicOwner {
   static ofWrite(
     site: IAssignmentSyntax,
     context: ITypingContext,
-    bitmapFields: ReadonlyMap<string, ReadonlyMap<string, IBitmapFieldLayout>>,
+    bitmapField: IBitmapFieldTarget | null,
     bitmapBackingType: ReadonlyMap<string, string>,
   ): string | null {
     if (site.operator === "<-") {
       return AtomicOwner.ofBits(
         OperandTyper.chainOf(site.target, context).steps.at(-1),
-        bitmapFields,
+        bitmapField,
         bitmapBackingType,
       );
     }
@@ -36,16 +35,16 @@ class AtomicOwner {
       : null;
   }
 
-  /** The atomic value whose bits `step` writes, or null */
+  /** The atomic value whose bits `step` -- or the bitmap field 2.2 planned it to write -- writes, or null */
   static ofBits(
     step: IChainStep | undefined,
-    bitmapFields: ReadonlyMap<string, ReadonlyMap<string, IBitmapFieldLayout>>,
+    bitmapField: IBitmapFieldTarget | null,
     bitmapBackingType: ReadonlyMap<string, string>,
   ): string | null {
     const writesBits =
       step?.subscript === "bit_single" ||
       step?.subscript === "bit_range" ||
-      BitmapFieldStep.fieldOf(step, bitmapFields) !== null;
+      bitmapField !== null;
     const owner = step?.before ?? null;
     if (!writesBits || !ForHeaderAssignment.isAtomic(owner)) return null;
     const bitmap = owner?.bitmapTypeName ?? null;

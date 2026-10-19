@@ -408,6 +408,13 @@ question of both. The distinction matters: bracket indexing was rejected only
 through a register until #1322, so indexing a bitmap variable was accepted and
 lowered to a bit index, which is the shape ADR-034 exists to replace.
 
+Since the #1749 review all three read the typer's chain, step by step, so a
+bitmap reached through a struct member, an array element, a scope member or
+`this.` is checked as a bitmap variable is. Until then E0882 found the bitmap
+only as a chain's first name or a register member, and a field it did not
+declare through any other prefix reached codegen as an internal error
+(`tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx`).
+
 The four shape properties ADR-058 defines describe the type rather than name a
 field, so they are not unknown members.
 

@@ -8,7 +8,6 @@
 import invariant from "../../../../../utils/invariant";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import type IBitmapFieldTarget from "../../../../../types/IBitmapFieldTarget";
-import BitmapFieldStep from "../../../../../utils/BitmapFieldStep";
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
@@ -17,16 +16,12 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 
 /**
- * The field the classifier routed here, as the typer typed the target's final
- * step. A compound operator on it never reaches here: pass 2.1 rejects it as
+ * The field 2.2 planned the target to write, which routed it here. A compound operator on it never reaches here: pass 2.1 rejects it as
  * E0857 (#2159), and a literal too wide for the field as E0881 (#1322).
  */
 function fieldOfTarget(ctx: IAssignmentContext): IBitmapFieldTarget {
-  const field = BitmapFieldStep.fieldOf(
-    ctx.target.last,
-    ctx.state.symbols!.bitmapFields,
-  );
-  invariant(field, "the classifier routes a field of a bitmap here");
+  const field = ctx.bitmapField;
+  invariant(field, "the classifier routes a planned bitmap field here");
   return field;
 }
 

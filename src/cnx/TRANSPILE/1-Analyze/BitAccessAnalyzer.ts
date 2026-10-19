@@ -50,7 +50,7 @@ import OperandTyper from "../../utils/OperandTyper";
 import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
-import RegisterMemberReference from "./helpers/RegisterMemberReference";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import SourceOrder from "../../utils/SourceOrder";
 
@@ -122,16 +122,25 @@ class BitAccessCheck {
     }
   }
 
+  /**
+   * The typer's last step, read as the classifier reads it (#1749 review): a
+   * bit, a bit range or a bitmap field, on anything but a
+   * write-1 register member.
+   */
   private isReadModifyWrite(target: TExpression): boolean {
     const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
     if (last === undefined) return false;
+    const symbols = this.context.symbols;
     const writesBits =
-      last.subscript === "bit_single" || last.subscript === "bit_range";
-    const writesBitmapField =
-      last.subscript === null && (last.before?.bitmapTypeName ?? null) !== null;
-    if (!writesBits && !writesBitmapField) return false;
-    const register = RegisterMemberReference.ofChain(target, this.context);
-    return !RegisterAccessMode.isWriteOne(register?.access);
+      last.subscript === "bit_single" ||
+      last.subscript === "bit_range" ||
+      BitmapFieldStep.fieldOf(last, symbols.bitmapFields) !== null;
+    if (!writesBits) return false;
+    const member = last.beforeRegisterMember;
+    return (
+      member === null ||
+      !RegisterAccessMode.isWriteOne(symbols.registerMemberAccess.get(member))
+    );
   }
 
   private checkChain(

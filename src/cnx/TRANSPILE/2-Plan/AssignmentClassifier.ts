@@ -15,7 +15,6 @@ import TTypeInfo from "../../types/TTypeInfo";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type IChainBase from "../../types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
-import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import CompoundOperator from "../../utils/CompoundOperator";
 import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
@@ -145,13 +144,10 @@ class AssignmentClassifier {
   private static classifyBitmapField(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    const step = ctx.target.last;
-    if (
-      BitmapFieldStep.fieldOf(step, ctx.state.symbols!.bitmapFields) === null
-    ) {
+    if (ctx.bitmapField === null) {
       return null;
     }
-    return step!.beforeRegisterMember === null
+    return ctx.target.last!.beforeRegisterMember === null
       ? AssignmentKind.BITMAP_FIELD
       : AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
   }

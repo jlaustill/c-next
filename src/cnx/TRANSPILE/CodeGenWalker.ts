@@ -1301,6 +1301,7 @@ class CodeGenWalker {
       clampChains: new Set(),
       floatBitWrites: new Set(),
       compoundClamps: new Set(),
+      bitmapFieldWrites: new Set(),
       atomicForms: new Set(),
     };
     this.planner.useParameters(plan.setup.parameters);
@@ -1477,6 +1478,11 @@ class CodeGenWalker {
       CodeGenWalker.decidedSites(this.filePlan.compoundClamps),
       this.rendering.compoundClamps,
       "compound clamp",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.bitmapFieldWrites),
+      this.rendering.bitmapFieldWrites,
+      "bitmap field write",
     );
     CodeGenWalker.assertAllRendered(
       CodeGenWalker.decidedSites(this.filePlan.atomicForms),
@@ -2967,6 +2973,12 @@ class CodeGenWalker {
         targetExpr,
         this.rendering.floatBitWrites,
         "assignment target",
+      ),
+      bitmapField: CodeGenWalker.plannedAt(
+        this.filePlan.bitmapFieldWrites,
+        site,
+        this.rendering.bitmapFieldWrites,
+        "assignment",
       ),
       atomic: CodeGenWalker.plannedAt(
         this.filePlan.atomicForms,

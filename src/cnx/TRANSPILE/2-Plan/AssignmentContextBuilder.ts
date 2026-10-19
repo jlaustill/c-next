@@ -23,6 +23,7 @@
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import type IPlannedAtomic from "./types/IPlannedAtomic";
+import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
@@ -44,6 +45,8 @@ interface IContextBuilderDeps {
 
   /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
   readonly floatBits: IPlannedFloatBits | null;
+  /** 2.2's decision: the bitmap field the target writes (ADR-034), or null */
+  readonly bitmapField: IBitmapFieldTarget | null;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
   readonly atomic: IPlannedAtomic | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
@@ -283,6 +286,7 @@ function buildAssignmentContext(
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
     floatBits: deps.floatBits,
+    bitmapField: deps.bitmapField,
     atomic: deps.atomic,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,

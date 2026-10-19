@@ -107,6 +107,7 @@ import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitmapFieldStep from "../../utils/BitmapFieldStep";
+import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import AtomicOwner from "./AtomicOwner";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
@@ -972,8 +973,10 @@ class FilePlanner {
     }
     const complementCasts = this.planComplementCasts(program, inlinedConsts);
     const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
+    const bitmapFieldWrites = this.planBitmapFieldWrites(program);
     const atomicForms = this.planInterruptSafety(
       program,
+      bitmapFieldWrites,
       decidedCTypes,
       requirements,
     );
@@ -1049,12 +1052,19 @@ class FilePlanner {
       complementCasts,
       floatBitReads: floatBits.reads,
       floatBitWrites: floatBits.writes,
+      bitmapFieldWrites,
       atomicForms,
-      cTypes: this.planCTypes(program, inlinedConsts, types, [
-        ...decidedCTypes,
-        ...negativeMinimums.values(),
-        ...complementCasts.values(),
-      ]),
+      cTypes: this.planCTypes(
+        program,
+        inlinedConsts,
+        types,
+        bitmapFieldWrites,
+        [
+          ...decidedCTypes,
+          ...negativeMinimums.values(),
+          ...complementCasts.values(),
+        ],
+      ),
       safeDivisions,
       clampChains: clamps.chains,
       compoundClamps: clamps.compound,
@@ -1830,6 +1840,10 @@ class FilePlanner {
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     types: ReadonlyMap<TTypeSyntax, IPlannedType>,
+    bitmapFieldWrites: ReadonlyMap<
+      IAssignmentSyntax,
+      IBitmapFieldTarget | null
+    >,
     decided: Iterable<string>,
   ): ReadonlySet<string> {
     const cTypes = new Set<string>(decided);
@@ -1853,7 +1867,7 @@ class FilePlanner {
       );
       if (backing !== undefined) cTypes.add(backing);
     }
-    this.planBitmapWriteCTypes(program, cTypes);
+    this.planBitmapWriteCTypes(bitmapFieldWrites, cTypes);
     this.planHeaderTextCTypes(cTypes);
     return cTypes;
   }
@@ -1889,23 +1903,44 @@ class FilePlanner {
    * member's type included)
    */
   private planBitmapWriteCTypes(
-    program: IProgramSyntax,
+    bitmapFieldWrites: ReadonlyMap<
+      IAssignmentSyntax,
+      IBitmapFieldTarget | null
+    >,
     cTypes: Set<string>,
   ): void {
     const symbols = this.state.symbols!;
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
-    for (const site of sites) {
-      const bitmap = BitmapFieldStep.fieldOf(
-        this.targetDeclaration(site.target).last,
-        symbols.bitmapFields,
-      )?.bitmapType;
-      const backing = bitmap
-        ? symbols.bitmapBackingType.get(bitmap)
+    for (const field of bitmapFieldWrites.values()) {
+      const backing = field
+        ? symbols.bitmapBackingType.get(field.bitmapType)
         : undefined;
       if (backing !== undefined) cTypes.add(backing);
     }
+  }
+
+  /**
+   * ADR-034: the bitmap field each assignment writes -- its target's final
+   * step, as the typer typed the chain, whatever spells its prefix (#1749).
+   * The one decision the classifier routes on, the handler writes, the
+   * backing type is planned from and an atomic owner is found by.
+   */
+  private planBitmapFieldWrites(
+    program: IProgramSyntax,
+  ): ReadonlyMap<IAssignmentSyntax, IBitmapFieldTarget | null> {
+    const bitmapFields = this.state.symbols!.bitmapFields;
+    const writes = new Map<IAssignmentSyntax, IBitmapFieldTarget | null>();
+    for (const entry of program.declarations) {
+      for (const site of StatementNodes.assignments(entry.declaration)) {
+        writes.set(
+          site,
+          BitmapFieldStep.fieldOf(
+            this.targetDeclaration(site.target).last,
+            bitmapFields,
+          ),
+        );
+      }
+    }
+    return writes;
   }
 
   /**
@@ -1916,6 +1951,10 @@ class FilePlanner {
    */
   private planInterruptSafety(
     program: IProgramSyntax,
+    bitmapFieldWrites: ReadonlyMap<
+      IAssignmentSyntax,
+      IBitmapFieldTarget | null
+    >,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
   ): ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null> {
@@ -1933,7 +1972,10 @@ class FilePlanner {
     for (const entry of program.declarations) {
       visit(StatementNodes.roots(entry.declaration));
       for (const site of StatementNodes.assignments(entry.declaration)) {
-        const atomic = this.atomicFormOf(site);
+        const atomic = this.atomicFormOf(
+          site,
+          bitmapFieldWrites.get(site) ?? null,
+        );
         forms.set(site, atomic);
         if (atomic === null) continue;
         if (atomic.form === "ldrex-strex") {
@@ -1966,12 +2008,15 @@ class FilePlanner {
    * value is modified, from the typer, whatever spells it (#1179). Null when
    * the write is not atomic.
    */
-  private atomicFormOf(site: IAssignmentSyntax): IPlannedAtomic | null {
+  private atomicFormOf(
+    site: IAssignmentSyntax,
+    bitmapField: IBitmapFieldTarget | null,
+  ): IPlannedAtomic | null {
     const symbols = this.state.symbols!;
     const typeName = AtomicOwner.ofWrite(
       site,
       this.state.typingContext(),
-      symbols.bitmapFields,
+      bitmapField,
       symbols.bitmapBackingType,
     );
     if (typeName === null) return null;

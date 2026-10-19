@@ -60,6 +60,7 @@ function createMockContext(
     valueExpressionType: () => mockGetExpressionType(null),
     valueIntegerType: () => mockGetIntegerExpressionType(null),
     valueHasFloatingOperand: () => false,
+    bitmapField: null,
     atomic: null,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),

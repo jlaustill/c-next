@@ -45,6 +45,7 @@ function createMockContext(
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
+    bitmapField: null,
     atomic: null,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
@@ -100,7 +101,9 @@ describe("BitmapHandlers", () => {
     const handlerFor = (kind: AssignmentKind) =>
       bitmapHandlers.find(([k]) => k === kind)![1];
     const write = (ctx: IAssignmentContext) =>
-      handlerFor(AssignmentKind.BITMAP_FIELD)(ctx);
+      handlerFor(AssignmentKind.BITMAP_FIELD)(
+        HandlerTestUtils.withPlannedBitmapField(state, ctx),
+      );
 
     /** A field write as the planner renders its target and the typer types it */
     const fieldWrite = (
@@ -179,7 +182,7 @@ describe("BitmapHandlers", () => {
 
       expect(() =>
         write(fieldWrite("flags", "StatusFlags", ["flags", "Unknown"])),
-      ).toThrow("the classifier routes a field of a bitmap here");
+      ).toThrow("the classifier routes a planned bitmap field here");
     });
 
     it("masks a multi-bit field", () => {
@@ -213,7 +216,7 @@ describe("BitmapHandlers", () => {
     const write = (ctx: IAssignmentContext) =>
       bitmapHandlers.find(
         ([kind]) => kind === AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
-      )![1](ctx);
+      )![1](HandlerTestUtils.withPlannedBitmapField(state, ctx));
 
     /** A field of a register member, as the typer names the member */
     const memberWrite = (
