@@ -13,13 +13,12 @@ extern "C" {
 #endif
 
 /* External variables */
-extern volatile const char atomicWithInit[17];
-extern volatile const char atomicNoInit[17];
+extern volatile char atomicWithInit[17];
+extern volatile char atomicNoInit[17];
 extern volatile const char volatileWithInit[17];
 extern volatile const char volatileNoInit[17];
 extern volatile const char unsizedVolatile[2];
-extern volatile const char unsizedAtomic[2];
-extern volatile const uint32_t plainAtomic;
+extern volatile uint32_t plainAtomic;
 extern const char unqualified[17];
 
 #ifdef __cplusplus

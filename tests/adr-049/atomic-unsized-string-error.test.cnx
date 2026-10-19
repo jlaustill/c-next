@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 049
+// #2233: atomic implies mut, so an atomic string is writable and needs an
+// explicit capacity, as a mut string does (E0862). The sized atomic string and
+// the unsized read-only string are controls that stay silent.
+#pragma target stm32f4
+
+atomic string unsizedAtomic <- "a";
+atomic string<16> sizedAtomic <- "a";
+string unsizedReadOnly <- "r";
+
+void main() {
+    sizedAtomic <- "b";
+}

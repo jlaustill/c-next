@@ -1,0 +1,2 @@
+8:7 error[E0862]: A `mut` string requires an explicit capacity
+       help: Write the capacity, e.g. string<64>. Only a read-only string can have one inferred.
