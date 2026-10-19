@@ -209,14 +209,16 @@ How does the compiler know which intrinsics to emit?
 
 _(Corrected 2026-09-26, #1668: Cortex-M0+ is ARMv6-M and has no LDREX/STREX, so it uses the critical section like Cortex-M0.)_
 
+_(Corrected 2026-10-19, owner ruling on #2155: a float takes the critical section on an `ldrex_strex` target. The LDREX/STREX loop would read a `float` through a `uint32_t` lvalue, which C11 6.5p7 makes undefined, and CMSIS has no float form. A compound write and a bit write to an `atomic f32` already emitted the critical section; the table said otherwise.)_
+
 _(Corrected 2026-10-17, #1789: the table named only Cortex rows. The form is chosen from the target description's `ldrex_strex` and `interrupt_mask`, not from the platform's name.)_
 
-| Platform                                          | RMW Implementation                   |
-| ------------------------------------------------- | ------------------------------------ |
-| Cortex-M3+ (`ldrex_strex`, 8/16/32-bit types)     | LDREX/STREX loop                     |
-| Cortex-M0+, Cortex-M0, a wider type on Cortex-M3+ | Critical section (PRIMASK)           |
-| AVR (atmega328p)                                  | Critical section (SREG)              |
-| host, esp32 (`interrupt_mask: false`)             | GNU `__atomic` compare-exchange loop |
+| Platform                                                     | RMW Implementation                   |
+| ------------------------------------------------------------ | ------------------------------------ |
+| Cortex-M3+ (`ldrex_strex`, 8/16/32-bit integer types)        | LDREX/STREX loop                     |
+| Cortex-M0+, Cortex-M0, a wider type or a float on Cortex-M3+ | Critical section (PRIMASK)           |
+| AVR (atmega328p)                                             | Critical section (SREG)              |
+| host, esp32 (`interrupt_mask: false`)                        | GNU `__atomic` compare-exchange loop |
 
 _(Clarified 2026-10-18, #2200: a bit, a bit range or a bitmap field written to an `atomic` value, `word[1] <- true`, `word[2, 3] <- 5`, `flags.Mode <- 3`, is a read-modify-write of the whole value, so it takes the row's form too, in every spelling of the value. A bitmap is accessed as its backing integer (Q4). These writes were emitted as a plain read-modify-write.)_
 
@@ -357,22 +359,25 @@ The retry loop inside the transpiled code IS using CAS-like hardware (LDREX/STRE
 
 **Decision: All scalar types allowed. Transpiler handles platform differences.**
 
-| Type          | Allowed? | 32-bit MCU (Cortex-M)                   | 8-bit MCU (AVR)               |
-| ------------- | -------- | --------------------------------------- | ----------------------------- |
-| u8, i8, bool  | ✓        | Natural                                 | Natural                       |
-| u16, i16      | ✓        | Natural                                 | Critical section              |
-| u32, i32, f32 | ✓        | Natural load/store, LDREX/STREX for RMW | Critical section              |
-| u64, i64, f64 | ✓        | Critical section (document cost)        | Critical section              |
-| Enums         | ✓        | Inherits from underlying type           | Inherits from underlying type |
-| bitmap8/16/32 | ✓        | Same as underlying integer              | Same as underlying integer    |
-| Structs       | ✗        | Use `critical { }` block                | Use `critical { }` block      |
-| Arrays        | ✗        | Use `critical { }` block                | Use `critical { }` block      |
+| Type          | Allowed? | 32-bit MCU (Cortex-M)                        | 8-bit MCU (AVR)               |
+| ------------- | -------- | -------------------------------------------- | ----------------------------- |
+| u8, i8, bool  | ✓        | Natural                                      | Natural                       |
+| u16, i16      | ✓        | Natural                                      | Critical section              |
+| u32, i32      | ✓        | Natural load/store, LDREX/STREX for RMW      | Critical section              |
+| f32           | ✓        | Natural load/store, critical section for RMW | Critical section              |
+| u64, i64, f64 | ✓        | Critical section (document cost)             | Critical section              |
+| Enums         | ✓        | Inherits from underlying type                | Inherits from underlying type |
+| bitmap8/16/32 | ✓        | Same as underlying integer                   | Same as underlying integer    |
+| Structs       | ✗        | Use `critical { }` block                     | Use `critical { }` block      |
+| Arrays        | ✗        | Use `critical { }` block                     | Use `critical { }` block      |
 
 **Guiding Principle**: C-Next makes the right thing easy, the wrong thing impossible, and remains flexible in between.
 
 - 64-bit atomics on 32-bit platforms are **expensive but not wrong**
 - Atomic floats are **uncommon but not wrong**
 - The type declares **intent**, the transpiler makes it **safe for the target**
+
+_(Corrected 2026-10-19, owner ruling on #2155: `f32` was listed with `u32` and `i32` as LDREX/STREX for a read-modify-write. A float's is the critical section, for the reason Q6 gives.)_
 
 **Examples:**
 
