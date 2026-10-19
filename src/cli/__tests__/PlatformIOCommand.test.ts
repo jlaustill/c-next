@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import PlatformIOCommand from "../PlatformIOCommand";
 import IFileSystem from "../../cnx/types/IFileSystem";
 import TestFileSystem from "../../cnx/types/__testUtils__/TestFileSystem";
@@ -17,6 +17,8 @@ import DiagnosticText from "../DiagnosticText";
 class PioProject {
   private readonly files = new Map<string, string>();
   readonly removed: string[] = [];
+  /** Every path written, in order, by name relative to the project. */
+  readonly written: string[] = [];
   readonly fs: IFileSystem;
 
   constructor(
@@ -37,6 +39,7 @@ class PioProject {
         return content;
       },
       writeFile: (path: string, content: string) => {
+        this.written.push(relative(process.cwd(), path));
         this.files.set(path, content);
       },
       mkdir: () => {},
@@ -183,15 +186,21 @@ describe("PlatformIOCommand", () => {
       expect(ini).toContain("pre:cnext_build.py");
     });
 
-    it("skips modification when already configured", () => {
-      const project = new PioProject({
-        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
-      });
+    // #2221 review: since a reinstall goes on to set up the config, nothing
+    // pinned what it leaves alone; writing platformio.ini again lists the
+    // script twice, and the first-install banner is not a reinstall's
+    it("leaves platformio.ini and the first-install banner alone on a reinstall", () => {
+      const ini = "[env:esp32]\nextra_scripts = pre:cnext_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
 
       PlatformIOCommand.install(project.fs);
 
+      expect(project.file("platformio.ini")).toBe(ini);
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("already configured"),
+      );
+      expect(consoleLogSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining("PlatformIO integration configured"),
       );
     });
 
@@ -308,6 +317,45 @@ describe("PlatformIOCommand", () => {
         });
         expect(consoleLogSpy).toHaveBeenCalledWith(
           expect.stringContaining("already configured"),
+        );
+      });
+
+      // #2221 review: a reinstall replaced a config it could not parse, so a
+      // trailing comma cost the project its settings, and `null` crashed
+      it.each([
+        ["a trailing comma", '{"target":"teensy41","include":["lib/"],}'],
+        ["null", "null"],
+      ])("stops at a config holding %s, writing nothing", (_label, content) => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          ".cnxrc": content,
+        });
+
+        expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+          "process.exit(1)",
+        );
+
+        expect(project.written).toEqual([]);
+        expect(project.file(".cnxrc")).toBe(content);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining("nothing was written"),
+        );
+      });
+
+      it("rewrites no config that already has the defaults", () => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          ".cnxrc": JSON.stringify({
+            include: [".pio/libdeps"],
+            headerOut: "include",
+          }),
+        });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.written).toEqual(["cnext_build.py"]);
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("already has the PlatformIO defaults"),
         );
       });
 

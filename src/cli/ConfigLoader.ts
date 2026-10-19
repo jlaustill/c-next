@@ -7,6 +7,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
 import TConfigInDirectory from "./types/TConfigInDirectory";
 import TConfigLoad from "./types/TConfigLoad";
+import TConfigObject from "./types/TConfigObject";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../cnx/types/IFileSystem";
@@ -60,6 +61,34 @@ class ConfigLoader {
       : { kind: "found", ...read.config };
   }
 
+  /**
+   * A config file's text as a config object, its paths left as written: the
+   * one decision of whether the file holds one (#2221 review). A run warns and
+   * ignores a file that does not; `--pio-install` stops before writing, where
+   * it used to replace the file and drop its settings.
+   */
+  static objectOf(found: {
+    readonly path: string;
+    readonly content: string;
+  }): TConfigObject {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(found.content);
+    } catch (err) {
+      return {
+        kind: "invalid",
+        reason: `Failed to parse config ${found.path}: ${CaughtError.messageOf(err)}`,
+      };
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {
+        kind: "invalid",
+        reason: `Config ${found.path} is not a JSON object`,
+      };
+    }
+    return { kind: "object", config: parsed as IFileConfig };
+  }
+
   /** The config a walk found, parsed and anchored; empty when there is none. */
   private static parse(
     found: Exclude<TConfigInDirectory, { kind: "renamed" }>,
@@ -67,25 +96,13 @@ class ConfigLoader {
     if (found.kind === "none") {
       return {};
     }
-
-    let config: unknown;
-    try {
-      config = JSON.parse(found.content);
-    } catch (err) {
-      const message = CaughtError.messageOf(err);
-      console.error(`Warning: Failed to parse config: ${message}`);
+    const read = ConfigLoader.objectOf(found);
+    if (read.kind === "invalid") {
+      console.error(`Warning: ${read.reason}; ignored`);
       return {};
     }
-    if (!config || typeof config !== "object" || Array.isArray(config)) {
-      console.error(
-        `Warning: Config ${found.path} is not a JSON object; ignored`,
-      );
-      return {};
-    }
-
-    const fileConfig = config as IFileConfig;
-    fileConfig._path = found.path;
-    return ConfigLoader.anchorPaths(fileConfig, dirname(found.path));
+    read.config._path = found.path;
+    return ConfigLoader.anchorPaths(read.config, dirname(found.path));
   }
 
   /**

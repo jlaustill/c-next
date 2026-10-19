@@ -3,16 +3,15 @@
  * Setup and uninstall PlatformIO integration
  */
 
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import Write from "../cnx/WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
-import CaughtError from "../cnx/utils/CaughtError";
 import CONFIG_FILE_NAMES from "../cnx/types/CONFIG_FILE_NAMES";
 import type IFileSystem from "../cnx/types/IFileSystem";
 import ConfigLoader from "./ConfigLoader";
 import ResultPrinter from "./ResultPrinter";
-import type TConfigInDirectory from "./types/TConfigInDirectory";
+import type TConfigObject from "./types/TConfigObject";
 
 /**
  * Resolved paths for PlatformIO project.
@@ -88,7 +87,9 @@ class PlatformIOCommand {
    *
    * #2165: a config under an old name stops it with E0918 before anything is
    * written. Writing a new-name config beside the old one would leave the
-   * project failing every run on the pair.
+   * project failing every run on the pair. So does a config that holds no
+   * config object (#2221 review), which it used to replace, dropping every
+   * setting in it.
    */
   static install(fs: IFileSystem = NodeFileSystem.instance): void {
     const { pioIniPath, scriptPath } = getPioProjectPaths(fs);
@@ -99,6 +100,20 @@ class PlatformIOCommand {
       }
       process.exit(1);
     }
+    const existing: TConfigObject =
+      config.kind === "found"
+        ? ConfigLoader.objectOf(config)
+        : { kind: "object", config: {} };
+    if (existing.kind === "invalid") {
+      console.error(
+        `Error: ${existing.reason}; nothing was written. Fix it and run --pio-install again.`,
+      );
+      process.exit(1);
+    }
+    const configPath =
+      config.kind === "found"
+        ? config.path
+        : resolve(process.cwd(), CONFIG_FILE_NAMES[0]);
 
     // Create cnext_build.py script
     // Issue #833: Run transpilation at import time (before compilation),
@@ -159,7 +174,7 @@ transpile_cnext()
       console.log(`✓ Modified: ${pioIniPath}`);
     }
 
-    this.setupConfig(config, fs);
+    this.setupConfig(configPath, existing.config, fs);
     if (alreadyConfigured) {
       return;
     }
@@ -205,42 +220,29 @@ transpile_cnext()
    * one written still shadows an ancestor's (#2235).
    */
   private static setupConfig(
-    found: Exclude<TConfigInDirectory, { kind: "renamed" }>,
+    configPath: string,
+    config: IFileConfig,
     fs: IFileSystem,
   ): void {
-    const configPath =
-      found.kind === "found"
-        ? found.path
-        : resolve(process.cwd(), CONFIG_FILE_NAMES[0]);
     const pioInclude = ".pio/libdeps";
-
-    let config: IFileConfig = {};
-
-    if (found.kind === "found") {
-      try {
-        config = JSON.parse(found.content) as IFileConfig;
-      } catch (e) {
-        const msg = CaughtError.messageOf(e);
-        console.log(
-          `⚠ Could not parse existing ${basename(configPath)} (${msg}), creating new one`,
-        );
-        config = {};
-      }
-    }
-
-    // Append .pio/libdeps to include array if not already present
     const includes = config.include ?? [];
-    if (!includes.includes(pioInclude)) {
-      config.include = [...includes, pioInclude];
+    const hasPioInclude = includes.includes(pioInclude);
+    // A reinstall of a project already set up writes nothing (#2221 review)
+    if (hasPioInclude && config.headerOut) {
+      console.log(`✓ ${configPath} already has the PlatformIO defaults`);
+      return;
     }
 
-    // Set headerOut only if not already set
-    if (!config.headerOut) {
-      config.headerOut = "include";
-    }
+    const updated: IFileConfig = {
+      ...config,
+      // Append .pio/libdeps to include array if not already present
+      include: hasPioInclude ? includes : [...includes, pioInclude],
+      // Set headerOut only if not already set
+      headerOut: config.headerOut || "include",
+    };
 
     // Write config (with pretty formatting)
-    Write.file(fs, configPath, JSON.stringify(config, null, 2) + "\n");
+    Write.file(fs, configPath, JSON.stringify(updated, null, 2) + "\n");
     console.log(`✓ Updated: ${configPath}`);
   }
 
