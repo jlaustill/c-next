@@ -2808,6 +2808,15 @@ class CodeGenWalker {
     };
   }
 
+  /** #2240: the substring's length 2.2 folded */
+  private substringCount(chain: TExpression): number {
+    const count = this.filePlan.substringCounts.get(chain);
+    if (count === undefined) {
+      throw new Error("Internal: 2.2 planned no length for this substring");
+    }
+    return count;
+  }
+
   /** A concatenation's or a substring's parts as generated C (ADR-045) */
   private renderStringParts(
     form: TStringValueForm,
@@ -2830,7 +2839,7 @@ class CodeGenWalker {
           AssignmentTarget.parts(part.chain).ops.length - 1,
         ),
         start: this.renderExpression(part.start),
-        length: part.length === null ? "1" : this.renderExpression(part.length),
+        length: this.substringCount(part.chain),
       };
     });
   }

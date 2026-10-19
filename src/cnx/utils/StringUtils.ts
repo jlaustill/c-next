@@ -63,13 +63,6 @@ class StringUtils {
   }
 
   /**
-   * Generate substring extraction: `result <- source[start, length]` is
-   * `cnx_string_copy(result, source + start, length)`, which copies at most
-   * `length` characters, zero-fills to it and terminates there, as `strncpy`
-   * and a terminator did, without gcc's `-Wstringop-truncation` on a source
-   * longer than the count (#2160 review).
-   */
-  /**
    * A substring appended to what is built, bounded by the space left as
    * `strncat` bounds a whole part: a part before it may be a C string or an
    * unsized `string`, whose length 2.1 cannot measure (#2160 review)
@@ -89,15 +82,22 @@ class StringUtils {
     ];
   }
 
-  private static count(length: string): string {
-    return /^\d+$/.test(length) ? `${length}U` : `(uint32_t)(${length})`;
+  private static count(length: number): string {
+    return `${length}U`;
   }
 
+  /**
+   * Generate substring extraction: `result <- source[start, length]` is
+   * `cnx_string_copy(result, source + start, length)`, which copies at most
+   * `length` characters, zero-fills to it and terminates there, as `strncpy`
+   * and a terminator did, without gcc's `-Wstringop-truncation` on a source
+   * longer than the count (#2160 review).
+   */
   static substring(
     target: string,
     source: string,
     start: string,
-    length: string,
+    length: number,
   ): string[] {
     const count = StringUtils.count(length);
     return [

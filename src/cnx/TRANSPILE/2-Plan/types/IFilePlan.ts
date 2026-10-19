@@ -96,6 +96,11 @@ interface IFilePlan {
    */
   readonly stringValueForms: ReadonlyMap<TExpression, TStringValueForm>;
   /**
+   * #2240: each substring part's length, keyed by its chain, folded once
+   * here: E0919 has made every one a compile-time constant
+   */
+  readonly substringCounts: ReadonlyMap<TExpression, number>;
+  /**
    * #2236: each struct initializer field value copied into its `string<N>`
    * field, by the field's capacity; its form is in `stringValueForms`
    */

@@ -34,7 +34,7 @@ uint32_t joinAll(const char* p) {
     (void) strncpy(cnx_tmp0.t, p, 8);
     {
         const uint32_t cnx_used = (uint32_t) strlen(cnx_tmp0.t);
-        cnx_string_copy(cnx_tmp0.t + cnx_used, s + 0U, ((8U - cnx_used) < (uint32_t)(4U)) ? (8U - cnx_used) : (uint32_t)(4U));
+        cnx_string_copy(cnx_tmp0.t + cnx_used, s + 0U, ((8U - cnx_used) < 4U) ? (8U - cnx_used) : 4U);
     }
     cnx_tmp0.t[8] = '\0';
     const Box b = cnx_tmp0;
@@ -61,7 +61,7 @@ uint32_t joinAll(const char* p) {
         (void) strncpy(cnx_tmp1, p, 8);
         {
             const uint32_t cnx_used = (uint32_t) strlen(cnx_tmp1);
-            cnx_string_copy(cnx_tmp1 + cnx_used, s + 0U, ((8U - cnx_used) < (uint32_t)(4U)) ? (8U - cnx_used) : (uint32_t)(4U));
+            cnx_string_copy(cnx_tmp1 + cnx_used, s + 0U, ((8U - cnx_used) < 4U) ? (8U - cnx_used) : 4U);
         }
         cnx_tmp1[8] = '\0';
         cnx_string_copy(e, cnx_tmp1, 8U);

@@ -59,7 +59,7 @@ int main(void) {
     Cfg m = cnx_tmp2;
     /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp3 = { .name = { 0 }, .id = 4U };
-    cnx_string_copy(cnx_tmp3.name, m.name + 0U, (uint32_t)(1U));
+    cnx_string_copy(cnx_tmp3.name, m.name + 0U, 1U);
     (void) strncat(cnx_tmp3.name, s, 8 - strlen(cnx_tmp3.name));
     cnx_tmp3.name[8] = '\0';
     m = cnx_tmp3;
@@ -80,7 +80,7 @@ int main(void) {
     }
     /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
     Cfg cnx_tmp5 = { .name = { 0 }, .id = 6U };
-    cnx_string_copy(cnx_tmp5.name, s + 1U, (uint32_t)(1U));
+    cnx_string_copy(cnx_tmp5.name, s + 1U, 1U);
     const Cfg sub = cnx_tmp5;
     if (strcmp(sub.name, "b") != 0) {
         return 6U;

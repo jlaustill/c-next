@@ -235,7 +235,7 @@ describe("StringDeclHelper", () => {
           init({
             form: "substring",
             renderParts: () => [
-              { kind: "substring", source: "src", start: "0", length: "3" },
+              { kind: "substring", source: "src", start: "0", length: 3 },
             ],
           }),
         ),
@@ -408,13 +408,13 @@ describe("StringDeclHelper", () => {
       overrides: Partial<{
         source: string;
         start: string;
-        lengthExpression: string;
+        length: number;
       }> = {},
     ): IPlannedStringInit {
       const part = {
         source: "source",
         start: "0",
-        lengthExpression: "5",
+        length: 5,
         ...overrides,
       };
       return init({
@@ -424,7 +424,7 @@ describe("StringDeclHelper", () => {
             kind: "substring",
             source: part.source,
             start: part.start,
-            length: part.lengthExpression,
+            length: part.length,
           },
         ],
       });
@@ -459,7 +459,7 @@ describe("StringDeclHelper", () => {
 
     it("skips bounds check when start is not numeric", () => {
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, substring({ start: "offset", lengthExpression: "10" })),
+        bounded(50, substring({ start: "offset", length: 10 })),
         "part",
         NO_MODS,
         false,
@@ -467,18 +467,6 @@ describe("StringDeclHelper", () => {
       );
 
       expect(code).toContain('char part[51] = "";');
-    });
-
-    it("skips length check when length is not numeric", () => {
-      const code = StringDeclHelper.generateStringDecl(
-        bounded(5, substring({ start: "0", lengthExpression: "len" })),
-        "part",
-        NO_MODS,
-        false,
-        state,
-      );
-
-      expect(code).toContain('char part[6] = "";');
     });
 
     it("never makes a read-only substring a C const array (ADR-071)", () => {

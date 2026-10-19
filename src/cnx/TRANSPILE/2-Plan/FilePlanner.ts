@@ -1092,6 +1092,7 @@ class FilePlanner {
       sliceSources,
       stringCopies: stringCopies.copies,
       stringValueForms: stringCopies.forms,
+      substringCounts: this.planSubstringCounts(stringCopies.forms),
       stringFields: stringCopies.fields,
       stringCopyHelper: stringCopies.helper,
       wholeArrayWrites,
@@ -1836,6 +1837,32 @@ class FilePlanner {
    * literal for one, so every one is copied in like any string. At file scope
    * only a literal reaches one (E0863), and it stays in the initializer.
    */
+  /** #2240: each substring part's length, which E0919 has made constant */
+  private planSubstringCounts(
+    forms: ReadonlyMap<TExpression, TStringValueForm>,
+  ): ReadonlyMap<TExpression, number> {
+    const counts = new Map<TExpression, number>();
+    for (const form of forms.values()) {
+      const parts =
+        form.kind === "concat"
+          ? form.parts
+          : form.kind === "substring"
+            ? [form.part]
+            : [];
+      for (const part of parts) {
+        if (part.kind !== "substring") continue;
+        const count = part.length === null ? 1 : this.constantOf(part.length);
+        if (count === undefined) {
+          throw new Error(
+            `Internal: substring length '${part.length?.written}' is not a constant; 2.1's E0919 rejects it`,
+          );
+        }
+        counts.set(part.chain, count);
+      }
+    }
+    return counts;
+  }
+
   private static planStringFields(
     program: IProgramSyntax,
     valuePositions: IValuePositions | null,

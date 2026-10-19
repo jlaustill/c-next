@@ -53,20 +53,23 @@ describe("StringUtils.build", () => {
   it("extracts a lone substring", () => {
     expect(
       StringUtils.build("t", 8, [
-        { kind: "substring", source: "s", start: "1", length: "2" },
+        { kind: "substring", source: "s", start: "1", length: 2 },
       ]),
     ).toEqual(["cnx_string_copy(t, s + 1, 2U);"]);
   });
 
-  it("appends a substring part by its length", () => {
+  it("appends a substring part by its length, bounded by the space left", () => {
     expect(
       StringUtils.build("t", 8, [
-        { kind: "substring", source: "a", start: "0", length: "2" },
-        { kind: "substring", source: "b", start: "1", length: "1" },
+        { kind: "substring", source: "a", start: "0", length: 2 },
+        { kind: "substring", source: "b", start: "1", length: 1 },
       ]),
     ).toEqual([
       "cnx_string_copy(t, a + 0, 2U);",
-      "cnx_string_copy(t + strlen(t), b + 1, 1U);",
+      "{",
+      "    const uint32_t cnx_used = (uint32_t) strlen(t);",
+      "    cnx_string_copy(t + cnx_used, b + 1, ((8U - cnx_used) < 1U) ? (8U - cnx_used) : 1U);",
+      "}",
       "t[8] = '\\0';",
     ]);
   });
@@ -77,14 +80,8 @@ describe("StringUtils.build", () => {
 // ========================================================================
 describe("StringUtils.substring", () => {
   it("copies a literal count of characters from the start offset", () => {
-    expect(StringUtils.substring("part", "source", "5", "10")).toEqual([
+    expect(StringUtils.substring("part", "source", "5", 10)).toEqual([
       "cnx_string_copy(part, source + 5, 10U);",
-    ]);
-  });
-
-  it("casts a count that is an expression to the helper's type", () => {
-    expect(StringUtils.substring("out", "input", "i * 2", "n")).toEqual([
-      "cnx_string_copy(out, input + i * 2, (uint32_t)(n));",
     ]);
   });
 });

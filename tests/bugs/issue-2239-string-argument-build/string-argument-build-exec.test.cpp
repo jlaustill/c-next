@@ -57,7 +57,7 @@ uint32_t S__run(void) {
     }
     /* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */
     char cnx_tmp1[9] = "";
-    cnx_string_copy(cnx_tmp1, a + 1U, (uint32_t)(1U));
+    cnx_string_copy(cnx_tmp1, a + 1U, 1U);
     const uint32_t r2 = S__take(cnx_tmp1);
     if (r2 != 2) {
         return 2U;

@@ -106,7 +106,7 @@ uint32_t S__run(void) {
     /* MISRA C:2012 Rule 19.1: string built in a temporary, then copied in by `cnx_string_copy` (`strncpy` and `strncat` would be passed overlapping arguments when a part reads the string written). */
     {
         char cnx_tmp1[41] = "";
-        cnx_string_copy(cnx_tmp1, a + 1U, (uint32_t)(1U));
+        cnx_string_copy(cnx_tmp1, a + 1U, 1U);
         cnx_string_copy(t, cnx_tmp1, 40U);
     }
     if (strcmp(t, "b") != 0) {
@@ -133,7 +133,7 @@ uint32_t S__run(void) {
         (void) strncpy(cnx_tmp3, "z", 40);
         {
             const uint32_t cnx_used = (uint32_t) strlen(cnx_tmp3);
-            cnx_string_copy(cnx_tmp3 + cnx_used, S__m + 0U, ((40U - cnx_used) < (uint32_t)(1U)) ? (40U - cnx_used) : (uint32_t)(1U));
+            cnx_string_copy(cnx_tmp3 + cnx_used, S__m + 0U, ((40U - cnx_used) < 1U) ? (40U - cnx_used) : 1U);
         }
         cnx_tmp3[40] = '\0';
         cnx_string_copy(o[1], cnx_tmp3, 40U);
@@ -148,7 +148,7 @@ uint32_t S__run(void) {
         (void) strncpy(cnx_tmp4, "z", 8);
         {
             const uint32_t cnx_used = (uint32_t) strlen(cnx_tmp4);
-            cnx_string_copy(cnx_tmp4 + cnx_used, s + 0U, ((8U - cnx_used) < (uint32_t)(2U)) ? (8U - cnx_used) : (uint32_t)(2U));
+            cnx_string_copy(cnx_tmp4 + cnx_used, s + 0U, ((8U - cnx_used) < 2U) ? (8U - cnx_used) : 2U);
         }
         cnx_tmp4[8] = '\0';
         cnx_string_copy(s, cnx_tmp4, 8U);
@@ -159,7 +159,7 @@ uint32_t S__run(void) {
     /* MISRA C:2012 Rule 19.1: string built in a temporary, then copied in by `cnx_string_copy` (`strncpy` and `strncat` would be passed overlapping arguments when a part reads the string written). */
     {
         char cnx_tmp5[9] = "";
-        cnx_string_copy(cnx_tmp5, s + 1U, (uint32_t)(2U));
+        cnx_string_copy(cnx_tmp5, s + 1U, 2U);
         cnx_string_copy(s, cnx_tmp5, 8U);
     }
     if (strcmp(s, "ab") != 0) {
