@@ -30,4 +30,9 @@ void f() {
     u32 b <- count(small);
     // ASSERTION 3 -- a callee declared across an include.
     u8 c <- fourth(words);
+
+    // NEGATIVE CONTROL -- a ternary whose arms both have the element type.
+    u8 okTernary <- third((bytes[0] = 1) ? bytes : bytes);
+    // ASSERTION 4 -- a ternary's arm of another element type.
+    u8 d <- third((bytes[0] = 1) ? bytes : words);
 }

@@ -298,6 +298,34 @@ class OperandTyper {
    * none for a scalar, an element, or an ADR-007 slice, which writes a
    * value's bytes rather than an array.
    */
+  /**
+   * ADR-014: the arrays a value passes by reference -- itself, or each value
+   * arm of a ternary, through parentheses. Null when one is not an array: a
+   * list, a string literal or a scalar is not passed as it stands.
+   */
+  static arrayArms(
+    expr: TExpression,
+    ctx: ITypingContext,
+  ): TExpression[] | null {
+    const inner = ExpressionShape.unparenthesized(expr);
+    if (inner.kind === "ternary") {
+      const whenTrue = OperandTyper.arrayArms(inner.whenTrue, ctx);
+      const whenFalse = OperandTyper.arrayArms(inner.whenFalse, ctx);
+      return whenTrue === null || whenFalse === null
+        ? null
+        : [...whenTrue, ...whenFalse];
+    }
+    if (
+      inner.kind === "arrayInitializer" ||
+      inner.kind === "structInitializer" ||
+      ExpressionShape.isStringLiteral(inner)
+    ) {
+      return null;
+    }
+    const typed = OperandTyper.typeOf(inner, ctx);
+    return typed !== null && typed.dimensions.length > 0 ? [inner] : null;
+  }
+
   static wholeArrayDimensions(
     target: TExpression,
     ctx: ITypingContext,

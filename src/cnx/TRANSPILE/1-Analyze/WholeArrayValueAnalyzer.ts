@@ -49,10 +49,14 @@ class WholeArrayValueAnalyzer {
         continue;
       }
       // #2157: an argument passes an array by reference, so an array value
-      // is one too
+      // is one too -- and so is each arm of a ternary of arrays
       const site = positions.sites.get(value)?.site;
-      if (site?.kind === "argument" && this.isArrayValue(value)) {
-        found.push(...this.shapeMismatch(value, at));
+      const arms =
+        site?.kind === "argument"
+          ? OperandTyper.arrayArms(value, this.context)
+          : null;
+      if (arms !== null) {
+        for (const arm of arms) found.push(...this.shapeMismatch(arm, at));
         continue;
       }
       found.push(...WholeArrayValueAnalyzer.check(value, at, this.context));
@@ -102,13 +106,6 @@ class WholeArrayValueAnalyzer {
    * `#define LIMIT 5`) is not known to be an array, so it is asked for a list
    * as a scalar is.
    */
-  private isArrayValue(value: TExpression): boolean {
-    if (value.kind === "arrayInitializer" || value.kind === "structInitializer")
-      return false;
-    if (ExpressionShape.isStringLiteral(value)) return false;
-    const typed = OperandTyper.typeOf(value, this.context);
-    return typed !== null && typed.dimensions.length > 0;
-  }
 
   /**
    * #2194: the callee reads an array argument with the parameter's shape, so

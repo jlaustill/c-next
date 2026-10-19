@@ -8,8 +8,8 @@ import type IPlannedWholeArrayWrite from "./IPlannedWholeArrayWrite";
 type TArgumentForm =
   /** A bare name: a parameter or an array as is, anything else by address */
   | { readonly kind: "identifier" }
-  /** A member that is an array, which decays without `&` */
-  | { readonly kind: "array-member" }
+  /** An array, which decays without `&`: a member, or a ternary of arrays */
+  | { readonly kind: "array" }
   /** C++: a member converted through a `cType` temporary (#256) */
   | { readonly kind: "member-temp"; readonly cType: string }
   /** An lvalue by address, a string's element cast to `cast*` (#246) */

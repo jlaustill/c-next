@@ -39,4 +39,11 @@ void f() {
     u8 c <- corner(wideRows);
     // ASSERTION 4 -- a callee declared across an include.
     u8 d <- fourth(small);
+
+    // NEGATIVE CONTROL -- a ternary whose arms both have the parameter's shape.
+    u8 okTernary <- third((exact[0] = 1) ? exact : exact);
+    // ASSERTION 5 -- a ternary's arm of a shorter shape.
+    u8 e <- third((exact[0] = 1) ? exact : small);
+    // ASSERTION 6 -- a ternary's arm that is a list, which is not passed as it stands.
+    u8 g <- third((exact[0] = 1) ? [1, 2, 3, 4] : exact);
 }

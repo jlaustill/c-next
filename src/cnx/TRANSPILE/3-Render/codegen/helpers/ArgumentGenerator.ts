@@ -131,7 +131,7 @@ class ArgumentGenerator {
           declared,
           state,
         );
-      case "array-member":
+      case "array":
         return callbacks.generateExpression();
       case "member-temp":
         return ArgumentGenerator.createCppMemberConversionTemp(

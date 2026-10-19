@@ -1299,7 +1299,25 @@ class FilePlanner {
   ): TArgumentForm | null {
     if (passing.mode !== "reference") return null;
     if (array !== undefined) return { kind: "array-temp", array };
+    if (this.isArrayTernary(expression, passing)) {
+      return { kind: "array" };
+    }
     return this.referenceForm(expression, passing, structInitializers);
+  }
+
+  /**
+   * ADR-014: a ternary of arrays for an array parameter is passed as it
+   * stands, the way each of its arms would be; the arms are 2.1's to check
+   */
+  private isArrayTernary(
+    expression: TExpression,
+    passing: IArgumentPassing,
+  ): boolean {
+    return (
+      passing.param?.isArray === true &&
+      ExpressionShape.unparenthesized(expression).kind === "ternary" &&
+      OperandTyper.arrayArms(expression, this.state.typingContext()) !== null
+    );
   }
 
   /**

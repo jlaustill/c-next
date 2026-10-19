@@ -124,7 +124,7 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-9 linked fixtures with no derivable context:
+10 linked fixtures with no derivable context:
 
 - `adr-014/struct-inferred-every-position.test.cnx`
 - `adr-014/struct-literal-argument-by-value-callback.test.cnx`
@@ -135,6 +135,7 @@ cell is declared by the ADR that owns it.
 - `adr-014/struct-literal-positions.test.cnx`
 - `bugs/issue-1782-whole-array-assignment/list-assignment.test.cnx`
 - `bugs/issue-2157-array-parameter-list/list-argument.test.cnx`
+- `bugs/issue-2157-array-parameter-list/ternary-argument.test.cnx`
 
 ## ADR-015
 
