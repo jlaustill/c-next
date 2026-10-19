@@ -323,6 +323,7 @@ describe("BitAccessHandlers", () => {
         width: { text: "8", folded: undefined },
         value: "true",
         isVariable: true,
+        atomicForm: null,
       });
       expect(result).toBe("float_range_write_result");
     });
@@ -363,6 +364,7 @@ describe("BitAccessHandlers", () => {
         width: null,
         value: "true",
         isVariable: false,
+        atomicForm: null,
       });
       expect(result).toBe("element_write");
     });

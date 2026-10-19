@@ -1,0 +1,23 @@
+#pragma target teensy41
+// test-adr: 049
+// An atomic value declared in an included file (direct include) is written
+// atomically here, from a top-level function and from a scope method: a
+// compound write and a bit, a bit range and a bitmap field written with <-
+// all take the LDREX/STREX loop (ADR-049, #2200, #1179).
+
+#include "atomic-shared.cnx"
+
+scope Worker {
+    public void tick() {
+        global.sharedCount +<- 1;
+        global.sharedCount[1] <- true;
+        global.sharedFlags.Busy <- true;
+    }
+}
+
+void main() {
+    sharedCount +<- 1;
+    sharedCount[4, 3] <- 5;
+    sharedFlags.Level <- 5;
+    Worker.tick();
+}

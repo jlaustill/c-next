@@ -116,15 +116,27 @@ function generateLdrexStrexLoop(
   const ldrex = LDREX_MAP[typeInfo.baseType];
   const strex = STREX_MAP[typeInfo.baseType];
   const cType = TYPE_MAP[typeInfo.baseType];
+  // #2208: CMSIS's intrinsics take an unsigned pointer; a signed value is
+  // accessed through its unsigned type of the same width
+  const exclusiveType = TYPE_MAP[typeInfo.baseType.replace(/^i/, "u")];
+  const address =
+    exclusiveType === cType
+      ? `&${target}`
+      : `(volatile ${exclusiveType} *)&${target}`;
+  const loaded =
+    exclusiveType === cType
+      ? `${ldrex}(${address})`
+      : `(${cType})${ldrex}(${address})`;
+  const stored = exclusiveType === cType ? "__new" : `(${exclusiveType})__new`;
 
   // Uses do-while because we always need at least one attempt
   const code = `{
     /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
     ${operandType} ${OPERAND} = ${value};
     do {
-        ${cType} __old = ${ldrex}(&${target});
+        ${cType} __old = ${loaded};
         ${cType} __new = ${innerOp};
-        if (${strex}(__new, &${target}) == 0) {
+        if (${strex}(${stored}, ${address}) == 0) {
             break;
         }
     } while (1);

@@ -435,7 +435,12 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                                                                                 | Help                                                                                                    | Source                                                                                             |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) or through a header typedef (`Buf b`), or a string (#1823) | A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside. | `PARSE/2-Parse/ArrayForm.ts`, `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` (a header typedef) |
-| E0918 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034)                          | Index every dimension first: `a[i].A`                                                                   | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`                                                      |
+
+## E0918 — A Field of a Bitmap Array That Names No Element (ADR-034)
+
+| Code  | Message                                                                                                        | Help                                  | Source                                        |
+| ----- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------- |
+| E0918 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034) | Index every dimension first: `a[i].A` | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 
 ---
 

@@ -48,7 +48,8 @@ static inline void __cnx_disable_irq(void) { cli(); }
 // Issue #2200: a bit, a bit range and a bitmap field written to an atomic
 // value are read-modify-writes, made atomic as a compound write to the value
 // is, in every spelling: a variable, a bitmap, a scope member through the
-// scope's name and through this.
+// scope's name and through this. A compound write to a scope member is
+// atomic in every spelling too (#1179).
 volatile uint8_t word = 0;
 
 volatile uint16_t wide = 0;
@@ -59,12 +60,19 @@ uint8_t plain = 0;
 
 /* Scope: Sc */
 volatile Flags Sc__paf = {0};
+volatile uint8_t Sc__cnt = 0;
 
 void Sc__viaThis(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
         Sc__paf = (uint8_t)((Sc__paf & ~(0x7U << 2)) | ((2U & 0x7U) << 2));
+        __cnx_set_PRIMASK(__primask);
+    }
+    {
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
+        Sc__cnt += 1U;
         __cnx_set_PRIMASK(__primask);
     }
 }
@@ -110,6 +118,12 @@ void set(const bool on) {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
         Sc__paf = (uint8_t)((Sc__paf & ~(1U << 1)) | (1U << 1));
+        __cnx_set_PRIMASK(__primask);
+    }
+    {
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
+        Sc__cnt += 1U;
         __cnx_set_PRIMASK(__primask);
     }
     plain = (uint8_t)((plain & ~(1U << 1)) | (1U << 1));

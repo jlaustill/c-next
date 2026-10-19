@@ -720,21 +720,30 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
-| top-level function | same file           | warn     |
-| scope method       | same file           | warn     |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | warn     |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
 The modifiers are read off the declaration itself, so nothing crosses an
-include and every imported cell records that it cannot exist. A declaration can
+include for E0509, and its imported cells record that it cannot exist.
+
+The atomic form of a read-modify-write (Q2, Q6, #2200, #1179) is a
+different rule: it fires at the WRITE, in a top-level function or a scope
+method, and reads `atomic` from where the value is DECLARED. An atomic value
+declared in an included file is as atomic as one declared here, so those
+contexts are declared `error` in every column, asserted by
+`atomic-across-include-direct` and `atomic-across-include-transitive`
+(review of #2155). A write cannot stand in a global or a scope member's
+declaration, so the rule adds no cell there. A declaration can
 carry them in any of the four same-file contexts; only the file-scope one is
 covered today, and the other three are `warn` rather than `error` because this
 pass relocated the rule without widening it.

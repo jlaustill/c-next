@@ -3,7 +3,8 @@
 // Issue #2200: a bit, a bit range and a bitmap field written to an atomic
 // value are read-modify-writes, made atomic as a compound write to the value
 // is, in every spelling: a variable, a bitmap, a scope member through the
-// scope's name and through this.
+// scope's name and through this. A compound write to a scope member is
+// atomic in every spelling too (#1179).
 
 bitmap8 Flags {
     A,
@@ -21,9 +22,11 @@ mut u8 plain;
 
 scope Sc {
     public atomic mut Flags paf;
+    public atomic mut wrap u8 cnt;
 
     public void viaThis() {
         this.paf.Mode <- 2;
+        this.cnt +<- 1;
     }
 }
 
@@ -35,6 +38,7 @@ void set(bool on) {
     flags.Mode <- 3;
     flags.A <- on;
     Sc.paf.B <- true;
+    Sc.cnt +<- 1;
     plain[1] <- true;
 }
 

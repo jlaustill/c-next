@@ -7,7 +7,7 @@
 
 import invariant from "../../utils/invariant";
 import BitUtils from "../../utils/BitUtils";
-import AtomicBitOwner from "./AtomicBitOwner";
+import AtomicOwner from "./AtomicOwner";
 import type IAssignmentContext from "./types/IAssignmentContext";
 
 /**
@@ -95,6 +95,7 @@ function writeBits(ctx: IAssignmentContext): string {
       width: width ?? null,
       value: ctx.generatedValue,
       isVariable: floatBits.shared,
+      atomicForm: ctx.atomicForm,
     });
   }
   const value = ctx.target.last?.before ?? null;
@@ -130,7 +131,7 @@ function storeBits(
     return `${target} = ${newValue(target, ctx.generatedValue, ctx.foldValue())};`;
   }
   const symbols = ctx.state.symbols!;
-  const baseType = AtomicBitOwner.typeName(
+  const baseType = AtomicOwner.ofBits(
     ctx.target.last,
     symbols.bitmapFields,
     symbols.bitmapBackingType,

@@ -69,7 +69,6 @@ import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
 import AssignmentClassifier from "./AssignmentClassifier";
-import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import AssignmentOperatorMapper from "./AssignmentOperatorMapper";
 import type IPlannedCast from "./types/IPlannedCast";
 import ConstExprLowering from "../../utils/ConstExprLowering";
@@ -107,7 +106,7 @@ import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitmapFieldStep from "../../utils/BitmapFieldStep";
-import AtomicBitOwner from "./AtomicBitOwner";
+import AtomicOwner from "./AtomicOwner";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
 import SymbolTypeResolver from "../../utils/TypeResolver";
@@ -1958,54 +1957,26 @@ class FilePlanner {
   }
 
   /**
-   * ADR-049: a compound write to a variable declared `atomic`, named bare or
-   * through `global.`, is an LDREX/STREX loop where the target and the type
+   * ADR-049: a read-modify-write of a value declared `atomic` -- a compound
+   * write to it, or a bit, a bit range or a bitmap field of it written with
+   * `<-` (#2200) -- is an LDREX/STREX loop where the target and the type
    * allow one, otherwise the masked region, or a compare-exchange loop on a
-   * target that cannot mask interrupts (#1789). Null when the write is not
-   * atomic.
-   * An `atomic` scope member written through `this.` is not seen here, and
-   * saturates or wraps without the guard: bug #1179.
+   * target that cannot mask interrupts (#1789). `AtomicOwner` decides which
+   * value is modified, from the typer, whatever spells it (#1179). Null when
+   * the write is not atomic.
    */
   private atomicFormOf(
     site: IAssignmentSyntax,
   ): { readonly form: TAtomicForm; readonly typeName: string } | null {
-    if (site.operator === "<-") return this.atomicBitFormOf(site);
-    const parts = AssignmentTarget.parts(site.target);
-    if (parts.ops.length > 0 || parts.root === "this") return null;
-    const written = OperandTyper.typeOfTarget(
-      site.target,
-      this.state.typingContext(),
-    );
-    if (!ForHeaderAssignment.isAtomic(written)) return null;
-    const typeName = written?.typeName ?? "";
-    const exclusive = LDREX_MAP[typeName] !== undefined;
-    return {
-      form: FilePlanner.atomicFormFor(
-        this.state.targetDescription,
-        exclusive,
-        typeName,
-      ),
-      typeName,
-    };
-  }
-
-  /**
-   * ADR-049 (#2200): a bit, a bit range or a bitmap field written to an
-   * `atomic` value, in any spelling, is a read-modify-write of the value, in
-   * the form a compound write to it takes. Null when the write is not one.
-   */
-  private atomicBitFormOf(
-    site: IAssignmentSyntax,
-  ): { readonly form: TAtomicForm; readonly typeName: string } | null {
     const symbols = this.state.symbols!;
-    const typeName = AtomicBitOwner.typeName(
-      OperandTyper.chainOf(site.target, this.state.typingContext()).steps.at(
-        -1,
-      ),
+    const typeName = AtomicOwner.ofWrite(
+      site,
+      this.state.typingContext(),
       symbols.bitmapFields,
       symbols.bitmapBackingType,
     );
     if (typeName === null) return null;
+    AdrProvenance.record("049", site.target.span.line);
     return {
       form: FilePlanner.atomicFormFor(
         this.state.targetDescription,

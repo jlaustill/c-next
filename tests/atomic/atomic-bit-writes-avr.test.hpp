@@ -30,6 +30,7 @@ extern volatile uint16_t wide;
 extern volatile Flags flags;
 extern uint8_t plain;
 extern volatile Flags Sc__paf;
+extern volatile uint8_t Sc__cnt;
 
 /* Function prototypes */
 void Sc__viaThis(void);

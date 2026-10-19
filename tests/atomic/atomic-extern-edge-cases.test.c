@@ -131,9 +131,9 @@ int main(void) {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
         int32_t __operand = 10;
         do {
-            int8_t __old = __LDREXB(&temperature);
+            int8_t __old = (int8_t)__LDREXB((volatile uint8_t *)&temperature);
             int8_t __new = cnx_clamp_add_i8(__old, __operand);
-            if (__STREXB(__new, &temperature) == 0) {
+            if (__STREXB((uint8_t)__new, (volatile uint8_t *)&temperature) == 0) {
                 break;
             }
         } while (1);

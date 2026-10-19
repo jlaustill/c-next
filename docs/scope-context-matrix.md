@@ -416,15 +416,10 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | -      | -          | n/a         | n/a        |
-| top-level function | warn      | -      | -          | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | warn      | -      | -          | n/a         | n/a        |
-| scope method       | warn      | -      | -          | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
-
-2 linked fixtures with no derivable context:
-
-- `atomic/atomic-bit-writes-avr.test.cnx`
-- `atomic/atomic-bit-writes-cortex-m.test.cnx`
 
 ## ADR-050
 

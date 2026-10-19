@@ -40,6 +40,7 @@ describe("FloatBitHelper", () => {
         width: width === null ? null : { text: width, folded: undefined },
         value,
         isVariable,
+        atomicForm: null,
       },
       state,
     );

@@ -92,4 +92,45 @@ describe("2.2 plans the atomic form for the bits of an atomic", () => {
     expect(code).toContain("__atomic_compare_exchange(&flags");
     expect(code).not.toContain("word = (uint32_t)((word");
   });
+
+  it("writes a float's bits through its integer view, in the planned form", async () => {
+    const source = [
+      "atomic mut f32 fl;",
+      "void f() {",
+      "    fl[31] <- true;",
+      "    fl[0, 4] <- 3;",
+      "}",
+      "",
+    ].join("\n");
+    const host = await generate(`#pragma target host\n${source}`);
+    expect(host).toContain("__atomic_load(&fl, &__old.f, __ATOMIC_RELAXED);");
+    expect(host).toContain("__new.u = (__old.u & ~((uint32_t)1U << 31))");
+    expect(host).toContain(
+      "__atomic_compare_exchange(&fl, &__old.f, &__new.f, 0,",
+    );
+    const masked = await generate(`#pragma target teensy41\n${source}`);
+    expect(masked).toContain("__cnx_disable_irq();");
+    expect(masked).toContain("__bits.u = (__bits.u & ~((uint32_t)1U << 31))");
+    expect(masked).not.toContain("__bits_fl");
+  });
+
+  it("accesses a signed atomic through its unsigned type", async () => {
+    const code = await generate(
+      "#pragma target teensy41\natomic mut i32 s;\nvoid f() {\n    s[3] <- true;\n    s +<- 1;\n}\n",
+    );
+    expect(code).toContain(
+      "int32_t __old = (int32_t)__LDREXW((volatile uint32_t *)&s);",
+    );
+    expect(code).toContain(
+      "__STREXW((uint32_t)__new, (volatile uint32_t *)&s)",
+    );
+  });
+
+  it("writes a scope member's compound write atomically in every spelling", async () => {
+    const code = await generate(
+      "#pragma target teensy41\nscope Sc {\n    public atomic mut wrap u32 cnt;\n    public void go() {\n        this.cnt +<- 1;\n    }\n}\nvoid f() {\n    Sc.cnt +<- 1;\n}\n",
+    );
+    expect(code.match(/__LDREXW\(&Sc__cnt\)/g)).toHaveLength(2);
+    expect(code).not.toContain("Sc__cnt += 1U");
+  });
 });
