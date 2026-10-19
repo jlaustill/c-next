@@ -4,9 +4,10 @@ import type ISubstringOps from "./ISubstringOps";
 /**
  * How a bounded string's initializer is rendered (ADR-045).
  *
- * `string<N> s <- ...` admits four initializers and they are distinguished in
- * a FIXED ORDER: concatenation, then substring extraction, then a literal,
- * then a copy from another string. The order is not cosmetic -- each question
+ * `string<N> s <- ...` admits four initializers. A copy of one whole string
+ * is planned in 2.2 (`copies`), by the rule an assignment's copy is decided
+ * by (#1731); the rest are distinguished in a FIXED ORDER: concatenation, then
+ * substring extraction, then a literal. The order is not cosmetic -- each question
  * is asked of the same expression, and the first that answers wins -- so this
  * is a record whose fields are consulted in declaration order rather than a
  * union whose arm is already chosen.
@@ -31,6 +32,12 @@ import type ISubstringOps from "./ISubstringOps";
  * plan time on the chance that a caller wants it.
  */
 interface IPlannedStringInit {
+  /**
+   * 2.2 planned the initializer as one whole string copied in, the rule an
+   * assignment's copy is decided by (#1731). Asked before the other forms.
+   */
+  readonly copies: boolean;
+
   /**
    * ADR-045 concatenation operands, or null.
    *

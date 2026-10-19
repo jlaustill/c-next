@@ -27,7 +27,7 @@ static inline void cnx_string_copy(char* target, const char* source, uint32_t ca
 int main(void) {
     const char small[33] = "Test";
     char big[65] = "";
-    (void) strncpy(big, small, 64); big[64] = '\0';
+    cnx_string_copy(big, small, 64U);
     if (strlen(big) != 4) {
         return 1;
     }
@@ -39,7 +39,7 @@ int main(void) {
     }
     const char source[17] = "Hello World";
     char dest[33] = "";
-    (void) strncpy(dest, source, 32); dest[32] = '\0';
+    cnx_string_copy(dest, source, 32U);
     if (strlen(dest) != 11) {
         return 4;
     }
@@ -48,7 +48,7 @@ int main(void) {
     }
     const char emptySource[33] = "";
     char emptyDest[65] = "";
-    (void) strncpy(emptyDest, emptySource, 64); emptyDest[64] = '\0';
+    cnx_string_copy(emptyDest, emptySource, 64U);
     if (strlen(emptyDest) != 0) {
         return 6;
     }

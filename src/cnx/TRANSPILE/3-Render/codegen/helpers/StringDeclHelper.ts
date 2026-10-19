@@ -204,6 +204,22 @@ class StringDeclHelper {
       return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`;
     }
 
+    // #1731: 2.2 planned a copy of one whole string, by an assignment's rule
+    if (init.copies) {
+      StringDeclHelper._validateStringInit(
+        init.text,
+        init.sourceCapacity,
+        capacity,
+      );
+      return StringDeclHelper._generateCopyDecl(
+        name,
+        capacity,
+        init.render(),
+        qualifiers,
+        state,
+      );
+    }
+
     // ADR-045 asks the four initializer forms in a fixed order, and the order is
     // load-bearing: `renderSubstring` generates the index expressions when it
     // answers, so it is asked only after `concat` has declined.
@@ -240,29 +256,42 @@ class StringDeclHelper {
       return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${init.render()};`;
     }
 
-    // String variable: cannot use C array initialization, so declare empty and
-    // copy. The copy writes the buffer, so it is never a C `const` array, here
-    // or in the concatenation and substring arms; C-Next still rejects a write
-    // to it (ADR-071). Issue #1044: use the same bounded copy as the reassignment path
-    // (strncpy + explicit null terminator via StringUtils.copyWithNull) rather
-    // than an unbounded strcpy, which flawfinder flags as CWE-120.
-    // Issue #1030: string-to-string initialization
-    if (!state.inFunctionBody) {
-      invariant(
-        false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 1.2`,
-      );
-    }
+    // TODO(#1634): only a source that is not a string reaches here, with no
+    // diagnostic, so its copy is not planned and the helper is not emitted
+    return StringDeclHelper._generateCopyDecl(
+      name,
+      capacity,
+      init.render(),
+      qualifiers,
+      state,
+    );
+  }
 
-    const srcExpr = init.render();
+  /**
+   * Issue #1030: a string initialized from another string. C cannot
+   * initialize an array from one, so it is declared empty and copied into.
+   * The copy writes the buffer, so it is never a C `const` array, here or in
+   * the concatenation and substring arms; C-Next still rejects a write to it
+   * (ADR-071). Issue #1044: the bounded copy an assignment makes, not an
+   * unbounded strcpy, which flawfinder flags as CWE-120.
+   */
+  private static _generateCopyDecl(
+    name: string,
+    capacity: number,
+    source: string,
+    qualifiers: string,
+    state: TranspileState,
+  ): string {
+    invariant(
+      state.inFunctionBody,
+      "a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 1.2",
+    );
     // Issue #1037: continuation lines carry no indent of their own — the block
     // emitter (CodeGenerator.generateBlock) prefixes every line.
-    const lines: string[] = [];
-    lines.push(
+    return [
       `${qualifiers}char ${name}[${capacity + 1}] = "";`,
-      StringUtils.copyWithNull(name, srcExpr, capacity),
-    );
-    return lines.join("\n");
+      StringUtils.copy(name, source, capacity),
+    ].join("\n");
   }
 
   /**

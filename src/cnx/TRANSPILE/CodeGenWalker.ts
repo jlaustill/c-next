@@ -2771,6 +2771,7 @@ class CodeGenWalker {
   private planStringInit(expression: TExpression): IPlannedStringInit {
     const text = CodeGenWalker.stringTextOf(expression);
     return {
+      copies: this.filePlan.stringInitCopies.has(expression),
       concat: this._getStringConcatOperands(expression),
       renderSubstring: () => this._getSubstringOperands(expression),
       text,

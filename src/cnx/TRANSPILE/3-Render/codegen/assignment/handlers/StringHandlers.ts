@@ -46,7 +46,7 @@ function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
   );
   // TODO(#2192): the helper's `char*` drops a volatile element's qualifier,
   // as `strncpy`'s own parameter did
-  return `${StringUtils.COPY_HELPER}(${ctx.renderTarget()}, ${ctx.generatedValue}, ${capacity}U);`;
+  return StringUtils.copy(ctx.renderTarget(), ctx.generatedValue, capacity);
 }
 
 const stringHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [

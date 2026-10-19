@@ -87,6 +87,8 @@ interface IFilePlan {
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
   /** #1731: each assignment that writes one whole `string<N>`, and its capacity */
   readonly stringCopies: ReadonlyMap<IAssignmentSyntax, number>;
+  /** each function's string initializer that copies one whole string in */
+  readonly stringInitCopies: ReadonlySet<TExpression>;
   /** #2207: whether the file copies a string, through `cnx_string_copy` */
   readonly stringCopyHelper: boolean;
 

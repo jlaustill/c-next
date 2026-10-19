@@ -17,23 +17,16 @@
 const C_NULL_CHAR = String.raw`'\0'`;
 
 class StringUtils {
-  /**
-   * Generate strncpy with explicit null termination.
-   * Used for simple string assignments: str <- "hello"
-   *
-   * Pattern: (void) strncpy(target, value, capacity); target[capacity] = '\0';
-   *
-   * @param target - The destination variable/expression
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyWithNull(target: string, value: string, capacity: number): string {
-    return `(void) strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = ${C_NULL_CHAR};`;
-  }
-
   /** #2207: the copy a string written from another string goes through */
   static readonly COPY_HELPER = "cnx_string_copy";
+
+  /**
+   * #1731: one whole string copied into `string<capacity>`, assigned or
+   * declared -- the one form of ADR-045's copy (#2207)
+   */
+  static copy(target: string, value: string, capacity: number): string {
+    return `${StringUtils.COPY_HELPER}(${target}, ${value}, ${capacity}U);`;
+  }
 
   /**
    * Generate string concatenation sequence.

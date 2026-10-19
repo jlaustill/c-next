@@ -34,7 +34,7 @@ uint32_t lengthOf(const char* s) {
 int main(void) {
     const char a[17] = "hello";
     char b[17] = "";
-    (void) strncpy(b, a, 16); b[16] = '\0';
+    cnx_string_copy(b, a, 16U);
     cnx_string_copy(b, "hi", 16U);
     const uint8_t bytes[4] = "abc";
     const uint8_t c = (uint8_t)'A';

@@ -56,6 +56,7 @@ import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import ExpressionShape from "../../utils/ExpressionShape";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import MutArgument from "../1-Analyze/helpers/MutArgument";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
@@ -82,6 +83,7 @@ import type TArgumentForm from "./types/TArgumentForm";
 import CppMemberHelper from "./CppMemberHelper";
 import IPostfixOp from "../../types/IPostfixOp";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
+import type ITypingContext from "../../types/ITypingContext";
 import type TExpression from "../../types/syntax/TExpression";
 import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import ExpressionChildren from "../../utils/ExpressionChildren";
@@ -1059,6 +1061,7 @@ class FilePlanner {
       clampOps: clamps.ops,
       sliceSources,
       stringCopies: stringCopies.copies,
+      stringInitCopies: stringCopies.initCopies,
       stringCopyHelper: stringCopies.helper,
       expectedTypes,
       narrowings,
@@ -1701,6 +1704,7 @@ class FilePlanner {
     cTypes: Set<string>,
   ): {
     readonly copies: ReadonlyMap<IAssignmentSyntax, number>;
+    readonly initCopies: ReadonlySet<TExpression>;
     readonly helper: boolean;
   } {
     const copies = new Map<IAssignmentSyntax, number>();
@@ -1711,10 +1715,35 @@ class FilePlanner {
       AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
       copies.set(site, capacity);
     }
+    const initCopies = FilePlanner.stringInitCopies(program, typing);
     // #2207: every copy calls `cnx_string_copy`, which counts in `uint32_t`
-    const helper = copies.size > 0;
+    const helper = copies.size > 0 || initCopies.size > 0;
     if (helper) cTypes.add("uint32_t");
-    return { copies, helper };
+    return { copies, initCopies, helper };
+  }
+
+  /**
+   * #1731 sweep: a function's `string<N> t <- s` copies one whole string in,
+   * by the rule an assignment's copy is decided by, so both are one
+   * `cnx_string_copy`. A literal initializes the array instead.
+   */
+  private static stringInitCopies(
+    program: IProgramSyntax,
+    typing: ITypingContext,
+  ): ReadonlySet<TExpression> {
+    const found = new Set<TExpression>();
+    for (const { declaration, site } of VariableDeclarations.ruled(program)) {
+      const initializer = declaration.initializer;
+      if (site !== "statement" || initializer === null) continue;
+      if (declaration.type.kind !== "string") continue;
+      if (declaration.type.capacity === null) continue;
+      if (ExpressionShape.isStringLiteral(initializer)) continue;
+      if (OperandTyper.stringCopyCapacity(initializer, typing) === null) {
+        continue;
+      }
+      found.add(initializer);
+    }
+    return found;
   }
 
   /**

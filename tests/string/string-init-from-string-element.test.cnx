@@ -1,0 +1,35 @@
+// test-execution
+// test-adr: 045
+// #1731 sweep: a declaration initialized from one whole string is the same
+// copy an assignment makes, whatever spells the source. `names[0]` used to
+// be read as a one-character substring of `names` (`strncpy(t, names + 0, 1)`).
+struct Cfg {
+    string<8> name;
+}
+
+mut Cfg c;
+
+u32 main() {
+    string<8>[2] names <- ["n0", "n1"];
+    c.name <- "cn";
+    string<8> s <- "sv";
+
+    string<8> fromElement <- names[1];
+    if (fromElement != "n1") {
+        return 1;
+    }
+    string<8> fromField <- c.name;
+    if (fromField != "cn") {
+        return 2;
+    }
+    string<8> fromVariable <- s;
+    if (fromVariable != "sv") {
+        return 3;
+    }
+    // control: a substring is still a substring
+    string<8> fromSlice <- s[1, 1];
+    if (fromSlice != "v") {
+        return 4;
+    }
+    return 0;
+}

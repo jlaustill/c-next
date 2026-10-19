@@ -6,14 +6,30 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #1044: initializing a string from another string variable must use a
-// bounded copy (strncpy + null terminator), not an unbounded strcpy (CWE-120,
+// bounded copy (cnx_string_copy, #1731), not an unbounded strcpy (CWE-120,
 // flawfinder MS-banned). This must match the reassignment code path exactly.
 int main(void) {
     const char small[33] = "Test";
     char big[65] = "";
-    (void) strncpy(big, small, 64); big[64] = '\0';
+    cnx_string_copy(big, small, 64U);
     if (strcmp(big, "Test") != 0) {
         return 1;
     }

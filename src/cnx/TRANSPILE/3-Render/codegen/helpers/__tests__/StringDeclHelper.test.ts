@@ -37,6 +37,7 @@ const NO_MODS: IRenderedModifiers = {
 function init(overrides: Partial<IPlannedStringInit> = {}): IPlannedStringInit {
   const text = overrides.text ?? '""';
   return {
+    copies: false,
     concat: null,
     renderSubstring: () => null,
     text,
@@ -182,7 +183,7 @@ describe("StringDeclHelper", () => {
       });
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(16, init({ text: "src", render: () => "src" })),
+        bounded(16, init({ copies: true, text: "src", render: () => "src" })),
         "s",
         ATOMIC,
         false,
@@ -203,14 +204,14 @@ describe("StringDeclHelper", () => {
       });
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(16, init({ text: "src", render: () => "src" })),
+        bounded(16, init({ copies: true, text: "src", render: () => "src" })),
         "s",
         { ...NO_MODS, const: "const " },
         false,
         state,
       );
 
-      // strncpy fills it, so a `const` here does not compile.
+      // the copy fills it, so a `const` here does not compile.
       expect(code.split("\n")[0]).toBe('char s[17] = "";');
     });
 
@@ -352,7 +353,14 @@ describe("StringDeclHelper", () => {
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          bounded(10, init({ text: "bigString", render: () => "bigString" })),
+          bounded(
+            10,
+            init({
+              copies: true,
+              text: "bigString",
+              render: () => "bigString",
+            }),
+          ),
           "small",
           NO_MODS,
           false,
@@ -365,7 +373,7 @@ describe("StringDeclHelper", () => {
       declareSource("src", 20);
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, init({ text: "src", render: () => "src" })),
+        bounded(50, init({ copies: true, text: "src", render: () => "src" })),
         "dest",
         NO_MODS,
         false,
@@ -373,14 +381,14 @@ describe("StringDeclHelper", () => {
       );
 
       expect(code).toContain("char dest[51]");
-      expect(code).toContain("strncpy");
+      expect(code).toContain("cnx_string_copy(dest, src, 50U);");
     });
 
     it("does not indent continuation lines (the block emitter owns indentation) — Issue #1037", () => {
       declareSource("src", 20);
 
       const code = StringDeclHelper.generateStringDecl(
-        bounded(50, init({ text: "src", render: () => "src" })),
+        bounded(50, init({ copies: true, text: "src", render: () => "src" })),
         "dest",
         NO_MODS,
         false,
@@ -398,7 +406,7 @@ describe("StringDeclHelper", () => {
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          bounded(50, init({ text: "src", render: () => "src" })),
+          bounded(50, init({ copies: true, text: "src", render: () => "src" })),
           "dest",
           NO_MODS,
           false,

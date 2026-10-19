@@ -2,24 +2,18 @@ import { describe, it, expect } from "vitest";
 import StringUtils from "../StringUtils";
 
 // ========================================================================
-// copyWithNull
+// copy
 // ========================================================================
-describe("StringUtils.copyWithNull", () => {
-  it("generates strncpy with null termination for simple variable", () => {
-    expect(StringUtils.copyWithNull("str", '"hello"', 64)).toBe(
-      "(void) strncpy(str, \"hello\", 64); str[64] = '\\0';",
+describe("StringUtils.copy", () => {
+  it("calls the copy helper with an unsigned capacity", () => {
+    expect(StringUtils.copy("str", '"hello"', 64)).toBe(
+      'cnx_string_copy(str, "hello", 64U);',
     );
   });
 
-  it("generates strncpy with null termination for struct field", () => {
-    expect(StringUtils.copyWithNull("config.name", "value", 32)).toBe(
-      "(void) strncpy(config.name, value, 32); config.name[32] = '\\0';",
-    );
-  });
-
-  it("handles expression as value", () => {
-    expect(StringUtils.copyWithNull("buf", "getInput()", 128)).toBe(
-      "(void) strncpy(buf, getInput(), 128); buf[128] = '\\0';",
+  it("copies into a rendered target as given", () => {
+    expect(StringUtils.copy("config->name", "value", 32)).toBe(
+      "cnx_string_copy(config->name, value, 32U);",
     );
   });
 });

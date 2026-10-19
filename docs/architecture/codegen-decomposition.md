@@ -319,7 +319,7 @@ class BitUtils {
 }
 
 class StringUtils {
-  static copyWithNull(target: string, value: string, capacity: number): string;
+  static copy(target: string, value: string, capacity: number): string; // cnx_string_copy(...)
 }
 
 class MmioUtils {
