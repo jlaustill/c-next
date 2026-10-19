@@ -1806,7 +1806,6 @@ class FilePlanner {
     return planned;
   }
 
-  /** A whole array's element C type and the dimensions it is walked by */
   /**
    * A target declared `volatile` or `atomic` (which C writes `volatile`); a
    * call in its subscript is a side effect, not a qualifier

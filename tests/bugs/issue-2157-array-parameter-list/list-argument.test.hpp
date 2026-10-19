@@ -13,15 +13,27 @@
 extern "C" {
 #endif
 
+/* Callback typedefs */
+typedef uint8_t (*last_fp)(const uint8_t pair[2]);
+
 /* Struct definitions */
 typedef struct S {
     uint32_t a;
 } S;
+typedef struct Ops {
+    last_fp op;
+} Ops;
 
 /* Function prototypes */
 uint8_t third(const uint8_t buf[4]);
 uint8_t corner(const uint8_t grid[2][2]);
 uint32_t second(const S items[2]);
+uint8_t last(const uint8_t pair[2]);
+uint8_t initial(const uint8_t text[6]);
+uint8_t viaCallback(last_fp cb);
+uint8_t viaField(const Ops& ops);
+/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
+Ops Ops_init(void);
 
 #ifdef __cplusplus
 }

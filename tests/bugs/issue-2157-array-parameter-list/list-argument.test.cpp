@@ -29,34 +29,59 @@ uint32_t second(const S items[2]) {
     return items[1U].a;
 }
 
+uint8_t last(const uint8_t pair[2]) {
+    return pair[1U];
+}
+
+uint8_t initial(const uint8_t text[6]) {
+    return text[0U];
+}
+
+Ops Ops_init(void) {
+    Ops value = { last };
+    return value;
+}
+
+uint8_t viaCallback(last_fp cb) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
+    typedef const uint8_t cnx_tmp0_t[2];
+    return cb(static_cast<cnx_tmp0_t&>(cnx_tmp0_t{1U, 2U}));
+}
+
+uint8_t viaField(const Ops& ops) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
+    typedef const uint8_t cnx_tmp1_t[2];
+    return ops.op(static_cast<cnx_tmp1_t&>(cnx_tmp1_t{3U, 4U}));
+}
+
 int main(void) {
     /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
-    typedef const uint8_t cnx_tmp0_t[4];
-    const uint8_t t = third(static_cast<cnx_tmp0_t&>(cnx_tmp0_t{1U, 2U, 3U, 4U}));
+    typedef const uint8_t cnx_tmp2_t[4];
+    const uint8_t t = third(static_cast<cnx_tmp2_t&>(cnx_tmp2_t{1U, 2U, 3U, 4U}));
     if (t != 3) {
         return 1U;
     }
     /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
-    typedef const uint8_t cnx_tmp1_t[4];
-    const uint8_t filled = third(static_cast<cnx_tmp1_t&>(cnx_tmp1_t{7U, 7U, 7U, 7U}));
+    typedef const uint8_t cnx_tmp3_t[4];
+    const uint8_t filled = third(static_cast<cnx_tmp3_t&>(cnx_tmp3_t{7U, 7U, 7U, 7U}));
     if (filled != 7) {
         return 2U;
     }
     /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
-    typedef const uint8_t cnx_tmp2_t[2][2];
-    const uint8_t c = corner(static_cast<cnx_tmp2_t&>(cnx_tmp2_t{{1U, 2U}, {3U, 4U}}));
+    typedef const uint8_t cnx_tmp4_t[2][2];
+    const uint8_t c = corner(static_cast<cnx_tmp4_t&>(cnx_tmp4_t{{1U, 2U}, {3U, 4U}}));
     if (c != 4) {
         return 3U;
     }
     /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
-    typedef const S cnx_tmp3_t[2];
-    const uint32_t s = second(static_cast<cnx_tmp3_t&>(cnx_tmp3_t{{ .a = 5U }, { .a = 6U }}));
+    typedef const S cnx_tmp5_t[2];
+    const uint32_t s = second(static_cast<cnx_tmp5_t&>(cnx_tmp5_t{{ .a = 5U }, { .a = 6U }}));
     if (s != 6) {
         return 4U;
     }
     /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
-    typedef const uint8_t cnx_tmp4_t[4];
-    const uint32_t total = sumFour(static_cast<cnx_tmp4_t&>(cnx_tmp4_t{1U, 2U, 3U, 4U}));
+    typedef const uint8_t cnx_tmp6_t[4];
+    const uint32_t total = sumFour(static_cast<cnx_tmp6_t&>(cnx_tmp6_t{1U, 2U, 3U, 4U}));
     if (total != 10) {
         return 5U;
     }
@@ -64,6 +89,21 @@ int main(void) {
     const uint8_t fromArray = third(src);
     if (fromArray != 7) {
         return 6U;
+    }
+    const uint8_t called = viaCallback(last);
+    if (called != 2) {
+        return 7U;
+    }
+    const Ops ops = { .op = last };
+    const uint8_t fromField = viaField(ops);
+    if (fromField != 4) {
+        return 8U;
+    }
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
+    typedef const uint8_t cnx_tmp7_t[6];
+    const uint8_t h = initial(static_cast<cnx_tmp7_t&>(cnx_tmp7_t{"Hello"}));
+    if (h != 72) {
+        return 9U;
     }
     return 0U;
 }

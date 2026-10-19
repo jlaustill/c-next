@@ -287,10 +287,13 @@ through the program's const table; the count itself is local.)
 This table covers a declaration's initializer. A whole array is also taken at a
 field, at an assignment target, and at a parameter, and the rules above apply
 at each as they do here: one element per slot at every level, and a row's slot
-is a list too (#2195). At a field and an assignment target this is #1782's. At a
+is a list too (#2195), so a plain fill-all of an array of rows (`u8[4][4] g <- [0*]`)
+is E0866 and each row takes its own (`[[0*], [0*], [0*], [0*]]`) until ADR-036's
+`[0*][4*]` parses (#2206). At a field and an assignment target this is #1782's. At a
 parameter (#2157) a list is passed as an array of the parameter's full shape,
 written where the argument stands so `&&`, `||` and `?:` evaluate it only when
-they evaluate the call; a scalar or a struct initializer is E0866. An array
+they evaluate the call; a scalar, a struct initializer or a C macro is E0866, and a callback's
+parameter (ADR-029) is the named function's. An array
 argument is passed by reference and must have the parameter's shape wherever
 both sizes fold (#2194), since the callee reads it with that shape. Whether a
 field or a parameter is an array is read from its struct or function, which an

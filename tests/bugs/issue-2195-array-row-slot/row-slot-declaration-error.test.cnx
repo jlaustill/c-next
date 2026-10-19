@@ -13,6 +13,7 @@ string<8>[2] names <- ["ab", "cd"];
 // NEGATIVE CONTROL -- a nested list and string literals stay silent.
 u8[2][2] OK_GRID <- [[1, 2], [3, 4]];
 string<8>[2] OK_NAMES <- ["ef", "gh"];
+u8[4][4] OK_FILLED <- [[0*], [0*], [0*], [0*]];
 
 void f() {
     // ASSERTION 1 -- scalars where a declaration's rows are taken.
@@ -21,4 +22,6 @@ void f() {
     u8[2][2] b <- [row, row];
     // ASSERTION 3 -- string variables as a declaration's strings.
     string<8>[2] c <- [names[1], names[0]];
+    // ASSERTION 4 -- a fill-all's value stands in each row's slot.
+    u8[4][4] d <- [0*];
 }

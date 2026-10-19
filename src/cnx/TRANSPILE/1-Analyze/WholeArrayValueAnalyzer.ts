@@ -59,15 +59,16 @@ class WholeArrayValueAnalyzer {
   }
 
   /**
-   * A value typed as an array. One the typer cannot type (a C call's result)
-   * is not asked here; its own checks own it.
+   * A value typed as an array. One the typer cannot type (a C macro such as
+   * `#define LIMIT 5`) is not known to be an array, so it is asked for a list
+   * as a scalar is.
    */
   private isArrayValue(value: TExpression): boolean {
     if (value.kind === "arrayInitializer" || value.kind === "structInitializer")
       return false;
     if (ExpressionShape.isStringLiteral(value)) return false;
     const typed = OperandTyper.typeOf(value, this.context);
-    return typed === null || typed.dimensions.length > 0;
+    return typed !== null && typed.dimensions.length > 0;
   }
 
   /**

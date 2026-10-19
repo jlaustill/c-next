@@ -27,6 +27,29 @@ uint32_t second(const S items[2]) {
     return items[1U].a;
 }
 
+uint8_t last(const uint8_t pair[2]) {
+    return pair[1U];
+}
+
+uint8_t initial(const uint8_t text[6]) {
+    return text[0U];
+}
+
+Ops Ops_init(void) {
+    Ops value = { .op = last };
+    return value;
+}
+
+uint8_t viaCallback(last_fp cb) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
+    return cb((const uint8_t[2]){1U, 2U});
+}
+
+uint8_t viaField(const Ops* ops) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
+    return ops->op((const uint8_t[2]){3U, 4U});
+}
+
 int main(void) {
     /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     const uint8_t t = third((const uint8_t[4]){1U, 2U, 3U, 4U});
@@ -57,6 +80,20 @@ int main(void) {
     const uint8_t fromArray = third(src);
     if (fromArray != 7) {
         return 6U;
+    }
+    const uint8_t called = viaCallback(last);
+    if (called != 2) {
+        return 7U;
+    }
+    const Ops ops = { .op = last };
+    const uint8_t fromField = viaField(&ops);
+    if (fromField != 4) {
+        return 8U;
+    }
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
+    const uint8_t h = initial((const uint8_t[6]){"Hello"});
+    if (h != 72) {
+        return 9U;
     }
     return 0U;
 }

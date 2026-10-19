@@ -22,6 +22,26 @@ u32 second(S[2] items) {
     return items[1].a;
 }
 
+u8 last(u8[2] pair) {
+    return pair[1];
+}
+
+u8 initial(u8[6] text) {
+    return text[0];
+}
+
+struct Ops {
+    last op;
+}
+
+u8 viaCallback(last cb) {
+    return cb([1, 2]);
+}
+
+u8 viaField(Ops ops) {
+    return ops.op([3, 4]);
+}
+
 u32 main() {
     u8 t <- third([1, 2, 3, 4]);
     if (t != 3) {
@@ -47,6 +67,21 @@ u32 main() {
     u8 fromArray <- third(src);
     if (fromArray != 7) {
         return 6;
+    }
+    // A callback's parameter is the named function's (ADR-029).
+    u8 called <- viaCallback(last);
+    if (called != 2) {
+        return 7;
+    }
+    Ops ops <- { op: last };
+    u8 fromField <- viaField(ops);
+    if (fromField != 4) {
+        return 8;
+    }
+    // A u8 array's string, passed for an array parameter.
+    u8 h <- initial("Hello");
+    if (h != 72) {
+        return 9;
     }
     return 0;
 }

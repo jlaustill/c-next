@@ -201,7 +201,10 @@ class ArrayInitHelper {
     if (!state.pendingTempDeclarations.includes(ARGUMENT_COMMENT)) {
       state.pendingTempDeclarations.push(ARGUMENT_COMMENT);
     }
-    const init = ArrayInitHelper.initializerOf(array, renderedValue, state);
+    const rendered = ArrayInitHelper.initializerOf(array, renderedValue, state);
+    // A compound literal and a functional cast take a braced list; a string
+    // in braces initializes a `uint8_t` array (C11 6.7.9p14, C++ [dcl.init.string])
+    const init = array.fromList ? rendered : `{${rendered}}`;
     const shape = ArrayInitHelper.shapeOf(array);
     if (!state.cppMode) return `(const ${array.elementCType}${shape})${init}`;
     const type = `${state.getNextTempVarName()}_t`;

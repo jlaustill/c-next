@@ -1,12 +1,14 @@
-19:19 error[E0866]: An array must be given a list, not '1'
+20:19 error[E0866]: An array must be given a list, not '1'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-19:22 error[E0866]: An array must be given a list, not '2'
+20:22 error[E0866]: An array must be given a list, not '2'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-21:19 error[E0866]: An array must be given a list, not 'row'
+22:19 error[E0866]: An array must be given a list, not 'row'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-21:24 error[E0866]: An array must be given a list, not 'row'
+22:24 error[E0866]: An array must be given a list, not 'row'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-23:23 error[E0866]: A string array's element in a list must be a string literal, not 'names[1]'
+24:23 error[E0866]: A string array's element in a list must be a string literal, not 'names[1]'
        help: Write the string out as a literal, or set the element on its own (ADR-035).
-23:33 error[E0866]: A string array's element in a list must be a string literal, not 'names[0]'
+24:33 error[E0866]: A string array's element in a list must be a string literal, not 'names[0]'
        help: Write the string out as a literal, or set the element on its own (ADR-035).
+26:19 error[E0866]: A fill-all for an array of rows fills each row with a list, not '0'
+       help: Give each row its own fill-all, such as [[0*], [0*]] (ADR-035).

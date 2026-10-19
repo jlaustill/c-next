@@ -73,6 +73,20 @@ class ArrayListCount {
     };
   }
 
+  /**
+   * A fill-all whose value stands in each row's slot, which takes a list
+   * (#2195): `u8[4][4] g <- [0*]`. ADR-036's `[0*][4*]` does not parse (#2206).
+   */
+  private static rowFill(fill: TExpression): IArrayDeclarationError {
+    return {
+      code: "E0866",
+      line: fill.span.line,
+      column: fill.span.column,
+      message: `A fill-all for an array of rows fills each row with a list, not '${fill.written}'`,
+      helpText: `Give each row its own fill-all, such as [[${fill.written}*], [${fill.written}*]] (ADR-035).`,
+    };
+  }
+
   /** A string array's slot given something other than a string literal */
   private static notAStringLiteral(value: TExpression): IArrayDeclarationError {
     return {
@@ -124,7 +138,11 @@ class ArrayListCount {
         ArrayListCount.checkLevel(element, at, level + 1, found);
       } else if (level + 1 < at.sizes.length) {
         if (!ExpressionShape.givesWholeArray(element, at.elementType)) {
-          found.push(ArrayListCount.notAList(element));
+          found.push(
+            element === fill
+              ? ArrayListCount.rowFill(fill)
+              : ArrayListCount.notAList(element),
+          );
         }
       } else if (
         at.elementType !== null &&

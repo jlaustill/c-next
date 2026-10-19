@@ -247,7 +247,7 @@ class ValuePositionWalk {
   }
 
   private parameter(chain: TPostfix, index: number): IValuePosition {
-    const callee = FunctionReference.ofCallChain(
+    const callee = FunctionReference.ofCall(
       chain,
       OperandTyper.scopePathAt(chain.span, this.context),
       this.context,
