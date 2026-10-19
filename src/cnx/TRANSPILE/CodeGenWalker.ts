@@ -2256,7 +2256,10 @@ class CodeGenWalker {
       const fillValue = this.renderExpression(expr.fill);
       this.host.state.lastArrayInitCount = 0;
       this.host.state.lastArrayFillValue = fillValue;
-      return `{${fillValue}}`;
+      return ArrayInitHelper.fillAll(
+        fillValue,
+        this.filePlan.fillSizes.get(expr) ?? null,
+      );
     }
 
     const generatedElements = expr.elements.map((element) => {
@@ -2977,6 +2980,7 @@ class CodeGenWalker {
         "assignment",
       ),
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
+      plannedWholeArray: this.filePlan.wholeArrayWrites.get(site) ?? null,
       plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
       plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,
       state: this.host.state,

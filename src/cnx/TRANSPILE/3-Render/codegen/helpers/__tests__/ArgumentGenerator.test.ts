@@ -258,13 +258,13 @@ describe("ArgumentGenerator", () => {
       ).toEqual(form);
     });
 
-    it("is array-member for a member that is an array", () => {
+    it("is array for a member that is an array", () => {
       const shape = createMockCallbacks({
         getLvalueType: () => "member",
         getMemberAccessArrayStatus: () => "array",
       });
       expect(ArgumentForm.of(false, "u8", shape, false, true)).toEqual({
-        kind: "array-member",
+        kind: "array",
       });
     });
 
@@ -309,7 +309,7 @@ describe("ArgumentGenerator", () => {
   describe("cTypeOf", () => {
     it.each([
       [{ kind: "identifier" }, null],
-      [{ kind: "array-member" }, null],
+      [{ kind: "array" }, null],
       [{ kind: "member-temp", cType: "uint8_t" }, "uint8_t"],
       [{ kind: "lvalue", cast: "uint16_t" }, "uint16_t"],
       [{ kind: "lvalue", cast: null }, null],

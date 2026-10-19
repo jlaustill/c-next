@@ -1,0 +1,3 @@
+// #2157: a helper between a fixture and the callee it passes a list, so the
+// array parameter is declared two include hops away.
+#include "readers.cnx"

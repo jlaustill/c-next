@@ -282,6 +282,12 @@ u8[50] ones <- [1*];            // All 50 elements = 1
 // Partial init forbidden (MISRA 9.3)
 // u8[5] bad <- [1, 2, 3];      // ERROR: 3 elements for size-5
 
+// A whole array is assigned a list, under the same rules
+mut u8[3] rgb <- [0*];
+rgb <- [255, 128, 0];           // Every element read, then copied in
+rgb <- [7*];                    // Fill-all works here too
+// rgb <- data;                 // ERROR: an array must be given a list
+
 // Multi-dimensional arrays
 mut u8[4][8] matrix;
 matrix[0][0] <- 1;

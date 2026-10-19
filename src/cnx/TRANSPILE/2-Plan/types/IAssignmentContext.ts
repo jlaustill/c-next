@@ -7,6 +7,7 @@
  */
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
+import type IPlannedWholeArrayWrite from "./IPlannedWholeArrayWrite";
 import type TAtomicForm from "../../types/TAtomicForm";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
@@ -77,6 +78,8 @@ interface IAssignmentContext {
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
+  /** 2.2's decision: the shape a whole array is copied in (#1782), or null */
+  readonly plannedWholeArray: IPlannedWholeArrayWrite | null;
   /** 2.2's decision: the C type a narrow compound write is cast to, or null */
   readonly plannedCompoundCast: string | null;
   /** 2.2's decision: the `uintN_t` a write-only register range is written through, or null */

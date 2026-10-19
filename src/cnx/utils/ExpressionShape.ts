@@ -64,6 +64,20 @@ class ExpressionShape {
   }
 
   /**
+   * ADR-035: what a whole array is given -- a list, or for a `u8` array a
+   * string literal. ADR-014 holds it wherever a whole array is taken: a
+   * declaration (1.2's `ArrayForm`), and a field or an assignment target
+   * (2.1's `WholeArrayValueAnalyzer`), so both ask this.
+   */
+  static givesWholeArray(
+    value: TExpression,
+    elementType: string | null,
+  ): boolean {
+    if (value.kind === "arrayInitializer") return true;
+    return ExpressionShape.isStringLiteral(value) && elementType === "u8";
+  }
+
+  /**
    * A chain's head. A `this.`/`global.` root consumes the chain's first op, and
    * only a member op names it (`this[0]` names nothing). The typer, render's
    * subscript base and `UndeclaredValueAnalyzer` all ask this one function, for

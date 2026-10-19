@@ -330,6 +330,27 @@ access did not resolve through the variable-type lookup that whitelisted bare
 booleans), while bare locals and parameters silently compiled — a divergent
 code path that this change unified.
 
+## Research note: a ternary of arrays as an argument (#2157)
+
+_Research note; Status and Decision are unchanged._
+
+ADR-014 passes an array argument by reference, so a ternary whose arms are
+both arrays is passed as it stands, the way each arm is on its own (owner
+ruling on #2161). Each arm gets the same checks as a bare array argument: its
+shape must match the parameter's (#2194), and so must its element type and
+string capacity (#2209); an arm that fails is E0866 at that arm. C emits the
+ternary unchanged, as C++ already did, so only the chosen arm is read:
+
+```cnx
+u8 p <- peak((gear > 1) ? highGear : lowGear); // peak((gear > 1) ? highGear : lowGear)
+u8 q <- peak((gear > 1) ? highGear : small);   // E0866: small is a u8[3]
+```
+
+An arm that is a list or a string literal is not an array that can be passed
+as it stands, so the ternary stays E0866 under ADR-035, as it does at a
+declaration (`u8[4] t <- (c) ? a : b`). Before #2161, C emitted the ternary
+inside a one-element compound literal of the element type, which gcc rejects.
+
 ## Scope-context matrix
 
 Declared for the rules #1322 moved out of codegen into pass 2.1: **E0710**

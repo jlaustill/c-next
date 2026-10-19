@@ -10,6 +10,7 @@ import TypeResolver from "../../../utils/TypeResolver";
 import FunctionReference from "./FunctionReference";
 import StructInitializerType from "./StructInitializerType";
 import TypeText from "../../../utils/TypeText";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type IValuePosition from "../../../types/IValuePosition";
 import type IValuePositions from "../../../types/IValuePositions";
@@ -19,6 +20,7 @@ import type IFunctionDeclarationSyntax from "../../../types/syntax/IFunctionDecl
 const NOWHERE: IValuePosition = {
   typeText: null,
   isArray: false,
+  dimensions: [],
   isDeclaration: false,
   inList: false,
   supplied: false,
@@ -141,13 +143,19 @@ class ValuePositionWalk {
       return;
     }
     const target = OperandTyper.typeOfTarget(site.target, this.context);
+    // A compound operator takes no whole array; E0857 rejects it there
+    const dimensions =
+      site.operator === "<-"
+        ? OperandTyper.wholeArrayDimensions(site.target, this.context)
+        : [];
     this.place(site.target, NOWHERE, TARGET);
     this.place(
       site.value,
       {
         ...NO_TYPE,
         typeText: target?.typeName ?? null,
-        isArray: (target?.dimensions.length ?? 0) > 0,
+        isArray: dimensions.length > 0,
+        dimensions,
       },
       ValuePositionWalk.assigned(site),
     );
@@ -224,7 +232,7 @@ class ValuePositionWalk {
         for (const index of op.indexes) this.place(index, NOWHERE, indexed);
       } else if (op.kind === "call") {
         op.arguments.forEach((argument, index) =>
-          this.place(argument, this.parameter(chain, index), {
+          this.place(argument, this.parameter(chain, opIndex, index), {
             site: {
               kind: "argument",
               call: chain,
@@ -238,11 +246,16 @@ class ValuePositionWalk {
     });
   }
 
-  private parameter(chain: TPostfix, index: number): IValuePosition {
-    const callee = FunctionReference.ofCallChain(
+  private parameter(
+    chain: TPostfix,
+    callAt: number,
+    index: number,
+  ): IValuePosition {
+    const callee = FunctionReference.ofCall(
       chain,
       OperandTyper.scopePathAt(chain.span, this.context),
       this.context,
+      callAt,
     );
     const param = callee?.parameters[index];
     return param === undefined
@@ -251,6 +264,7 @@ class ValuePositionWalk {
           ...NO_TYPE,
           typeText: TypeResolver.getTypeName(param.type),
           isArray: param.isArray,
+          dimensions: param.arrayDimensions ?? [],
         };
   }
 
@@ -280,6 +294,12 @@ class ValuePositionWalk {
               isArray:
                 symbols.structFieldArrays.get(structName)?.has(field.name) ??
                 false,
+              dimensions: stringlessDimensions(
+                symbols.structFields.get(structName)?.get(field.name) ?? null,
+                symbols.structFieldDimensions
+                  .get(structName)
+                  ?.get(field.name) ?? [],
+              ),
             },
         {
           site: { kind: "field", initializer: init, field: field.name },
@@ -288,6 +308,18 @@ class ValuePositionWalk {
       );
     }
   }
+}
+
+/** A string field's last dimension is its characters', not an array's (#1782) */
+function stringlessDimensions(
+  typeText: string | null,
+  dimensions: ReadonlyArray<number | string>,
+): ReadonlyArray<number | string> {
+  const element =
+    typeText === null ? null : TypeText.withoutDimensions(typeText);
+  return element !== null && TypeCheckUtils.isSizedStringName(element)
+    ? dimensions.slice(0, -1)
+    : dimensions;
 }
 
 /** Where every value in a file stands (#1991) */
