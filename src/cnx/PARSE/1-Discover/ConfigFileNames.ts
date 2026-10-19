@@ -5,12 +5,21 @@ import type IFileSystem from "../../types/IFileSystem";
 import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
 import type ITranspileError from "../../types/ITranspileError";
 
-/** Each name read before the language was named cnx, and its successor. */
-const RENAMED: ReadonlyMap<string, string> = new Map([
-  ["cnext.config.json", "cnx.config.json"],
-  [".cnext.json", ".cnx.json"],
-  [".cnextrc", ".cnxrc"],
-]);
+/**
+ * The names read before the language was named cnx, in `CONFIG_FILE_NAMES`
+ * order: each one's successor is the name at its position, so the new names
+ * are written once.
+ */
+const OLD_NAMES = [
+  "cnext.config.json",
+  ".cnext.json",
+  ".cnextrc",
+] as const satisfies { length: (typeof CONFIG_FILE_NAMES)["length"] };
+
+/** Each old name, and its successor. */
+const RENAMED: ReadonlyMap<string, string> = new Map(
+  OLD_NAMES.map((oldName, index) => [oldName, CONFIG_FILE_NAMES[index]]),
+);
 
 /**
  * Issue #2165: what a directory's config files mean. The names are
