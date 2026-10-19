@@ -102,12 +102,6 @@ class WholeArrayValueAnalyzer {
   }
 
   /**
-   * A value typed as an array. One the typer cannot type (a C macro such as
-   * `#define LIMIT 5`) is not known to be an array, so it is asked for a list
-   * as a scalar is.
-   */
-
-  /**
    * #2194: the callee reads an array argument with the parameter's shape, so
    * the two agree wherever both sizes fold.
    */

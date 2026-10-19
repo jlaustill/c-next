@@ -294,14 +294,11 @@ class OperandTyper {
   }
 
   /**
-   * The dimensions an assignment target takes a whole array of (#1782):
-   * none for a scalar, an element, or an ADR-007 slice, which writes a
-   * value's bytes rather than an array.
-   */
-  /**
    * ADR-014: the arrays a value passes by reference -- itself, or each value
    * arm of a ternary, through parentheses. Null when one is not an array: a
-   * list, a string literal or a scalar is not passed as it stands.
+   * list, a string literal or a scalar is not passed as it stands, and nor is
+   * a value the typer cannot type (a C macro such as `#define LIMIT 5`), which
+   * is asked for a list as a scalar is.
    */
   static arrayArms(
     expr: TExpression,
@@ -326,6 +323,11 @@ class OperandTyper {
     return typed !== null && typed.dimensions.length > 0 ? [inner] : null;
   }
 
+  /**
+   * The dimensions an assignment target takes a whole array of (#1782):
+   * none for a scalar, an element, or an ADR-007 slice, which writes a
+   * value's bytes rather than an array.
+   */
   static wholeArrayDimensions(
     target: TExpression,
     ctx: ITypingContext,
