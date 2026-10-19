@@ -847,6 +847,29 @@ test("a config under an old name is E0918 and exits 1", () => {
   });
 });
 
+// Issue #2165: the case only the config walk sees. Discovery's root walk stops
+// at pkg/package.json; the config walk goes on up, as it always has, and meets
+// the old name there instead of dropping its settings without a word.
+test("an old-name config above a package root is E0918 and exits 1", () => {
+  withTempTest("cnx-renamed-config-test-", ({ tempDir }) => {
+    const pkg = join(tempDir, "pkg");
+    mkdirSync(pkg);
+    const cnxFile = join(pkg, "test.cnx");
+    writeFileSync(cnxFile, atomicCnx, "utf-8");
+    writeFileSync(join(pkg, "package.json"), "{}");
+    writeFileSync(join(tempDir, ".cnextrc"), '{"target":"teensy41"}');
+
+    const result = runCliInDir(pkg, [cnxFile], true);
+    assert(result.exitCode === 1, `Exit code should be 1: ${result.stderr}`);
+    assert(
+      result.stderr.includes(
+        "error[E0918]: a config file has its old name: .cnextrc is now .cnxrc",
+      ),
+      `The error should name the old file: ${result.stderr}`,
+    );
+  });
+});
+
 test("CLI --target overrides config file target", () => {
   withTempTest(
     "cnext-config-test-",
