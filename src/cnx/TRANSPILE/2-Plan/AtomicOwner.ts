@@ -2,6 +2,7 @@ import type IChainStep from "../../types/IChainStep";
 import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type ITypingContext from "../../types/ITypingContext";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import OperandTyper from "../../utils/OperandTyper";
 import TYPE_MAP from "./types/TYPE_MAP";
@@ -41,12 +42,13 @@ class AtomicOwner {
     bitmapField: IBitmapFieldTarget | null,
     bitmapBackingType: ReadonlyMap<string, string>,
   ): string | null {
-    const writesBits =
-      step?.subscript === "bit_single" ||
-      step?.subscript === "bit_range" ||
-      bitmapField !== null;
     const owner = step?.before ?? null;
-    if (!writesBits || !ForHeaderAssignment.isAtomic(owner)) return null;
+    if (
+      !BitmapFieldStep.writesBits(step, bitmapField) ||
+      !ForHeaderAssignment.isAtomic(owner)
+    ) {
+      return null;
+    }
     const bitmap = owner?.bitmapTypeName ?? null;
     if (bitmap === null) return owner?.typeName ?? null;
     const backing = bitmapBackingType.get(bitmap);

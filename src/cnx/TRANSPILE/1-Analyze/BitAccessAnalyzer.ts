@@ -131,11 +131,8 @@ class BitAccessCheck {
     const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
     if (last === undefined) return false;
     const symbols = this.context.symbols;
-    const writesBits =
-      last.subscript === "bit_single" ||
-      last.subscript === "bit_range" ||
-      BitmapFieldStep.fieldOf(last, symbols.bitmapFields) !== null;
-    if (!writesBits) return false;
+    const field = BitmapFieldStep.fieldOf(last, symbols.bitmapFields);
+    if (!BitmapFieldStep.writesBits(last, field)) return false;
     const member = last.beforeRegisterMember;
     return (
       member === null ||

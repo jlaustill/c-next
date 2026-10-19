@@ -29,6 +29,22 @@ class BitmapFieldStep {
       ? null
       : { bitmapType: before.bitmapTypeName, fieldName, layout };
   }
+
+  /**
+   * ADR-007/034: whether a final step writes some of the bits of the value
+   * before it -- a bit index, a bit range, or `field`, the bitmap field it
+   * names. The one answer for the rules that treat those writes alike.
+   */
+  static writesBits(
+    step: IChainStep | undefined,
+    field: IBitmapFieldTarget | null,
+  ): boolean {
+    return (
+      step?.subscript === "bit_single" ||
+      step?.subscript === "bit_range" ||
+      field !== null
+    );
+  }
 }
 
 export default BitmapFieldStep;

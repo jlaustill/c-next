@@ -51,7 +51,6 @@ import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
-import BoundDeclaration from "./helpers/BoundDeclaration";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import ConstantExpression from "./helpers/ConstantExpression";
@@ -113,12 +112,10 @@ class RegisterAccessCheck {
       step,
       this.context.symbols.bitmapFields,
     );
-    const indexed =
-      step.subscript === "bit_single" || step.subscript === "bit_range";
-    if (field === null && !indexed) return;
+    if (!BitmapFieldStep.writesBits(step, field)) return;
     const access = this.context.symbols.registerMemberAccess.get(member);
     if (!RegisterAccessMode.isWriteOne(access)) return;
-    if (!this.isZero(site.value, site.target)) return;
+    if (!this.isZero(site.value)) return;
     const single =
       field === null
         ? step.subscript === "bit_single"
@@ -133,35 +130,8 @@ class RegisterAccessCheck {
 
   // --- Resolution ---------------------------------------------------------
 
-  private isZero(expr: TExpression, node: TExpression): boolean {
-    const text = expr.written.trim();
-    if (text === "false") return true;
-    // #1322 review: the flat map again -- and this one decides whether a
-    // register write clears a `wo` bit, so the wrong scope's const changed
-    // which diagnostic fired. `isFalseConst` below was already scope-aware.
-    const value = ConstantExpression.valueAt(expr, this.context);
-    if (value !== null) return value === 0;
-    return this.isFalseConst(text, node);
-  }
-
-  /**
-   * `const bool NAME <- false`, as the name binds here: a const local, a
-   * scope member or a file-scope const, through Program's one binder (#1668)
-   */
-  private isFalseConst(name: string, node: TExpression): boolean {
-    if (!/^[A-Za-z_]\w*$/.test(name)) return false;
-    const binding = this.context.program.bindValue(
-      this.context.sourceFile,
-      null,
-      name,
-      node.span,
-    );
-    const declared = BoundDeclaration.of(binding);
-    return (
-      declared !== null &&
-      declared.isConst &&
-      declared.initialValue?.trim() === "false"
-    );
+  private isZero(expr: TExpression): boolean {
+    return ConstantExpression.valueAt(expr, this.context) === 0;
   }
 
   // --- Reporting ----------------------------------------------------------
