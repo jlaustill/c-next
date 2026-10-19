@@ -732,7 +732,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | top-level function | same file           | error    |
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
-| scope member       | same file           | warn     |
+| scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
@@ -758,8 +758,10 @@ So a top-level function's and a scope method's same-file cells are asserted
 for both rules -- E0889 by `atomic-volatile-in-function-error` and
 `atomic-volatile-in-scope-method-error`, beside the file-scope
 `atomic-volatile-error` -- and their imported cells by the read-modify-write
-rule only. The one `warn` cell is E0889 on a scope member's
-declaration, which no fixture asserts yet.
+rule only. A scope member's same-file cell is `error`: E0919 on a scope
+member's declaration (`tests/adr-049/atomic-mut-error.test.cnx`, #2233) and
+E0899 on an unwritten private atomic member (`atomic-never-written-error`)
+assert it.
 
 ## References
 

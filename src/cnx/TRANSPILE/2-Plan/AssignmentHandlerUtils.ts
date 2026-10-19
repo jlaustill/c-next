@@ -7,6 +7,7 @@
 
 import invariant from "../../utils/invariant";
 import BitUtils from "../../utils/BitUtils";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import type IAssignmentContext from "./types/IAssignmentContext";
 
 /**
@@ -27,8 +28,9 @@ import type IAssignmentContext from "./types/IAssignmentContext";
  * #1322: E0872 rejects it in pass 2.1 (ADR-004), by VALUE -- `0x0`, `!true`
  * and a zero-valued const included. The generated form for a single bit is
  * `REG = (1U << bit)`, so a zero reaching this point would be emitted as a
- * set; the assertion holds the emission to the rule, and reads the same
- * constant folder E0872 does rather than the value's spelling.
+ * set; the assertion holds the emission to the rule by the value 2.2 folds
+ * for the write (`foldWrittenValue`), never its spelling. That fold leaves a
+ * read of a local unfolded, which E0872's `ZeroValue` still rejects in 2.1.
  *
  * @param folded - The value's constant fold, undefined when not constant
  * @param value - The generated value, for the assertion's text
@@ -105,11 +107,12 @@ function writeBits(ctx: IAssignmentContext): string {
     "2.2 planned every float bit write 2.3 writes",
   );
   const storage = BitUtils.storageOf(value);
-  if (width === undefined) {
+  if (BitmapFieldStep.writesOneBit(step, null)) {
     return storeBits(ctx, base, (read, bit, folded) =>
       BitUtils.singleBitValue(read, start, bit, storage, folded),
     );
   }
+  invariant(width !== undefined, "a bit range has a width");
   return storeBits(ctx, base, (read, bits) =>
     BitUtils.multiBitValue(read, start, width, bits, storage),
   );

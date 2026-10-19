@@ -15,7 +15,7 @@ describe("BitUtils.boolToInt", () => {
   });
 
   it("wraps comparison expressions in ternary with unsigned values", () => {
-    expect(BitUtils.boolToInt("x > 5")).toBe("(x > 5 ? 1U : 0U)");
+    expect(BitUtils.boolToInt("x > 5")).toBe("((x > 5) ? 1U : 0U)");
   });
 
   it("wraps variable expressions in ternary with unsigned values", () => {
@@ -23,7 +23,7 @@ describe("BitUtils.boolToInt", () => {
   });
 
   it("wraps complex expressions in ternary with unsigned values", () => {
-    expect(BitUtils.boolToInt("a && b")).toBe("(a && b ? 1U : 0U)");
+    expect(BitUtils.boolToInt("a && b")).toBe("((a && b) ? 1U : 0U)");
   });
 
   it("wraps function calls in ternary with unsigned values", () => {
@@ -115,7 +115,7 @@ describe("BitUtils.singleBitWrite", () => {
   it.each([
     ["true", "flags = (flags & ~(1U << 0)) | (1U << 0);"],
     ["false", "flags = (flags & ~(1U << 0)) | (0U << 0);"],
-    ["x > 5", "flags = (flags & ~(1U << 0)) | ((x > 5 ? 1U : 0U) << 0);"],
+    ["x > 5", "flags = (flags & ~(1U << 0)) | (((x > 5) ? 1U : 0U) << 0);"],
   ])("writes %s into storage of unknown type", (value, code) => {
     expect(BitUtils.singleBitWrite("flags", 0, value)).toBe(code);
   });

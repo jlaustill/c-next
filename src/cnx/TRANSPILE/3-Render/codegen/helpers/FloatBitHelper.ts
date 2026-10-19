@@ -25,8 +25,6 @@ import type TranspileState from "../../../TranspileState";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import type IPlannedAtomic from "../../../types/IPlannedAtomic";
 import atomicGenerators from "../generators/statements/AtomicGenerator";
-import InterruptMask from "./InterruptMask";
-import invariant from "../../../../utils/invariant";
 
 /**
  * Generates float bit write operations using union-based type punning.
@@ -150,31 +148,21 @@ class FloatBitHelper {
         "\n",
         "\n    ",
       );
-    if (atomic.form === "interrupt-mask") {
-      return InterruptMask.wrap(
-        [
+    // The one dispatch on the planned form, with the float's views
+    return atomicGenerators.generateAtomicStore(
+      target,
+      bitWrite.value,
+      atomic,
+      bits,
+      {
+        views: { declare: union, exchanged: ".f", computed: ".u" },
+        masked: [
           union("__bits"),
           `__bits.f = ${target};`,
           `__bits.u = ${bits("__bits.u", bitWrite.value)};`,
           `${target} = __bits.f;`,
         ].join("\n    "),
-      ).code;
-    }
-    invariant(
-      atomic.form !== "ldrex-strex",
-      "2.2 plans no exclusive access for a float: LDREX_MAP names none",
-    );
-    // The one compare-exchange loop, exchanging the float through the
-    // unions' float view and computing its bits in their integer view
-    return atomicGenerators.generateCompareExchangeLoop(
-      target,
-      bitWrite.value,
-      bits("__old.u", "__operand"),
-      atomic.cType,
-      [],
-      atomic.operandCType,
-      atomic.form === "compare-exchange-libatomic",
-      { declare: union, exchanged: ".f", computed: ".u" },
+      },
     ).code;
   }
 }

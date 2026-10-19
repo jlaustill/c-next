@@ -21,7 +21,7 @@ int main(void) {
     volatile int_fast16_t f = 0;
     {
         /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
-        int_fast16_t __operand = 3;
+        uint16_t __operand = 3;
         int_fast16_t __old;
         int_fast16_t __new;
         __atomic_load(&f, &__old, __ATOMIC_RELAXED);
@@ -47,7 +47,7 @@ int main(void) {
     }
     {
         /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
-        int_fast16_t __operand = 0U;
+        uint16_t __operand = 0U;
         int_fast16_t __old;
         int_fast16_t __new;
         __atomic_load(&f, &__old, __ATOMIC_RELAXED);

@@ -325,7 +325,7 @@ describe("AtomicGenerator", () => {
 
     it("fails when 2.2 planned a loop for a type with no exclusive access", () => {
       expect(() => rmw("u64", "ldrex-strex")).toThrow(
-        /exclusive-access type \(got u64\)/,
+        /only with its exclusive access \(got uint64_t\)/,
       );
     });
 

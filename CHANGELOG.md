@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`atomic` implies `mut`, and `atomic mut` is error E0919** (ADR-049, ADR-071, Issue #2233).
+  An `atomic` binding is writable on its own, so `atomic u32 count <- 0;` is now written, not
+  read-only, and generates `volatile uint32_t`, not `const volatile`. Every `atomic mut`
+  declaration, until now the only way to write a working atomic, must drop `mut`. An `atomic`
+  nothing writes is E0899 ("remove `atomic`"), and `atomic const` is E0898.
+- **New errors for bitmap and bit access** (ADR-007, ADR-034): a compound operator on a bitmap
+  field (`flags.Mode +<- 1`) is E0857 (#2159); a field of a bitmap array that names no whole
+  element (`a.A` on `F[2]`) is E0918 (#2186); a constant bit index or range past the indexed
+  value's width (`small[20]` on a `u8`, `p.Mode[3]` on a 3-bit field) is E0920 (#1808).
+- **A bit of a bitmap field is a bit of the bitmap** (ADR-034, Issue #2251): `p.Mode[1]`, with
+  `Mode` at bits 4-6, reads and writes bit 5 of `p`, on a variable and on a register member.
+- **A `volatile` is never a compile-time value** (ADR-064, Issue #2254): a read-only volatile is
+  read where it is used, never inlined as its initializer, and does not size an array (E0909).
+
 - **The command is `cnx`, not `cnext`** (Issue #2164). No `cnext` alias is installed, so a
   script, Makefile or `package.json` that runs `cnext` must run `cnx` instead. `cnx --version`
   prints `cnx v<version>`, and `cnx --help` names `cnx` throughout. The config file names, the

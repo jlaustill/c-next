@@ -4,7 +4,7 @@
 // bitmap's prefix. Until the #1749 review, E0882 found the bitmap only as a
 // chain's first name or a register member, so a bitmap reached through a
 // struct, an array element or a scope member reached codegen and failed there
-// as an internal error.
+// as an internal error. E0881 and E0883 read the same typed chain.
 
 bitmap8 Flags {
     A,
@@ -43,5 +43,11 @@ u8 main() {
     gs.fl.Nope <- true;
     Sc.ps.fl.Nope <- true;
     bool r <- gss[1].fl.Nope;
+    // E0881 (a literal too wide for the field) and E0883 (bracket indexing
+    // on a bitmap) through the same prefixes (#2155 review 9)
+    gss[1].fl.Mode <- 9;
+    Sc.ps.fl.Mode <- 8;
+    gss[1].fl[0] <- true;
+    gs.fl[0] <- true;
     return 0;
 }

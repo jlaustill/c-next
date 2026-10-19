@@ -23,7 +23,7 @@ const bool ON = true;
 int main(void) {
     F g = {0};
     uint8_t word = 0U;
-    g = (uint8_t)((g & ~(1U << 0)) | ((V != 0 ? 1U : 0U) << 0));
+    g = (uint8_t)((g & ~(1U << 0)) | (((V != 0) ? 1U : 0U) << 0));
     if (((g >> 0) & 1) != false) {
         return 1U;
     }

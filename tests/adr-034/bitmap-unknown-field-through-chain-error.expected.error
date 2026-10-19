@@ -8,3 +8,11 @@
        help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
 45:14 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
        help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
+48:22 error[E0881]: Value 9 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+49:21 error[E0881]: Value 8 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+50:4 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).
+51:4 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).

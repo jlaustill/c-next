@@ -11,6 +11,7 @@ import type IBitmapFieldTarget from "../../../../../types/IBitmapFieldTarget";
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
+import BitmapFieldStep from "../../../../../utils/BitmapFieldStep";
 import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
@@ -34,10 +35,14 @@ function fieldOfTarget(ctx: IAssignmentContext): IBitmapFieldTarget {
  */
 function writeBitmapField(
   target: string,
-  { bitmapType, layout }: IBitmapFieldTarget,
+  field: IBitmapFieldTarget,
   ctx: IAssignmentContext,
   writeOnly: boolean,
 ): string {
+  const bitmapType = field.bitmapType;
+  const layout = field.layout;
+  // The one answer 2.2 planned the value's C type from (#2155 review 9)
+  const oneBit = BitmapFieldStep.writesOneBit(ctx.target.last, field);
   const storage = ctx.state.symbols!.bitmapBackingType.get(bitmapType);
   invariant(
     storage,
@@ -45,10 +50,9 @@ function writeBitmapField(
   );
   const value = ctx.generatedValue;
   if (writeOnly) {
-    const bits =
-      layout.width === 1
-        ? `${layout.offset}`
-        : `${layout.offset}, ${layout.width}`;
+    const bits = oneBit
+      ? `${layout.offset}`
+      : `${layout.offset}, ${layout.width}`;
     AssignmentHandlerUtils.validateWriteOnlyValue(
       ctx.foldValue(),
       value,
@@ -56,7 +60,7 @@ function writeBitmapField(
       bits,
     );
   }
-  if (layout.width === 1) {
+  if (oneBit) {
     return writeOnly
       ? BitUtils.writeOnlySingleBit(
           target,

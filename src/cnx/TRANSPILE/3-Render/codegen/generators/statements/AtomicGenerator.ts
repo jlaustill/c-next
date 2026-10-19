@@ -251,6 +251,16 @@ function generateAtomicRMW(
 }
 
 /**
+ * A float's bits written atomically: the retry loop's views of the float
+ * (exchanged whole, its bits computed in the integer view), and the masked
+ * region's whole body
+ */
+interface IAtomicFloatViews {
+  readonly views: ICompareExchangeViews;
+  readonly masked: string;
+}
+
+/**
  * ADR-049 (#2200): a bit, bit-range or bitmap-field write to an `atomic`
  * value, in the form 2.2 planned. `newValue` is the value stored, computed
  * from the value read: the target itself inside the masked region, `__old`
@@ -264,12 +274,19 @@ function generateAtomicStore(
   value: string,
   atomic: IPlannedAtomic,
   newValue: (read: string, value: string) => string,
+  float: IAtomicFloatViews | null = null,
 ): IGeneratorOutput {
   if (atomic.form === "interrupt-mask") {
-    return InterruptMask.wrap(`${target} = ${newValue(target, value)};`);
+    return InterruptMask.wrap(
+      float === null ? `${target} = ${newValue(target, value)};` : float.masked,
+    );
   }
-  const inner = newValue("__old", OPERAND);
+  const inner = newValue(`__old${float?.views.computed ?? ""}`, OPERAND);
   if (atomic.form === "ldrex-strex") {
+    invariant(
+      float === null,
+      "2.2 plans no exclusive access for a float: LDREX_MAP names none",
+    );
     return generateLdrexStrexLoop(target, value, inner, atomic, []);
   }
   return generateCompareExchangeLoop(
@@ -280,6 +297,7 @@ function generateAtomicStore(
     [],
     atomic.operandCType,
     atomic.form === "compare-exchange-libatomic",
+    float?.views,
   );
 }
 

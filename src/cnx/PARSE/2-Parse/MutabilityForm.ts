@@ -34,7 +34,7 @@ class MutabilityFormListener extends CNextListener {
           "a read-only `atomic` protects nothing; remove `atomic`",
         ),
         helpText:
-          "A binding is read-only unless declared `mut` or `atomic` (ADR-071, #2233), and only a value something writes needs a read or write that cannot be torn (ADR-049). Remove `atomic` and `const` for a read-only value, or `const` for a written one.",
+          "A binding is read-only unless declared `mut` or `atomic` (ADR-071), and only a value something writes needs a read or write that cannot be torn (ADR-049). Remove `atomic` and `const` for a read-only value, or `const` for a written one.",
         severity: "error",
       });
       return;

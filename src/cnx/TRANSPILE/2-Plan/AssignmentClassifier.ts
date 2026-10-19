@@ -412,7 +412,7 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): AssignmentKind {
     // Diagnostics quote the source spelling (`this.flags`) rather than the
-    // resolved `scopedRegName`, so the suggested fix is the text the developer
+    // scope-qualified C name, so the suggested fix is the text the developer
     // actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
     // writes it — echoing it back would read as a different variable.)
     return AssignmentClassifier.classifySubscriptAccess(

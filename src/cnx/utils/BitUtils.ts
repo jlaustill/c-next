@@ -94,7 +94,9 @@ class BitUtils {
     if (folded !== undefined) return folded === 0 ? "0U" : "1U";
     if (expr === "true") return "1U";
     if (expr === "false") return "0U";
-    return `(${expr} ? 1U : 0U)`;
+    // One operand of `?:`: a ternary or a lower-precedence value would bind
+    // the conversion to its last arm only (#2249)
+    return `(${CExpression.operand(expr)} ? 1U : 0U)`;
   }
 
   /**

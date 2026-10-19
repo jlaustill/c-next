@@ -42,7 +42,7 @@ class DeclarationModifierAnalyzer {
         column: declaration.span.column,
         message: "Cannot use both 'atomic' and 'mut' on one declaration",
         helpText:
-          "`atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, #2233).",
+          "`atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).",
       });
     }
     if (!declaration.modifiers.atomic || !declaration.modifiers.volatile) {

@@ -168,7 +168,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-034/bitmap-bracket-indexing-error.test.cnx                                             | E0883               |
 | tests/adr-034/bitmap-error-overflow.test.cnx                                                     | E0881               |
 | tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
-| tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx                                  | E0882               |
+| tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx                                  | E0881, E0882, E0883 |
 | tests/adr-035/array-form-error.test.cnx                                                          | E0866, E0876        |
 | tests/adr-035/array-init-error.test.cnx                                                          | E0866               |
 | tests/adr-035/array-init-string-concat-error.test.cnx                                            | E0866               |

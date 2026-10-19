@@ -1,0 +1,24 @@
+// test-execution
+// test-adr: 034
+// ADR-034's `scope method | imported direct` cell (#2155 review 9): a scope
+// method writes the fields of `shared`, a bitmap declared in an included
+// file, and the writes land on its own bits.
+#include "lib/compound-flags.cnx"
+
+scope Sc {
+    public void set() {
+        shared.On <- true;
+        shared.Level <- 5;
+    }
+}
+
+u32 main() {
+    Sc.set();
+    if (shared.On != true) {
+        return 1;
+    }
+    if (shared.Level != 5) {
+        return 2;
+    }
+    return 0;
+}
