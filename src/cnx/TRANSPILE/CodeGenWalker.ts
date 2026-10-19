@@ -114,7 +114,6 @@ import FormatUtils from "../utils/FormatUtils";
 import ExpressionShape from "../utils/ExpressionShape";
 import SafeDivision from "../utils/SafeDivision";
 import type IChainHead from "../types/IChainHead";
-import StringUtils from "../utils/StringUtils";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./2-Plan/IncludeGenerator";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
@@ -1675,9 +1674,9 @@ class CodeGenWalker {
       output.push(...helpers);
     }
 
-    if (plan.stringCopyHelper) {
-      output.push(...StringUtils.copyHelperDefinition());
-    }
+    output.push(
+      ...helperGenerators.generateStringCopyHelper(plan.stringCopyHelper),
+    );
 
     const safeDivHelpers = this.generateSafeDivHelpers(plan.safeDivOps);
     if (safeDivHelpers.length > 0) {

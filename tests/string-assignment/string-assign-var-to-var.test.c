@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* MISRA C:2012 Rule 19.1: a string written from another string may be written from itself, so it is copied a character at a time instead of with strncpy, whose arguments must not overlap */
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
 static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
     uint32_t i = 0U;
     while ((i < capacity) && (source[i] != '\0')) {

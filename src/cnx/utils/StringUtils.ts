@@ -36,26 +36,6 @@ class StringUtils {
   static readonly COPY_HELPER = "cnx_string_copy";
 
   /**
-   * #2207: the definition of `COPY_HELPER`. It copies one character at a time,
-   * so a source that is the target copies each character onto itself, where
-   * `strncpy` with overlapping arguments is undefined.
-   */
-  static copyHelperDefinition(): string[] {
-    return [
-      "/* MISRA C:2012 Rule 19.1: a string written from another string may be written from itself, so it is copied a character at a time instead of with strncpy, whose arguments must not overlap */",
-      `static inline void ${StringUtils.COPY_HELPER}(char* target, const char* source, uint32_t capacity) {`,
-      "    uint32_t i = 0U;",
-      "    while ((i < capacity) && (source[i] != '\\0')) {",
-      "        target[i] = source[i];",
-      "        i++;",
-      "    }",
-      "    target[i] = '\\0';",
-      "}",
-      "",
-    ];
-  }
-
-  /**
    * Generate string concatenation sequence.
    * Used for: result <- left + right
    *

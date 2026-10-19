@@ -927,6 +927,11 @@ class FilePlanner {
       selfIncludeAdded,
     );
     const decidedCTypes = new Set<string>();
+    const stringCopies = this.planStringCopies(program);
+    // #2207: `cnx_string_copy` counts in `uint32_t`, written once 2.3 is done
+    if ([...stringCopies.values()].some((copy) => copy.throughHelper)) {
+      decidedCTypes.add("uint32_t");
+    }
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
     const types = this.planTypeSites(program, inlinedConsts);
     // Each planned type is written once 2.3 is done, so its include is decided here
@@ -1058,7 +1063,7 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
-      stringCopies: this.planStringCopies(program),
+      stringCopies,
       expectedTypes,
       narrowings,
       structInitializers,
