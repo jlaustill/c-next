@@ -108,10 +108,14 @@ describe("IncludeDiscovery", () => {
     // #2165: an old-name config is not a marker; the walk passes it and
     // returns it for discovery to report
     it("passes an old-name config, returning it, and stops at the next marker", () => {
+      const files = new Set([
+        "/p/.git",
+        "/p/app/cnext.config.json",
+        "/cnext.config.json",
+      ]);
       const fs = TestFileSystem.with({
-        exists: (path: string) => path === "/p/.git",
-        isFile: (path: string) =>
-          path === "/p/app/cnext.config.json" || path === "/cnext.config.json",
+        exists: (path: string) => files.has(path),
+        isFile: (path: string) => files.has(path),
       });
 
       expect(IncludeDiscovery.findProjectRoot("/p/app/src", fs)).toEqual({
