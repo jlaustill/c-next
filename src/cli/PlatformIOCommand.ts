@@ -147,33 +147,22 @@ transpile_cnext()
     console.log(`✓ Created: ${scriptPath}`);
 
     // Read platformio.ini
-    let pioIni = fs.readFile(pioIniPath);
+    const pioIni = fs.readFile(pioIniPath);
 
-    // Check if extra_scripts is already present
-    if (pioIni.includes("cnext_build.py")) {
+    // An already-configured platformio.ini is left as it is; the config is
+    // set up either way (#2221 review: a reinstall used to return first)
+    const alreadyConfigured = pioIni.includes("cnext_build.py");
+    if (alreadyConfigured) {
       console.log("✓ PlatformIO already configured for c-next");
-      return;
-    }
-
-    // Add extra_scripts line to [env:*] section or create it
-    if (pioIni.includes("extra_scripts")) {
-      // Append to existing extra_scripts
-      pioIni = pioIni.replace(
-        /extra_scripts\s*=\s*(.+)/,
-        "extra_scripts = $1\n    pre:cnext_build.py",
-      );
     } else {
-      // Add new extra_scripts line after first [env:*] section
-      pioIni = pioIni.replace(
-        /(\[env:[^\]]+\])/,
-        "$1\nextra_scripts = pre:cnext_build.py",
-      );
+      Write.file(fs, pioIniPath, PlatformIOCommand.withBuildScript(pioIni));
+      console.log(`✓ Modified: ${pioIniPath}`);
     }
-
-    Write.file(fs, pioIniPath, pioIni);
-    console.log(`✓ Modified: ${pioIniPath}`);
 
     this.setupConfig(config, fs);
+    if (alreadyConfigured) {
+      return;
+    }
 
     console.log("");
     console.log("✓ PlatformIO integration configured!");
@@ -189,14 +178,31 @@ transpile_cnext()
     console.log("Commit both .cnx and generated .c files to version control.");
   }
 
+  /** `pioIni` with the pre-build script in its `extra_scripts`. */
+  private static withBuildScript(pioIni: string): string {
+    if (pioIni.includes("extra_scripts")) {
+      // Append to existing extra_scripts
+      return pioIni.replace(
+        /extra_scripts\s*=\s*(.+)/,
+        "extra_scripts = $1\n    pre:cnext_build.py",
+      );
+    }
+    // Add new extra_scripts line after first [env:*] section
+    return pioIni.replace(
+      /(\[env:[^\]]+\])/,
+      "$1\nextra_scripts = pre:cnext_build.py",
+    );
+  }
+
   /**
    * Give the project's config PlatformIO-appropriate defaults
    * - Appends .pio/libdeps to include array
    * - Sets headerOut to "include" if not already set
    *
-   * #2165: the file updated is the one a run in this directory reads, under
-   * whichever name it has. Writing `cnx.config.json` regardless shadowed a
-   * project's `.cnxrc`, silently, since the walk takes the first name.
+   * #2165: the file updated is this directory's config, under whichever name
+   * it has. Writing `cnx.config.json` regardless shadowed a project's `.cnxrc`,
+   * silently, since the walk takes the first name. With no config here, the
+   * one written still shadows an ancestor's (#2235).
    */
   private static setupConfig(
     found: Exclude<TConfigInDirectory, { kind: "renamed" }>,

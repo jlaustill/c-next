@@ -291,6 +291,26 @@ describe("PlatformIOCommand", () => {
         expect(project.file("cnx.config.json")).toBeUndefined();
       });
 
+      // #2221 review: an already-configured platformio.ini returned before
+      // the config was set up, so a reinstall left it without the defaults
+      it("updates the config on a reinstall too", () => {
+        const project = new PioProject({
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          ".cnxrc": JSON.stringify({ target: "teensy41" }),
+        });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.config(".cnxrc")).toEqual({
+          target: "teensy41",
+          include: [".pio/libdeps"],
+          headerOut: "include",
+        });
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("already configured"),
+        );
+      });
+
       it("stops with E0918 at a config under an old name, writing nothing (#2165)", () => {
         const ini = "[env:esp32]\n";
         const project = new PioProject({
