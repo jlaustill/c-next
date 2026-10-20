@@ -234,7 +234,7 @@ its own header `"uart.h"`, whichever entry pulled `lib/uart.cnx` into the
 run. The output-root spelling above made the same file's output depend on its
 entry (`"lib/bitmaps.h"` from `t.cnx`, `"bitmaps.h"` standalone), and the
 first form compiles only with the output root on `-I`. The location is still
-"where it went": the header path comes from `PathResolver`, and only the
+"where it went": the header path comes from the decision that writes the header, and only the
 directory it is spelled from changed. With `--header-out` a `.c` names its
 header across the split (`"../../include/lib/a.h"`). A spelling found along
 the search path, and an angle include, are unchanged.
