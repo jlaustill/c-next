@@ -41,7 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cnx` on PATH now fails with `cnx not found on PATH: npm i -g <package>`, not a Python traceback.
   A project with the old `cnext_build.py` integration, whose script runs the removed `cnext` command,
   must migrate: run `cnx --pio-uninstall`, which removes either name, then `cnx --pio-install`.
-  Until then `--pio-install` stops with that instruction and writes nothing.
+  Until then `--pio-install` stops with that instruction and writes nothing. Both commands read
+  `extra_scripts` as PlatformIO does: a one-line list split at `, `, a value on the key's line that
+  continues on indented lines below it, and no commented-out line; uninstall keeps every other script.
 - **A config is read from the project root, and never from a directory above it** (Issue #2261).
   The project root is the nearest directory, from the entry file up, that holds a config,
   `platformio.ini`, `.git` or `package.json`. It already decided the include directories and the

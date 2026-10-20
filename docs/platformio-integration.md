@@ -77,7 +77,9 @@ The run prints the target it used and where it came from, e.g.
 `Target: teensy41 (platformio)`, and `pio run` shows that line.
 
 **Upgrading:** re-run `cnx --pio-install` after upgrading C-Next. It rewrites
-`cnx_build.py`. A script written before the target was required passes no
+`cnx_build.py`. In a project that still has `cnext_build.py` it stops instead:
+see [Migrating from `cnext_build.py`](#migrating-from-cnext_buildpy). A script
+written before the target was required passes no
 `--pio-env`, so in a project whose environments name different targets and that
 sets no `default_envs`, every build fails with E0511.
 

@@ -469,7 +469,19 @@ describe("PlatformIOCommand", () => {
       PlatformIOCommand.install(project.fs);
 
       expect(project.file("platformio.ini")).toBe(
-        "[env:esp32]\nextra_scripts = pre:my_cnx_build.py\n    pre:cnx_build.py\n",
+        "[env:esp32]\nextra_scripts = pre:my_cnx_build.py, pre:cnx_build.py\n",
+      );
+    });
+
+    it("adds the hook beside a script whose name only starts with cnx_build.py", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py.bak\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:cnx_build.py.bak, pre:cnx_build.py\n",
       );
     });
 
@@ -481,6 +493,83 @@ describe("PlatformIOCommand", () => {
 
       expect(project.file("platformio.ini")).toBe(
         "; replaced cnext_build.py\n[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
+      );
+    });
+
+    it.each([
+      ["first", "pre:cnx_build.py, post:other.py"],
+      ["last", "post:other.py, pre:cnx_build.py"],
+    ])(
+      "reinstall leaves a one-line list with the hook %s alone",
+      (_where, list) => {
+        const ini = `[env:esp32]\nextra_scripts = ${list}\n`;
+        const project = new PioProject({ "platformio.ini": ini });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.file("platformio.ini")).toBe(ini);
+      },
+    );
+
+    it("installs where the only cnx_build.py entry is commented out", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\n; extra_scripts = pre:cnx_build.py\nextra_scripts =\n    post:other.py ; uploads\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\n; extra_scripts = pre:cnx_build.py\nextra_scripts =\n    post:other.py ; uploads\n    pre:cnx_build.py\n",
+      );
+    });
+
+    it("adds to a one-line list as one more item, its comment kept", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts = pre:a.py, post:b.py ; ours\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:a.py, post:b.py, pre:cnx_build.py ; ours\n",
+      );
+    });
+
+    it("stops at an old entry in a one-line list", () => {
+      const ini =
+        "[env:esp32]\nextra_scripts = post:other.py, pre:cnext_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+        "process.exit(1)",
+      );
+      expect(project.written).toEqual([]);
+    });
+
+    it("installs where the only cnext_build.py entry is commented out", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\n# extra_scripts = pre:cnext_build.py\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:cnx_build.py\n# extra_scripts = pre:cnext_build.py\n",
+      );
+    });
+
+    it("installs into a CRLF file with its line breaks and indent", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\r\nextra_scripts =\r\n\tpost:other.py\r\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\r\nextra_scripts =\r\n\tpost:other.py\r\n\tpre:cnx_build.py\r\n",
       );
     });
 
@@ -615,6 +704,61 @@ describe("PlatformIOCommand", () => {
         expect(project.file("platformio.ini")).toBe(cleaned);
       },
     );
+
+    // #2174 review: PlatformIO splits a one-line list at ", ", reads a value
+    // on the key's line together with the indented lines below it, and skips
+    // a commented-out line
+    it.each([
+      [
+        "first in a one-line list",
+        "[env:esp32]\nextra_scripts = pre:cnext_build.py, post:other.py\n",
+        "[env:esp32]\nextra_scripts = post:other.py\n",
+      ],
+      [
+        "last in a one-line list",
+        "[env:esp32]\nextra_scripts = post:other.py, pre:cnext_build.py ; ours\n",
+        "[env:esp32]\nextra_scripts = post:other.py ; ours\n",
+      ],
+      [
+        "on the key's line, with scripts continuing below it",
+        "[env:esp32]\nextra_scripts = pre:cnext_build.py\n    post:upload.py\n",
+        "[env:esp32]\nextra_scripts =\n    post:upload.py\n",
+      ],
+      [
+        "below a commented-out line, in a later section too",
+        "[env:a]\n; extra_scripts = pre:cnext_build.py\n[env:b]\nextra_scripts = pre:cnext_build.py\n",
+        "[env:a]\n; extra_scripts = pre:cnext_build.py\n[env:b]\n",
+      ],
+    ])("removes the old entry %s", (_form, ini, cleaned) => {
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(cleaned);
+    });
+
+    it("leaves a commented-out entry alone", () => {
+      const ini = "[env:esp32]\n; extra_scripts = pre:cnx_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(ini);
+      expect(project.written).toEqual([]);
+    });
+
+    it("removes the entries of every section, keeping each one's other scripts", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:a]\nextra_scripts =\n    pre:cnx_build.py\n    post:a.py\n[env:b]\nextra_scripts = pre:cnext_build.py, post:b.py\n",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:a]\nextra_scripts =\n    post:a.py\n[env:b]\nextra_scripts = post:b.py\n",
+      );
+    });
 
     it("removes both scripts and both entries when both names are present", () => {
       const project = new PioProject({

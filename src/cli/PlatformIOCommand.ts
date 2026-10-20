@@ -12,6 +12,8 @@ import type IFileSystem from "../cnx/types/IFileSystem";
 import ConfigLoader from "./ConfigLoader";
 import ResultPrinter from "./ResultPrinter";
 import type TConfigObject from "./types/TConfigObject";
+import PlatformIOIni from "../cnx/PARSE/1-Discover/PlatformIOIni";
+import type IPlatformIOIniOption from "../cnx/PARSE/1-Discover/types/IPlatformIOIniOption";
 import packageJson from "../../package.json" with { type: "json" };
 
 /** The pre-build script `--pio-install` writes. */
@@ -28,20 +30,22 @@ function entryOf(name: string): string {
   return `pre:${name}`;
 }
 
-/** `entryOf(name)` as a regex source. */
-function entrySource(name: string): string {
-  return entryOf(name).replaceAll(".", String.raw`\.`);
+/** Every `extra_scripts` option in `pioIni`, as PlatformIO reads the file. */
+function extraScripts(pioIni: string): IPlatformIOIniOption[] {
+  return PlatformIOIni.layout(pioIni).options.filter(
+    (option) => option.key === "extra_scripts",
+  );
 }
 
 /**
- * Whether `pioIni` runs the script `name`: its entry as a whole token, so
- * `pre:my_cnx_build.py` or a comment naming the file does not count.
+ * Whether `pioIni` runs the script `name`: an `extra_scripts` item is its
+ * entry, read as PlatformIO reads the list. `pre:my_cnx_build.py`, a comment
+ * naming the file, and a commented-out entry do not count.
  */
 function hasEntry(pioIni: string, name: string): boolean {
-  return new RegExp(
-    String.raw`(?:^|[\s=])${entrySource(name)}(?=\s|$)`,
-    "m",
-  ).test(pioIni);
+  return extraScripts(pioIni).some((option) =>
+    PlatformIOIni.list(option.value).includes(entryOf(name)),
+  );
 }
 
 /** `name` in the project being configured. */
@@ -63,44 +67,6 @@ function getPioIniPath(fs: IFileSystem): string {
   }
 
   return pioIniPath;
-}
-
-/**
- * Remove every occurrence of `entry`, as a whole token, together with the
- * whitespace run immediately before it.
- *
- * Replaces /[\n\t ]+pre:<script>\.py/g, which retries the whitespace run
- * from each of its positions and is super-linear on a long run (S8786).
- *
- * An occurrence with no whitespace before it is left in place, matching the
- * `+` in the original -- that form is handled by the standalone-line replace
- * above.
- */
-function removeEntryWithLeadingWhitespace(text: string, entry: string): string {
-  const isIndent = (character: string): boolean =>
-    character === "\n" || character === "\t" || character === " ";
-
-  let result = "";
-  let cursor = 0;
-  for (;;) {
-    const at = text.indexOf(entry, cursor);
-    if (at === -1) {
-      return result + text.slice(cursor);
-    }
-
-    let start = at;
-    while (start > cursor && isIndent(text[start - 1])) {
-      start -= 1;
-    }
-
-    const end = at + entry.length;
-    const isWholeToken = end === text.length || /\s/.test(text[end]);
-    result +=
-      start === at || !isWholeToken
-        ? text.slice(cursor, at + entry.length) // no leading whitespace: keep it
-        : text.slice(cursor, start);
-    cursor = at + entry.length;
-  }
 }
 
 /**
@@ -130,10 +96,12 @@ class PlatformIOCommand {
       fs.exists(inProject(OLD_BUILD_SCRIPT)) ||
       hasEntry(pioIni, OLD_BUILD_SCRIPT)
     ) {
-      console.error(
-        `Error: this project has the old ${OLD_BUILD_SCRIPT} integration, which runs \`cnext\`; nothing was written. Run cnx --pio-uninstall, then cnx --pio-install.`,
+      PlatformIOCommand.stopBeforeWriting(
+        [
+          `this project has the old ${OLD_BUILD_SCRIPT} integration, which runs \`cnext\``,
+        ],
+        "Run cnx --pio-uninstall, then cnx --pio-install.",
       );
-      process.exit(1);
     }
     const config = ConfigLoader.inDirectory(process.cwd(), fs);
     if (config.kind === "renamed") {
@@ -241,32 +209,40 @@ transpile_cnx()
   }
 
   /**
-   * Stop before anything is written, with each reason the project's config
-   * cannot be used: the one way install refuses a config (#2221 review).
+   * Stop before anything is written, with each reason install cannot go on
+   * and what to do about it: the one way install refuses (#2221 review,
+   * #2174 review).
    */
-  private static stopBeforeWriting(reasons: readonly string[]): never {
+  private static stopBeforeWriting(
+    reasons: readonly string[],
+    remedy = "Fix it and run --pio-install again.",
+  ): never {
     for (const reason of reasons) {
-      console.error(
-        `Error: ${reason}; nothing was written. Fix it and run --pio-install again.`,
-      );
+      console.error(`Error: ${reason}; nothing was written. ${remedy}`);
     }
     process.exit(1);
   }
 
-  /** `pioIni` with the pre-build script in its `extra_scripts`. */
+  /**
+   * `pioIni` with the pre-build script added to its first `extra_scripts`,
+   * in the form that list is written in, else on a new `extra_scripts` line
+   * opening the first `[env:*]` section.
+   */
   private static withBuildScript(pioIni: string): string {
-    if (pioIni.includes("extra_scripts")) {
-      // Append to existing extra_scripts
-      return pioIni.replace(
-        /extra_scripts\s*=\s*(.+)/,
-        `extra_scripts = $1\n    ${entryOf(BUILD_SCRIPT)}`,
-      );
+    const entry = entryOf(BUILD_SCRIPT);
+    const scripts = extraScripts(pioIni).at(0);
+    if (scripts !== undefined) {
+      return PlatformIOIni.withItems(pioIni, scripts, [
+        ...PlatformIOIni.list(scripts.value),
+        entry,
+      ]);
     }
-    // Add new extra_scripts line after first [env:*] section
-    return pioIni.replace(
-      /(\[env:[^\]]+\])/,
-      `$1\nextra_scripts = ${entryOf(BUILD_SCRIPT)}`,
+    const env = PlatformIOIni.layout(pioIni).sections.find((section) =>
+      section.name.startsWith("env:"),
     );
+    return env === undefined
+      ? pioIni
+      : PlatformIOIni.withOption(pioIni, env, "extra_scripts", entry);
   }
 
   /**
@@ -335,15 +311,8 @@ transpile_cnx()
     }
 
     const pioIni = fs.readFile(pioIniPath);
-    const named = BUILD_SCRIPTS.filter((name) => hasEntry(pioIni, name));
-    if (named.length > 0) {
-      const cleaned = named
-        .reduce(
-          (text, name) => PlatformIOCommand.withoutBuildScript(text, name),
-          pioIni,
-        )
-        // Clean up multiple consecutive blank lines
-        .replaceAll(/\n\n\n+/g, "\n\n");
+    const cleaned = PlatformIOCommand.withoutBuildScripts(pioIni);
+    if (cleaned !== pioIni) {
       Write.file(fs, pioIniPath, cleaned);
       console.log(`✓ Modified: ${pioIniPath}`);
       hasChanges = true;
@@ -363,18 +332,28 @@ transpile_cnx()
     }
   }
 
-  /** `pioIni` with no `extra_scripts` entry for the script `name`. */
-  private static withoutBuildScript(pioIni: string, name: string): string {
-    // A standalone "extra_scripts = pre:<name>" line (with its newline)
-    const standalone = new RegExp(
-      String.raw`^extra_scripts[ \t]*=[ \t]*${entrySource(name)}[ \t]*\n`,
-      "m",
-    );
-    // Then one in a multi-line extra_scripts (e.g. "    pre:<name>")
-    return removeEntryWithLeadingWhitespace(
-      pioIni.replace(standalone, ""),
-      entryOf(name),
-    );
+  /**
+   * `pioIni` with no `extra_scripts` item running either script, every other
+   * item left in place (#2174 review: removing the line
+   * `extra_scripts = pre:cnext_build.py` left the indented scripts below it
+   * with no key).
+   */
+  private static withoutBuildScripts(pioIni: string): string {
+    const entries: string[] = BUILD_SCRIPTS.map(entryOf);
+    const options = extraScripts(pioIni);
+    let cleaned = pioIni;
+    // Last first, so each option's line numbers still hold when it is edited
+    for (let index = options.length - 1; index >= 0; index -= 1) {
+      const items = PlatformIOIni.list(options[index].value);
+      const kept = items.filter((item) => !entries.includes(item));
+      if (kept.length < items.length) {
+        cleaned = PlatformIOIni.withItems(cleaned, options[index], kept);
+      }
+    }
+    return cleaned === pioIni
+      ? pioIni
+      : // Clean up multiple consecutive blank lines
+        cleaned.replaceAll(/\n\n\n+/g, "\n\n");
   }
 }
 

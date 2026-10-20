@@ -721,9 +721,10 @@ function onPath(name: string): string {
 
 /** Run `tempDir`'s cnx_build.py for teensy41 with only `pathDirs` on PATH. */
 function runHook(tempDir: string, pathDirs: string[]): ICliResult {
+  const python = onPath("python3");
   try {
     const output = execFileSync(
-      onPath("python3"),
+      python,
       ["-c", PLATFORMIO_STUB, "cnx_build.py", "teensy41"],
       {
         encoding: "utf-8",
@@ -736,11 +737,12 @@ function runHook(tempDir: string, pathDirs: string[]): ICliResult {
     return { success: true, output, stderr: "", exitCode: 0 };
   } catch (error: unknown) {
     const failure = ExecFailure.of(error);
+    // No status: killed (the timeout), so no exit code a test could expect
     return {
       success: false,
       output: failure.stdout || "",
-      stderr: failure.stderr || "",
-      exitCode: failure.status || 1,
+      stderr: failure.stderr || failure.message,
+      exitCode: failure.status ?? -1,
     };
   }
 }
@@ -749,7 +751,8 @@ function runHook(tempDir: string, pathDirs: string[]): ICliResult {
 function withHookProject(source: string, testFn: (tempDir: string) => void) {
   const tempDir = createTempPioProject(minimalPioIni);
   try {
-    runCliInDir(tempDir, ["--pio-install"]);
+    const install = runCliInDir(tempDir, ["--pio-install"]);
+    assert(install.success, `--pio-install should succeed: ${install.output}`);
     mkdirSync(join(tempDir, "src"));
     writeFileSync(join(tempDir, "src", "main.cnx"), source, "utf-8");
     testFn(tempDir);
