@@ -129,8 +129,9 @@ describe("one channel per fact (#1659)", () => {
     const takesCtx = pipeline.filter((fn) =>
       fn.params.includes("IAssignmentContext"),
     );
-    // Population control: 61 when this was written
-    expect(takesCtx.length).toBeGreaterThan(40);
+    // Population control: 61 when this was written, 39 once #1731 moved
+    // string classification to the typer and #2155 moved the bitmap lookups
+    expect(takesCtx.length).toBeGreaterThan(30);
 
     const twoRoutes = takesCtx
       .filter((fn) => fn.params.includes("TranspileState"))
@@ -142,8 +143,9 @@ describe("one channel per fact (#1659)", () => {
     const classifier = under(
       "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts:",
     );
-    // Population control: 29 when this was written
-    expect(classifier.length).toBeGreaterThan(20);
+    // Population control: 29 when this was written, 16 once #1731 moved
+    // string classification to the typer and #2155 moved the bitmap lookups
+    expect(classifier.length).toBeGreaterThan(10);
 
     const takesState = classifier
       .filter((fn) => fn.params.includes("TranspileState"))
