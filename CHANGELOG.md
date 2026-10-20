@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unaffected. The editor's server reports a workspace config's E0918 on every transpile, and picks up
   the renamed file at the next one, with no restart. `--pio-install` updates whichever config the
   project already has, where it used to write `cnext.config.json` beside a `.cnextrc` and shadow it.
+- **PlatformIO's build script is `cnx_build.py`** (Issue #2174). `cnx --pio-install` writes
+  `cnx_build.py`, which runs `cnx`, and adds `pre:cnx_build.py` to `extra_scripts`. A build without
+  `cnx` on PATH now fails with `cnx not found on PATH: npm i -g <package>`, not a Python traceback.
+  A project with the old `cnext_build.py` integration, whose script runs the removed `cnext` command,
+  must migrate: run `cnx --pio-uninstall`, which removes either name, then `cnx --pio-install`.
+  Until then `--pio-install` stops with that instruction and writes nothing.
 - **A config is read from the project root, and never from a directory above it** (Issue #2261).
   The project root is the nearest directory, from the entry file up, that holds a config,
   `platformio.ini`, `.git` or `package.json`. It already decided the include directories and the

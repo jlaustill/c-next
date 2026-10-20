@@ -21,13 +21,15 @@ import {
   rmSync,
   mkdtempSync,
   mkdirSync,
+  symlinkSync,
 } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import chalk from "chalk";
 
 import ExecFailure from "../src/cnx/utils/ExecFailure";
+import packageJson from "../package.json" with { type: "json" };
 
 /** One CLI run, as runCliInDir reports it. */
 interface ICliResult {
@@ -475,23 +477,23 @@ void increment() {
 // Category 1: --pio-install tests
 // ----------------------------------------------------------------------------
 
-test("--pio-install creates cnext_build.py and modifies platformio.ini", () => {
+test("--pio-install creates cnx_build.py and modifies platformio.ini", () => {
   const tempDir = createTempPioProject(minimalPioIni);
   try {
     const result = runCliInDir(tempDir, ["--pio-install"]);
     assert(result.success, `Command should succeed: ${result.output}`);
 
-    // Verify cnext_build.py was created
+    // Verify cnx_build.py was created
     assertFileContains(
-      join(tempDir, "cnext_build.py"),
-      "def transpile_cnext",
-      "cnext_build.py should contain transpile function",
+      join(tempDir, "cnx_build.py"),
+      "def transpile_cnx",
+      "cnx_build.py should contain transpile function",
     );
     // ADR-049: the environment being built names the target (#1668)
     assertFileContains(
-      join(tempDir, "cnext_build.py"),
+      join(tempDir, "cnx_build.py"),
       '"--pio-env", env["PIOENV"]',
-      "cnext_build.py should pass the environment being built",
+      "cnx_build.py should pass the environment being built",
     );
 
     // Verify platformio.ini was modified
@@ -502,8 +504,8 @@ test("--pio-install creates cnext_build.py and modifies platformio.ini", () => {
     );
     assertFileContains(
       join(tempDir, "platformio.ini"),
-      "cnext_build.py",
-      "platformio.ini should reference cnext_build.py",
+      "cnx_build.py",
+      "platformio.ini should reference cnx_build.py",
     );
   } finally {
     cleanupTempDir(tempDir);
@@ -526,11 +528,8 @@ test("--pio-install is idempotent (safe to run twice)", () => {
 
     // Verify no duplicate entries
     const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
-    const matches = pioIni.match(/cnext_build\.py/g) || [];
-    assert(
-      matches.length === 1,
-      "Should have exactly one cnext_build.py entry",
-    );
+    const matches = pioIni.match(/cnx_build\.py/g) || [];
+    assert(matches.length === 1, "Should have exactly one cnx_build.py entry");
   } finally {
     cleanupTempDir(tempDir);
   }
@@ -562,7 +561,34 @@ test("--pio-install preserves existing extra_scripts", () => {
       pioIni.includes("custom_script.py"),
       "Should preserve existing custom_script.py",
     );
-    assert(pioIni.includes("cnext_build.py"), "Should add cnext_build.py");
+    assert(pioIni.includes("cnx_build.py"), "Should add cnx_build.py");
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// #2174: installing beside the old hook would leave every build running it
+test("--pio-install stops at the old cnext_build.py integration", () => {
+  const ini = minimalPioIni + "extra_scripts = pre:cnext_build.py\n";
+  const tempDir = createTempPioProject(ini);
+  try {
+    writeFileSync(join(tempDir, "cnext_build.py"), "", "utf-8");
+    const result = runCliInDir(tempDir, ["--pio-install"], true);
+    assert(result.exitCode === 1, "Exit code should be 1");
+    assert(
+      result.stderr.includes(
+        "Run cnx --pio-uninstall, then cnx --pio-install.",
+      ),
+      `Should name the migration: ${result.stderr}`,
+    );
+    assertFileNotExists(
+      join(tempDir, "cnx_build.py"),
+      "cnx_build.py should not be written",
+    );
+    assert(
+      readFileSync(join(tempDir, "platformio.ini"), "utf-8") === ini,
+      "platformio.ini should be unchanged",
+    );
   } finally {
     cleanupTempDir(tempDir);
   }
@@ -578,7 +604,7 @@ test("--pio-uninstall removes integration cleanly", () => {
     // First install
     runCliInDir(tempDir, ["--pio-install"]);
     assert(
-      existsSync(join(tempDir, "cnext_build.py")),
+      existsSync(join(tempDir, "cnx_build.py")),
       "Script should exist after install",
     );
 
@@ -586,17 +612,17 @@ test("--pio-uninstall removes integration cleanly", () => {
     const result = runCliInDir(tempDir, ["--pio-uninstall"]);
     assert(result.success, `Uninstall should succeed: ${result.output}`);
 
-    // Verify cnext_build.py was removed
+    // Verify cnx_build.py was removed
     assertFileNotExists(
-      join(tempDir, "cnext_build.py"),
-      "cnext_build.py should be removed",
+      join(tempDir, "cnx_build.py"),
+      "cnx_build.py should be removed",
     );
 
     // Verify platformio.ini was cleaned
     const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
     assert(
-      !pioIni.includes("cnext_build.py"),
-      "platformio.ini should not reference cnext_build.py",
+      !pioIni.includes("cnx_build.py"),
+      "platformio.ini should not reference cnx_build.py",
     );
   } finally {
     cleanupTempDir(tempDir);
@@ -637,10 +663,140 @@ test("--pio-uninstall preserves other extra_scripts", () => {
       pioIni.includes("custom_script.py"),
       "Should preserve custom_script.py after uninstall",
     );
-    assert(!pioIni.includes("cnext_build.py"), "Should remove cnext_build.py");
+    assert(!pioIni.includes("cnx_build.py"), "Should remove cnx_build.py");
   } finally {
     cleanupTempDir(tempDir);
   }
+});
+
+test("--pio-uninstall removes the old cnext_build.py integration (#2174)", () => {
+  const tempDir = createTempPioProject(
+    pioIniWithExtraScripts + "    pre:cnext_build.py\n",
+  );
+  try {
+    writeFileSync(join(tempDir, "cnext_build.py"), "", "utf-8");
+    const result = runCliInDir(tempDir, ["--pio-uninstall"]);
+    assert(result.success, `Uninstall should succeed: ${result.output}`);
+
+    assertFileNotExists(
+      join(tempDir, "cnext_build.py"),
+      "cnext_build.py should be removed",
+    );
+    const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
+    assert(
+      pioIni === pioIniWithExtraScripts,
+      `Only the old entry should be removed: ${pioIni}`,
+    );
+
+    // The migration the install error names then succeeds
+    const install = runCliInDir(tempDir, ["--pio-install"]);
+    assert(install.success, `Install should succeed: ${install.output}`);
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// Category 2b: the generated cnx_build.py, run as PlatformIO runs it (#2174)
+// ----------------------------------------------------------------------------
+
+/**
+ * Stands in for PlatformIO's SCons: an `Import` that does nothing and an
+ * `env` naming the environment being built, then the hook run as a script.
+ */
+const PLATFORMIO_STUB = `import builtins, sys
+builtins.Import = lambda *names: None
+builtins.env = {"PIOENV": sys.argv[2]}
+with open(sys.argv[1]) as hook:
+    exec(compile(hook.read(), sys.argv[1], "exec"), {"__name__": "__main__"})
+`;
+
+/** `name`'s absolute path on this run's PATH, so no child resolves it by PATH. */
+function onPath(name: string): string {
+  const dirs = (process.env.PATH ?? "").split(delimiter);
+  const dir = dirs.find((d) => d !== "" && existsSync(join(d, name)));
+  assert(dir !== undefined, `${name} should be on PATH`);
+  return join(dir as string, name);
+}
+
+/** Run `tempDir`'s cnx_build.py for teensy41 with only `pathDirs` on PATH. */
+function runHook(tempDir: string, pathDirs: string[]): ICliResult {
+  try {
+    const output = execFileSync(
+      onPath("python3"),
+      ["-c", PLATFORMIO_STUB, "cnx_build.py", "teensy41"],
+      {
+        encoding: "utf-8",
+        cwd: tempDir,
+        env: { PATH: pathDirs.join(delimiter) },
+        timeout: 30000,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
+    return { success: true, output, stderr: "", exitCode: 0 };
+  } catch (error: unknown) {
+    const failure = ExecFailure.of(error);
+    return {
+      success: false,
+      output: failure.stdout || "",
+      stderr: failure.stderr || "",
+      exitCode: failure.status || 1,
+    };
+  }
+}
+
+/** A project with the hook installed and `src/main.cnx` holding `source`. */
+function withHookProject(source: string, testFn: (tempDir: string) => void) {
+  const tempDir = createTempPioProject(minimalPioIni);
+  try {
+    runCliInDir(tempDir, ["--pio-install"]);
+    mkdirSync(join(tempDir, "src"));
+    writeFileSync(join(tempDir, "src", "main.cnx"), source, "utf-8");
+    testFn(tempDir);
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+}
+
+test("cnx_build.py names a missing cnx instead of a traceback", () => {
+  withHookProject(atomicCnx, (tempDir) => {
+    const emptyBin = join(tempDir, "empty-bin");
+    mkdirSync(emptyBin);
+    const result = runHook(tempDir, [emptyBin]);
+    assert(result.exitCode === 1, `Exit code should be 1: ${result.output}`);
+    assert(
+      result.output.includes(
+        `✗ cnx not found on PATH: npm i -g ${packageJson.name}`,
+      ),
+      `Should say cnx is missing: ${result.output}`,
+    );
+    assert(
+      !result.stderr.includes("Traceback"),
+      `Should not raise: ${result.stderr}`,
+    );
+  });
+});
+
+test("cnx_build.py runs cnx for the environment being built", () => {
+  withHookProject(atomicCnx, (tempDir) => {
+    const bin = join(tempDir, "bin");
+    mkdirSync(bin);
+    symlinkSync(cliPath, join(bin, "cnx"));
+    const result = runHook(tempDir, [bin, dirname(process.execPath)]);
+    assert(result.success, `Hook should succeed: ${result.stderr}`);
+    assert(
+      result.output.includes("Target: teensy41 (platformio)"),
+      `Should build for the environment named: ${result.output}`,
+    );
+    assert(
+      result.output.includes("✓ Transpilation complete"),
+      `Should finish: ${result.output}`,
+    );
+    assert(
+      existsSync(join(tempDir, "src", "main.c")),
+      "Should write src/main.c",
+    );
+  });
 });
 
 // ----------------------------------------------------------------------------

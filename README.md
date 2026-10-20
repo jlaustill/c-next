@@ -287,7 +287,7 @@ The C-Next VS Code extension provides syntax highlighting, live C preview, Intel
 C-Next integrates seamlessly with PlatformIO. Quick setup:
 
 ```bash
-cnext --pio-install
+cnx --pio-install
 ```
 
 This creates a pre-build script that automatically transpiles `.cnx` files before each build.
