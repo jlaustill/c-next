@@ -460,6 +460,45 @@ describe("PlatformIOCommand", () => {
     });
   });
 
+  describe("which entries name the hook", () => {
+    it("adds the hook beside a script whose name only ends in cnx_build.py", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:mycnx_build.py\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:mycnx_build.py\n    pre:cnx_build.py\n",
+      );
+    });
+
+    it("installs where only a comment names cnext_build.py", () => {
+      const ini = "; replaced cnext_build.py\n[env:esp32]\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "; replaced cnext_build.py\n[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
+      );
+    });
+
+    it("uninstall keeps an entry that only starts with pre:cnx_build.py", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts =\n    pre:cnx_build.py.bak\n    pre:cnx_build.py\n",
+        "cnx_build.py": "",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts =\n    pre:cnx_build.py.bak\n",
+      );
+    });
+  });
+
   describe("install over the old cnext_build.py integration (#2174)", () => {
     it.each([
       [

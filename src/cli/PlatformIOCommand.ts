@@ -23,6 +23,27 @@ const OLD_BUILD_SCRIPT = "cnext_build.py";
 /** Every name uninstall removes, the current one first. */
 const BUILD_SCRIPTS = [BUILD_SCRIPT, OLD_BUILD_SCRIPT] as const;
 
+/** The `extra_scripts` entry that runs the script `name` before a build. */
+function entryOf(name: string): string {
+  return `pre:${name}`;
+}
+
+/** `entryOf(name)` as a regex source. */
+function entrySource(name: string): string {
+  return entryOf(name).replaceAll(".", String.raw`\.`);
+}
+
+/**
+ * Whether `pioIni` runs the script `name`: its entry as a whole token, so
+ * `pre:mycnx_build.py` or a comment naming the file does not count.
+ */
+function hasEntry(pioIni: string, name: string): boolean {
+  return new RegExp(
+    String.raw`(?:^|[\s=])${entrySource(name)}(?=\s|$)`,
+    "m",
+  ).test(pioIni);
+}
+
 /** `name` in the project being configured. */
 function inProject(name: string): string {
   return resolve(process.cwd(), name);
@@ -45,8 +66,8 @@ function getPioIniPath(fs: IFileSystem): string {
 }
 
 /**
- * Remove every occurrence of `entry` together with the whitespace run
- * immediately before it.
+ * Remove every occurrence of `entry`, as a whole token, together with the
+ * whitespace run immediately before it.
  *
  * Replaces /[\n\t ]+pre:<script>\.py/g, which retries the whitespace run
  * from each of its positions and is super-linear on a long run (S8786).
@@ -72,8 +93,10 @@ function removeEntryWithLeadingWhitespace(text: string, entry: string): string {
       start -= 1;
     }
 
+    const end = at + entry.length;
+    const isWholeToken = end === text.length || /\s/.test(text[end]);
     result +=
-      start === at
+      start === at || !isWholeToken
         ? text.slice(cursor, at + entry.length) // no leading whitespace: keep it
         : text.slice(cursor, start);
     cursor = at + entry.length;
@@ -105,7 +128,7 @@ class PlatformIOCommand {
     const pioIni = fs.readFile(pioIniPath);
     if (
       fs.exists(inProject(OLD_BUILD_SCRIPT)) ||
-      pioIni.includes(OLD_BUILD_SCRIPT)
+      hasEntry(pioIni, OLD_BUILD_SCRIPT)
     ) {
       console.error(
         `Error: this project has the old ${OLD_BUILD_SCRIPT} integration, which runs \`cnext\`; nothing was written. Run cnx --pio-uninstall, then cnx --pio-install.`,
@@ -190,7 +213,7 @@ transpile_cnx()
 
     // An already-configured platformio.ini is left as it is; the config is
     // set up either way (#2221 review: a reinstall used to return first)
-    const alreadyConfigured = pioIni.includes(BUILD_SCRIPT);
+    const alreadyConfigured = hasEntry(pioIni, BUILD_SCRIPT);
     if (alreadyConfigured) {
       console.log("✓ PlatformIO already configured for cnx");
     } else {
@@ -236,13 +259,13 @@ transpile_cnx()
       // Append to existing extra_scripts
       return pioIni.replace(
         /extra_scripts\s*=\s*(.+)/,
-        `extra_scripts = $1\n    pre:${BUILD_SCRIPT}`,
+        `extra_scripts = $1\n    ${entryOf(BUILD_SCRIPT)}`,
       );
     }
     // Add new extra_scripts line after first [env:*] section
     return pioIni.replace(
       /(\[env:[^\]]+\])/,
-      `$1\nextra_scripts = pre:${BUILD_SCRIPT}`,
+      `$1\nextra_scripts = ${entryOf(BUILD_SCRIPT)}`,
     );
   }
 
@@ -312,7 +335,7 @@ transpile_cnx()
     }
 
     const pioIni = fs.readFile(pioIniPath);
-    const named = BUILD_SCRIPTS.filter((name) => pioIni.includes(name));
+    const named = BUILD_SCRIPTS.filter((name) => hasEntry(pioIni, name));
     if (named.length > 0) {
       const cleaned = named
         .reduce(PlatformIOCommand.withoutBuildScript, pioIni)
@@ -339,16 +362,15 @@ transpile_cnx()
 
   /** `pioIni` with no `extra_scripts` entry for the script `name`. */
   private static withoutBuildScript(pioIni: string, name: string): string {
-    const entry = `pre:${name}`;
     // A standalone "extra_scripts = pre:<name>" line (with its newline)
     const standalone = new RegExp(
-      String.raw`^extra_scripts[ \t]*=[ \t]*${entry.replaceAll(".", String.raw`\.`)}[ \t]*\n`,
+      String.raw`^extra_scripts[ \t]*=[ \t]*${entrySource(name)}[ \t]*\n`,
       "m",
     );
     // Then one in a multi-line extra_scripts (e.g. "    pre:<name>")
     return removeEntryWithLeadingWhitespace(
       pioIni.replace(standalone, ""),
-      entry,
+      entryOf(name),
     );
   }
 }
