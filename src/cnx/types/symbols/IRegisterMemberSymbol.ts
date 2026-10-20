@@ -11,6 +11,7 @@ import type IBaseSymbol from "./IBaseSymbol";
  */
 import type TRegisterAccessMode from "../TRegisterAccessMode";
 import type TExpression from "../syntax/TExpression";
+import type TType from "../TType";
 interface IRegisterMemberSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "register_member" */
   readonly kind: "register_member";
@@ -18,14 +19,15 @@ interface IRegisterMemberSymbol extends IBaseSymbol {
   /** The offset from the base address as 1.2 lowered it; 2.3 renders it (#1991) */
   readonly offset: TExpression;
 
-  /** C type for the register (e.g., "uint32_t") */
-  readonly cType: string;
+  /**
+   * The member's type as written, settled by 1.4 Resolve like any other
+   * (#1514). Whether it is a bitmap is asked of the names the file can see
+   * (`DeclaredTypeFacts.isBitmap`), never stored here: Declare sees one file.
+   */
+  readonly type: TType;
 
   /** Access mode for the register */
   readonly access: TRegisterAccessMode;
-
-  /** Optional bitmap type for structured bit access */
-  readonly bitmapType?: string;
 }
 
 export default IRegisterMemberSymbol;

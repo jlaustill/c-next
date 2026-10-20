@@ -1,0 +1,14 @@
+// Bitmaps declared in their own file, for the register members of
+// cross-file-bitmap-register to be typed by (#1514).
+bitmap8 Ctl {
+    En,
+    Mode[3],
+    Hi[4]
+}
+
+scope Chip {
+    public bitmap8 Flags {
+        Busy,
+        Rest[7]
+    }
+}

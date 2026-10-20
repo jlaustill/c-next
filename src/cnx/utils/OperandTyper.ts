@@ -1548,23 +1548,24 @@ class OperandTyper {
         const info =
           register?.kind === "register" ? register.members.get(member) : null;
         if (!info) return UNKNOWN;
-        // #2155 review 8: the member is named whether or not its type
-        // resolves (an included bitmap does not, #1514), so its access rules
-        // still apply to it
+        // #2155 review 8: the member is named whatever its type, so its
+        // access rules apply to it
         const registerMember = {
           register: current.name,
           cName: QualifiedCName.fromParts([current.name, member]),
         };
-        if (info.bitmapType) {
-          const t = {
-            ...OperandTyper.plain(info.bitmapType),
-            bitmapTypeName: info.bitmapType,
-          };
+        // #1514: the member's C type, and whether it names a bitmap, read
+        // from the names this file SEES, so an included bitmap counts
+        const cType = ctx.symbols.registerMemberCTypes.get(registerMember.cName);
+        if (cType === undefined) return UNKNOWN;
+        const named = OperandTyper.namedFacts(cType, ctx);
+        if (named.bitmapTypeName !== null) {
+          const t = { ...OperandTyper.plain(cType), ...named };
           return { k: "value", registerMember, t };
         }
         // A member records its C spelling (`uint16_t`)
         const foreign = ForeignTypeFacts.operandType(
-          info.cType,
+          cType,
           ctx.symbolTable,
           OperandTyper.target(ctx),
         );
@@ -1575,12 +1576,10 @@ class OperandTyper {
             t: { ...foreign, form: DECLARED },
           };
         }
-        // A C-Next enum types the member as that enum (#2155 review 9); a type
-        // that does not resolve (an included bitmap, #1514) types nothing
-        const named = OperandTyper.namedFacts(info.cType, ctx);
+        // A C-Next enum types the member as that enum (#2155 review 9)
         const t =
           named.category === "enum"
-            ? { ...OperandTyper.plain(info.cType), ...named }
+            ? { ...OperandTyper.plain(cType), ...named }
             : OperandTyper.plain(null);
         return { k: "value", registerMember, t };
       }

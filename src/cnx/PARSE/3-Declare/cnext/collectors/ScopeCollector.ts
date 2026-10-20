@@ -42,7 +42,6 @@ class ScopeCollector {
    *
    * @param syntax The scope declaration, as 1.2 lowered it
    * @param sourceFile Source file path
-   * @param knownBitmaps Set of known bitmap type names for register resolution
    * @param isScopeType ADR-057: predicate answering whether a *qualified* name
    *                    is a type declared in a scope. Supplied by CNextResolver
    *                    from a pre-pass so the answer is complete before any
@@ -53,7 +52,6 @@ class ScopeCollector {
     registry: SymbolRegistry,
     syntax: TScopeSyntax,
     sourceFile: string,
-    knownBitmaps: Set<string>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IScopeCollectorResult {
     const scopeName = syntax.name;
@@ -154,7 +152,6 @@ class ScopeCollector {
           sourceFile,
           scopePath,
           visibility,
-          knownBitmaps,
           isScopeType,
         ),
       );
@@ -170,7 +167,6 @@ class ScopeCollector {
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
-    knownBitmaps: Set<string>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): TSymbol {
     switch (declaration.kind) {
@@ -219,7 +215,6 @@ class ScopeCollector {
         return RegisterCollector.collect(
           declaration,
           sourceFile,
-          knownBitmaps,
           scopePath,
           visibility,
           isScopeType,

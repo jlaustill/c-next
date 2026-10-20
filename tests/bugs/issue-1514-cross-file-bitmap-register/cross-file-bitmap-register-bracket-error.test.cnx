@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 034
+// #1514: a register member typed by an INCLUDED bitmap is a bitmap, so it is
+// addressed by named field and bracket indexing is rejected (E0883) exactly
+// as it is when the bitmap is declared in the same file. Before #1514 the
+// member lost its bitmap and the slice was accepted as one on a plain integer.
+
+#include "lib/bitmaps.cnx"
+
+scope Dev {
+    register R @ 0x40003000 {
+        CR: Ctl rw @ 0x00,
+    }
+
+    public void set(u8 m) {
+        this.R.CR[4, 4] <- m;
+    }
+}
+
+void main() {
+    Dev.set(3);
+}

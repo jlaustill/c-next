@@ -34,6 +34,7 @@ import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import type IParameterInfo from "../../types/symbols/IParameterInfo";
 import type IStructFieldSymbol from "../../types/symbols/IStructFieldSymbol";
+import type IRegisterMemberSymbol from "../../types/symbols/IRegisterMemberSymbol";
 import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TypeResolver from "../../utils/TypeResolver";
@@ -152,9 +153,25 @@ class DeferredTypes {
       return fieldsChanged ? { ...symbol, fields } : symbol;
     }
 
-    // enum, bitmap and register carry no TType: an enum member holds a value, a
-    // bitmap's backing type is a constant, and a register member's C type is a
-    // plain string resolved at declaration. Returned unchanged rather than
+    // #1514: a register member's type is settled as a struct field's is --
+    // a bare name inside a scope may name an included scope's type.
+    if (symbol.kind === "register") {
+      let membersChanged = false;
+      const members = new Map<string, IRegisterMemberSymbol>();
+      for (const [name, member] of symbol.members) {
+        const type = settle(member.type);
+        if (type === member.type) {
+          members.set(name, member);
+          continue;
+        }
+        membersChanged = true;
+        members.set(name, { ...member, type });
+      }
+      return membersChanged ? { ...symbol, members } : symbol;
+    }
+
+    // enum and bitmap carry no TType: an enum member holds a value and a
+    // bitmap's backing type is a constant. Returned unchanged rather than
     // rebuilt, so identity is preserved for everything with nothing to do.
     //
     // `scope` is NOT in that list, though it was until 37 fixtures proved
@@ -207,6 +224,9 @@ class DeferredTypes {
     }
     if (symbol.kind === "struct") {
       return [...symbol.fields.values()].map((field) => field.type);
+    }
+    if (symbol.kind === "register") {
+      return [...symbol.members.values()].map((member) => member.type);
     }
     // A scope reaches TType only through its member functions -- and that is
     // exactly where an unsettled type survived, because the registry aliases

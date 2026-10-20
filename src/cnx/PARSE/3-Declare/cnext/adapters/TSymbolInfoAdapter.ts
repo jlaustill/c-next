@@ -32,7 +32,6 @@ interface IRegisterMaps {
   knownRegisters: Set<string>;
   scopedRegisters: Map<string, TExpression>;
   registerMemberAccess: Map<string, string>;
-  registerMemberTypes: Map<string, string>;
   registerBaseAddresses: Map<string, TExpression>;
   registerMemberOffsets: Map<string, TExpression>;
   registerMemberCTypes: Map<string, string>;
@@ -83,7 +82,6 @@ class TSymbolInfoAdapter {
     // === Register Information ===
     const scopedRegisters = new Map<string, TExpression>();
     const registerMemberAccess = new Map<string, string>();
-    const registerMemberTypes = new Map<string, string>();
     const registerBaseAddresses = new Map<string, TExpression>();
     const registerMemberOffsets = new Map<string, TExpression>();
     const registerMemberCTypes = new Map<string, string>();
@@ -128,11 +126,10 @@ class TSymbolInfoAdapter {
           break;
 
         case "register":
-          TSymbolInfoAdapter.processRegister(symbol, knownBitmaps, {
+          TSymbolInfoAdapter.processRegister(symbol, {
             knownRegisters,
             scopedRegisters,
             registerMemberAccess,
-            registerMemberTypes,
             registerBaseAddresses,
             registerMemberOffsets,
             registerMemberCTypes,
@@ -180,7 +177,6 @@ class TSymbolInfoAdapter {
       // Register info
       scopedRegisters,
       registerMemberAccess,
-      registerMemberTypes,
       registerBaseAddresses,
       registerMemberOffsets,
       registerMemberCTypes,
@@ -324,7 +320,6 @@ class TSymbolInfoAdapter {
 
   private static processRegister(
     register: IRegisterSymbol,
-    knownBitmaps: Set<string>,
     maps: IRegisterMaps,
   ): void {
     const cName = TSymbolInfoAdapter.getTranspiledCName(register);
@@ -342,15 +337,16 @@ class TSymbolInfoAdapter {
 
       maps.registerMemberAccess.set(fullName, memberInfo.access);
       maps.registerMemberOffsets.set(fullName, memberInfo.offset);
+      // #1514: a bitmap member's C type IS the bitmap's C name, which is
+      // what `knownBitmaps` is keyed by -- so whether the member is a bitmap
+      // is asked of this map and the VISIBLE view's bitmaps, once, where the
+      // include closure is known, not decided here from one file's.
       maps.registerMemberCTypes.set(
         fullName,
-        TSymbolInfoAdapter.cnextTypeToCType(memberInfo.cType),
+        TSymbolInfoAdapter.cnextTypeToCType(
+          TypeResolver.getTypeName(memberInfo.type),
+        ),
       );
-
-      // Track bitmap types for register members
-      if (memberInfo.bitmapType && knownBitmaps.has(memberInfo.bitmapType)) {
-        maps.registerMemberTypes.set(fullName, memberInfo.bitmapType);
-      }
     }
   }
 

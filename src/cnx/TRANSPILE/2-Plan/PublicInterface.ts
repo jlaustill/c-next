@@ -203,15 +203,12 @@ class PublicInterface {
         collect(field.type);
       }
     } else if (symbol.kind === "register") {
-      // #1453: a register's accessor casts to its member's type, so a bitmap a
+      // #1453: a register's accessor casts to its member's type, so a type a
       // public register names must be defined by the header that exports the
-      // register. `bitmapType` is already the name the definer is keyed by --
-      // a file-scope bitmap's bare name, a scope bitmap's C name -- so it is
-      // matched directly rather than re-resolved.
+      // register -- collected as a variable's is (#1514: whether or not this
+      // file could tell it was a bitmap).
       for (const member of symbol.members.values()) {
-        if (member.bitmapType !== undefined) {
-          names.push(member.bitmapType);
-        }
+        collect(member.type);
       }
     }
 

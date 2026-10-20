@@ -48,6 +48,7 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import DeclaredTypeFacts from "../../../../../utils/DeclaredTypeFacts";
 import PrivateConstValue from "../../PrivateConstValue";
 
 // ========================================================================
@@ -1040,6 +1041,21 @@ const tryStructParamAccess = (
 };
 
 /**
+ * The bitmap a register member is typed by, or null. #1514: asked of the
+ * VISIBLE bitmaps, so one declared in an included file counts.
+ */
+const registerMemberBitmap = (
+  input: IGeneratorInput,
+  memberCName: string,
+): string | null => {
+  const cType = input.symbols!.registerMemberCTypes.get(memberCName);
+  return cType !== undefined &&
+    DeclaredTypeFacts.isBitmap(input.symbols!, cType)
+    ? cType
+    : null;
+};
+
+/**
  * Check for register member with bitmap type (e.g., MOTOR_CTRL.Running).
  */
 const tryRegisterBitmapAccess = (
@@ -1048,11 +1064,11 @@ const tryRegisterBitmapAccess = (
   effects: TGeneratorEffect[],
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  if (!input.symbols!.registerMemberTypes.has(ctx.result)) {
+  const bitmapType = registerMemberBitmap(input, ctx.result);
+  if (bitmapType === null) {
     return null;
   }
 
-  const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
   const output = initializeMemberOutput(ctx);
   const bitmapResult = BitmapAccessHelper.generate(
     ctx.result,
@@ -1213,9 +1229,9 @@ const validateNotBitmapMember = (
   ctx: ISubscriptAccessContext,
   input: IGeneratorInput,
 ): void => {
-  if (!input.symbols!.registerMemberTypes.has(ctx.result)) return;
+  const bitmapType = registerMemberBitmap(input, ctx.result);
+  if (bitmapType === null) return;
 
-  const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
   invariant(
     !input.symbols!.bitmapFields.has(bitmapType),
     `a bitmap is addressed by named field, never by bit index ` +
