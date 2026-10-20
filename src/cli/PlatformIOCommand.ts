@@ -338,7 +338,10 @@ transpile_cnx()
     const named = BUILD_SCRIPTS.filter((name) => hasEntry(pioIni, name));
     if (named.length > 0) {
       const cleaned = named
-        .reduce(PlatformIOCommand.withoutBuildScript, pioIni)
+        .reduce(
+          (text, name) => PlatformIOCommand.withoutBuildScript(text, name),
+          pioIni,
+        )
         // Clean up multiple consecutive blank lines
         .replaceAll(/\n\n\n+/g, "\n\n");
       Write.file(fs, pioIniPath, cleaned);
