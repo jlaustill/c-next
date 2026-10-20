@@ -24,20 +24,40 @@ class CNextMarkerDetector {
   ];
 
   /**
+   * What may come before the text on its line: a comment leader and nothing
+   * else, as `GeneratedBanner.line()` writes it. A comment that only mentions
+   * the text is not a banner.
+   */
+  private static readonly LINE_START = String.raw`^[ \t]*(?:\*|//|/\*)[ \t]*`;
+
+  /** One regex per marker text, matching it as a whole word at a line's start */
+  private static readonly MARKER_REGEXES = CNextMarkerDetector.MARKER_TEXTS.map(
+    (text) =>
+      new RegExp(
+        String.raw`${CNextMarkerDetector.LINE_START}${text}(?![\w-])`,
+        "m",
+      ),
+  );
+
+  /**
    * One regex per marker text, each extracting the recorded source path:
    * "<marker> from: <path>"
    */
   private static readonly SOURCE_PATH_REGEXES =
     CNextMarkerDetector.MARKER_TEXTS.map(
-      (text) => new RegExp(String.raw`${text} ${GeneratedBanner.FROM}\s*(\S+)`),
+      (text) =>
+        new RegExp(
+          String.raw`${CNextMarkerDetector.LINE_START}${text} ${GeneratedBanner.FROM}\s*(\S+)`,
+          "m",
+        ),
     );
 
   /**
    * Check if content contains any C-Next generation marker.
    */
   static isCNextGenerated(content: string): boolean {
-    return CNextMarkerDetector.MARKER_TEXTS.some((text) =>
-      content.includes(text),
+    return CNextMarkerDetector.MARKER_REGEXES.some((regex) =>
+      regex.test(content),
     );
   }
 
