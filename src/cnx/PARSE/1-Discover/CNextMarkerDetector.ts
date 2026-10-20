@@ -23,33 +23,15 @@ class CNextMarkerDetector {
     CNextMarkerDetector.LEGACY_BANNER_TEXT,
   ];
 
-  /**
-   * What may come before the text on its line: a comment leader and nothing
-   * else, as `GeneratedBanner.line()` writes it. A comment that only mentions
-   * the text is not a banner.
-   */
-  private static readonly LINE_START = String.raw`^[ \t]*(?:\*|//|/\*)[ \t]*`;
-
-  /** One regex per marker text, matching it as a whole word at a line's start */
+  /** One regex per marker text, matching its banner line */
   private static readonly MARKER_REGEXES = CNextMarkerDetector.MARKER_TEXTS.map(
-    (text) =>
-      new RegExp(
-        String.raw`${CNextMarkerDetector.LINE_START}${text}(?![\w-])`,
-        "m",
-      ),
+    (text) => GeneratedBanner.marker(text),
   );
 
-  /**
-   * One regex per marker text, each extracting the recorded source path:
-   * "<marker> from: <path>"
-   */
+  /** One regex per marker text, each extracting the recorded source path */
   private static readonly SOURCE_PATH_REGEXES =
-    CNextMarkerDetector.MARKER_TEXTS.map(
-      (text) =>
-        new RegExp(
-          String.raw`${CNextMarkerDetector.LINE_START}${text} ${GeneratedBanner.FROM}\s*(\S+)`,
-          "m",
-        ),
+    CNextMarkerDetector.MARKER_TEXTS.map((text) =>
+      GeneratedBanner.sourcePathMarker(text),
     );
 
   /**

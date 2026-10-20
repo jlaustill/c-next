@@ -144,10 +144,10 @@ class CppEntryPointScanner {
     // Check if this is a C-Next generated header
     const marker = CNextMarkerDetector.findMarker(headerContent);
     if (marker) {
-      // New-style marker with source path
+      // A banner that records its source
       this._handleCNextMarker(marker, absolutePath);
     } else if (CNextMarkerDetector.isCNextGenerated(headerContent)) {
-      // Old-style marker without source path - treat as leaf node
+      // A banner with no recorded source - treat as leaf node
       // (we know it's C-Next generated but can't determine the source)
       this.visited.add(absolutePath);
     } else {

@@ -33,6 +33,7 @@
  */
 import type IHeaderPreprocessor from "./types/IHeaderPreprocessor";
 import STDIN_MARKER from "./STDIN_MARKER";
+import RegExpUtils from "../../../utils/RegExpUtils";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 
 // Function-like macro definitions from a `-dM` dump: `#define pdMS_TO_TICKS(`.
@@ -264,11 +265,10 @@ class ExternalDeclarationOracle {
     count: number,
   ): number {
     if (!error) return -1;
-    const escapedTu = STDIN_MARKER.replaceAll(
-      /[.*+?^${}()|[\]\\]/g,
-      String.raw`\$&`,
+    const pattern = new RegExp(
+      RegExpUtils.escape(STDIN_MARKER) + String.raw`:(\d+)`,
+      "g",
     );
-    const pattern = new RegExp(escapedTu + String.raw`:(\d+)`, "g");
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(error)) !== null) {
       const line = Number.parseInt(match[1], 10);
