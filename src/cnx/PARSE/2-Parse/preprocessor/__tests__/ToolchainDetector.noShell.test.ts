@@ -1,6 +1,6 @@
 /**
  * #1827: a compiler name or path reaches ToolchainDetector from the project
- * being compiled (`compile_commands.json`'s `argv[0]`, or CNEXT_CROSS_COMPILER).
+ * being compiled (`compile_commands.json`'s `argv[0]`, or CNX_CROSS_COMPILER).
  * No shell may parse it. These tests use the real `node:child_process`, so a
  * shell that runs the payload creates the marker file.
  *

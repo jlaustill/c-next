@@ -1,9 +1,9 @@
 /**
- * Unit tests for ToolchainDetector.fromPath and the CNEXT_CROSS_COMPILER override.
+ * Unit tests for ToolchainDetector.fromPath, which finds the compiler CNX_CROSS_COMPILER names.
  *
  * Cross-compilation targets (e.g. ESP32/xtensa) ship framework headers that
  * only preprocess with the target compiler — host gcc lacks their system
- * headers and predefined macros. CNEXT_CROSS_COMPILER lets a project point cnext's
+ * headers and predefined macros. CNX_CROSS_COMPILER lets a project point cnx's
  * preprocessor at that compiler (e.g. xtensa-esp32s3-elf-gcc).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";

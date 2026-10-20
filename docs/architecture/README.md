@@ -68,7 +68,7 @@ print in source order.
   catalog. 1.2 then has the host read every header with that target's own compiler
   (`HeaderCompiler`, by `TargetToolchain.gccFor`: `gcc`, `avr-gcc`, `arm-none-eabi-gcc`)
   and finds `<...>` headers on that compiler's system include path (#1713, #1755). A
-  compiler the project names (`CNEXT_CROSS_COMPILER`, `compile_commands.json`) reads them
+  compiler the project names (`CNX_CROSS_COMPILER`, `compile_commands.json`) reads them
   when its data-model macros match the target's; when they differ it is E0517 (#1542
   ruling 10). Declarations
   that agree are one target; declarations that disagree are E0511 (ADR-049). A header's

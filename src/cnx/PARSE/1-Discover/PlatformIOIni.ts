@@ -15,6 +15,7 @@ import type IPlatformIOProject from "../../types/IPlatformIOProject";
 import type IPlatformIOIniLayout from "./types/IPlatformIOIniLayout";
 import type IPlatformIOIniOption from "./types/IPlatformIOIniOption";
 import type IPlatformIOIniSection from "./types/IPlatformIOIniSection";
+import type TEnvironment from "./types/TEnvironment";
 
 /** How deep `${section.option}` may nest before a value is taken as cyclic */
 const MAX_INTERPOLATION = 8;
@@ -40,9 +41,6 @@ const MACHINE_DEFAULT_ENVS: readonly string[] = [
   "PLATFORMIO_DEFAULT_ENVS",
   "PLATFORMIO_ENV_DEFAULT",
 ];
-
-/** The build machine's environment variables, as `process.env` holds them */
-type TEnvironment = Readonly<Record<string, string | undefined>>;
 
 class PlatformIOIni {
   /**
