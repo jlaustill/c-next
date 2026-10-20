@@ -1,0 +1,4 @@
+// Helper for assignment-capacity-every-target-error.test.cnx (#2191)
+scope Lib {
+    public mut string<3> name <- "";
+}

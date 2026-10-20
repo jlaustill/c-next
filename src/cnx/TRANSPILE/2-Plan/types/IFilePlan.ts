@@ -1,3 +1,4 @@
+import type TStringValueForm from "../../../types/TStringValueForm";
 import type IPlannedArgument from "./IPlannedArgument";
 import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
 import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
@@ -92,6 +93,26 @@ interface IFilePlan {
   >;
   /** #1081: how each slice write reads its source */
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
+  /** #1731: each assignment that writes one whole `string<N>`, and its capacity */
+  readonly stringCopies: ReadonlyMap<IAssignmentSyntax, number>;
+  /**
+   * ADR-045: the form of each value written whole into a `string<N>` -- a
+   * function's string initializer, and the value of each assignment in
+   * `stringCopies` -- as `StringValueForm` decides it (#1257)
+   */
+  readonly stringValueForms: ReadonlyMap<TExpression, TStringValueForm>;
+  /**
+   * #2240: each substring part's length, keyed by its chain, folded once
+   * here: E0922 has made every one a compile-time constant
+   */
+  readonly substringCounts: ReadonlyMap<TExpression, number>;
+  /**
+   * #2236: each struct initializer field value copied into its `string<N>`
+   * field, by the field's capacity; its form is in `stringValueForms`
+   */
+  readonly stringFields: ReadonlyMap<TExpression, number>;
+  /** #2207: whether the file copies a string, through `cnx_string_copy` */
+  readonly stringCopyHelper: boolean;
   /**
    * #2110 (ADR-035): how many slots each fill-all fills, at every level of a
    * whole array's list. A fill whose size does not fold is absent.

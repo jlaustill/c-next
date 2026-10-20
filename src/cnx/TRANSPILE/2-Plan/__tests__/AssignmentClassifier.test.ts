@@ -87,19 +87,25 @@ function createMockContext(
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
   const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
-  // #1991: 2.2's clamp decision, made by the call 2.2 makes
   const plannedClamp =
     overrides.plannedClamp === undefined
-      ? AssignmentClassifier.clampOfWrite(
-          target,
-          ctx.isSimpleIdentifier ||
-            ctx.isSimpleThisAccess ||
-            ctx.isSimpleGlobalAccess,
-          ctx.cnextOp,
-          ctx.valueHasFloatingOperand,
-        )
+      ? HandlerTestUtils.plannedClampOf(ctx, target)
       : overrides.plannedClamp;
-  return { ...ctx, target, plannedClamp };
+  return withPlannedCopy({ ...ctx, target, plannedClamp }, overrides);
+}
+
+/**
+ * #1731 review: 2.2's string-copy decision is the case's input -- the typer
+ * makes it (`OperandTyper.stringCopyCapacity`), as 2.1's E0715 does
+ */
+function withPlannedCopy(
+  ctx: IAssignmentContext,
+  overrides: Partial<IAssignmentContext> = {},
+): IAssignmentContext {
+  return {
+    ...ctx,
+    plannedStringCapacity: overrides.plannedStringCapacity ?? null,
+  };
 }
 
 /**
@@ -178,7 +184,7 @@ function typedStep(
   subscript: TSubscriptKind | null = null,
   member: string | null = null,
 ): IAssignmentContext {
-  return {
+  return withPlannedCopy({
     ...ctx,
     target: {
       ...ctx.target,
@@ -197,19 +203,7 @@ function typedStep(
         member,
       },
     },
-  };
-}
-
-/** A `string<N>` field's operand type, as the typer gives it */
-function stringField(
-  capacity: number | null,
-  dimensions: number[] = [],
-): IOperandType {
-  return {
-    ...HandlerTestUtils.operandOf(`string<${capacity}>`, false, false),
-    dimensions,
-    stringCapacity: capacity,
-  };
+  });
 }
 
 /**
@@ -599,7 +593,7 @@ describe("AssignmentClassifier - String Assignments", () => {
     setupSymbols();
   });
 
-  it("classifies simple string variable", () => {
+  it("routes a write 2.2 planned as one string<N> to STRING_COPY", () => {
     declare(
       "name",
       createTypeInfo({
@@ -609,32 +603,22 @@ describe("AssignmentClassifier - String Assignments", () => {
       }),
     );
 
-    const ctx = createMockContext(state, {
+    const planned = createMockContext(state, {
+      identifiers: ["name"],
+      isSimpleIdentifier: true,
+      plannedStringCapacity: 32,
+    });
+    expect(AssignmentClassifier.classify(planned)).toBe(
+      AssignmentKind.STRING_COPY,
+    );
+
+    // Control: what 2.2 did not plan as a copy is not one, whatever the type
+    const unplanned = createMockContext(state, {
       identifiers: ["name"],
       isSimpleIdentifier: true,
     });
-
-    expect(classify(ctx)).toBe(AssignmentKind.STRING_SIMPLE);
-  });
-
-  it("classifies struct field string", () => {
-    const knownStructs = new Set(["Person"]);
-    setupSymbols({ knownStructs });
-    declare("person", createTypeInfo({ baseType: "Person" }));
-
-    const ctx = createMockContext(state, {
-      identifiers: ["person", "name"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
-    });
-
-    // #1737: the field's type is the typer's `.name` step
-    expect(classify(typedStep(ctx, { after: stringField(64) }))).toBe(
-      AssignmentKind.STRING_STRUCT_FIELD,
-    );
-    // Control: the typer says the field is no string<N>
-    expect(classify(typedStep(ctx, { after: stringField(null) }))).not.toBe(
-      AssignmentKind.STRING_STRUCT_FIELD,
+    expect(AssignmentClassifier.classify(unplanned)).not.toBe(
+      AssignmentKind.STRING_COPY,
     );
   });
 });
@@ -698,6 +682,23 @@ describe("AssignmentClassifier - Special Compound", () => {
     });
 
     expect(classify(ctx)).toBe(AssignmentKind.OVERFLOW_CLAMP);
+  });
+
+  it("clamps what the typer says the target writes (#1731 review)", () => {
+    // 2.2 hands `clampOfWrite` the typer's written type, the same one the
+    // string copy reads -- a whole array and an untyped target write no
+    // integer the clamp can saturate
+    const u8 = {
+      ...HandlerTestUtils.operandOf("u8", true, false),
+      overflow: "clamp" as const,
+    };
+    const clampOf = (written: IOperandType | null) =>
+      AssignmentClassifier.clampOfWrite(written, "+<-", () => false);
+
+    expect(clampOf(u8)).toEqual({ operation: "add", cnxType: "u8" });
+    expect(clampOf({ ...u8, dimensions: [4] })).toBeNull();
+    expect(clampOf({ ...u8, overflow: "wrap" })).toBeNull();
+    expect(clampOf(null)).toBeNull();
   });
 
   it("does not classify float as overflow clamp", () => {
@@ -1370,8 +1371,8 @@ describe("AssignmentClassifier - Member Chain", () => {
 // the count still read as met. A guard that passes by coincidence is the one
 // nothing ever prompts anyone to look at.
 //
-// STRING_THIS_MEMBER is the sharpest of the five: the same kind whose registry
-// key, unguarded, emitted a 55-byte out-of-bounds `strncpy` bound
+// `this.member` string writes were the sharpest of the five: the kind whose
+// registry key, unguarded, emitted a 55-byte out-of-bounds `strncpy` bound
 // (`tests/string-assignment/string-assign-scope-this-shared-name.test.cnx`).
 // The classifier half of that hole had no test either.
 // ========================================================================
@@ -1379,129 +1380,6 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
   beforeEach(() => {
     state = new TranspileState();
     setupSymbols();
-  });
-
-  it("classifies this.member string as STRING_THIS_MEMBER", () => {
-    declare(
-      "Logger__message",
-      createTypeInfo({
-        baseType: "string<64>",
-        isString: true,
-        stringCapacity: 64,
-      }),
-    );
-
-    const ctx = createMockContext(state, {
-      scopePath: "Logger",
-      identifiers: ["message"],
-      generatedValue: '"hi"',
-      isSimpleIdentifier: false,
-      isSimpleThisAccess: true,
-      hasThis: true,
-    });
-
-    expect(classify(ctx)).toBe(AssignmentKind.STRING_THIS_MEMBER);
-  });
-
-  it("classifies global.<name> string as STRING_GLOBAL", () => {
-    declare(
-      "banner",
-      createTypeInfo({
-        baseType: "string<32>",
-        isString: true,
-        stringCapacity: 32,
-      }),
-    );
-
-    const ctx = createMockContext(state, {
-      identifiers: ["banner"],
-      generatedValue: '"hi"',
-      isSimpleIdentifier: false,
-      isSimpleGlobalAccess: true,
-      hasGlobal: true,
-    });
-
-    expect(classify(ctx)).toBe(AssignmentKind.STRING_GLOBAL);
-  });
-
-  it("classifies an element of a string ARRAY as STRING_ARRAY_ELEMENT", () => {
-    // Two dimensions: [count, capacity+1]. `arrayDimensions.length > 1` is what
-    // separates a string array from a plain `string<N>`, which carries one.
-    declare(
-      "names",
-      createTypeInfo({
-        baseType: "char",
-        isString: true,
-        isArray: true,
-        stringCapacity: 8,
-        arrayDimensions: [4, 9],
-      }),
-    );
-
-    // #1668 (C12): the typer types every subscript; this is its answer
-    const ctx = typedLast(
-      createMockContext(state, {
-        identifiers: ["names"],
-        generatedValue: '"hi"',
-        subscriptCount: 1,
-        hasArrayAccess: true,
-        isSimpleIdentifier: false,
-      }),
-      "array_element",
-    );
-
-    expect(classify(ctx)).toBe(AssignmentKind.STRING_ARRAY_ELEMENT);
-  });
-
-  it("classifies struct.field[i] string as STRING_STRUCT_ARRAY_ELEMENT", () => {
-    setupSymbols({
-      knownStructs: new Set(["Config"]),
-    });
-    declare("config", createTypeInfo({ baseType: "Config" }));
-
-    const ctx = createMockContext(state, {
-      identifiers: ["config", "items"],
-      generatedValue: '"hi"',
-      subscriptCount: 1,
-      hasMemberAccess: true,
-      hasArrayAccess: true,
-      memberAccessDepth: 1,
-      isSimpleIdentifier: false,
-    });
-    const element = (written: IOperandType) =>
-      typedStep(
-        ctx,
-        { before: stringField(8, [4]), after: written },
-        "array_element",
-      );
-
-    // #1737: what the subscript selects is one string<8>, the typer's step
-    expect(classify(element(stringField(8)))).toBe(
-      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
-    );
-    // Control: the subscript selects a row of strings (`string<8>[2][3]`)
-    expect(classify(element(stringField(8, [3])))).not.toBe(
-      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
-    );
-    // Control: two subscripts reach one string, but the kind renders one
-    const twoDeep = createMockContext(state, {
-      identifiers: ["config", "items"],
-      generatedValue: '"hi"',
-      subscriptCount: 2,
-      hasMemberAccess: true,
-      hasArrayAccess: true,
-      memberAccessDepth: 1,
-      isSimpleIdentifier: false,
-    });
-    expect(
-      classify(
-        typedStep(
-          twoDeep,
-          { before: stringField(8, [3]), after: stringField(8) },
-          "array_element",
-        ),
-      ),
-    ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
   });
 
   it("classifies global.<struct>.<field>[i] as GLOBAL_ARRAY", () => {

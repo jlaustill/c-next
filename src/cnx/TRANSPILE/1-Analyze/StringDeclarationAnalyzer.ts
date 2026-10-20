@@ -1,16 +1,25 @@
 import ExpressionShape from "../../utils/ExpressionShape";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import StringUtils from "../../utils/StringUtils";
+import StringValueForm from "../../utils/StringValueForm";
+import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import IStringDeclarationError from "./types/IStringDeclarationError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type ISourceSpan from "../../types/ISourceSpan";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
 import type TExpression from "../../types/syntax/TExpression";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStringPart from "../../types/TStringPart";
+import type IValuePositions from "../../types/IValuePositions";
+import StringWriteSites from "./helpers/StringWriteSites";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import ProgramExpressions from "../../utils/ProgramExpressions";
 /**
- * ADR-045 string declarations: whether an initializer fits, E0864-E0865.
+ * ADR-045 string writes: whether a declaration's initializer or an
+ * assignment's value fits the `string<N>` it lands in, E0864-E0865.
  *
  * #1322. Fourteen throws in `StringDeclHelper`, all reaching the user as `1:0`.
  *
@@ -39,19 +48,10 @@ import type TExpression from "../../types/syntax/TExpression";
  * `VariableDeclarations.ruled` (#2073), so they judge the same declarations.
  */
 
-/** What a string-valued expression can hold, or null if it is not one. */
-interface ISubstring {
-  readonly start: number | null;
-  readonly length: number | null;
-  readonly sourceCapacity: number;
-}
+/** Whether a write declares its string or assigns an existing one */
+type TWrite = "declaration" | "assignment" | "argument" | "field";
 
-interface IStringSource {
-  readonly capacity: number;
-  readonly isLiteral: boolean;
-}
-
-/** The declarations 1.2 returned, each string's initializer checked against its capacity */
+/** The declarations and assignments 1.2 returned, each whole-string value checked against its capacity */
 class StringDeclarationCheck {
   private readonly found: IStringDeclarationError[] = [];
 
@@ -69,152 +69,244 @@ class StringDeclarationCheck {
     const initializer = declaration.initializer;
     if (initializer === null) return;
     this.checkFit(
-      declaration.span,
       initializer,
       Number.parseInt(type.capacity, 10),
+      "declaration",
     );
   }
 
-  private checkFit(
-    at: ISourceSpan,
-    expression: TExpression,
+  /**
+   * #2191: ADR-045's capacity rules hold for an assignment as for a
+   * declaration -- "Assignment from larger" and "In-place concatenation" are
+   * its errors -- at every target that writes one whole `string<N>`
+   */
+  public assignment(site: IAssignmentSyntax): void {
+    if (site.operator !== "<-") return;
+    const capacity = OperandTyper.stringCopyCapacity(site.target, this.context);
+    if (capacity === null) return;
+    this.checkFit(site.value, capacity, "assignment");
+  }
+
+  /**
+   * #2239: an argument is written into its `string<N>` parameter, so the
+   * same rules hold there -- a value that may not fit is E0864, never cut
+   * short (ADR-045, "No Silent Truncation")
+   */
+  public argument(value: TExpression, capacity: number): void {
+    this.checkFit(value, capacity, "argument");
+  }
+
+  /**
+   * #2236: a struct initializer's `string<N>` field is written as any
+   * `string<N>` is (E0864). At file scope only a literal can be, for the
+   * reason E0863 gives a file-scope string.
+   */
+  public field(
+    value: TExpression,
     capacity: number,
+    atFileScope: boolean,
   ): void {
-    const substring = this.substringOf(expression, at);
-    if (substring !== null) {
-      this.checkSubstring(expression, substring, capacity);
-      return;
-    }
-    const concat = this.concatOf(expression, at);
-    if (concat !== null) {
-      const required = concat[0] + concat[1];
-      if (required > capacity) {
-        this.report(
-          expression,
-          "E0864",
-          `String concatenation requires capacity ${required}, but the declaration is string<${capacity}>`,
-          `Widen the declaration to string<${required}>, or shorten the operands.`,
-        );
-      }
-      return;
-    }
-    const source = this.stringSourceOf(expression, at);
-    if (source === null) return;
-    if (source.isLiteral && source.capacity > capacity) {
+    if (atFileScope && !ExpressionShape.isStringLiteral(value)) {
       this.report(
-        expression,
-        "E0864",
-        `String literal (${source.capacity} chars) exceeds string<${capacity}> capacity`,
-        `Widen the declaration to string<${source.capacity}>, or shorten the literal.`,
+        value,
+        "E0863",
+        `A string field at file scope may only be initialized by a literal, not '${value.written}'`,
+        "Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize the field empty and assign it later.",
       );
       return;
     }
-    if (!source.isLiteral && source.capacity > capacity) {
-      this.report(
-        expression,
-        "E0864",
-        `Cannot initialize string<${capacity}> from string<${source.capacity}> -- the source may not fit`,
-        `Widen the declaration to string<${source.capacity}>, or extract a substring of the source.`,
-      );
+    this.checkFit(value, capacity, "field");
+  }
+
+  /**
+   * #2240: a substring's length is a compile-time constant, wherever the
+   * substring is read, so E0864 and E0865 can check what it copies (ADR-045)
+   */
+  public substringLength(node: TExpression): void {
+    if (node.kind !== "postfix") return;
+    if (!OperandTyper.isSubstring(node, this.context)) return;
+    const last = node.ops.at(-1);
+    if (last?.kind !== "subscript") return;
+    const length = last.indexes.at(1);
+    if (length === undefined || this.constantOf(length) !== null) return;
+    this.report(
+      length,
+      "E0922",
+      `A substring's length must be a compile-time constant, not '${length.written}'`,
+      "Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.",
+    );
+  }
+
+  /** E0864/E0865 for the form `StringValueForm` gives the value */
+  private checkFit(value: TExpression, capacity: number, write: TWrite): void {
+    const form = StringValueForm.of(value, this.context);
+    const parts =
+      form.kind === "concat"
+        ? form.parts
+        : form.kind === "substring"
+          ? [form.part]
+          : [];
+    for (const part of parts) {
+      if (part.kind === "substring" && this.checkBounds(value, part)) return;
     }
+    switch (form.kind) {
+      case "literal":
+        this.checkLiteral(value, form.literal, capacity, write);
+        return;
+      case "substring":
+        this.checkSubstring(value, form.part, capacity, write);
+        return;
+      case "concat":
+        this.checkConcat(value, form.parts, capacity, write);
+        return;
+      case "copy":
+        this.checkCopy(value, form.value, capacity, write);
+        return;
+    }
+  }
+
+  private checkLiteral(
+    value: TExpression,
+    literal: TExpression,
+    capacity: number,
+    write: TWrite,
+  ): void {
+    const length = StringUtils.literalLength(literal.written);
+    if (length <= capacity) return;
+    this.report(
+      value,
+      "E0864",
+      `String literal (${length} chars) exceeds string<${capacity}> capacity`,
+      `Widen ${StringDeclarationCheck.whose(write)} to string<${length}>, or shorten the literal.`,
+    );
+  }
+
+  /** E0865: a substring's bounds stay within its source. True when reported. */
+  private checkBounds(
+    value: TExpression,
+    part: Extract<TStringPart, { kind: "substring" }>,
+  ): boolean {
+    const sourceCapacity = OperandTyper.scalarStringCapacity(
+      OperandTyper.chainOf(part.chain, this.context).steps.at(-1)?.before,
+    );
+    const start = this.constantOf(part.start);
+    const length = this.lengthOf(part);
+    if (sourceCapacity === null || start === null || length === null) {
+      return false;
+    }
+    if (start + length <= sourceCapacity) return false;
+    this.report(
+      value,
+      "E0865",
+      `Substring bounds [${start}, ${length}] exceed the source string<${sourceCapacity}>`,
+      "The bounds are counted in characters from zero; keep start + length within the source's capacity.",
+    );
+    return true;
   }
 
   private checkSubstring(
-    expression: TExpression,
-    substring: ISubstring,
+    value: TExpression,
+    part: Extract<TStringPart, { kind: "substring" }>,
     capacity: number,
+    write: TWrite,
   ): void {
-    const start = substring.start;
-    const length = substring.length;
-    const sourceCapacity = substring.sourceCapacity;
-    if (start !== null && length !== null && start + length > sourceCapacity) {
-      this.report(
-        expression,
-        "E0865",
-        `Substring bounds [${start}, ${length}] exceed the source string<${sourceCapacity}>`,
-        "The bounds are counted in characters from zero; keep start + length within the source's capacity.",
-      );
-      return;
+    const length = this.lengthOf(part);
+    if (length === null || length <= capacity) return;
+    this.report(
+      value,
+      "E0864",
+      `Substring length ${length} exceeds destination string<${capacity}> capacity`,
+      `Widen ${StringDeclarationCheck.whose(write)} to string<${length}>, or take fewer characters.`,
+    );
+  }
+
+  private checkConcat(
+    value: TExpression,
+    parts: readonly TStringPart[],
+    capacity: number,
+    write: TWrite,
+  ): void {
+    // A part of unknown length (a C string, an unsized `string`) is bounded
+    // when it is built; the parts that can be measured still have to fit
+    const each = parts.map((part) => this.capacityOf(part));
+    const required = each.reduce<number>((sum, n) => sum + (n ?? 0), 0);
+    if (required <= capacity) return;
+    const where = StringDeclarationCheck.whose(write);
+    const least = each.includes(null) ? "at least " : "";
+    this.report(
+      value,
+      "E0864",
+      `String concatenation requires ${least}capacity ${required}, but ${where} is string<${capacity}>`,
+      `Widen ${where} to string<${required}>, or shorten the operands.`,
+    );
+  }
+
+  private checkCopy(
+    value: TExpression,
+    source: TExpression,
+    capacity: number,
+    write: TWrite,
+  ): void {
+    const sourceCapacity = this.capacityOf({ kind: "whole", value: source });
+    if (sourceCapacity === null || sourceCapacity <= capacity) return;
+    this.report(
+      value,
+      "E0864",
+      StringDeclarationCheck.copyMessage(write, sourceCapacity, capacity),
+      `Widen ${StringDeclarationCheck.whose(write)} to string<${sourceCapacity}>, or extract a substring of the source.`,
+    );
+  }
+
+  /**
+   * The most characters a part holds: a literal's length, a string's
+   * capacity, a substring's length -- one rule for a whole value and for
+   * every concatenation operand (#2160 review). Null when unknown, a C
+   * string's among them.
+   */
+  private capacityOf(part: TStringPart): number | null {
+    if (part.kind === "substring") return this.lengthOf(part);
+    if (ExpressionShape.isStringLiteral(part.value)) {
+      return StringUtils.literalLength(part.value.written);
     }
-    if (length !== null && length > capacity) {
-      this.report(
-        expression,
-        "E0864",
-        `Substring length ${length} exceeds destination string<${capacity}> capacity`,
-        `Widen the declaration to string<${length}>, or take fewer characters.`,
-      );
-    }
+    return OperandTyper.scalarStringCapacity(
+      OperandTyper.typeOf(part.value, this.context),
+    );
   }
 
-  private stringSourceOf(
-    expression: TExpression,
-    at: ISourceSpan,
-  ): IStringSource | null {
-    if (
-      expression.kind === "literal" &&
-      ExpressionShape.isStringLiteral(expression)
-    ) {
-      return {
-        capacity: StringUtils.literalLength(expression.text),
-        isLiteral: true,
-      };
-    }
-    const capacity = this.capacityOfOperand(expression, at);
-    return capacity === null ? null : { capacity, isLiteral: false };
-  }
-
-  private capacityOfName(name: string, at: ISourceSpan): number | null {
-    const t = OperandTyper.typeOfName(name, at, this.context);
-    return t !== null && t.dimensions.length === 0 ? t.stringCapacity : null;
-  }
-
-  private concatOf(
-    expression: TExpression,
-    at: ISourceSpan,
-  ): [number, number] | null {
-    const operands = ExpressionShape.additionOperands(expression);
-    if (operands === null) return null;
-    const left = this.capacityOfConcatOperand(operands[0], at);
-    const right = this.capacityOfConcatOperand(operands[1], at);
-    return left !== null && right !== null ? [left, right] : null;
-  }
-
-  private capacityOfConcatOperand(
-    operand: TExpression,
-    at: ISourceSpan,
+  private lengthOf(
+    part: Extract<TStringPart, { kind: "substring" }>,
   ): number | null {
-    if (
-      operand.kind === "literal" &&
-      ExpressionShape.isStringLiteral(operand)
-    ) {
-      return StringUtils.literalLength(operand.text);
+    return part.length === null ? 1 : this.constantOf(part.length);
+  }
+
+  private static whose(write: TWrite): string {
+    switch (write) {
+      case "declaration":
+        return "the declaration";
+      case "assignment":
+        return "the target";
+      case "argument":
+        return "the parameter";
+      case "field":
+        return "the field";
     }
-    return this.capacityOfOperand(operand, at);
   }
 
-  /** A bare name's capacity; anything else has none this check can read */
-  private capacityOfOperand(
-    operand: TExpression,
-    at: ISourceSpan,
-  ): number | null {
-    const name = ExpressionShape.simpleIdentifier(operand);
-    return name === null ? null : this.capacityOfName(name, at);
-  }
-
-  private substringOf(
-    expression: TExpression,
-    at: ISourceSpan,
-  ): ISubstring | null {
-    const subscripted = ExpressionShape.subscriptedIdentifier(expression);
-    if (subscripted === null) return null;
-    const capacity = this.capacityOfName(subscripted.name, at);
-    if (capacity === null) return null;
-    const indexes = subscripted.indexes;
-    return {
-      start: this.constantOf(indexes[0]),
-      length: indexes.length === 2 ? this.constantOf(indexes[1]) : 1,
-      sourceCapacity: capacity,
-    };
+  private static copyMessage(
+    write: TWrite,
+    source: number,
+    capacity: number,
+  ): string {
+    switch (write) {
+      case "declaration":
+        return `Cannot initialize string<${capacity}> from string<${source}> -- the source may not fit`;
+      case "assignment":
+        return `Cannot assign string<${source}> to string<${capacity}> -- the source may not fit`;
+      case "argument":
+        return `Cannot pass string<${source}> to a string<${capacity}> parameter -- the source may not fit`;
+      case "field":
+        return `Cannot initialize a string<${capacity}> field from string<${source}> -- the source may not fit`;
+    }
   }
 
   private constantOf(expr: TExpression): number | null {
@@ -240,10 +332,39 @@ class StringDeclarationCheck {
 class StringDeclarationAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(program: IProgramSyntax): IStringDeclarationError[] {
+  public analyze(
+    program: IProgramSyntax,
+    positions: IValuePositions,
+  ): IStringDeclarationError[] {
     const check = new StringDeclarationCheck(this.context);
     for (const entry of VariableDeclarations.ruled(program)) {
       check.variable(entry.declaration);
+    }
+    const fileScope = VariableDeclarations.fileScopeValues(program);
+    // A slice write's range is ADR-007's, not a substring read
+    const targets = new Set<TExpression>();
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      for (const site of StatementNodes.assignments(declaration)) {
+        targets.add(site.target);
+        check.assignment(site);
+      }
+    };
+    for (const entry of program.declarations) visit(entry.declaration);
+    for (const { value, write, capacity } of StringWriteSites.of(positions)) {
+      if (write === "field") {
+        check.field(value, capacity, fileScope.has(value));
+      } else {
+        check.argument(value, capacity);
+      }
+    }
+    for (const node of ProgramExpressions.of(program).flatMap((expression) =>
+      ExpressionNodes.direct(expression),
+    )) {
+      if (!targets.has(node)) check.substringLength(node);
     }
     return check.errors();
   }

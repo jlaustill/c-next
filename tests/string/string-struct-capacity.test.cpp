@@ -8,6 +8,22 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Tests: .capacity and .size on struct member strings
 // Bug: these were resolving against the primary variable's type (struct)
@@ -16,8 +32,8 @@
 
 int main(void) {
     Person alice = {};
-    (void) strncpy(alice.name, "Alice", 64); alice.name[64] = '\0';
-    (void) strncpy(alice.bio, "Software engineer", 128); alice.bio[128] = '\0';
+    cnx_string_copy(alice.name, "Alice", 64U);
+    cnx_string_copy(alice.bio, "Software engineer", 128U);
     alice.age = 30U;
     if (64 != 64) {
         return 1;
@@ -32,8 +48,8 @@ int main(void) {
         return 4;
     }
     StrCapacity__Config cfg = {};
-    (void) strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
-    (void) strncpy(cfg.value, "https://example.com", 256); cfg.value[256] = '\0';
+    cnx_string_copy(cfg.key, "api_url", 32U);
+    cnx_string_copy(cfg.value, "https://example.com", 256U);
     if (32 != 32) {
         return 5;
     }

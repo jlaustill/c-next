@@ -1,0 +1,35 @@
+// test-execution
+// test-no-warnings
+// #1748: a string written to the string field of an element of a struct array
+// copies into that element's field (parr[1].name), not into a subscript of a
+// field of the array.
+struct Pkt {
+    u8 bits;
+    string<8> name;
+}
+
+mut Pkt[2] parr;
+mut Pkt gp;
+mut string<8>[2] names;
+
+u32 main() {
+    parr[0].name <- "zero";
+    parr[1].name <- "abc";
+    if (parr[1].name != "abc") {
+        return 1;
+    }
+    if (parr[0].name != "zero") {
+        return 2;
+    }
+
+    // NEGATIVE CONTROL: a struct's string field and a string array's element
+    gp.name <- "abc";
+    if (gp.name != "abc") {
+        return 3;
+    }
+    names[1] <- "abc";
+    if (names[1] != "abc") {
+        return 4;
+    }
+    return 0;
+}

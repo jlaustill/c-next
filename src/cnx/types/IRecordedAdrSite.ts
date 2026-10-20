@@ -22,6 +22,14 @@ interface IRecordedAdrSite {
 
   /** 1-based line in that file. */
   readonly line: number;
+
+  /**
+   * #1731 review: the rule of the ADR that fired, when the ADR declares a
+   * separate matrix for it (`<!-- MATRIX-SEVERITY rule: <name> -->`). Absent
+   * for the ADR's own table, so one rule's fixtures cannot fill the cells
+   * another rule must fill.
+   */
+  readonly rule?: string;
 }
 
 export default IRecordedAdrSite;

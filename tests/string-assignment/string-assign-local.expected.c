@@ -6,22 +6,39 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
+// test-adr: 045
 // Issue #139: Test local string variable reassignment in function body
 int main(void) {
     char local[33] = "Initial";
     if (strlen(local) != 7) {
         return 1U;
     }
-    (void) strncpy(local, "Updated", 32); local[32] = '\0';
+    cnx_string_copy(local, "Updated", 32U);
     if (strlen(local) != 7) {
         return 2U;
     }
-    (void) strncpy(local, "Short", 32); local[32] = '\0';
+    cnx_string_copy(local, "Short", 32U);
     if (strlen(local) != 5) {
         return 3U;
     }
-    (void) strncpy(local, "This is a longer string", 32); local[32] = '\0';
+    cnx_string_copy(local, "This is a longer string", 32U);
     if (strlen(local) != 23) {
         return 4U;
     }

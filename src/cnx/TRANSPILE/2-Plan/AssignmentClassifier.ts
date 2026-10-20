@@ -2,10 +2,6 @@
  * Assignment classifier for dispatch-based code generation (ADR-065).
  *
  * Analyzes an assignment context and determines which AssignmentKind it is.
- * The classification order matches the original generateAssignment() method's
- * if-else chain to ensure identical behavior.
- *
- * Migrated to use CodeGenState instead of constructor DI.
  */
 import AssignmentKind from "../../types/AssignmentKind";
 import IAssignmentContext from "./types/IAssignmentContext";
@@ -13,68 +9,17 @@ import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
-import type IChainBase from "../../types/IChainBase";
+import type IOperandType from "../../types/IOperandType";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import CompoundOperator from "../../utils/CompoundOperator";
 import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 
 /**
- * Classifies assignment statements by analyzing their structure.
- *
- * Classification priority (higher = checked first):
- * 1. Bitmap field assignments (memberAccess patterns)
- * 2. Register bit/bitmap assignments
- * 3. Global/this prefix patterns
- * 4. Array/bit access patterns
- * 5. Atomic/overflow special cases
- * 6. String assignments
- * 7. Simple fallback
+ * Classifies assignment statements by analyzing their structure. What is
+ * asked first is `classify()`'s numbered priorities, in one place.
  */
 class AssignmentClassifier {
-  /**
-   * Check if typeInfo represents a simple string type (not a 2D+ string array).
-   */
-  /**
-   * The type info of the assignment TARGET, for the three simple patterns.
-   *
-   * #1450: one decision, and it was derived twice. `classifySpecialCompound`
-   * resolved it across three branches to classify atomics and overflow clamps;
-   * the three string classifiers resolved it again, branch for branch, sixty
-   * lines below. They agreed, which is the failure mode rather than the
-   * defense -- changing how a target resolves (qualifying `global.member`, say)
-   * meant editing both, and nothing said so.
-   *
-   * The pattern GUARD stays with each caller, because the pattern is what picks
-   * the `AssignmentKind`. Only the resolution is shared: what a target is named
-   * is one question, and which kind that makes the assignment is another.
-   *
-   * `undefined` for a target that is none of the three, which is exactly what
-   * its callers already treated a missing type info as.
-   *
-   * #1668 (C7): the resolution is the target's binding now, made once where
-   * the target is typed. This used to re-spell the target as a registry key --
-   * the bare name, or `qualifyInScope` for `this.` -- and a bare spelling of a
-   * scope member only agreed with the qualified one because an unrelated
-   * cross-file fallback caught the registry's miss. The binder reads `this.`
-   * and `global.` off the target itself, so there is no key to get right.
-   */
-  static targetTypeInfo(ctx: IAssignmentContext): TTypeInfo | undefined {
-    const isSimple =
-      ctx.isSimpleIdentifier ||
-      ctx.isSimpleThisAccess ||
-      ctx.isSimpleGlobalAccess;
-    return isSimple ? ctx.target.typeInfo : undefined;
-  }
-
-  private static isSimpleStringType(typeInfo: TTypeInfo | undefined): boolean {
-    return (
-      typeInfo?.isString === true &&
-      typeInfo.stringCapacity !== undefined &&
-      (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
-    );
-  }
-
   /**
    * Classify an assignment context into an AssignmentKind.
    */
@@ -92,7 +37,15 @@ class AssignmentClassifier {
       return specialKind;
     }
 
-    // === Priority 1: Bitmap field assignments ===
+    // === Priority 1: A write of one string<N> is a bounded copy (#1731) ===
+    // Asked before any shape: what decides it is the type the target writes,
+    // and the shape rules below would claim `this.cfg.name` or
+    // `parr[1].name` first. 2.2 planned it (`OperandTyper.stringCopyCapacity`).
+    if (ctx.plannedStringCapacity !== null) {
+      return AssignmentKind.STRING_COPY;
+    }
+
+    // === Priority 2: Bitmap field assignments ===
     const bitmapKind = AssignmentClassifier.classifyBitmapField(ctx);
     if (bitmapKind !== null) {
       return bitmapKind;
@@ -104,32 +57,26 @@ class AssignmentClassifier {
       return registerBitKind;
     }
 
-    // === Priority 2: Member access with subscripts (arrays) ===
+    // === Priority 3: Member access with subscripts (arrays) ===
     const memberSubscriptKind =
       AssignmentClassifier.classifyMemberWithSubscript(ctx);
     if (memberSubscriptKind !== null) {
       return memberSubscriptKind;
     }
 
-    // === Priority 3: Global/this prefix patterns ===
+    // === Priority 4: Global/this prefix patterns ===
     const prefixKind = AssignmentClassifier.classifyPrefixPattern(ctx);
     if (prefixKind !== null) {
       return prefixKind;
     }
 
-    // === Priority 4: Simple array/bit access ===
+    // === Priority 5: Simple array/bit access ===
     const arrayBitKind = AssignmentClassifier.classifyArrayOrBitAccess(ctx);
     if (arrayBitKind !== null) {
       return arrayBitKind;
     }
 
-    // === Priority 6: String assignments ===
-    const stringKind = AssignmentClassifier.classifyStringAssignment(ctx);
-    if (stringKind !== null) {
-      return stringKind;
-    }
-
-    // === Priority 7: Member chain fallback ===
+    // === Priority 6: Member chain fallback ===
     // Any member access with subscripts that didn't match a more specific pattern
     if (ctx.hasMemberAccess && ctx.hasArrayAccess) {
       return AssignmentKind.MEMBER_CHAIN;
@@ -405,7 +352,7 @@ class AssignmentClassifier {
    * Issue #1115: this is the same decision the bare path makes, so it
    * delegates rather than re-deriving it — this method used to carry a
    * truncated copy of that switch, which silently lost ARRAY_ELEMENT_BIT,
-   * ARRAY_SLICE, MULTI_DIM_ARRAY_ELEMENT and STRING_ARRAY_ELEMENT for `this.`
+   * ARRAY_SLICE, MULTI_DIM_ARRAY_ELEMENT and string element writes for `this.`
    * targets. A scope's register is no longer `this.`-specific either (#2185).
    */
   private static classifyThisWithArrayAccess(
@@ -532,14 +479,6 @@ class AssignmentClassifier {
         if (ctx.subscriptCount > 1) {
           return AssignmentKind.MULTI_DIM_ARRAY_ELEMENT;
         }
-        // String array element (special case for 2D string arrays)
-        if (
-          typeInfo?.isString &&
-          typeInfo.arrayDimensions &&
-          typeInfo.arrayDimensions.length > 1
-        ) {
-          return AssignmentKind.STRING_ARRAY_ELEMENT;
-        }
         return AssignmentKind.ARRAY_ELEMENT;
 
       case "array_slice":
@@ -596,19 +535,23 @@ class AssignmentClassifier {
 
   /**
    * 2.2's one decision behind `compoundClamp`: the helper a compound `cOp`
-   * write to `target` calls, from the type the write stores
+   * write calls, from the type the write stores -- the typer's
+   * `OperandTyper.writtenType`, which the string copy reads too (#1731 review).
+   * A field (`p.x`) or an element (`levels[1]`) carries its own overflow
+   * behavior (#1411, #1887), and a whole array is no integer the clamp
+   * can saturate.
    */
   static clampOfWrite(
-    target: IChainBase,
-    isSimple: boolean,
+    written: IOperandType | null,
     cnextOp: string,
     hasFloatingOperand: () => boolean,
   ): { operation: string; cnxType: string } | null {
-    const written = AssignmentClassifier.writtenValue(target, isSimple);
-    if (written === null) return null;
+    if (written?.typeName == null || written.dimensions.length > 0) {
+      return null;
+    }
     return AssignmentClassifier.clampOf(
-      written.baseType,
-      written.overflowBehavior,
+      written.typeName,
+      written.overflow,
       cnextOp,
       hasFloatingOperand,
     );
@@ -628,132 +571,6 @@ class AssignmentClassifier {
     const operation =
       operator === null ? undefined : CLAMP_HELPER_FOR_OPERATOR[operator];
     return operation ? { operation, cnxType: baseType } : null;
-  }
-
-  /**
-   * What the target writes, for ADR-044: its type and declared behavior.
-   * #1411/#1887: a field (`p.x`) or an element (`levels[1]`) is written as
-   * much as a variable is, so a chain's is the typer's last step -- the
-   * field's own modifier, the element's array's. A target with no step is
-   * the variable itself.
-   */
-  private static writtenValue(
-    target: IChainBase,
-    isSimple: boolean,
-  ): { baseType: string; overflowBehavior: TOverflowBehavior | null } | null {
-    const last = target.last;
-    if (last === undefined) {
-      const typeInfo = isSimple ? target.typeInfo : undefined;
-      if (!typeInfo) return null;
-      return {
-        baseType: typeInfo.baseType,
-        overflowBehavior: typeInfo.overflowBehavior ?? null,
-      };
-    }
-    const after = last.after;
-    if (after?.typeName == null || after.dimensions.length > 0) return null;
-    return { baseType: after.typeName, overflowBehavior: after.overflow };
-  }
-
-  /**
-   * Check if a simple identifier is a string variable.
-   */
-  private static _classifySimpleStringVar(
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    if (!ctx.isSimpleIdentifier) return null;
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
-    return AssignmentClassifier.isSimpleStringType(typeInfo)
-      ? AssignmentKind.STRING_SIMPLE
-      : null;
-  }
-
-  /**
-   * Check if this.member is a string.
-   */
-  private static _classifyThisMemberString(
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    if (!ctx.isSimpleThisAccess || !ctx.scopePath) return null;
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
-    return AssignmentClassifier.isSimpleStringType(typeInfo)
-      ? AssignmentKind.STRING_THIS_MEMBER
-      : null;
-  }
-
-  /**
-   * Check if global.member is a string.
-   */
-  private static _classifyGlobalString(
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    if (!ctx.isSimpleGlobalAccess) return null;
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
-    return AssignmentClassifier.isSimpleStringType(typeInfo)
-      ? AssignmentKind.STRING_GLOBAL
-      : null;
-  }
-
-  /** Whether a chain's root is a variable of a known struct type */
-  private static _isStructRoot(
-    rootTypeInfo: TTypeInfo | undefined,
-    ctx: IAssignmentContext,
-  ): boolean {
-    return (
-      rootTypeInfo !== undefined &&
-      ctx.state.isKnownStruct(rootTypeInfo.baseType)
-    );
-  }
-
-  /**
-   * `struct.field <- "…"` (no subscript) or `struct.arr[i] <- "…"` (one): a
-   * two-name chain on a struct variable that writes one `string<N>`.
-   *
-   * #1737: whether the written value is a `string<N>`, and its capacity, are
-   * the typer's last step, read once; this used to re-derive them from the
-   * struct-field registry, the accessor beside it, and two maps beside that.
-   */
-  private static _writesStructString(
-    ctx: IAssignmentContext,
-    subscripts: number,
-  ): boolean {
-    return (
-      ctx.hasMemberAccess &&
-      ctx.identifiers.length === 2 &&
-      ctx.subscriptCount === subscripts &&
-      ctx.hasArrayAccess === subscripts > 0 &&
-      AssignmentClassifier._isStructRoot(ctx.target.rootTypeInfo, ctx) &&
-      OperandTyper.scalarStringCapacity(ctx.target.last?.after) !== null
-    );
-  }
-
-  /**
-   * Classify string assignments.
-   */
-  private static classifyStringAssignment(
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    // Simple string variable
-    const simpleVar = AssignmentClassifier._classifySimpleStringVar(ctx);
-    if (simpleVar) return simpleVar;
-
-    // this.member string
-    const thisMember = AssignmentClassifier._classifyThisMemberString(ctx);
-    if (thisMember) return thisMember;
-
-    // global.member string
-    const globalMember = AssignmentClassifier._classifyGlobalString(ctx);
-    if (globalMember) return globalMember;
-
-    // struct.field or struct.arr[i] string
-    if (AssignmentClassifier._writesStructString(ctx, 0)) {
-      return AssignmentKind.STRING_STRUCT_FIELD;
-    }
-    if (AssignmentClassifier._writesStructString(ctx, 1)) {
-      return AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT;
-    }
-
-    return null;
   }
 }
 

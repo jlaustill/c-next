@@ -21,6 +21,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test string assignment in deeply nested blocks
 char nested[33] = "";
@@ -29,7 +45,7 @@ void deepNest(const uint32_t depth) {
     if (depth > 0) {
         if (depth > 1) {
             if (depth > 2) {
-                (void) strncpy(nested, "DeepNest", 32); nested[32] = '\0';
+                cnx_string_copy(nested, "DeepNest", 32U);
             }
         }
     }
@@ -40,7 +56,7 @@ void mixedNest(const uint32_t count) {
         uint32_t i = 0U;
         while (i < count) {
             if (i == 0) {
-                (void) strncpy(nested, "Mixed", 32); nested[32] = '\0';
+                cnx_string_copy(nested, "Mixed", 32U);
             }
             i = cnx_clamp_add_u32(i, 1U);
         }
@@ -59,7 +75,7 @@ int main(void) {
     {
         {
             {
-                (void) strncpy(nested, "Blocks", 32); nested[32] = '\0';
+                cnx_string_copy(nested, "Blocks", 32U);
             }
         }
     }

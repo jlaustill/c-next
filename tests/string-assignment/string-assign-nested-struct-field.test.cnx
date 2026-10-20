@@ -1,0 +1,38 @@
+// test-execution
+// test-no-warnings
+// #1898: a string written to a nested struct's string field is a bounded
+// copy, as a one-level field's is.
+struct Inner {
+    string<8> name;
+}
+
+struct Outer {
+    u32 id;
+    Inner inner;
+}
+
+mut Outer g;
+
+u32 main() {
+    mut Outer o;
+    o.inner.name <- "hi";
+    if (o.inner.name != "hi") {
+        return 1;
+    }
+    g.inner.name <- "glob";
+    if (g.inner.name != "glob") {
+        return 2;
+    }
+    u32 n <- g.inner.name.value_char_count;
+    if (n != 4) {
+        return 3;
+    }
+
+    // NEGATIVE CONTROL: a one-level field, already a bounded copy
+    mut Inner i;
+    i.name <- "one";
+    if (i.name != "one") {
+        return 4;
+    }
+    return 0;
+}

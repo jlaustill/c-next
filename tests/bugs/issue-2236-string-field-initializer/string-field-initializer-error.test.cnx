@@ -1,0 +1,21 @@
+// test-error
+// Tests: #2236 - a string<N> field's value obeys E0864 like any string<N>, and a file-scope one takes only a literal (E0863); a fitting value beside each is the control
+struct Cfg {
+    string<4> name;
+    u8 id;
+}
+
+string<4> gs <- "ab";
+Cfg g <- { name: gs, id: 1 };
+Cfg g2 <- { name: "ok", id: 2 };
+
+void f() {
+    string<8> wide <- "abcdefgh";
+    string<2> narrow <- "ab";
+    Cfg a <- { name: "toolong", id: 1 };
+    Cfg b <- { name: "ok", id: 2 };
+    Cfg c <- { name: wide, id: 3 };
+    Cfg d <- { name: narrow, id: 4 };
+    Cfg e <- { name: narrow + wide, id: 5 };
+    Cfg h <- { name: narrow + narrow, id: 6 };
+}

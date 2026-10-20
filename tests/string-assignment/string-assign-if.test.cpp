@@ -9,24 +9,40 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test string assignment inside if/else blocks
 char status[33] = "Unknown";
 
 void setStatus(const bool ok) {
     if (ok == true) {
-        (void) strncpy(status, "Success", 32); status[32] = '\0';
+        cnx_string_copy(status, "Success", 32U);
     } else {
-        (void) strncpy(status, "Failure", 32); status[32] = '\0';
+        cnx_string_copy(status, "Failure", 32U);
     }
 }
 
 void setNested(const uint32_t level) {
     if (level > 0) {
         if (level > 1) {
-            (void) strncpy(status, "Nested", 32); status[32] = '\0';
+            cnx_string_copy(status, "Nested", 32U);
         } else {
-            (void) strncpy(status, "Level1", 32); status[32] = '\0';
+            cnx_string_copy(status, "Level1", 32U);
         }
     }
 }

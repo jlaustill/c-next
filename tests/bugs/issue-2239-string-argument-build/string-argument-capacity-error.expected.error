@@ -1,0 +1,10 @@
+12:19 error[E0864]: String concatenation requires capacity 12, but the parameter is string<4>
+       help: Widen the parameter to string<12>, or shorten the operands.
+13:19 error[E0864]: String concatenation requires capacity 5, but the parameter is string<4>
+       help: Widen the parameter to string<5>, or shorten the operands.
+14:19 error[E0864]: Substring length 6 exceeds destination string<4> capacity
+       help: Widen the parameter to string<6>, or take fewer characters.
+16:19 error[E0864]: Cannot pass string<8> to a string<4> parameter -- the source may not fit
+       help: Widen the parameter to string<8>, or extract a substring of the source.
+18:19 error[E0864]: String literal (7 chars) exceeds string<4> capacity
+       help: Widen the parameter to string<7>, or shorten the literal.

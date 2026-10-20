@@ -5,7 +5,24 @@
 
 #include "lowered-string-calls.test.h"
 
+#include <stdint.h>
 #include <string.h>
+
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
 
 // test-c-only
 // #847 / ADR-070 Case 1: calls the TRANSPILER emits for string lowering must be
@@ -16,9 +33,9 @@ char greeting[17] = "";
 char names[2][17] = {0};
 
 void assignSimple(void) {
-    (void) strncpy(greeting, "hello", 16); greeting[16] = '\0';
+    cnx_string_copy(greeting, "hello", 16U);
 }
 
 void assignArrayElement(void) {
-    (void) strncpy(names[0], "world", 16);
+    cnx_string_copy(names[0], "world", 16U);
 }

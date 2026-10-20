@@ -1,0 +1,18 @@
+20:18 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+26:20 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+34:9 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+36:9 error[E0864]: Cannot assign string<8> to string<3> -- the source may not fit
+       help: Widen the target to string<8>, or extract a substring of the source.
+38:16 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+40:12 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+43:20 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+46:18 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.
+48:16 error[E0864]: String literal (7 chars) exceeds string<3> capacity
+       help: Widen the target to string<7>, or shorten the literal.

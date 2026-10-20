@@ -20,6 +20,21 @@ import TMatrixSeverity from "../types/TMatrixSeverity";
 /** Marks the hand-written severity table. Located by marker, not by heading. */
 const SEVERITY_MARKER = "<!-- MATRIX-SEVERITY -->";
 
+/**
+ * #1731 review: marks the table of one of the ADR's rules, which only that
+ * rule's provenance occupies (see MatrixRule).
+ */
+const RULE_MARKER = /<!-- MATRIX-SEVERITY rule: ([a-z0-9-]+) -->/g;
+
+function ruleMarker(rule: string): string {
+  return `<!-- MATRIX-SEVERITY rule: ${rule} -->`;
+}
+
+/** The rules with their own table, in the order the ADR declares them. */
+function rulesIn(markdown: string): string[] {
+  return [...markdown.matchAll(RULE_MARKER)].map((match) => match[1]);
+}
+
 const SEVERITIES: readonly TMatrixSeverity[] = ["off", "warn", "error"];
 
 /** Human spelling in the table ("top-level function") to the canonical slug. */
@@ -53,18 +68,24 @@ function isSeparatorRow(line: string): boolean {
 }
 
 /**
- * Parse the severity table for one ADR.
+ * Parse the severity table for one ADR, or for its rule `rule`.
  *
  * An unrecognized context, relationship or severity is an ERROR rather than a
  * skipped row. Silently ignoring a typo would turn the declared cell into `off`
  * -- the author would believe a cell was gated while nothing checked it, which
  * is the exact failure mode this tool exists to remove.
  */
-function parse(markdown: string, adr: string): IMatrixDeclaration {
+function parse(
+  markdown: string,
+  adr: string,
+  rule?: string,
+): IMatrixDeclaration {
   const severities = new Map<string, TMatrixSeverity>();
   const errors: string[] = [];
 
-  const markerIndex = markdown.indexOf(SEVERITY_MARKER);
+  const markerIndex = markdown.indexOf(
+    rule === undefined ? SEVERITY_MARKER : ruleMarker(rule),
+  );
   if (markerIndex === -1) {
     return { adr, severities, errors };
   }
@@ -159,6 +180,7 @@ function severityOf(
 
 class AdrMatrixDeclaration {
   static readonly SEVERITY_MARKER = SEVERITY_MARKER;
+  static rulesIn = rulesIn;
   static parse = parse;
   static severityOf = severityOf;
 }

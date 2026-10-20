@@ -21,6 +21,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test string assignment inside while loop
 char current[17] = "";
@@ -28,7 +44,7 @@ char current[17] = "";
 int main(void) {
     uint32_t count = 0U;
     while (count < 3) {
-        (void) strncpy(current, "Loop", 16); current[16] = '\0';
+        cnx_string_copy(current, "Loop", 16U);
         count = cnx_clamp_add_u32(count, 1U);
     }
     if (strlen(current) != 4) {
@@ -37,9 +53,9 @@ int main(void) {
     count = 0U;
     while (count < 2) {
         if (count == 0) {
-            (void) strncpy(current, "First", 16); current[16] = '\0';
+            cnx_string_copy(current, "First", 16U);
         } else {
-            (void) strncpy(current, "Second", 16); current[16] = '\0';
+            cnx_string_copy(current, "Second", 16U);
         }
         count = cnx_clamp_add_u32(count, 1U);
     }

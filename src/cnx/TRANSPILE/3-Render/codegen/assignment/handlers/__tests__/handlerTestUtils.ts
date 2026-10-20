@@ -17,6 +17,8 @@ import type IOperandType from "../../../../../../types/IOperandType";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../../../utils/QualifiedCName";
 import TYPE_WIDTH from "../../../../../../types/TYPE_WIDTH";
+import TypeCheckUtils from "../../../../../../utils/TypeCheckUtils";
+import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
 import BitmapFieldStep from "../../../../../../utils/BitmapFieldStep";
 
 /**
@@ -234,6 +236,39 @@ function operandOf(
 }
 
 /**
+ * #1731 review: what the typer says a target writes -- its last step's type,
+ * or with no step the variable's. No typer runs here, so a case's declared
+ * TTypeInfo stands in for the variable's operand type.
+ */
+function writtenOf(target: IChainBase): IOperandType | null {
+  if (target.last !== undefined) return target.last.after;
+  const info = target.typeInfo;
+  if (info === undefined) return null;
+  const integer = TypeCheckUtils.isInteger(info.baseType);
+  return {
+    ...operandOf(
+      info.baseType,
+      integer,
+      integer && TypeCheckUtils.isSigned(info.baseType),
+    ),
+    dimensions: info.arrayDimensions ?? [],
+    overflow: info.overflowBehavior ?? null,
+  };
+}
+
+/** #1991: 2.2's clamp decision for a case, made by the call 2.2 makes */
+function plannedClampOf(
+  ctx: Pick<IAssignmentContext, "cnextOp" | "valueHasFloatingOperand">,
+  target: IChainBase,
+): { operation: string; cnxType: string } | null {
+  return AssignmentClassifier.clampOfWrite(
+    writtenOf(target),
+    ctx.cnextOp,
+    ctx.valueHasFloatingOperand,
+  );
+}
+
+/**
  * #1668 review: what a bit write reads off its context, built from a case's
  * flattened subscripts -- the last `lastIndexCount` of them are the bit's --
  * or from the ops a case gives itself. The final op, the target without it
@@ -329,6 +364,7 @@ export default class HandlerTestUtils {
   static readonly withPlannedBitmapField = withPlannedBitmapField;
   static readonly bitWriteOf = bitWriteOf;
   static readonly operandOf = operandOf;
+  static readonly plannedClampOf = plannedClampOf;
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly subscriptsOf = subscriptsOf;

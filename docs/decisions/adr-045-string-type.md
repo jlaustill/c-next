@@ -320,13 +320,14 @@ hello[5] = '\0';
 
 CNX enforces strict compile-time safety. These are **errors**, not warnings:
 
-| Situation               | Error                                                                   |
-| ----------------------- | ----------------------------------------------------------------------- |
-| Literal too long        | `ERROR: String literal "Hello" (5 chars) exceeds string<4> capacity`    |
-| Concatenation overflow  | `ERROR: Concatenation requires capacity 64, but string<50> only has 50` |
-| Assignment from larger  | `ERROR: Cannot assign string<64> to string<32> (potential truncation)`  |
-| Substring out of bounds | `ERROR: Substring [60,10] exceeds source capacity 64`                   |
-| In-place concatenation  | `ERROR: Self-referential concat: 64 < 64 + 6`                           |
+| Situation               | Error                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| Literal too long        | `ERROR: String literal "Hello" (5 chars) exceeds string<4> capacity`              |
+| Concatenation overflow  | `ERROR: Concatenation requires capacity 64, but string<50> only has 50`           |
+| Assignment from larger  | `ERROR: Cannot assign string<64> to string<32> (potential truncation)`            |
+| Substring out of bounds | `ERROR: Substring [60,10] exceeds source capacity 64`                             |
+| In-place concatenation  | `ERROR: Self-referential concat: 64 < 64 + 6`                                     |
+| Not a string            | `error[E0923]: A value that is not a string cannot be assigned to string<8>: 'n'` |
 
 ```cnx
 string<4> s <- "Hello";           // ERROR: 5 > 4
@@ -337,6 +338,41 @@ string<50> c <- a + b;            // ERROR: 32 + 64 = 96 > 50
 string<10> d <- b[60, 10];        // ERROR: 60 + 10 > 64
 b <- b + "!";                     // ERROR: 64 < 64 + 1
 ```
+
+Only a string lands in a `string<N>`: a literal, another string, a
+concatenation, a substring, or a C string (a `char*` or a `char[]`). Anything
+else -- an integer, a float or its bits, a bool, a char, an enum, a struct or
+an array -- is E0923, as a declaration's initializer, an assignment's value or
+an argument (#1634). Until then each was accepted at exit 0 and emitted as the
+string copy, which C reads as an address. A string array's list element is
+ADR-035's E0866, which takes only a string literal there (#2195). E0914
+(ADR-024) is the other direction. A declaration's copy is decided by the
+`string<N>` it declares, as
+an assignment's is by its target: every initializer but a literal, a
+concatenation and a substring is copied in.
+
+A value written whole into a `string<N>` has one of four forms, decided once
+for a declaration and an assignment alike (#1257), parentheses looked through
+(#2232): a literal, one string copied in, a substring, or a concatenation of
+two or more parts (#1954), each part a whole string or a substring. A
+substring's source may be any string -- a field, an element or a `this.`
+member (#2223, #2237). The capacity rules above hold for an assignment as for
+a declaration (#2191): its value is E0864 when it may not fit. An assignment
+builds a concatenation or a substring in a temporary and then copies it in,
+so a part may read the string written (`message <- message[0, 58] + " World"`).
+A substring contributes at most its length, and never more than the space left in
+the string it is written into.
+A substring's length is a compile-time constant -- a literal or a constant --
+wherever the substring is read (#2240): a run-time length is E0922, because
+what it copies could not be checked to fit. Its start may be computed at run
+time.
+An argument is written into its `string<N>` parameter, so the same rules hold
+there (#2239): a value that may not fit the parameter is E0864, and a
+concatenation or a substring is built into a `string<N>` before the call.
+A struct initializer's `string<N>` field is written the same way (#2236): its
+value is E0864 when it may not fit, and inside a function it is copied into
+the field like any string. At file scope only a literal can initialize one
+(E0863), for the reason a file-scope string takes only a literal.
 
 ### No Silent Truncation
 
@@ -629,6 +665,32 @@ capacity correctly never rejects -- so the rule would go quiet across an
 include rather than fail. Two of the imported cells are `error` and occupied;
 the scope contexts are `off` as a stated obligation, not a claim they cannot
 exist.
+
+### The bounded copy
+
+A write of a whole `string<N>` -- a variable, a field, an element, through any
+path -- is a bounded copy of at most `N` characters followed by the terminator,
+decided from the type the target writes and not from how it is spelled (#1731).
+It must not depend on which file declared the string: a function or a scope
+method writing a scope member declared one or two includes away makes the same
+copy as one declared beside it (#1595).
+
+This rule has its own matrix, so only the copy's fixtures occupy it and they
+cannot stand in for the declaration rules' fixtures above. A write is a
+statement, so it reaches only the two contexts that hold statements: a `for`
+header's update cannot hold the copy (E0715, ADR-068), and a declaration's
+initializer belongs to the declaration rules.
+
+<!-- MATRIX-SEVERITY rule: string-copy -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
 
 ## References
 

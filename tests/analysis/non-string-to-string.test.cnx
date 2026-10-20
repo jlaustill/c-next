@@ -1,0 +1,49 @@
+// test-error
+// Tests: a value that is not a string does not land in a string<N> (ADR-045,
+// #1634): a declaration, an assignment and an argument are all rejected, for an
+// integer variable, an integer literal, a float's bits, a bool, an enum, a
+// char literal, a C char, a struct and an array of u8 (#1731 review).
+// NEGATIVE CONTROL -- okForms: every string form still lands.
+#include "non-string-to-string.h"
+
+struct Pt {
+    u8 x;
+}
+
+enum EColor {
+    RED,
+    GREEN
+}
+
+void takeName(string<8> name) {}
+
+void okForms() {
+    string<4> s <- "ab";
+    string<8> t <- s;
+    string<8> same <- t;
+    string<8> u <- s + "c";
+    string<8> v <- s[0, 1];
+    string<1> w <- s[0];
+    takeName(t);
+}
+
+void main() {
+    u8 n <- 5;
+    f32 fv <- 1.5;
+    bool b <- true;
+    EColor c <- EColor.RED;
+    Pt p <- { x: 1 };
+    u8[4] bytes <- [1, 2, 3, 4];
+    string<8> fromInteger <- n;
+    string<8> fromLiteral <- 5;
+    string<8> fromBits <- fv[0, 8];
+    string<8> fromBool <- b;
+    string<8> fromEnum <- c;
+    string<8> fromChar <- 'A';
+    string<8> fromCChar <- C_CHAR;
+    string<8> fromStruct <- p;
+    string<8> fromBytes <- bytes;
+    mut string<8> s <- "x";
+    s <- n;
+    takeName(n);
+}

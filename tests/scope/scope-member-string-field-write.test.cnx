@@ -1,0 +1,71 @@
+// test-execution
+// test-no-warnings
+// #1731 part (2): a string field of a scope's struct member, written through
+// `this.` inside the scope and `Scope.` outside it, is a bounded copy into
+// that field, like the same field of a local struct. So is the scope's own
+// string written as `Scope.member` from outside, and a string field of an
+// element of a scope's struct array, through either spelling.
+struct Cfg {
+    u32 word;
+    string<16> name;
+}
+
+scope S {
+    public mut Cfg cfg;
+    public mut string<8> sname;
+    public mut Cfg[2] cfgs;
+
+    public void setInside() {
+        this.cfg.name <- "abc";
+        this.cfgs[1].name <- "in1";
+    }
+
+    public u32 insideLength() {
+        return this.cfg.name.value_char_count;
+    }
+}
+
+u32 main() {
+    S.setInside();
+    u32 n1 <- S.insideLength();
+    if (n1 != 3) {
+        return 1;
+    }
+    if (S.cfg.name != "abc") {
+        return 2;
+    }
+
+    S.cfg.name <- "wxyz";
+    u32 n2 <- S.cfg.name.value_char_count;
+    if (n2 != 4) {
+        return 3;
+    }
+    if (S.cfg.name != "wxyz") {
+        return 4;
+    }
+
+    S.sname <- "out";
+    if (S.sname != "out") {
+        return 5;
+    }
+
+    if (S.cfgs[1].name != "in1") {
+        return 6;
+    }
+    S.cfgs[0].name <- "out0";
+    if (S.cfgs[0].name != "out0") {
+        return 7;
+    }
+    // The element beside the written one is untouched
+    if (S.cfgs[1].name != "in1") {
+        return 8;
+    }
+
+    // NEGATIVE CONTROL: the same field of a local struct, already a bounded copy
+    mut Cfg c;
+    c.name <- "loc";
+    if (c.name != "loc") {
+        return 9;
+    }
+    return 0;
+}

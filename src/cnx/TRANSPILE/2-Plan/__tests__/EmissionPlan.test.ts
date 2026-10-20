@@ -22,6 +22,7 @@ const NOTHING: IEmissionFacts = {
   selfIncludeAdded: false,
   existingIncludeTargets: [],
   clampOps: new Set<string>(),
+  stringCopyHelper: false,
   castHelpers: new Set<string>(),
   lengthHelpers: new Set<string>(),
   safeDivOps: new Set<string>(),

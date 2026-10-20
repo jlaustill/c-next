@@ -1,0 +1,46 @@
+// test-execution
+// Tests: a string<N> declared from a C string copies it in (#1731 review), as an
+// assignment does: a const char pointer, a char array, a function's result, a C
+// struct's char array field, and a choice between two strings.
+// NEGATIVE CONTROL -- fromLiteral is still initialized as a C array, and each
+// assignment from the same C string still copies it.
+#include "string-init-from-c-string.h"
+
+u32 main() {
+    string<8> fromPointer <- VERSION;
+    if (fromPointer != "v1.2") {
+        return 1;
+    }
+    string<8> fromArray <- NAME_BUF;
+    if (fromArray != "buf") {
+        return 2;
+    }
+    string<8> fromCall <- get_name();
+    if (fromCall != "fn") {
+        return 3;
+    }
+    string<8> fromField <- C_CFG.name;
+    if (fromField != "cfg") {
+        return 4;
+    }
+    string<4> two <- "ab";
+    u8 pick <- 1;
+    string<8> fromChoice <- (pick = 1) ? two : "zz";
+    if (fromChoice != "ab") {
+        return 5;
+    }
+    string<8> fromLiteral <- "lit";
+    if (fromLiteral != "lit") {
+        return 6;
+    }
+    mut string<8> assigned <- "";
+    assigned <- VERSION;
+    if (assigned != "v1.2") {
+        return 7;
+    }
+    assigned <- C_CFG.name;
+    if (assigned != "cfg") {
+        return 8;
+    }
+    return 0;
+}

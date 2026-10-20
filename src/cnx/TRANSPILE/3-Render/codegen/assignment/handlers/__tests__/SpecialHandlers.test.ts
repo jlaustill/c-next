@@ -78,17 +78,9 @@ function createMockContext(
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
   const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
-  // #1991: 2.2's clamp decision, made by the call 2.2 makes
   const plannedClamp =
     overrides.plannedClamp === undefined
-      ? AssignmentClassifier.clampOfWrite(
-          target,
-          ctx.isSimpleIdentifier ||
-            ctx.isSimpleThisAccess ||
-            ctx.isSimpleGlobalAccess,
-          ctx.cnextOp,
-          ctx.valueHasFloatingOperand,
-        )
+      ? HandlerTestUtils.plannedClampOf(ctx, target)
       : overrides.plannedClamp;
   return { ...ctx, target, plannedClamp };
 }

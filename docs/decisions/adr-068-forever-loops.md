@@ -360,12 +360,12 @@ statement is (#1647), so the header gets ADR-044's clamp and MISRA C:2012
 Rule 7.2's suffix as a statement does. But a header clause is a C
 **expression**, and four assignment forms lower to more than one statement:
 
-| form in a header                                   | lowers to                                                          |
-| -------------------------------------------------- | ------------------------------------------------------------------ |
-| a string target (`s <- "x"`, `p.name <- "x"`)      | `strncpy` plus the terminator write (ADR-045)                      |
-| a slice (`buf[offset, length] <- v`)               | per-element writes, and a source temp (ADR-052, #1081)             |
-| any write to an `atomic` target (`<-` or compound) | an LDREX/STREX loop or a PRIMASK critical section (ADR-049 Q4, Q7) |
-| a bit index or bit range on a float target         | a write through a `union` of the float and its bits (ADR-007)      |
+| form in a header                                   | lowers to                                                                  |
+| -------------------------------------------------- | -------------------------------------------------------------------------- |
+| a string target (`s <- "x"`, `p.name <- "x"`)      | a bounded copy, after a build for a concatenation or a substring (ADR-045) |
+| a slice (`buf[offset, length] <- v`)               | per-element writes, and a source temp (ADR-052, #1081)                     |
+| any write to an `atomic` target (`<-` or compound) | an LDREX/STREX loop or a PRIMASK critical section (ADR-049 Q4, Q7)         |
+| a bit index or bit range on a float target         | a write through a `union` of the float and its bits (ADR-007)              |
 
 Before #1647 the header concatenated target, operator and value, so each form
 emitted C that either failed to compile (`s = "abc"`, `f[31] = true`) or
@@ -377,7 +377,7 @@ that holds it. The help says where the assignment goes instead, which differs
 by clause:
 
 ```
-error[E0715]: a for-loop header cannot hold this assignment: a string copy is more than one statement
+error[E0715]: a for-loop header cannot hold this assignment: a string copy, which ADR-068 keeps out of a header (#2234)
   help: assign before the loop and leave the init clause empty
 error[E0715]: a for-loop header cannot hold this assignment: a slice write is more than one statement
   help: assign at the end of the loop body and write it as a while loop

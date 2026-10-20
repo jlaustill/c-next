@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
 import IArgumentGeneratorCallbacks from "../../../../2-Plan/types/IArgumentGeneratorCallbacks";
+import type TRenderedStringPart from "../../../../../types/TRenderedStringPart";
 import type TTypeInfo from "../../../../../types/TTypeInfo";
 
 let state = new TranspileState();
@@ -26,7 +27,10 @@ describe("ArgumentGenerator", () => {
   // Mock callbacks that return predictable values
   const createMockCallbacks = (
     overrides: Partial<IArgumentGeneratorCallbacks> = {},
-  ): IArgumentGeneratorCallbacks => ({
+  ): IArgumentGeneratorCallbacks & {
+    readonly renderStringParts: () => readonly TRenderedStringPart[];
+  } => ({
+    renderStringParts: () => [],
     getLvalueType: () => null,
     getMemberAccessArrayStatus: () => "not-array",
     isCppMemberConversionRequired: () => false,
@@ -494,6 +498,35 @@ describe("ArgumentGenerator", () => {
         state,
       );
       expect(result).toBe("&(Point){ .x = 1U }");
+    });
+
+    it("builds a string argument into a temporary before the statement (#2239)", () => {
+      const callbacks = createMockCallbacks({
+        generateExpression: () => {
+          throw new Error("a built argument is not rendered whole");
+        },
+      });
+      const result = ArgumentGenerator.generateArg(
+        null,
+        undefined,
+        { kind: "string-built", capacity: 8 },
+        {
+          ...callbacks,
+          renderStringParts: () => [
+            { kind: "whole", code: "a" },
+            { kind: "whole", code: "b" },
+          ],
+        },
+        state,
+      );
+      expect(result).toBe("cnx_tmp0");
+      expect(state.pendingTempDeclarations).toEqual([
+        "/* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */",
+        'char cnx_tmp0[9] = "";',
+        "(void) strncpy(cnx_tmp0, a, 8);",
+        "(void) strncat(cnx_tmp0, b, 8 - strlen(cnx_tmp0));",
+        "cnx_tmp0[8] = '\\0';",
+      ]);
     });
   });
 });

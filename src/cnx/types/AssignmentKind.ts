@@ -41,23 +41,12 @@ enum AssignmentKind {
 
   // === String operations ===
 
-  /** str <- "hello" (simple string variable) */
-  STRING_SIMPLE,
-
-  /** this.name <- "value" (scoped string member) */
-  STRING_THIS_MEMBER,
-
-  /** global.name <- "value" (global string) */
-  STRING_GLOBAL,
-
-  /** person.name <- "Alice" (struct field is string) */
-  STRING_STRUCT_FIELD,
-
-  /** names[0] <- "first" (string array element) */
-  STRING_ARRAY_ELEMENT,
-
-  /** config.items[0] <- "value" (struct field is string array) */
-  STRING_STRUCT_ARRAY_ELEMENT,
+  /**
+   * One string<N> written whole -- `s`, `this.name`, `Scope.cfg.name`,
+   * `o.inner.name`, `parr[1].name`, `g.cells[1][2]`: a bounded copy into the
+   * rendered target (#1731)
+   */
+  STRING_COPY,
 
   // === Array operations ===
 

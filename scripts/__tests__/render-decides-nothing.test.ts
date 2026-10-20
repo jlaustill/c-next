@@ -281,7 +281,10 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   ],
   ComplianceAnnotations: [
     "codegen/assignment/handlers/ArrayHandlers.ts",
+    "codegen/assignment/handlers/StringHandlers.ts",
     "codegen/generators/statements/ControlFlowGenerator.ts",
+    // #2207: the MISRA 19.1 comment above the emitted `cnx_string_copy`
+    "codegen/generators/support/HelperGenerator.ts",
     // #1760 review: the float bits union, which carried no citation
     "codegen/helpers/FloatBitHelper.ts",
     // #1643 review: a moved parameter's C11 6.2.1 comment, at the definition

@@ -57,6 +57,7 @@ describe("ComplianceAnnotations", () => {
       "C11 6.2.1p4, C++ [basic.scope.hiding]",
       "C11 6.2.1p7, C++ [basic.scope.pdecl]",
       "MISRA C:2012 Rule 14.3",
+      "MISRA C:2012 Rule 19.1",
       "MISRA C:2012 Rule 21.15",
       "MISRA C:2012 Rule 21.15",
       "MISRA C:2012 Rule 8.4",

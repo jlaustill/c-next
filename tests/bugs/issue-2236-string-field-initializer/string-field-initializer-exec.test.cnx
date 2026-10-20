@@ -1,0 +1,60 @@
+// test-execution
+// test-no-warnings
+// Tests: #2236 - a struct initializer's string<N> field written from a string copies it in, in a declaration, an assignment that reads the target, an argument, a return, a nested initializer, a substring and a literal; a literal field at file scope stays in the initializer
+struct Cfg {
+    string<8> name;
+    u8 id;
+}
+struct Outer {
+    Cfg cfg;
+    string<4> tag;
+}
+u8 use(Cfg c) {
+    return c.id;
+}
+Cfg make(string<4> s) {
+    return { name: s, id: 3 };
+}
+u32 main() {
+    string<4> s <- "ab";
+    string<4> t <- "cd";
+    Cfg k <- { name: s, id: 1 };
+    if (k.name != "ab") {
+        return 1;
+    }
+    if (k.id != 1) {
+        return 2;
+    }
+    mut Cfg m <- { name: "x", id: 2 };
+    m <- { name: m.name[0, 1] + s, id: 4 };
+    if (m.name != "xab") {
+        return 3;
+    }
+    u8 r <- use({ name: s, id: 5 });
+    if (r != 5) {
+        return 4;
+    }
+    // An assignment, not a declaration: cppcheck's MISRA 9.3 reads
+    // `const Cfg mk = make(t);` as a partial initializer (#2260)
+    mut Cfg mk;
+    mk <- make(t);
+    if (mk.name != "cd") {
+        return 5;
+    }
+    Cfg sub <- { name: s[1, 1], id: 6 };
+    if (sub.name != "b") {
+        return 6;
+    }
+    Outer o <- { cfg: { name: t, id: 7 }, tag: s };
+    if (o.cfg.name != "cd") {
+        return 7;
+    }
+    if (o.tag != "ab") {
+        return 8;
+    }
+    Cfg lit <- { name: "lit", id: 9 };
+    if (lit.name != "lit") {
+        return 9;
+    }
+    return 0;
+}

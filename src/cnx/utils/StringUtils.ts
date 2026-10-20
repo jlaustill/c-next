@@ -14,163 +14,111 @@
  * build these calls themselves, or the cast would have to be repeated.
  */
 /** C null terminator character literal for generated code */
+import type TRenderedStringPart from "../types/TRenderedStringPart";
+import type TStringValueForm from "../types/TStringValueForm";
+
 const C_NULL_CHAR = String.raw`'\0'`;
 
 class StringUtils {
-  /**
-   * Generate strncpy with explicit null termination.
-   * Used for simple string assignments: str <- "hello"
-   *
-   * Pattern: (void) strncpy(target, value, capacity); target[capacity] = '\0';
-   *
-   * @param target - The destination variable/expression
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyWithNull(target: string, value: string, capacity: number): string {
-    return `(void) strncpy(${target}, ${value}, ${capacity}); ${target}[${capacity}] = ${C_NULL_CHAR};`;
-  }
+  /** #2207: the copy a string written from another string goes through */
+  static readonly COPY_HELPER = "cnx_string_copy";
 
   /**
-   * Generate strncpy without explicit null termination.
-   * Used for string array elements where the buffer is pre-zeroed.
-   *
-   * Pattern: (void) strncpy(target, value, capacity);
-   *
-   * @param target - The destination expression (may include subscripts)
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
+   * #1731: one whole string copied into `string<capacity>`, assigned or
+   * declared -- the one form of ADR-045's copy (#2207)
    */
   static copy(target: string, value: string, capacity: number): string {
-    return `(void) strncpy(${target}, ${value}, ${capacity});`;
+    return `${StringUtils.COPY_HELPER}(${target}, ${value}, ${capacity}U);`;
   }
 
   /**
-   * Generate string concatenation sequence.
-   * Used for: result <- left + right
-   *
-   * Pattern:
-   *   (void) strncpy(target, left, capacity);
-   *   (void) strncat(target, right, capacity - strlen(target));
-   *   target[capacity] = '\0';
-   *
-   * @param target - The destination variable
-   * @param left - Left operand string expression
-   * @param right - Right operand string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @param indent - Indentation for multi-line output
-   * @returns Array of C code lines for the concatenation
+   * ADR-045: the lines that build a string into `buffer` from its parts --
+   * one substring, or a concatenation of two or more parts, each a whole
+   * string or a substring (#1954). A concatenation copies its first part,
+   * appends each later one bounded by what is left, then terminates at the
+   * capacity. The `(void)` casts are MISRA 17.7's (ADR-070 Case 1).
    */
-  static concat(
-    target: string,
-    left: string,
-    right: string,
+  static build(
+    buffer: string,
     capacity: number,
-    indent: string = "",
+    parts: readonly TRenderedStringPart[],
   ): string[] {
+    const [first, ...rest] = parts;
+    const lines =
+      first.kind === "substring"
+        ? StringUtils.substring(buffer, first.source, first.start, first.length)
+        : [`(void) strncpy(${buffer}, ${first.code}, ${capacity});`];
+    if (rest.length === 0 && first.kind === "substring") return lines;
+    for (const part of rest) {
+      if (part.kind === "substring") {
+        lines.push(...StringUtils.appendSubstring(buffer, capacity, part));
+      } else {
+        lines.push(
+          `(void) strncat(${buffer}, ${part.code}, ${capacity} - strlen(${buffer}));`,
+        );
+      }
+    }
+    lines.push(`${buffer}[${capacity}] = ${C_NULL_CHAR};`);
+    return lines;
+  }
+
+  /**
+   * A substring appended to what is built, bounded by the space left as
+   * `strncat` bounds a whole part: a part before it may be a C string or an
+   * unsized `string`, whose length 2.1 cannot measure (#2160 review)
+   */
+  private static appendSubstring(
+    buffer: string,
+    capacity: number,
+    part: Extract<TRenderedStringPart, { kind: "substring" }>,
+  ): string[] {
+    const count = StringUtils.count(part.length);
+    const left = `(${capacity}U - cnx_used)`;
     return [
-      `${indent}(void) strncpy(${target}, ${left}, ${capacity});`,
-      `${indent}(void) strncat(${target}, ${right}, ${capacity} - strlen(${target}));`,
-      `${indent}${target}[${capacity}] = ${C_NULL_CHAR};`,
+      "{",
+      `    const uint32_t cnx_used = (uint32_t) strlen(${buffer});`,
+      `    ${StringUtils.COPY_HELPER}(${buffer} + cnx_used, ${part.source} + ${part.start}, (${left} < ${count}) ? ${left} : ${count});`,
+      "}",
     ];
   }
 
+  private static count(length: number): string {
+    return `${length}U`;
+  }
+
   /**
-   * Generate substring extraction.
-   * Used for: result <- source[start, length]
-   *
-   * Pattern:
-   *   (void) strncpy(target, source + start, length);
-   *   target[length] = '\0';
-   *
-   * @param target - The destination variable
-   * @param source - Source string expression
-   * @param start - Starting position expression
-   * @param length - Length to extract
-   * @param indent - Indentation for multi-line output
-   * @returns Array of C code lines for the substring
+   * Generate substring extraction: `result <- source[start, length]` is
+   * `cnx_string_copy(result, source + start, length)`, which copies at most
+   * `length` characters, zero-fills to it and terminates there, as `strncpy`
+   * and a terminator did, without gcc's `-Wstringop-truncation` on a source
+   * longer than the count (#2160 review).
    */
   static substring(
     target: string,
     source: string,
     start: string,
-    length: number | string,
-    indent: string = "",
+    length: number,
   ): string[] {
+    const count = StringUtils.count(length);
     return [
-      `${indent}(void) strncpy(${target}, ${source} + ${start}, ${length});`,
-      `${indent}${target}[${length}] = ${C_NULL_CHAR};`,
+      `${StringUtils.COPY_HELPER}(${target}, ${source} + ${start}, ${count});`,
     ];
   }
 
   /**
-   * Generate struct field string copy.
-   * Used for: config.name <- "value"
-   *
-   * @param structName - The struct variable name
-   * @param fieldName - The field name
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
+   * Whether `build` calls `cnx_string_copy`, so 2.2 decides the helper by
+   * the rule that emits it: a copy does, and so does every substring, a
+   * concatenation's parts among them (an appended one is copied in at the
+   * end of what is built, without `strncat`'s `-Wstringop-truncation`)
    */
-  static copyToStructField(
-    structName: string,
-    fieldName: string,
-    value: string,
-    capacity: number,
-  ): string {
-    return StringUtils.copyWithNull(
-      `${structName}.${fieldName}`,
-      value,
-      capacity,
+  static usesCopyHelper(form: TStringValueForm): boolean {
+    if (form.kind === "copy" || form.kind === "substring") return true;
+    return (
+      form.kind === "concat" &&
+      form.parts.some((part) => part.kind === "substring")
     );
   }
 
-  /**
-   * Generate string array element copy.
-   * Used for: names[i] <- "value"
-   *
-   * @param arrayName - The array variable name
-   * @param index - The array index expression
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyToArrayElement(
-    arrayName: string,
-    index: string,
-    value: string,
-    capacity: number,
-  ): string {
-    return StringUtils.copy(`${arrayName}[${index}]`, value, capacity);
-  }
-
-  /**
-   * Generate struct field array element string copy.
-   * Used for: config.names[i] <- "value"
-   *
-   * @param structName - The struct variable name
-   * @param fieldName - The field name
-   * @param index - The array index expression
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyToStructFieldArrayElement(
-    structName: string,
-    fieldName: string,
-    index: string,
-    value: string,
-    capacity: number,
-  ): string {
-    return StringUtils.copy(
-      `${structName}.${fieldName}[${index}]`,
-      value,
-      capacity,
-    );
-  }
   /**
    * Get the actual character length of a string literal,
    * accounting for escape sequences like \n, \t, \\, etc.

@@ -94,7 +94,7 @@ class IntegerConversionCheck {
 
   public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
     if (!declaration.initializer) return;
-    if (this.checkStringAt(declaration.initializer)) return;
+    if (this.checkStringsAt(declaration.initializer)) return;
     const target = declaration.type.text;
     if (!TypeCheckUtils.isInteger(target)) return;
     this.check(target, declaration.initializer, "assign", true);
@@ -126,7 +126,7 @@ class IntegerConversionCheck {
 
   /** E0914, then E0891, for a value at the type its position gives it */
   public checkFloatingAt(value: TExpression): void {
-    if (this.checkStringAt(value)) return;
+    if (this.checkStringsAt(value)) return;
     const target = StructInitializerType.valueTypeAt(
       ValuePositions.at(this.positions, value),
     );
@@ -138,6 +138,9 @@ class IntegerConversionCheck {
   /** An assignment statement, or a `for` loop's init or update */
   public checkSite(site: IAssignmentSyntax): void {
     if (this.checkStringAt(site.value)) return;
+    if (this.writesWholeString(site) && this.checkNonStringAt(site.value)) {
+      return;
+    }
     // A compound operator is arithmetic at the operands' width, which ADR-044
     // governs; only a plain `<-` is a conversion.
     if (site.operator !== "<-") return;
@@ -154,6 +157,42 @@ class IntegerConversionCheck {
       OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
     this.check(targetType, site.value, "assign", true);
+  }
+
+  /** E0914, then E0923: a string lands only in a string, and only a string does */
+  private checkStringsAt(value: TExpression): boolean {
+    return this.checkStringAt(value) || this.checkNonStringAt(value);
+  }
+
+  /**
+   * E0923: a value that is not a string at a position that types it one
+   * string<N> (ADR-045, #1634) -- whatever it is, as `OperandTyper.isStringValue`
+   * decides. True when reported. Unreported, it reached the string copy, which
+   * takes the value as an address. A string array's list element is E0866's
+   * (ADR-035, #2195), which takes only a string literal there.
+   */
+  private checkNonStringAt(value: TExpression): boolean {
+    const position = ValuePositions.at(this.positions, value);
+    if (position.inList) return false;
+    const target = StructInitializerType.valueTypeAt(position);
+    if (target === null || !TypeCheckUtils.isSizedStringName(target)) {
+      return false;
+    }
+    if (OperandTyper.isStringValue(value, this.context) !== false) {
+      return false;
+    }
+    this.report(
+      value,
+      "E0923",
+      `A value that is not a string cannot be assigned to ${target}: '${value.written}'`,
+      "A string<N> holds only a string (ADR-045): a literal, another string<N>, a concatenation, a substring or a C string",
+    );
+    return true;
+  }
+
+  /** Whether the write lands one whole string<N>, by the copy's own rule */
+  private writesWholeString(site: IAssignmentSyntax): boolean {
+    return OperandTyper.stringCopyCapacity(site.target, this.context) !== null;
   }
 
   /**

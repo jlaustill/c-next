@@ -100,6 +100,7 @@ class EmissionPlan {
         facts.needsISR &&
         !HeaderOwnership.ownsDeclarations(facts.selfIncludeAdded),
       clampOps: [...facts.clampOps],
+      stringCopyHelper: facts.stringCopyHelper,
       panicOverflowHelpers: EmissionPlan.decidePanicOverflowHelpers(facts),
       safeDivOps: [...facts.safeDivOps],
       castHelpers: [...facts.castHelpers].sort((a, b) => a.localeCompare(b)),

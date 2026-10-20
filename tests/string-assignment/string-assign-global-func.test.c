@@ -8,21 +8,37 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test string literal assignment to global variable in function body
 // This is the core bug - assigning a string literal inside a function should use strncpy
 char messageBuffer[65] = "";
 
 void reset(void) {
-    (void) strncpy(messageBuffer, "Direct", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "Direct", 64U);
 }
 
 void setToHello(void) {
-    (void) strncpy(messageBuffer, "Hello, World!", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "Hello, World!", 64U);
 }
 
 void clear(void) {
-    (void) strncpy(messageBuffer, "", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "", 64U);
 }
 
 int main(void) {
@@ -38,15 +54,15 @@ int main(void) {
     if (strlen(messageBuffer) != 0) {
         return 3U;
     }
-    (void) strncpy(messageBuffer, "First", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "First", 64U);
     if (strlen(messageBuffer) != 5) {
         return 4U;
     }
-    (void) strncpy(messageBuffer, "Second", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "Second", 64U);
     if (strlen(messageBuffer) != 6) {
         return 5U;
     }
-    (void) strncpy(messageBuffer, "Third", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "Third", 64U);
     if (strlen(messageBuffer) != 5) {
         return 6U;
     }

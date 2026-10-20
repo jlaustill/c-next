@@ -22,6 +22,8 @@ import type TTypeInfo from "../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
+import StringUtils from "../../../../utils/StringUtils";
+import type TRenderedStringPart from "../../../../types/TRenderedStringPart";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -119,7 +121,9 @@ class ArgumentGenerator {
     } | null,
     declared: TTypeInfo | undefined,
     form: TArgumentForm,
-    callbacks: Pick<IArgumentGeneratorCallbacks, "generateExpression">,
+    callbacks: Pick<IArgumentGeneratorCallbacks, "generateExpression"> & {
+      readonly renderStringParts: () => readonly TRenderedStringPart[];
+    },
     state: TranspileState,
   ): string {
     switch (form.kind) {
@@ -154,7 +158,32 @@ class ArgumentGenerator {
           callbacks.generateExpression(),
           state,
         );
+      case "string-built":
+        return ArgumentGenerator.builtStringArg(
+          form.capacity,
+          callbacks.renderStringParts(),
+          state,
+        );
     }
+  }
+
+  /**
+   * #2239: the string a concatenation or a substring gives a `string<N>`
+   * parameter, built into a temporary before the statement, the way an
+   * assignment builds it before copying it in
+   */
+  private static builtStringArg(
+    capacity: number,
+    parts: readonly TRenderedStringPart[],
+    state: TranspileState,
+  ): string {
+    const temp = state.getNextTempVarName();
+    state.pendingTempDeclarations.push(
+      "/* ADR-045 / Issue #2239: a concatenation or a substring argument is built into a string<N> before the call. */",
+      `char ${temp}[${capacity + 1}] = "";`,
+      ...StringUtils.build(temp, capacity, parts),
+    );
+    return temp;
   }
 }
 

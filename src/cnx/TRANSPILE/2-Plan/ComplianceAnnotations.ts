@@ -49,6 +49,28 @@ class ComplianceAnnotations {
   };
 
   /**
+   * #2207: a string written from another string is copied by
+   * `cnx_string_copy`, a character at a time, because the source can be the
+   * target (`names[i] <- names[j]` with `i == j`).
+   */
+  static readonly STRING_SELF_COPY: IComplianceAnnotation = {
+    citation: `${ComplianceAnnotations.MISRA} 19.1`,
+    what: "string copied a character at a time by `cnx_string_copy`",
+    why: "`strncpy` would be passed overlapping arguments when a string is written from itself",
+  };
+
+  /**
+   * #1257: an assignment's concatenation or substring is built in a
+   * temporary and then copied in, because a part can read the string written
+   * (`s <- s[0, 2] + "z"`).
+   */
+  static readonly STRING_BUILT_APART: IComplianceAnnotation = {
+    citation: `${ComplianceAnnotations.MISRA} 19.1`,
+    what: "string built in a temporary, then copied in by `cnx_string_copy`",
+    why: "`strncpy` and `strncat` would be passed overlapping arguments when a part reads the string written",
+  };
+
+  /**
    * A slice copy unrolled to per-element writes.
    *
    * Only cited when an equivalent `memcpy` would genuinely violate the rule --
@@ -158,6 +180,7 @@ class ComplianceAnnotations {
     return [
       ComplianceAnnotations.FOREVER_LOOP,
       ComplianceAnnotations.INIT_PROTOTYPE,
+      ComplianceAnnotations.STRING_SELF_COPY,
       ComplianceAnnotations.sliceUnroll("uint8_t", "uint32_t"),
       ComplianceAnnotations.floatBitsUnion("float", "uint32_t"),
       ComplianceAnnotations.movedName("hidesFileScope", "g", "f__g"),

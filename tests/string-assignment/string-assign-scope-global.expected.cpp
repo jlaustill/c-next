@@ -8,6 +8,22 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test global.member string assignment inside scope (ADR-016)
 char globalBuffer[65] = "";
@@ -15,15 +31,15 @@ char globalBuffer[65] = "";
 /* Scope: Handler */
 
 void Handler__updateGlobal(void) {
-    (void) strncpy(globalBuffer, "FromScope", 64); globalBuffer[64] = '\0';
+    cnx_string_copy(globalBuffer, "FromScope", 64U);
 }
 
 void Handler__clearGlobal(void) {
-    (void) strncpy(globalBuffer, "", 64); globalBuffer[64] = '\0';
+    cnx_string_copy(globalBuffer, "", 64U);
 }
 
 void Handler__setLongMessage(void) {
-    (void) strncpy(globalBuffer, "This is a longer message from scope", 64); globalBuffer[64] = '\0';
+    cnx_string_copy(globalBuffer, "This is a longer message from scope", 64U);
 }
 
 int main(void) {

@@ -172,7 +172,7 @@ string VERSION <- "1.0.0";          // read-only, auto-sized
 - A `mut` string must be sized (`mut string<64> s;`); only a read-only `string` auto-sizes from its initializer.
 - A literal or concat that exceeds the destination capacity is a compile error.
 - Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗).
-- **Concatenate in a declaration's initializer, with two operands:** `string<96> joined <- name + " World";`. Assigning a concat or substring to an existing string transpiles at exit 0 and emits C that gcc rejects: `s <- s + "b"` becomes `strncpy(s, s + "b", 64)`, and `part <- src[0, 4]` becomes `strncpy(part, ((src) & 0xFU), 8)` (#1257). Three operands (`a + b + c`) fail the same way even in a declaration (#1954). Until both are fixed, declare a new string for each step.
+- **Concatenate or take a substring wherever a whole `string<N>` is written:** `string<96> joined <- name + " World" + suffix;`, `s <- s + "b";`, `part <- src[0, 4];`. A declaration and an assignment read the value the same way (#1257, #1954): parts may be any strings, fields, elements or `this.` members, there may be two or more of them, and parentheses are looked through. An assignment builds the value in a temporary first, so a part that reads the target sees its old value. E0864 rejects a value that may not fit. Passing a concatenation or a substring as an argument is not lowered yet (#2239); declare a string for it first.
 - String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
 - **Concat (`+`) and substring (`s[off, len]`) emit runtime code (`strncpy`/`strncat`)** — they may only appear **inside a function**, never at global/initializer scope (a global string initializes from a literal).
 - Substring `s[off, len]` is bounds-checked at compile time: `off + len` must fit the source's capacity, and the destination string must be large enough to hold `len`.
@@ -1334,5 +1334,5 @@ void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const 
 | ------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
 | #967: Symbol cache cross-language conflict on scoped method names                                                                     | v0.2.12 | FIXED (v0.2.15) |
 | #981: Macro-sized array field on local struct generates bit extraction instead of array index (`msg.data[3]` → `(msg.data >> 3) & 1`) | v0.2.15 | FIXED (v0.2.16) |
-| #1257: A concat or substring assigned to an existing string (`s <- s + "b"`, `part <- src[0, 4]`) emits a `strncpy` that gcc rejects  | v0.3.0  | OPEN            |
-| #1954: A three-operand concat in a declaration (`a + b + c`) emits pointer addition, which gcc rejects                                | v0.4.0  | OPEN (v0.4.1)   |
+| #1257: A concat or substring assigned to an existing string (`s <- s + "b"`, `part <- src[0, 4]`) emits a `strncpy` that gcc rejects  | v0.3.0  | FIXED (v0.4.1)  |
+| #1954: A three-operand concat in a declaration (`a + b + c`) emits pointer addition, which gcc rejects                                | v0.4.0  | FIXED (v0.4.1)  |

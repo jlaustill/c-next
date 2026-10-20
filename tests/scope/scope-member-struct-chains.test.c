@@ -22,6 +22,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // #1668 (C7): a struct member of a scope, read through `this.` inside the
 // scope and `Scope.` outside it -- an element of a field array, a bit of a
@@ -36,7 +52,7 @@ void S__init(void) {
     Cfg c = {0};
     c.arr[0] = 0U;
     c.word = 0U;
-    (void) strncpy(c.name, "abc", 16); c.name[16] = '\0';
+    cnx_string_copy(c.name, "abc", 16U);
     c.f = (uint8_t)((c.f & ~(1U << 0)) | (1U << 0));
     S__cfg = c;
     S__cfg.arr[1] = 7U;

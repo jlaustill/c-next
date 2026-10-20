@@ -90,4 +90,36 @@ describe("AdrDeclarationReader.read", () => {
     writeAdr("adr-template.md", wellFormed);
     expect(AdrDeclarationReader.read(dir).size).toBe(0);
   });
+
+  it("keys a rule's table by ADR and rule (#1731 review)", () => {
+    writeAdr(
+      "adr-045-string-type.md",
+      [
+        wellFormed,
+        "",
+        "<!-- MATRIX-SEVERITY rule: string-copy -->",
+        "",
+        "| Context | Relationship | Severity |",
+        "| ------- | ------------ | -------- |",
+        "| scope method | imported direct | error |",
+      ].join("\n"),
+    );
+    const declarations = AdrDeclarationReader.read(dir);
+    expect([...declarations.keys()].sort()).toEqual(["045", "045 string-copy"]);
+    expect(declarations.get("045 string-copy")!.severities.size).toBe(1);
+    expect(declarations.get("045")!.severities.size).toBe(1);
+  });
+
+  it("keeps a rule whose marker is present but whose table is unreadable", () => {
+    writeAdr(
+      "adr-045-string-type.md",
+      [wellFormed, "", "<!-- MATRIX-SEVERITY rule: string-copy -->", ""].join(
+        "\n",
+      ),
+    );
+    const declarations = AdrDeclarationReader.read(dir);
+    expect(declarations.get("045 string-copy")!.errors.join("\n")).toContain(
+      "marker present but no cell could be read",
+    );
+  });
 });

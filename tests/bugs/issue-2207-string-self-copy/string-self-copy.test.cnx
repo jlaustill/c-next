@@ -1,0 +1,65 @@
+// test-execution
+// test-no-warnings
+// test-adr: 045
+// #2207: a string written from a string that can be itself. `strncpy` with
+// overlapping arguments is undefined (MISRA C:2012 Rule 19.1), and whether
+// `names[i]` is `names[j]` is decided at run time, so no diagnostic can see it.
+
+struct Cfg {
+    string<8> name;
+}
+
+mut string<8>[2] names <- ["ab", "cd"];
+mut string<8> s <- "abc";
+mut Cfg c;
+mut string<8> t;
+
+// #2207 review: the copy zero-fills past the terminator, as a literal's does
+u8 staleByte() {
+    s <- "hello";
+    t <- "hi";
+    s <- t;
+    return s[3];
+}
+
+void copyName(u32 i, u32 j) {
+    names[i] <- names[j];
+}
+
+u32 main() {
+    copyName(1, 1);
+    if (names[1] != "cd") {
+        return 1;
+    }
+
+    // The spellings gcc sees are one object, which -Werror=restrict rejected
+    s <- s;
+    if (s != "abc") {
+        return 2;
+    }
+    names[0] <- names[0];
+    if (names[0] != "ab") {
+        return 3;
+    }
+    c.name <- "nm";
+    c.name <- c.name;
+    if (c.name != "nm") {
+        return 4;
+    }
+
+    u8 stale <- staleByte();
+    if (stale != 0) {
+        return 7;
+    }
+    s <- "abc";
+
+    // NEGATIVE CONTROL: two different elements, which is a copy
+    copyName(0, 1);
+    if (names[0] != "cd") {
+        return 5;
+    }
+    if (names[1] != "cd") {
+        return 6;
+    }
+    return 0;
+}

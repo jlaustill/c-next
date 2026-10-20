@@ -60,6 +60,8 @@ interface IEmissionFacts {
 
   /** ADR-044 clamp helper keys accumulated while generating (`"add_u32"`). */
   readonly clampOps: ReadonlySet<string>;
+  /** #2207: a string copy goes through `cnx_string_copy` */
+  readonly stringCopyHelper: boolean;
   /** #1668: single-evaluation saturating cast keys (`"f32_u8"`) */
   readonly castHelpers: ReadonlySet<string>;
   /** ADR-058: runtime integer length helpers (`"cnx_value_bit_length"`) */

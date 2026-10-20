@@ -66,6 +66,9 @@ interface IEmissionPlan {
   /** ADR-044 overflow-clamp helper keys (`"add_u32"`), in emission order. */
   readonly clampOps: readonly string[];
 
+  /** #2207: whether the file defines `cnx_string_copy` */
+  readonly stringCopyHelper: boolean;
+
   /**
    * ADR-044 debug mode's panicking overflow helpers, or null when the helpers
    * clamp or there are none. Render picks the panic templates from this, so

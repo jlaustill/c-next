@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 045
+// ADR-045: a declaration initialized from a field or an array element is a copy
+// of that whole string<N>, checked for fit like a copy from a variable (#1731)
+struct Cfg {
+    string<8> name;
+}
+
+Cfg c;
+string<8>[2] names <- ["n0", "n1"];
+
+// NEGATIVE CONTROL -- sources that fit the destination.
+void okFits() {
+    string<8> fromField <- c.name;
+    string<8> fromElement <- names[1];
+}
+
+void test() {
+    string<4> fromField <- c.name;
+    string<4> fromElement <- names[1];
+}

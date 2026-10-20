@@ -190,12 +190,12 @@ Analysis revealed 25 distinct assignment patterns, currently implemented as nest
 - `struct_member_bit` - `item.byte[7] <- true`
 - `array_element_bit` - `matrix[i][j][bit] <- true`
 
-**String operations (4):**
+**String operations (1):**
 
-- `string_simple` - `str <- "hello"`
-- `string_struct_field` - `config.name <- "test"`
-- `string_array_element` - `names[0] <- "first"`
-- `string_struct_array` - `config.names[0] <- "first"`
+- `string_copy` - any target whose last step is one `string<N>`: `str`, `config.name`,
+  `names[0]`, `config.names[0]`, `this.cfg.name`, `parr[1].name`, `g.cells[1][2]`.
+  The copy is into the rendered target, so `->`, scope prefixes and every subscript
+  come from the one renderer (#1731).
 
 **Array operations (2):**
 
@@ -319,8 +319,7 @@ class BitUtils {
 }
 
 class StringUtils {
-  static copyWithNull(target: string, value: string, capacity: number): string;
-  static copy(target: string, value: string, capacity: number): string;
+  static copy(target: string, value: string, capacity: number): string; // cnx_string_copy(...)
 }
 
 class MmioUtils {

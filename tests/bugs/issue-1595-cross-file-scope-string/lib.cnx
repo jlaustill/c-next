@@ -1,0 +1,14 @@
+// Helper for cross-file-scope-string.test.cnx (#1595)
+struct Rec {
+    string<12> member;
+}
+
+scope Cfg {
+    public mut string<16> label <- "";
+    public mut string<8>[2] tags;
+    public mut Rec structField;
+
+    public void setInFile() {
+        this.label <- "inner";
+    }
+}

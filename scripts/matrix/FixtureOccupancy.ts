@@ -14,6 +14,7 @@ import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
 import FixtureContext from "./FixtureContext";
 import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";
+import MatrixRule from "./MatrixRule";
 import TestUtils from "../test-utils";
 import AdrProvenanceLines from "./AdrProvenanceLines";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
@@ -122,23 +123,36 @@ function recordFixture(
     for (const line of provenance.get(adr) ?? []) {
       addPosition(positions, { line });
     }
-    const contexts = contextsAt(source, positions);
 
-    if (contexts.length === 0) {
+    // #1731 review: a rule with its own table is occupied only by provenance
+    // recorded for that rule. A diagnostic stays the ADR's own: it names no rule.
+    const matrices: [string, ISourcePosition[]][] = [[adr, positions]];
+    for (const [matrixId, ruleLines] of provenance) {
+      if (matrixId !== adr && MatrixRule.adrOf(matrixId) === adr) {
+        matrices.push([matrixId, ruleLines.map((line) => ({ line }))]);
+      }
+    }
+
+    let placed = false;
+    for (const [matrixId, matrixPositions] of matrices) {
+      const contexts = contextsAt(source, matrixPositions);
+      if (contexts.length === 0) continue;
+      placed = true;
+      const matrixCells = cells.get(matrixId) ?? new Map<string, string[]>();
+      for (const context of contexts) {
+        const key = MatrixCell.key(context, relationship);
+        const occupants = matrixCells.get(key) ?? [];
+        if (!occupants.includes(shortPath)) occupants.push(shortPath);
+        matrixCells.set(key, occupants);
+      }
+      cells.set(matrixId, matrixCells);
+    }
+
+    if (!placed) {
       const pending = withoutContext.get(adr) ?? [];
       pending.push(shortPath);
       withoutContext.set(adr, pending);
-      continue;
     }
-
-    const adrCells = cells.get(adr) ?? new Map<string, string[]>();
-    for (const context of contexts) {
-      const key = MatrixCell.key(context, relationship);
-      const occupants = adrCells.get(key) ?? [];
-      if (!occupants.includes(shortPath)) occupants.push(shortPath);
-      adrCells.set(key, occupants);
-    }
-    cells.set(adr, adrCells);
   }
 }
 

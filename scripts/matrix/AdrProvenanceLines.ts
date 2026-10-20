@@ -19,6 +19,7 @@ import { join } from "node:path";
 
 import Transpiler from "../../src/cli/Transpiler";
 import TestUtils from "../test-utils";
+import MatrixRule from "./MatrixRule";
 import NodeFileSystem from "../../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 /** Throwaway output directory; the matrix cares about provenance, not files. */
@@ -27,7 +28,7 @@ function scratchDir(): string {
 }
 
 /**
- * ADR number -> lines at which that ADR's rule fired in `fixturePath`.
+ * MatrixRule id -> lines at which that ADR's (or rule's) rule fired in `fixturePath`.
  *
  * Returns an empty map when the fixture cannot be transpiled. A fixture that
  * fails to transpile is not evidence of anything, and inventing occupancy from
@@ -60,11 +61,12 @@ async function forFixture(fixturePath: string): Promise<Map<string, number[]>> {
   }
 
   for (const site of result.adrSites ?? []) {
-    const lines = byAdr.get(site.adr) ?? [];
+    const matrixId = MatrixRule.id(site.adr, site.rule);
+    const lines = byAdr.get(matrixId) ?? [];
     if (!lines.includes(site.line)) {
       lines.push(site.line);
     }
-    byAdr.set(site.adr, lines);
+    byAdr.set(matrixId, lines);
   }
   return byAdr;
 }

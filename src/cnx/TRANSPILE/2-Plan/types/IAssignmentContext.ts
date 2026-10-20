@@ -5,6 +5,7 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
+import type TRenderedStringPart from "../../../types/TRenderedStringPart";
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
 import type IPlannedAtomic from "../../types/IPlannedAtomic";
@@ -81,6 +82,14 @@ interface IAssignmentContext {
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
+  /** 2.2's decision: the capacity of the one `string<N>` this write copies, or null (#1731) */
+  readonly plannedStringCapacity: number | null;
+  /**
+   * 2.2's decision that the value is a concatenation or a substring
+   * (`StringValueForm`, #1257): its parts, rendered when the handler builds
+   * them; null for a copy
+   */
+  readonly plannedStringParts: (() => readonly TRenderedStringPart[]) | null;
   /** 2.2's decision: the shape a whole array is copied in (#1782), or null */
   readonly plannedWholeArray: IPlannedWholeArrayWrite | null;
   /** 2.2's decision: the C type a narrow compound write is cast to, or null */

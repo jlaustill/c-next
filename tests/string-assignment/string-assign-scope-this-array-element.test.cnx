@@ -1,0 +1,38 @@
+// test-execution
+// test-no-warnings
+// #1903: a string written through `this.` into an element of the scope's own
+// string<N>[M] variable is a bounded copy into the scope-qualified variable.
+scope Lab {
+    public mut string<8>[2] tags;
+    public mut string<8> label;
+
+    public void set() {
+        this.tags[0] <- "x";
+        this.tags[1] <- "second";
+        // NEGATIVE CONTROL: a scalar member through `this.`, which copied
+        // correctly before #1903
+        this.label <- "ok";
+    }
+
+    public u32 firstLength() {
+        return this.tags[0].value_char_count;
+    }
+}
+
+u32 main() {
+    Lab.set();
+    if (Lab.tags[0] != "x") {
+        return 1;
+    }
+    if (Lab.tags[1] != "second") {
+        return 2;
+    }
+    u32 n <- Lab.firstLength();
+    if (n != 1) {
+        return 3;
+    }
+    if (Lab.label != "ok") {
+        return 4;
+    }
+    return 0;
+}

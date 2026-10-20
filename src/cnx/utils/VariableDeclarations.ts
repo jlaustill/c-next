@@ -2,6 +2,8 @@ import type IProgramSyntax from "../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSite from "../types/syntax/IVariableDeclarationSite";
 import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
 import type TStatement from "../types/syntax/TStatement";
+import type TExpression from "../types/syntax/TExpression";
+import ExpressionNodes from "./ExpressionNodes";
 import StatementChildren from "./StatementChildren";
 
 /**
@@ -31,6 +33,23 @@ class VariableDeclarations {
   static ruled(program: IProgramSyntax): readonly IVariableDeclarationSite[] {
     return VariableDeclarations.in(program).filter(
       (entry) => entry.site !== "forHeader",
+    );
+  }
+
+  /**
+   * Every expression in an initializer outside a function -- a file's or a
+   * scope member's -- which C evaluates before `main`, so it calls nothing
+   * (#2236)
+   */
+  static fileScopeValues(program: IProgramSyntax): ReadonlySet<TExpression> {
+    return new Set(
+      VariableDeclarations.in(program).flatMap(({ declaration, site }) =>
+        site === "statement" ||
+        site === "forHeader" ||
+        declaration.initializer === null
+          ? []
+          : ExpressionNodes.direct(declaration.initializer),
+      ),
     );
   }
 

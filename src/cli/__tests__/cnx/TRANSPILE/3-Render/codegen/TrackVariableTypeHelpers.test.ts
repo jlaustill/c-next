@@ -100,9 +100,9 @@ describe("trackVariableTypeWithName helpers", () => {
         }
       `;
       const code = await transpileSource(source);
-      // String assignment should use strncpy with null terminator
-      expect(code).toContain("strncpy");
-      expect(code).toContain("[32] = '\\0'");
+      // #2207: a string assignment is one bounded, terminated helper copy
+      expect(code).toContain("cnx_string_copy(b, a, 32U);");
+      expect(code).toContain("target[capacity] = '\\0';");
     });
   });
 

@@ -7,6 +7,7 @@
  */
 
 import AdrMatrixDeclaration from "../matrix/AdrMatrixDeclaration";
+import MatrixCell from "../matrix/MatrixCell";
 
 const withTable = (rows: string): string =>
   [
@@ -214,5 +215,35 @@ describe("AdrMatrixDeclaration.parse", () => {
     const result = AdrMatrixDeclaration.parse(markdown, "051");
     expect(result.errors).toEqual([]);
     expect(result.severities.size).toBe(1);
+  });
+
+  it("reads a rule's table apart from the ADR's own (#1731 review)", () => {
+    // One rule's fixtures must not fill the cells another rule must fill, so
+    // each table is read alone: the ADR's own ignores the rule's, and back.
+    const markdown = [
+      withTable("| global variable | same file | error |"),
+      "",
+      "<!-- MATRIX-SEVERITY rule: string-copy -->",
+      "",
+      "| Context | Relationship | Severity |",
+      "| ------- | ------------ | -------- |",
+      "| scope method | imported direct | error |",
+    ].join("\n");
+
+    expect(AdrMatrixDeclaration.rulesIn(markdown)).toEqual(["string-copy"]);
+    const own = AdrMatrixDeclaration.parse(markdown, "045");
+    const rule = AdrMatrixDeclaration.parse(markdown, "045", "string-copy");
+    expect([...own.severities.keys()]).toEqual([
+      MatrixCell.key("global-variable", "same-file"),
+    ]);
+    expect([...rule.severities.keys()]).toEqual([
+      MatrixCell.key("scope-method", "imported-direct"),
+    ]);
+  });
+
+  it("lists no rule when the ADR has only its own table", () => {
+    expect(AdrMatrixDeclaration.rulesIn(withTable("| x | y | z |"))).toEqual(
+      [],
+    );
   });
 });

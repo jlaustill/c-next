@@ -2,7 +2,7 @@
  * Issue #1219: which matrix cells one ADR's fixtures actually occupy.
  */
 interface IMatrixOccupancy {
-  /** Zero-padded ADR number. */
+  /** MatrixRule id: the zero-padded ADR number, or it and a rule. */
   readonly adr: string;
 
   /** Cell key (MatrixCell.key) to the fixtures occupying it. */

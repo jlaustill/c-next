@@ -1,0 +1,4 @@
+19:27 error[E0864]: Cannot initialize string<4> from string<8> -- the source may not fit
+       help: Widen the declaration to string<8>, or extract a substring of the source.
+20:29 error[E0864]: Cannot initialize string<4> from string<8> -- the source may not fit
+       help: Widen the declaration to string<8>, or extract a substring of the source.

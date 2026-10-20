@@ -34,8 +34,7 @@
 import IPlannedStringInit from "../types/IPlannedStringInit";
 import VariableModifierBuilder from "./VariableModifierBuilder";
 import IRenderedModifiers from "../types/IRenderedModifiers";
-import IStringConcatOps from "../types/IStringConcatOps";
-import ISubstringOps from "../types/ISubstringOps";
+import type TRenderedStringPart from "../../../../types/TRenderedStringPart";
 import TPlannedStringDecl from "../types/TPlannedStringDecl";
 import StringUtils from "../../../../utils/StringUtils";
 import invariant from "../../../../utils/invariant";
@@ -171,196 +170,94 @@ class StringDeclHelper {
       return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`;
     }
 
-    // ADR-045 asks the four initializer forms in a fixed order, and the order is
-    // load-bearing: `renderSubstring` generates the index expressions when it
-    // answers, so it is asked only after `concat` has declined.
-    if (init.concat) {
-      return StringDeclHelper._generateConcatDecl(
-        name,
-        capacity,
-        init.concat,
-        qualifiers,
-        state,
-      );
+    // #1257: 2.2 planned the initializer's form, by an assignment's rule
+    switch (init.form) {
+      case "copy":
+        return StringDeclHelper._generateCopyDecl(
+          name,
+          capacity,
+          init.render(),
+          qualifiers,
+          state,
+        );
+      case "concat":
+      case "substring":
+        return StringDeclHelper._generateBuiltDecl(
+          name,
+          capacity,
+          init.renderParts(),
+          qualifiers,
+          state,
+        );
+      case "literal":
+        StringDeclHelper._validateLiteral(init.text, capacity);
+        return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${init.render()};`;
     }
+  }
 
-    const substringOps = init.renderSubstring();
-    if (substringOps) {
-      return StringDeclHelper._generateSubstringDecl(
-        name,
-        capacity,
-        substringOps,
-        qualifiers,
-        state,
-      );
-    }
-
-    // Validate and check if it's a literal or variable
-    const isLiteral = StringDeclHelper._validateStringInit(
-      init.text,
-      init.sourceCapacity,
-      capacity,
+  /**
+   * Issue #1030: a string initialized from another string. C cannot
+   * initialize an array from one, so it is declared empty and copied into.
+   * The copy writes the buffer, so it is never a C `const` array, here or in
+   * the concatenation and substring arms; C-Next still rejects a write to it
+   * (ADR-071). Issue #1044: the bounded copy an assignment makes, not an
+   * unbounded strcpy, which flawfinder flags as CWE-120.
+   */
+  private static _generateCopyDecl(
+    name: string,
+    capacity: number,
+    source: string,
+    qualifiers: string,
+    state: TranspileState,
+  ): string {
+    invariant(
+      state.inFunctionBody,
+      "a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 1.2",
     );
-
-    if (isLiteral) {
-      // String literal: can use direct initialization
-      return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${init.render()};`;
-    }
-
-    // String variable: cannot use C array initialization, so declare empty and
-    // copy. The copy writes the buffer, so it is never a C `const` array, here
-    // or in the concatenation and substring arms; C-Next still rejects a write
-    // to it (ADR-071). Issue #1044: use the same bounded copy as the reassignment path
-    // (strncpy + explicit null terminator via StringUtils.copyWithNull) rather
-    // than an unbounded strcpy, which flawfinder flags as CWE-120.
-    // Issue #1030: string-to-string initialization
-    if (!state.inFunctionBody) {
-      invariant(
-        false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 1.2`,
-      );
-    }
-
-    const srcExpr = init.render();
     // Issue #1037: continuation lines carry no indent of their own — the block
     // emitter (CodeGenerator.generateBlock) prefixes every line.
-    const lines: string[] = [];
-    lines.push(
+    return [
       `${qualifiers}char ${name}[${capacity + 1}] = "";`,
-      StringUtils.copyWithNull(name, srcExpr, capacity),
+      StringUtils.copy(name, source, capacity),
+    ].join("\n");
+  }
+
+  /** A literal initializer: 2.1 has rejected one that does not fit (E0864) */
+  private static _validateLiteral(text: string, capacity: number): void {
+    invariant(
+      text.startsWith('"') && text.endsWith('"'),
+      "a string<N> initializer 2.2 planned as a literal is one",
     );
-    return lines.join("\n");
+    const content = StringUtils.literalLength(text);
+    invariant(
+      content <= capacity,
+      `a string literal fits its declared capacity -- E0864 rejects ${content} chars in string<${capacity}> in pass 2.1`,
+    );
   }
 
   /**
-   * Validate string initialization (literal length and variable capacity)
-   * Returns true if the expression is a string literal, false if it's a variable.
+   * A concatenation or a substring, built into the string it declares
+   * (#1257, #1954). The string cannot be one of its own parts: it is defined
+   * once its declaration closes (ADR-030, #1643).
    */
-  private static _validateStringInit(
-    exprText: string,
-    sourceCapacity: number | null,
-    capacity: number,
-  ): boolean {
-    // Validate string literal fits capacity
-    if (exprText.startsWith('"') && exprText.endsWith('"')) {
-      const content = StringUtils.literalLength(exprText);
-      if (content > capacity) {
-        invariant(
-          false,
-          `a string literal fits its declared capacity -- E0864 rejects ${content} chars in string<${capacity}> in pass 2.1`,
-        );
-      }
-      return true; // Is a literal
-    }
-
-    // A string variable's capacity, as the plan bound it (#1668)
-    const srcCapacity = sourceCapacity;
-    if (srcCapacity !== null && srcCapacity > capacity) {
-      invariant(
-        false,
-        `a string source fits its destination -- E0864 rejects string<${srcCapacity}> into string<${capacity}> in pass 2.1`,
-      );
-    }
-    return false; // Is a variable (not a literal)
-  }
-
-  /**
-   * Generate string concatenation declaration.
-   */
-  private static _generateConcatDecl(
+  private static _generateBuiltDecl(
     name: string,
     capacity: number,
-    concatOps: IStringConcatOps,
+    parts: readonly TRenderedStringPart[],
     qualifiers: string,
     state: TranspileState,
   ): string {
-    // String concatenation requires runtime function calls (strncpy, strncat)
-    // which cannot exist at global scope in C
-    if (!state.inFunctionBody) {
-      invariant(
-        false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a concatenation in pass 1.2`,
-      );
-    }
-
-    // Validate capacity: dest >= left + right
-    const requiredCapacity = concatOps.leftCapacity + concatOps.rightCapacity;
-    if (requiredCapacity > capacity) {
-      invariant(
-        false,
-        `a concatenation fits its destination -- E0864 rejects ${requiredCapacity} into string<${capacity}> in pass 2.1`,
-      );
-    }
-
-    // Generate safe concatenation code. Issue #1037: continuation lines carry
-    // no indent of their own — the block emitter prefixes every line.
-    // The copy sequence itself is owned by StringUtils.concat -- including the
-    // MISRA 17.7 `(void)` casts (ADR-070 Case 1). Rebuilding it here would be a
-    // second path that has to be kept in step by hand.
-    const lines: string[] = [];
-    lines.push(
-      `${qualifiers}char ${name}[${capacity + 1}] = "";`,
-      ...StringUtils.concat(name, concatOps.left, concatOps.right, capacity),
+    // The copy and append calls cannot run at global scope in C
+    invariant(
+      state.inFunctionBody,
+      "a string at file scope is initialized by a literal -- E0863 rejects a concatenation and a substring in pass 1.2",
     );
-    return lines.join("\n");
-  }
-
-  /**
-   * Generate substring extraction declaration.
-   */
-  private static _generateSubstringDecl(
-    name: string,
-    capacity: number,
-    substringOps: ISubstringOps,
-    qualifiers: string,
-    state: TranspileState,
-  ): string {
-    // Substring extraction requires runtime function calls (strncpy)
-    // which cannot exist at global scope in C
-    if (!state.inFunctionBody) {
-      invariant(
-        false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a substring in pass 1.2`,
-      );
-    }
-
-    // For compile-time validation, we need numeric literals
-    const startNum = Number.parseInt(substringOps.start, 10);
-    const lengthNum = Number.parseInt(substringOps.lengthExpression, 10);
-
-    // Only validate bounds if both start and length are compile-time constants
-    if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
-      // Bounds check: start + length <= sourceCapacity
-      if (startNum + lengthNum > substringOps.sourceCapacity) {
-        invariant(
-          false,
-          `substring bounds stay within the source -- E0865 rejects [${startNum}, ${lengthNum}] against string<${substringOps.sourceCapacity}> in pass 2.1`,
-        );
-      }
-    }
-
-    // Validate destination capacity can hold the substring
-    if (!Number.isNaN(lengthNum) && lengthNum > capacity) {
-      invariant(
-        false,
-        `a substring fits its destination -- E0864 rejects ${lengthNum} into string<${capacity}> in pass 2.1`,
-      );
-    }
-
-    // Generate safe substring extraction code. Issue #1037: continuation lines
-    // carry no indent of their own — the block emitter prefixes every line.
-    // Extraction sequence owned by StringUtils.substring (see _generateConcatDecl).
-    const lines: string[] = [];
-    lines.push(
+    // Issue #1037: continuation lines carry no indent of their own -- the
+    // block emitter prefixes every line. The sequence is StringUtils.build's.
+    return [
       `${qualifiers}char ${name}[${capacity + 1}] = "";`,
-      ...StringUtils.substring(
-        name,
-        substringOps.source,
-        substringOps.start,
-        substringOps.lengthExpression,
-      ),
-    );
-    return lines.join("\n");
+      ...StringUtils.build(name, capacity, parts),
+    ].join("\n");
   }
 
   /**

@@ -8,6 +8,22 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test string assignment inside switch cases
 char level[33] = "";
@@ -15,19 +31,19 @@ char level[33] = "";
 void setLevel(const uint32_t code) {
     switch (code) {
         case 0: {
-            (void) strncpy(level, "Low", 32); level[32] = '\0';
+            cnx_string_copy(level, "Low", 32U);
             break;
         }
         case 1: {
-            (void) strncpy(level, "Medium", 32); level[32] = '\0';
+            cnx_string_copy(level, "Medium", 32U);
             break;
         }
         case 2: {
-            (void) strncpy(level, "High", 32); level[32] = '\0';
+            cnx_string_copy(level, "High", 32U);
             break;
         }
         default: {
-            (void) strncpy(level, "Unknown", 32); level[32] = '\0';
+            cnx_string_copy(level, "Unknown", 32U);
             break;
         }
     }

@@ -1,0 +1,51 @@
+// test-execution
+// test-no-warnings
+// #1731 review: a string write's terminator store must not evaluate the target
+// a second time. `strncpy(T, v, N); T[N] = '\0';` spells T twice, so a
+// subscript with a side effect ran twice -- the copy landed in one element,
+// the terminator in the next, and past the last element out of bounds.
+
+struct Item {
+    string<8> name;
+}
+
+mut u32 calls <- 0;
+
+u32 pick() {
+    calls +<- 1;
+    return calls % 3;
+}
+
+u32 main() {
+    mut string<8>[3] names;
+    mut Item[3] items;
+
+    names[pick()] <- "abc";
+    if (calls != 1) {
+        return 1;
+    }
+    if (names[1] != "abc") {
+        return 2;
+    }
+    if (names[2] != "") {
+        return 3;
+    }
+
+    items[pick()].name <- "def";
+    if (calls != 2) {
+        return 4;
+    }
+    if (items[2].name != "def") {
+        return 5;
+    }
+
+    // NEGATIVE CONTROL: a constant subscript, which never hoists
+    names[0] <- "ok";
+    if (calls != 2) {
+        return 6;
+    }
+    if (names[0] != "ok") {
+        return 7;
+    }
+    return 0;
+}

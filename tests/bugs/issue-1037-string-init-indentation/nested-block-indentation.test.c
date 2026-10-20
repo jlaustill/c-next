@@ -7,6 +7,22 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #1037: string init / concatenation / substring DECLARATIONS inside a
 // nested block (depth 2) must keep their continuation lines aligned with the
@@ -17,14 +33,13 @@ int main(void) {
     if (gate == true) {
         const char base[17] = "Hello";
         char copied[33] = "";
-        (void) strncpy(copied, base, 32); copied[32] = '\0';
+        cnx_string_copy(copied, base, 32U);
         char joined[33] = "";
         (void) strncpy(joined, base, 32);
         (void) strncat(joined, base, 32 - strlen(joined));
         joined[32] = '\0';
         char part[9] = "";
-        (void) strncpy(part, base + 0, 3);
-        part[3] = '\0';
+        cnx_string_copy(part, base + 0, 3U);
         if (strcmp(copied, "Hello") != 0) {
             return 1;
         }

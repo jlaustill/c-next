@@ -9,6 +9,22 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // ADR-045: Test string as struct member
 // Validates: declaration, initialization, properties, comparison, function passing
@@ -24,8 +40,8 @@ bool compareName(const Person* p, const char* expected) {
 
 int main(void) {
     Person alice = {0};
-    (void) strncpy(alice.name, "Alice", 64); alice.name[64] = '\0';
-    (void) strncpy(alice.bio, "Software engineer", 128); alice.bio[128] = '\0';
+    cnx_string_copy(alice.name, "Alice", 64U);
+    cnx_string_copy(alice.bio, "Software engineer", 128U);
     alice.age = 30U;
     if (strlen(alice.name) != 5) {
         return 1;
@@ -52,8 +68,8 @@ int main(void) {
         return 8;
     }
     Person bob = {0};
-    (void) strncpy(bob.name, "Bob", 64); bob.name[64] = '\0';
-    (void) strncpy(bob.bio, "Data scientist", 128); bob.bio[128] = '\0';
+    cnx_string_copy(bob.name, "Bob", 64U);
+    cnx_string_copy(bob.bio, "Data scientist", 128U);
     bob.age = 25U;
     if (strlen(bob.name) != 3) {
         return 9;
@@ -65,7 +81,7 @@ int main(void) {
         return 11;
     }
     Person charlie = {0};
-    (void) strncpy(charlie.name, "Alice", 64); charlie.name[64] = '\0';
+    cnx_string_copy(charlie.name, "Alice", 64U);
     if (strcmp(alice.name, charlie.name) != 0) {
         return 12;
     }
@@ -86,8 +102,8 @@ int main(void) {
         return 16;
     }
     StrMember__Config cfg = {0};
-    (void) strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
-    (void) strncpy(cfg.value, "https://example.com/api/v1", 256); cfg.value[256] = '\0';
+    cnx_string_copy(cfg.key, "api_url", 32U);
+    cnx_string_copy(cfg.value, "https://example.com/api/v1", 256U);
     if (strlen(cfg.key) != 7) {
         return 17;
     }
@@ -101,11 +117,11 @@ int main(void) {
         return 20;
     }
     Person emptyPerson = {0};
-    (void) strncpy(emptyPerson.name, "", 64); emptyPerson.name[64] = '\0';
+    cnx_string_copy(emptyPerson.name, "", 64U);
     if (strlen(emptyPerson.name) != 0) {
         return 21;
     }
-    (void) strncpy(alice.name, "Alicia", 64); alice.name[64] = '\0';
+    cnx_string_copy(alice.name, "Alicia", 64U);
     if (strlen(alice.name) != 6) {
         return 22;
     }

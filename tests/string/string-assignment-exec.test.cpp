@@ -6,12 +6,28 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // ADR-045: Validate string assignment between different capacities at runtime
 int main(void) {
     const char small[33] = "Test";
     char big[65] = "";
-    (void) strncpy(big, small, 64); big[64] = '\0';
+    cnx_string_copy(big, small, 64U);
     if (strlen(big) != 4) {
         return 1;
     }
@@ -23,7 +39,7 @@ int main(void) {
     }
     const char source[17] = "Hello World";
     char dest[33] = "";
-    (void) strncpy(dest, source, 32); dest[32] = '\0';
+    cnx_string_copy(dest, source, 32U);
     if (strlen(dest) != 11) {
         return 4;
     }
@@ -32,7 +48,7 @@ int main(void) {
     }
     const char emptySource[33] = "";
     char emptyDest[65] = "";
-    (void) strncpy(emptyDest, emptySource, 64); emptyDest[64] = '\0';
+    cnx_string_copy(emptyDest, emptySource, 64U);
     if (strlen(emptyDest) != 0) {
         return 6;
     }
@@ -43,7 +59,7 @@ int main(void) {
     if (strcmp(local, "First") != 0) {
         return 8;
     }
-    (void) strncpy(local, "Second", 32); local[32] = '\0';
+    cnx_string_copy(local, "Second", 32U);
     if (strcmp(local, "Second") != 0) {
         return 9;
     }
@@ -51,8 +67,8 @@ int main(void) {
         return 10;
     }
     char multi[65] = "One";
-    (void) strncpy(multi, "Two", 64); multi[64] = '\0';
-    (void) strncpy(multi, "Three", 64); multi[64] = '\0';
+    cnx_string_copy(multi, "Two", 64U);
+    cnx_string_copy(multi, "Three", 64U);
     if (strcmp(multi, "Three") != 0) {
         return 11;
     }

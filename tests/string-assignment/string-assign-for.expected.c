@@ -21,6 +21,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #139: Test string assignment inside for loop body
 char result[17] = "";
@@ -28,18 +44,18 @@ char result[17] = "";
 int main(void) {
     uint32_t i = 0U;
     for (i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
-        (void) strncpy(result, "ForLoop", 16); result[16] = '\0';
+        cnx_string_copy(result, "ForLoop", 16U);
     }
     if (strlen(result) != 7) {
         return 1U;
     }
     for (i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         if (i == 0) {
-            (void) strncpy(result, "Zero", 16); result[16] = '\0';
+            cnx_string_copy(result, "Zero", 16U);
         } else if (i == 1) {
-            (void) strncpy(result, "One", 16); result[16] = '\0';
+            cnx_string_copy(result, "One", 16U);
         } else {
-            (void) strncpy(result, "Two", 16); result[16] = '\0';
+            cnx_string_copy(result, "Two", 16U);
         }
     }
     if (strlen(result) != 3) {

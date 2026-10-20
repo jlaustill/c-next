@@ -410,7 +410,11 @@ function runAnalyzers(
     },
     {
       label: "string declarations (ADR-045, E0864-E0865)",
-      run: () => new StringDeclarationAnalyzer(context).analyze(parsed.program),
+      run: () =>
+        new StringDeclarationAnalyzer(context).analyze(
+          parsed.program,
+          positions(),
+        ),
     },
     {
       label: "length properties (ADR-058, E0867)",

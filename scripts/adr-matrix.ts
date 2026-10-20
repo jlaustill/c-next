@@ -150,6 +150,14 @@ async function main(): Promise<void> {
     failures.push(...declarationErrors.map((error) => `  ${error}`));
   }
 
+  const undeclared = MatrixReport.undeclaredRules(declarations, occupancy);
+  if (undeclared.length > 0) {
+    failures.push(
+      "Provenance recorded for a rule no ADR declares a MATRIX-SEVERITY table for:",
+    );
+    failures.push(...undeclared.map((id) => `  ADR-${id}`));
+  }
+
   const committed = existsSync(reportPath)
     ? readFileSync(reportPath, "utf-8")
     : "";

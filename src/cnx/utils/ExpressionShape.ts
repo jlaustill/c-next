@@ -39,6 +39,28 @@ class ExpressionShape {
    * `((cfg.total))` is `cfg.total`. The held node itself, so a plan keyed by
    * that node still finds it (#1203 review).
    */
+  /**
+   * ADR-045: a `+` chain's operands, two or more, a parenthesized chain
+   * inside one flattened (#1954, #2232); null for any other value. The one
+   * rule for "is this a concatenation" that 2.1 and 2.2 read (#2160 review).
+   */
+  static concatenationOperands(
+    expr: TExpression,
+  ): readonly TExpression[] | null {
+    const value = ExpressionShape.unparenthesized(expr);
+    if (
+      value.kind !== "binary" ||
+      value.level !== "additive" ||
+      !value.operators.every((operator) => operator === "+")
+    ) {
+      return null;
+    }
+    return value.operands.flatMap((operand) => {
+      const inner = ExpressionShape.concatenationOperands(operand);
+      return inner ?? [ExpressionShape.unparenthesized(operand)];
+    });
+  }
+
   static unparenthesized(expr: TExpression): TExpression {
     return expr.kind === "parenthesized"
       ? ExpressionShape.unparenthesized(expr.expression)
@@ -114,42 +136,6 @@ class ExpressionShape {
       opsConsumed: 0,
       rootOp: ops[0] ?? null,
     };
-  }
-
-  /**
-   * The two operands of a two-operand `+`, or null for anything else: the
-   * shape of an ADR-045 concatenation. Subtraction is rejected on the
-   * operator, not the text, because a name or a string literal may contain a
-   * hyphen (#1445).
-   */
-  static additionOperands(
-    expr: TExpression,
-  ): readonly [TExpression, TExpression] | null {
-    if (
-      expr.kind !== "binary" ||
-      expr.level !== "additive" ||
-      expr.operands.length !== 2 ||
-      expr.operators[0] !== "+"
-    ) {
-      return null;
-    }
-    return [expr.operands[0], expr.operands[1]];
-  }
-
-  /**
-   * An identifier with exactly one subscript applied, `s[i]` or `s[i, n]`:
-   * the shape of an ADR-045 substring. The sibling of `simpleIdentifier`.
-   */
-  static subscriptedIdentifier(expr: TExpression): {
-    readonly name: string;
-    readonly indexes: readonly TExpression[];
-  } | null {
-    if (expr.kind !== "postfix" || expr.primary.kind !== "identifier") {
-      return null;
-    }
-    const [op, ...rest] = expr.ops;
-    if (op?.kind !== "subscript" || rest.length > 0) return null;
-    return { name: expr.primary.name, indexes: op.indexes };
   }
 }
 

@@ -33,6 +33,9 @@ import type ILengthName from "../../utils/types/ILengthName";
 import type TLengthRule from "../../utils/types/TLengthRule";
 import LengthSubject from "../../utils/LengthSubject";
 import OperandTyper from "../../utils/OperandTyper";
+import StringValueForm from "../../utils/StringValueForm";
+import StringUtils from "../../utils/StringUtils";
+import type TStringValueForm from "../../types/TStringValueForm";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import headerCType from "../../utils/headerCType";
 import HeaderTypeNames from "./HeaderTypeNames";
@@ -57,7 +60,9 @@ import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import TypeText from "../../utils/TypeText";
 import ExpressionShape from "../../utils/ExpressionShape";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import MutArgument from "../1-Analyze/helpers/MutArgument";
+import StringWriteSites from "../1-Analyze/helpers/StringWriteSites";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
@@ -82,6 +87,7 @@ import type TArgumentForm from "./types/TArgumentForm";
 import CppMemberHelper from "./CppMemberHelper";
 import IPostfixOp from "../../types/IPostfixOp";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
+import type ITypingContext from "../../types/ITypingContext";
 import type TExpression from "../../types/syntax/TExpression";
 import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import ExpressionChildren from "../../utils/ExpressionChildren";
@@ -550,11 +556,7 @@ class FilePlanner {
   } {
     const typing = this.state.typingContext();
     const targets = new Set<TExpression>(
-      program.declarations.flatMap((entry) =>
-        StatementNodes.assignments(entry.declaration).map(
-          (write) => write.target,
-        ),
-      ),
+      FilePlanner.assignmentSites(program).map((write) => write.target),
     );
     const writes = new Map<TExpression, IPlannedFloatBits | null>();
     for (const target of targets) {
@@ -955,6 +957,11 @@ class FilePlanner {
       selfIncludeAdded,
     );
     const decidedCTypes = new Set<string>();
+    const stringCopies = this.planStringCopies(
+      program,
+      valuePositions,
+      decidedCTypes,
+    );
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
     const types = this.planTypeSites(program, inlinedConsts);
     // Each planned type is written once 2.3 is done, so its include is decided here
@@ -1045,6 +1052,7 @@ class FilePlanner {
     );
     const argumentPlans = this.planArguments(
       valuePositions,
+      stringCopies.arguments,
       structInitializers,
       wholeArrayArguments,
       decidedCTypes,
@@ -1111,6 +1119,11 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
+      stringCopies: stringCopies.copies,
+      stringValueForms: stringCopies.forms,
+      substringCounts: this.planSubstringCounts(stringCopies.forms),
+      stringFields: stringCopies.fields,
+      stringCopyHelper: stringCopies.helper,
       wholeArrayWrites,
       fillSizes,
       expectedTypes,
@@ -1278,6 +1291,7 @@ class FilePlanner {
    */
   private planArguments(
     valuePositions: IValuePositions,
+    stringArguments: ReadonlyMap<TExpression, number>,
     structInitializers: ReadonlyMap<
       TExpressionOf<"structInitializer">,
       TStructInitializerForm
@@ -1286,21 +1300,21 @@ class FilePlanner {
     cTypes: Set<string>,
   ): ReadonlyMap<TExpression, IPlannedArgument> {
     const planned = new Map<TExpression, IPlannedArgument>();
-    for (const [expression, at] of valuePositions.sites) {
-      const site = at.site;
-      if (site.kind !== "argument") continue;
-      const call = site.call.ops[site.op];
-      invariant(call?.kind === "call", "an argument site names a call");
-      if (call.arguments[site.argument] !== expression) continue;
-
+    for (const [expression, site] of FilePlanner.argumentSites(
+      valuePositions,
+    )) {
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
-      const form = this.argumentForm(
-        expression,
-        passing,
-        wholeArrayArguments.get(expression),
-        structInitializers,
-      );
+      const built = stringArguments.get(expression);
+      const form: TArgumentForm | null =
+        built === undefined
+          ? this.argumentForm(
+              expression,
+              passing,
+              wholeArrayArguments.get(expression),
+              structInitializers,
+            )
+          : { kind: "string-built", capacity: built };
       const enumCast =
         passing.mode === "reference"
           ? null
@@ -1319,6 +1333,21 @@ class FilePlanner {
     }
     return planned;
   }
+  /** Each argument where it is written, with the call site it binds at */
+  private static *argumentSites(
+    valuePositions: IValuePositions,
+  ): Generator<[TExpression, Extract<TValueSite, { kind: "argument" }>]> {
+    for (const [expression, at] of valuePositions.sites) {
+      const site = at.site;
+      if (site.kind !== "argument") continue;
+      const call = site.call.ops[site.op];
+      invariant(call?.kind === "call", "an argument site names a call");
+      if (call.arguments[site.argument] === expression) {
+        yield [expression, site];
+      }
+    }
+  }
+
   /** A by-reference argument's form; a list for an array parameter is its temporary */
   private argumentForm(
     expression: TExpression,
@@ -1534,9 +1563,7 @@ class FilePlanner {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const symbols = this.state.symbols!;
     const foreign: TExpression[] = [];
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
+    const sites = FilePlanner.assignmentSites(program);
     for (const site of sites) {
       const range = AssignmentTarget.parts(site.target).ops.at(-1);
       // The register member the typer names, however it is spelled (#2185)
@@ -1650,9 +1677,7 @@ class FilePlanner {
     cTypes: Set<string>,
   ): void {
     const typing = this.state.typingContext();
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
+    const sites = FilePlanner.assignmentSites(program);
     for (const site of sites) {
       const last = OperandTyper.chainOf(site.target, typing).steps.at(-1);
       if (last?.subscript === "array_slice") {
@@ -1754,15 +1779,12 @@ class FilePlanner {
       IAssignmentSyntax,
       { operation: string; cnxType: string } | null
     >();
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
-    for (const site of sites) {
+    const typing = this.state.typingContext();
+    for (const site of FilePlanner.assignmentSites(program)) {
       compound.set(site, null);
       if (site.operator === "<-") continue;
       const clamp = AssignmentClassifier.clampOfWrite(
-        this.targetDeclaration(site.target),
-        AssignmentTarget.parts(site.target).ops.length === 0,
+        OperandTyper.writtenType(site.target, typing),
         site.operator,
         () => site.value.kind !== "missing" && this.hasFloatingLeaf(site.value),
       );
@@ -1771,6 +1793,163 @@ class FilePlanner {
       compound.set(site, clamp);
     }
     return { chains, compound, ops };
+  }
+
+  /** Every assignment in the file, in source order */
+  private static assignmentSites(program: IProgramSyntax): IAssignmentSyntax[] {
+    return program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+  }
+
+  /**
+   * #1731: the capacity of each write of one whole `string<N>`, which is one
+   * `cnx_string_copy` (#2207) whatever spells its target. ADR-045's copy,
+   * recorded where it is decided. The typer's answer, asked as 2.1's E0715
+   * asks it, so a `for` header cannot be handed a copy 2.1 did not see (#1731
+   * review). The form of each value it copies in is decided here with it,
+   * by `StringValueForm`, as 2.1's E0864 reads it (#1257). Whether the file
+   * defines the helper, and the `uint32_t` it counts in, are decided here
+   * too, as `planClamps` decides its helpers and their types.
+   */
+  private planStringCopies(
+    program: IProgramSyntax,
+    valuePositions: IValuePositions | null,
+    cTypes: Set<string>,
+  ): {
+    readonly copies: ReadonlyMap<IAssignmentSyntax, number>;
+    readonly forms: ReadonlyMap<TExpression, TStringValueForm>;
+    readonly arguments: ReadonlyMap<TExpression, number>;
+    readonly fields: ReadonlyMap<TExpression, number>;
+    readonly helper: boolean;
+  } {
+    const copies = new Map<IAssignmentSyntax, number>();
+    const forms = new Map<TExpression, TStringValueForm>();
+    const typing = this.state.typingContext();
+    for (const site of FilePlanner.assignmentSites(program)) {
+      const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
+      if (capacity === null) continue;
+      AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
+      copies.set(site, capacity);
+      forms.set(site.value, StringValueForm.of(site.value, typing));
+    }
+    FilePlanner.planStringInits(program, typing, forms);
+    const builtArguments = FilePlanner.planStringArguments(
+      valuePositions,
+      typing,
+      forms,
+    );
+    const fields = FilePlanner.planStringFields(
+      program,
+      valuePositions,
+      typing,
+      forms,
+    );
+    // #2207: every assignment ends in `cnx_string_copy`, a concatenation's
+    // and a substring's after they are built apart (#1257), and so does a
+    // declaration's copy; the helper counts in `uint32_t`
+    const helper =
+      copies.size > 0 ||
+      fields.size > 0 ||
+      [...forms.values()].some((f) => StringUtils.usesCopyHelper(f));
+    if (helper) cTypes.add("uint32_t");
+    return { copies, forms, arguments: builtArguments, fields, helper };
+  }
+
+  /**
+   * #2236: each struct initializer field in a function that writes a
+   * `string<N>`, by the field's capacity. C has no initializer for a `char[]`
+   * from a string, and C++ before C++20's GCC 11 takes no designated string
+   * literal for one, so every one is copied in like any string. At file scope
+   * only a literal reaches one (E0863), and it stays in the initializer.
+   */
+  /** #2240: each substring part's length, which E0922 has made constant */
+  private planSubstringCounts(
+    forms: ReadonlyMap<TExpression, TStringValueForm>,
+  ): ReadonlyMap<TExpression, number> {
+    const counts = new Map<TExpression, number>();
+    for (const form of forms.values()) {
+      const parts =
+        form.kind === "concat"
+          ? form.parts
+          : form.kind === "substring"
+            ? [form.part]
+            : [];
+      for (const part of parts) {
+        if (part.kind !== "substring") continue;
+        const count = part.length === null ? 1 : this.constantOf(part.length);
+        invariant(
+          count !== undefined,
+          "2.1's E0922 rejects a substring length that is not a constant",
+        );
+        counts.set(part.chain, count);
+      }
+    }
+    return counts;
+  }
+
+  private static planStringFields(
+    program: IProgramSyntax,
+    valuePositions: IValuePositions | null,
+    typing: ITypingContext,
+    forms: Map<TExpression, TStringValueForm>,
+  ): ReadonlyMap<TExpression, number> {
+    const fields = new Map<TExpression, number>();
+    if (valuePositions === null) return fields;
+    const fileScope = VariableDeclarations.fileScopeValues(program);
+    for (const { value, write, capacity } of StringWriteSites.of(
+      valuePositions,
+    )) {
+      if (write !== "field" || fileScope.has(value)) continue;
+      forms.set(value, StringValueForm.of(value, typing));
+      fields.set(value, capacity);
+    }
+    return fields;
+  }
+
+  /**
+   * #2239: a concatenation or a substring passed to a `string<N>` parameter,
+   * by the parameter's capacity -- built apart like an assignment's, by the
+   * same value form. Any other argument is passed as it is written.
+   */
+  private static planStringArguments(
+    valuePositions: IValuePositions | null,
+    typing: ITypingContext,
+    forms: Map<TExpression, TStringValueForm>,
+  ): ReadonlyMap<TExpression, number> {
+    const built = new Map<TExpression, number>();
+    if (valuePositions === null) return built;
+    for (const { value, write, capacity } of StringWriteSites.of(
+      valuePositions,
+    )) {
+      if (write !== "argument") continue;
+      const form = StringValueForm.of(value, typing);
+      if (form.kind !== "concat" && form.kind !== "substring") continue;
+      forms.set(value, form);
+      built.set(value, capacity);
+    }
+    return built;
+  }
+
+  /**
+   * #1731 sweep: a function's `string<N> t <- v` takes the form of `v` by the
+   * rule an assignment's value does (#1257): a literal initializes the array,
+   * and a copy, a concatenation and a substring are written into it. 2.1 has
+   * rejected a value that is no string (E0923), so a copy's is a string: a
+   * C-Next one, or a C `char*` or `char[]`.
+   */
+  private static planStringInits(
+    program: IProgramSyntax,
+    typing: ITypingContext,
+    forms: Map<TExpression, TStringValueForm>,
+  ): void {
+    for (const { declaration, site } of VariableDeclarations.ruled(program)) {
+      const initializer = declaration.initializer;
+      if (site !== "statement" || initializer === null) continue;
+      if (declaration.type.kind !== "string") continue;
+      if (declaration.type.capacity === null) continue;
+      forms.set(initializer, StringValueForm.of(initializer, typing));
+    }
   }
 
   /**
@@ -2422,6 +2601,7 @@ class FilePlanner {
       selfIncludeAdded,
       existingIncludeTargets,
       clampOps: plan.clampOps,
+      stringCopyHelper: plan.stringCopyHelper,
       castHelpers: requirements.castHelpers,
       lengthHelpers: requirements.lengthHelpers,
       safeDivOps: requirements.safeDivisions,

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-677 fixture(s) assert a diagnostic; 667 carry a code.
+685 fixture(s) assert a diagnostic; 675 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -195,6 +195,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-error-const-no-init.test.cnx                                                | E0862               |
 | tests/adr-045/string-error-in-scope.test.cnx                                                     | E0864               |
 | tests/adr-045/string-error-infer-from-concat.test.cnx                                            | E0862               |
+| tests/adr-045/string-error-init-from-stepped-source.test.cnx                                     | E0864               |
 | tests/adr-045/string-error-init-global.test.cnx                                                  | E0863               |
 | tests/adr-045/string-error-nonconst-unsized.test.cnx                                             | E0862               |
 | tests/adr-045/string-error-overflow.test.cnx                                                     | E0864               |
@@ -282,6 +283,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/misra-3-1-nested-line-comment.test.cnx                                            | MISRA-3.1           |
 | tests/analysis/misra-3-2-line-splice.test.cnx                                                    | MISRA-3.2           |
 | tests/analysis/modulo-by-zero.test.cnx                                                           | E0802               |
+| tests/analysis/non-string-to-string.test.cnx                                                     | E0923               |
 | tests/analysis/reserved-parameter-name.test.cnx                                                  | E0227               |
 | tests/analysis/return-value-discarded.test.cnx                                                   | E0708               |
 | tests/analysis/self-recursion.test.cnx                                                           | E0423               |
@@ -390,6 +392,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-direct.test.cnx          | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-transitive.test.cnx      | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx                | E0805               |
+| tests/bugs/issue-1257-string-value-forms/string-field-non-string-error.test.cnx                  | E0923               |
+| tests/bugs/issue-1257-string-value-forms/string-value-forms-error.test.cnx                       | E0864               |
 | tests/bugs/issue-1268-qualified-zero-const/float-cast-index.test.cnx                             | E0854               |
 | tests/bugs/issue-1268-qualified-zero-const/float-cast-shift.test.cnx                             | E0873               |
 | tests/bugs/issue-1268-qualified-zero-const/float-to-integer-cast.test.cnx                        | E0800, E0802        |
@@ -602,12 +606,16 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2157-array-parameter-list/transitive-argument-error.test.cnx                    | E0866               |
 | tests/bugs/issue-2165-renamed-config/renamed-config-beside-include.test.cnx                      | E0918               |
 | tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx                             | E0921               |
+| tests/bugs/issue-2191-assignment-capacity/assignment-capacity-every-target-error.test.cnx        | E0864               |
 | tests/bugs/issue-2194-array-argument-shape/shape-error.test.cnx                                  | E0866               |
 | tests/bugs/issue-2195-array-row-slot/row-slot-declaration-error.test.cnx                         | E0866               |
 | tests/bugs/issue-2195-array-row-slot/row-slot-error.test.cnx                                     | E0866               |
 | tests/bugs/issue-2196-macro-fill-all/fill-declaration-error.test.cnx                             | E0866               |
 | tests/bugs/issue-2196-macro-fill-all/fill-error.test.cnx                                         | E0866               |
 | tests/bugs/issue-2209-array-argument-element/element-error.test.cnx                              | E0866               |
+| tests/bugs/issue-2236-string-field-initializer/string-field-initializer-error.test.cnx           | E0863, E0864        |
+| tests/bugs/issue-2239-string-argument-build/string-argument-capacity-error.test.cnx              | E0864               |
+| tests/bugs/issue-2240-substring-constant-length/substring-runtime-length-error.test.cnx          | E0922               |
 | tests/bugs/issue-2251-bitmap-field-bit-index/field-bit-index-wo-zero-error.test.cnx              | E0872               |
 | tests/bugs/issue-2254-volatile-not-inlined/volatile-dimension-error.test.cnx                     | E0909               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |

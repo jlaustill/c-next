@@ -1,0 +1,22 @@
+// test-error
+// Tests: #2236 - E0923 reaches a string<N> struct field's value; a literal field is the control
+enum Mode {
+    OFF,
+    ON
+}
+
+struct Cfg {
+    string<8> name;
+    u8 id;
+}
+
+void f() {
+    u8 n <- 5;
+    bool b <- true;
+    Mode e <- Mode.ON;
+    Cfg k <- { name: n, id: 1 };
+    Cfg k3 <- { name: 5, id: 3 };
+    Cfg k4 <- { name: b, id: 4 };
+    Cfg k5 <- { name: e, id: 5 };
+    Cfg k2 <- { name: "x", id: 2 };
+}

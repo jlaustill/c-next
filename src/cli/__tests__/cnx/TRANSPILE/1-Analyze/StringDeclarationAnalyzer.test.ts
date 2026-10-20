@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import StringDeclarationAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/StringDeclarationAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -18,7 +19,10 @@ const errors = (source: string) => {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
   });
-  return new StringDeclarationAnalyzer(context).analyze(syntax);
+  return new StringDeclarationAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context),
+  );
 };
 
 const codes = (source: string) => errors(source).map((e) => e.code);
@@ -124,5 +128,37 @@ describe("StringDeclarationAnalyzer", () => {
     expect(
       codes(inMain('    string<4> src <- "abcd";\n    string<1> c <- src[3];')),
     ).toEqual([]);
+  });
+  it("checks an argument against its string<N> parameter (#2239)", () => {
+    const source =
+      "u32 take(string<4> s) {\n    return s.value_char_count;\n}\n" +
+      inMain(
+        '    string<8> wide <- "abcdefgh";\n    string<2> narrow <- "ab";\n' +
+          "    u32 r1 <- take(wide);\n    u32 r2 <- take(narrow + narrow);",
+      );
+    expect(errors(source).map((e) => e.message)).toEqual([
+      "Cannot pass string<8> to a string<4> parameter -- the source may not fit",
+    ]);
+  });
+  it("checks a struct initializer's string<N> field as any string<N> (#2236)", () => {
+    const source =
+      "struct Cfg {\n    string<4> name;\n    u8 id;\n}\n" +
+      'string<4> gs <- "ab";\nCfg g <- { name: gs, id: 1 };\n' +
+      inMain(
+        '    string<8> wide <- "abcdefgh";\n    string<2> narrow <- "ab";\n' +
+          "    Cfg c <- { name: wide, id: 3 };\n    Cfg d <- { name: narrow, id: 4 };",
+      );
+    expect(errors(source).map((e) => e.code)).toEqual(["E0863", "E0864"]);
+  });
+  it("takes a substring's length only as a compile-time constant (#2240)", () => {
+    const source =
+      "void g(u8 n) {\n" +
+      '    string<8> src <- "abcdefgh";\n' +
+      "    string<4> t <- src[0, n];\n" +
+      "    string<4> u <- src[n, 2];\n" +
+      "}\n";
+    expect(errors(source).map((e) => e.message)).toEqual([
+      "A substring's length must be a compile-time constant, not 'n'",
+    ]);
   });
 });

@@ -1,0 +1,35 @@
+// test-execution
+// test-no-warnings
+// test-adr: 045
+// #1595 across TWO include hops: a string written to a scope member declared
+// in a file the fixture only reaches through another is the same bounded copy
+// as one declared in the file itself -- matrix cells: imported transitive, in
+// the top-level-function and scope-method contexts.
+#include "relay.cnx"
+
+scope Writer {
+    public void relabel() {
+        Store.label <- "method";
+    }
+}
+
+u32 main() {
+    Store.label <- "hello";
+    if (Store.label != "hello") {
+        return 1;
+    }
+    Store.tags[1] <- "tag";
+    if (Store.tags[1] != "tag") {
+        return 2;
+    }
+    Store.structField.member <- "fld";
+    if (Store.structField.member != "fld") {
+        return 3;
+    }
+
+    Writer.relabel();
+    if (Store.label != "method") {
+        return 4;
+    }
+    return 0;
+}

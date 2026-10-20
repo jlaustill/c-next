@@ -176,4 +176,23 @@ describe("FixtureOccupancy.build", () => {
     const report = await FixtureOccupancy.build([fixture], dir);
     expect([...report.keys()]).toEqual(["013", "051"]);
   });
+
+  it("occupies a rule's matrix only from that rule's provenance (#1731 review)", async () => {
+    // The copy into `g` is ADR-045's string-copy rule. It must fill that rule's
+    // top-level-function cell and not the ADR's own: while occupancy was keyed
+    // by ADR alone, it filled the declaration rules' cell as well.
+    const fixture = write(
+      "copy.test.cnx",
+      '// test-adr: 045\nmut string<8> g <- "";\nvoid go() {\n    g <- "ab";\n}\n',
+    );
+
+    const built = await FixtureOccupancy.build([fixture], dir);
+    expect([...built.get("045 string-copy")!.cells.keys()]).toEqual([
+      MatrixCell.key("top-level-function", "same-file"),
+    ]);
+    expect([...(built.get("045")?.cells.keys() ?? [])]).not.toContain(
+      MatrixCell.key("top-level-function", "same-file"),
+    );
+    expect(built.get("045")?.fixturesWithoutContext ?? []).toEqual([]);
+  });
 });

@@ -159,6 +159,46 @@ describe("LoopAnalyzer", () => {
     const codes = (source: string) =>
       errors(source).map((e) => [e.code, e.line, e.column, e.message]);
 
+    it("reads a string copy from the type the target writes", () => {
+      // #1731 review: E0715 asks the question 2.2's copy asks -- a field and
+      // an element of string<N> are copies; a byte element is one store
+      const source = [
+        "struct Cfg { string<8> name; }",
+        "void run() {",
+        "    u8 n <- 0;",
+        "    Cfg c;",
+        "    string<8>[2] names;",
+        "    u8[4] buf;",
+        '    for (c.name <- "b"; n < 2; n +<- 1) { }',
+        '    for (names[0] <- "b"; n < 2; n +<- 1) { }',
+        "    for (buf[0] <- 1; n < 2; n +<- 1) { }",
+        "}",
+      ].join("\n");
+      expect(codes(source)).toEqual([
+        ["E0715", 7, 9, expect.stringContaining("a string copy")],
+        ["E0715", 8, 9, expect.stringContaining("a string copy")],
+      ]);
+    });
+
+    it("reads a string copy of this.x and global.x from the variable", () => {
+      // #1731 review: with no step, the variable's own type is what is written
+      const source = [
+        "string<8> label;",
+        "scope S {",
+        "    string<8> name;",
+        "    public void run() {",
+        "        u8 n <- 0;",
+        '        for (this.name <- "b"; n < 2; n +<- 1) { }',
+        '        for (global.label <- "b"; n < 2; n +<- 1) { }',
+        "    }",
+        "}",
+      ].join("\n");
+      expect(codes(source)).toEqual([
+        ["E0715", 6, 13, expect.stringContaining("a string copy")],
+        ["E0715", 7, 13, expect.stringContaining("a string copy")],
+      ]);
+    });
+
     it("rejects a string copy, a slice and any write to an atomic", () => {
       const source = [
         "atomic u32 counter <- 0;",

@@ -15,6 +15,8 @@ import SaturatingCast from "../../helpers/SaturatingCast";
 import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 import LengthProperty from "../../../../../utils/LengthProperty";
+import StringUtils from "../../../../../utils/StringUtils";
+import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
 
 /**
  * Generate a safe arithmetic helper function (div or mod).
@@ -239,8 +241,40 @@ const generateLengthHelpers = (used: readonly string[]): string[] => {
   return lines;
 };
 
+/**
+ * #2207: the copy a string written from another string goes through. It moves
+ * one character at a time, so a source that is the target copies each
+ * character onto itself, where `strncpy` with overlapping arguments is
+ * undefined. Then it zero-fills to the capacity as `strncpy` does, so the
+ * bytes past the terminator are the same however the value was spelled. The
+ * source is walked by pointer, not indexed by the target's count, so cppcheck
+ * does not read `capacity` as a bound on a shorter literal (#2207 review).
+ */
+const generateStringCopyHelper = (needed: boolean): string[] =>
+  needed
+    ? [
+        ComplianceAnnotations.render(ComplianceAnnotations.STRING_SELF_COPY),
+        `static inline void ${StringUtils.COPY_HELPER}(char* target, const char* source, uint32_t capacity) {`,
+        "    const char* next = source;",
+        "    uint32_t i = 0U;",
+        "    while ((i < capacity) && (*next != '\\0')) {",
+        "        target[i] = *next;",
+        "        next++;",
+        "        i++;",
+        "    }",
+        "    while (i < capacity) {",
+        "        target[i] = '\\0';",
+        "        i++;",
+        "    }",
+        "    target[capacity] = '\\0';",
+        "}",
+        "",
+      ]
+    : [];
+
 const helperGenerators = {
   generateLengthHelpers,
+  generateStringCopyHelper,
   generateOverflowHelpers,
   generateSafeDivHelpers,
   generateCastHelpers,

@@ -8,17 +8,34 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // #1737: a write to one element of a struct's string-array field copies into
-// that element with the field's string<N> capacity (STRING_STRUCT_ARRAY_ELEMENT)
+// that element with the field's string<N> capacity, terminated like every
+// string write (#1731)
 // #1569: the field is declared char items[3][9], each element string<8>
 int main(void) {
     Config cfg = {0};
     cfg.count = 3U;
-    (void) strncpy(cfg.items[0], "hi", 8);
-    (void) strncpy(cfg.items[1], "seven c", 8);
-    (void) strncpy(cfg.items[2], "", 8);
+    cnx_string_copy(cfg.items[0], "hi", 8U);
+    cnx_string_copy(cfg.items[1], "seven c", 8U);
+    cnx_string_copy(cfg.items[2], "", 8U);
     if (strcmp(cfg.items[0U], "hi") != 0) {
         return 1;
     }

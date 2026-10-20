@@ -21,6 +21,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // #1450: the no-warnings marker is absent here deliberately. That marker is what
 // caught the `&array` argument defect this fixture's snapshot used to hold
@@ -43,11 +59,11 @@ uint32_t getElementLength(const char arr[5][33], const uint32_t index) {
 }
 
 int main(void) {
-    (void) strncpy(globalNames[0], "Alice", 32);
-    (void) strncpy(globalNames[1], "Bob", 32);
-    (void) strncpy(globalNames[2], "Charlie", 32);
-    (void) strncpy(globalNames[3], "Diana", 32);
-    (void) strncpy(globalNames[4], "Eve", 32);
+    cnx_string_copy(globalNames[0], "Alice", 32U);
+    cnx_string_copy(globalNames[1], "Bob", 32U);
+    cnx_string_copy(globalNames[2], "Charlie", 32U);
+    cnx_string_copy(globalNames[3], "Diana", 32U);
+    cnx_string_copy(globalNames[4], "Eve", 32U);
     if (5 != 5) {
         return 1;
     }
@@ -79,9 +95,9 @@ int main(void) {
         return 10;
     }
     char dupes[3][33] = {0};
-    (void) strncpy(dupes[0], "Alice", 32);
-    (void) strncpy(dupes[1], "Alice", 32);
-    (void) strncpy(dupes[2], "Bob", 32);
+    cnx_string_copy(dupes[0], "Alice", 32U);
+    cnx_string_copy(dupes[1], "Alice", 32U);
+    cnx_string_copy(dupes[2], "Bob", 32U);
     if (strcmp(dupes[0U], dupes[1U]) != 0) {
         return 11;
     }
@@ -89,9 +105,9 @@ int main(void) {
         return 12;
     }
     char colors[3][65] = {0};
-    (void) strncpy(colors[0], "Red", 64);
-    (void) strncpy(colors[1], "Green", 64);
-    (void) strncpy(colors[2], "Blue", 64);
+    cnx_string_copy(colors[0], "Red", 64U);
+    cnx_string_copy(colors[1], "Green", 64U);
+    cnx_string_copy(colors[2], "Blue", 64U);
     if (3 != 3) {
         return 13;
     }
@@ -137,7 +153,7 @@ int main(void) {
     if (totalLength != 23) {
         return 23;
     }
-    (void) strncpy(globalNames[1], "Benjamin", 32);
+    cnx_string_copy(globalNames[1], "Benjamin", 32U);
     if (strlen(globalNames[1U]) != 8) {
         return 24;
     }
@@ -145,7 +161,7 @@ int main(void) {
         return 25;
     }
     char sparse[3][33] = {0};
-    (void) strncpy(sparse[1], "Middle", 32);
+    cnx_string_copy(sparse[1], "Middle", 32U);
     if (strlen(sparse[0U]) != 0) {
         return 26;
     }

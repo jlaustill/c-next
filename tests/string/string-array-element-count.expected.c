@@ -19,14 +19,30 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #1029: .type_element_count should work on string arrays inside functions
 int main(void) {
     char items[4][33] = {0};
-    (void) strncpy(items[0], "One", 32);
-    (void) strncpy(items[1], "Two", 32);
-    (void) strncpy(items[2], "Three", 32);
-    (void) strncpy(items[3], "Four", 32);
+    cnx_string_copy(items[0], "One", 32U);
+    cnx_string_copy(items[1], "Two", 32U);
+    cnx_string_copy(items[2], "Three", 32U);
+    cnx_string_copy(items[3], "Four", 32U);
     if (4 != 4) {
         return 1;
     }

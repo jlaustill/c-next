@@ -1,0 +1,42 @@
+// test-execution
+// test-no-warnings
+// test-adr: 045
+// #1595: a string written to a scope member declared in an included file is
+// the same bounded copy the in-file `this.` spelling makes -- the member
+// itself, an element of a string array member, and a struct member's field.
+#include "lib.cnx"
+
+// A scope method writing another file's scope member: matrix cell scope
+// method, imported direct
+scope Writer {
+    public void relabel() {
+        Cfg.label <- "method";
+    }
+}
+
+u32 main() {
+    Cfg.label <- "hello";
+    if (Cfg.label != "hello") {
+        return 1;
+    }
+    Cfg.tags[1] <- "tag";
+    if (Cfg.tags[1] != "tag") {
+        return 2;
+    }
+    Cfg.structField.member <- "fld";
+    if (Cfg.structField.member != "fld") {
+        return 3;
+    }
+
+    // NEGATIVE CONTROL: the in-file `this.` spelling inside the scope
+    Cfg.setInFile();
+    if (Cfg.label != "inner") {
+        return 4;
+    }
+
+    Writer.relabel();
+    if (Cfg.label != "method") {
+        return 5;
+    }
+    return 0;
+}

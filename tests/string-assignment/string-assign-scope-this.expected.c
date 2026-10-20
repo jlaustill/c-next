@@ -8,21 +8,38 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
+// test-adr: 045
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 /* Scope: Logger */
 char Logger__message[65] = "";
 
 void Logger__setMessage(void) {
-    (void) strncpy(Logger__message, "Hello from scope", 64); Logger__message[64] = '\0';
+    cnx_string_copy(Logger__message, "Hello from scope", 64U);
 }
 
 void Logger__clear(void) {
-    (void) strncpy(Logger__message, "", 64); Logger__message[64] = '\0';
+    cnx_string_copy(Logger__message, "", 64U);
 }
 
 void Logger__setCustom(void) {
-    (void) strncpy(Logger__message, "Custom", 64); Logger__message[64] = '\0';
+    cnx_string_copy(Logger__message, "Custom", 64U);
 }
 
 int main(void) {

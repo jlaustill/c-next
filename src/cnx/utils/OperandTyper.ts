@@ -556,6 +556,113 @@ class OperandTyper {
     return t.stringCapacity;
   }
 
+  /**
+   * The capacity of the one `string<N>` a write stores whole -- through a
+   * name or an element, never a slice or a bit of what it selects -- or null (#1731
+   * review). 2.1's E0715 and 2.2's bounded copy both read it, so a `for`
+   * header is never handed a copy 2.1 let through.
+   */
+  static wholeStringCapacity(
+    written: IOperandType | null,
+    subscript: TSubscriptKind | null,
+  ): number | null {
+    const writesWhole = subscript === null || subscript === "array_element";
+    return writesWhole ? OperandTyper.scalarStringCapacity(written) : null;
+  }
+
+  /**
+   * #1634: whether a value is a string, as the `string<N>` it lands in reads
+   * it (ADR-045): a string literal; a `string<N>` or unsized `string` -- an
+   * element or a field of one included; a concatenation of strings, or a
+   * ternary between two; a C `char` array; or a substring of a string, its
+   * `s[0]` among them. False for
+   * every other value the typer types, so a category added later is no string
+   * until this says so. Null for a value the typer leaves untyped, a header's
+   * pointer among them (ForeignTypeFacts.operandType), which C judges.
+   */
+  static isStringValue(
+    value: TExpression,
+    ctx: ITypingContext,
+  ): boolean | null {
+    if (value.kind === "parenthesized") {
+      return OperandTyper.isStringValue(value.expression, ctx);
+    }
+    const parts = OperandTyper.stringParts(value);
+    if (parts !== null) {
+      const each = parts.map((part) => OperandTyper.isStringValue(part, ctx));
+      if (each.includes(false)) return false;
+      return each.includes(null) ? null : true;
+    }
+    if (ExpressionShape.isStringLiteral(value)) return true;
+    const t = OperandTyper.typeOf(value, ctx);
+    if (t === null) return null;
+    return (
+      OperandTyper.isScalarString(t) ||
+      (t.typeName === "char" && t.dimensions.length === 1) ||
+      OperandTyper.isSubstring(value, ctx)
+    );
+  }
+
+  /**
+   * The values a ternary or a `+` chain is a string of, when each is: its two
+   * arms, or its operands -- three or more among them, which #1954 tracks
+   */
+  private static stringParts(
+    value: TExpression,
+  ): readonly TExpression[] | null {
+    if (value.kind === "ternary") return [value.whenTrue, value.whenFalse];
+    return ExpressionShape.concatenationOperands(value);
+  }
+
+  /**
+   * A subscript of one string, which ADR-045 reads as its substring:
+   * `s[0, 2]`, or `s[0]`, its first character
+   */
+  static isSubstring(value: TExpression, ctx: ITypingContext): boolean {
+    if (value.kind !== "postfix") return false;
+    const step = OperandTyper.walkChain(value, ctx).typing.steps.at(-1);
+    return (
+      step !== undefined &&
+      step.subscript !== null &&
+      OperandTyper.isScalarString(step.before)
+    );
+  }
+
+  /** `wholeStringCapacity` of what an assignment target writes */
+  static stringCopyCapacity(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): number | null {
+    const { written, subscript } = OperandTyper.writtenBy(target, ctx);
+    return OperandTyper.wholeStringCapacity(written, subscript);
+  }
+
+  /**
+   * The type an assignment target writes, which ADR-044's clamp and the
+   * string copy both decide from (#1731 review)
+   */
+  static writtenType(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    return OperandTyper.writtenBy(target, ctx).written;
+  }
+
+  /**
+   * What a target writes and through which subscript: its last step's, or with
+   * no step the root itself -- `x`, `this.x` or `global.x`
+   */
+  private static writtenBy(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): { written: IOperandType | null; subscript: TSubscriptKind | null } {
+    const walked = OperandTyper.walkChain(target, ctx);
+    const step = walked.typing.steps.at(-1);
+    return step === undefined
+      ? { written: walked.last, subscript: null }
+      : { written: step.after, subscript: step.subscript };
+  }
+
   static isString(t: IOperandType | null): boolean {
     if (t === null) return false;
     const name = t.typeName ?? "";

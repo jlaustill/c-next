@@ -1,0 +1,27 @@
+// test-error
+// Tests: #2240 - a substring's length must be a compile-time constant (E0922) wherever the substring is read; a constant length beside each, and a run-time start, are the controls
+struct Cfg {
+    string<4> name;
+}
+
+u8 LEN <- 2;
+
+u32 take(string<4> s) {
+    return s.value_char_count;
+}
+
+void f(u8 n) {
+    string<8> src <- "abcdefgh";
+    string<4> t <- src[0, n];
+    string<4> t2 <- src[0, LEN];
+    mut string<4> u <- "";
+    u <- src[1, n];
+    u <- src[1, 2];
+    string<8> w <- src[0, n] + "x";
+    string<8> w2 <- src[0, 2] + "x";
+    u32 r <- take(src[0, n]);
+    u32 r2 <- take(src[0, 3]);
+    Cfg k <- { name: src[0, n] };
+    Cfg k2 <- { name: src[0, 1] };
+    string<4> v <- src[n, 2];
+}

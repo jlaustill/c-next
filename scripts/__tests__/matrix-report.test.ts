@@ -125,3 +125,26 @@ describe("AdrMatrixDeclaration.severityOf", () => {
     }
   });
 });
+
+describe("MatrixReport.undeclaredRules", () => {
+  it("names a rule matrix fixtures occupy that no ADR declares (#1731 review)", () => {
+    const declarations = new Map([
+      ["045", MatrixTestHelpers.declare("045", [])],
+      ["045 string-copy", MatrixTestHelpers.declare("045 string-copy", [])],
+    ]);
+    const occupancy = new Map([
+      ["045", MatrixTestHelpers.occupy("045", [])],
+      ["045 string-copy", MatrixTestHelpers.occupy("045 string-copy", [])],
+      ["045 string-cpy", MatrixTestHelpers.occupy("045 string-cpy", [])],
+    ]);
+    expect(MatrixReport.undeclaredRules(declarations, occupancy)).toEqual([
+      "045 string-cpy",
+    ]);
+  });
+
+  it("leaves an ADR's own matrix to the existing checks", () => {
+    // An ADR whose own table is missing is the reader's concern, not a typo.
+    const occupancy = new Map([["099", MatrixTestHelpers.occupy("099", [])]]);
+    expect(MatrixReport.undeclaredRules(new Map(), occupancy)).toEqual([]);
+  });
+});

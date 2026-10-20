@@ -19,6 +19,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // ADR-045: Test strings in control flow structures
 // Validates: string operations in if, while, for conditions
@@ -57,10 +73,10 @@ int main(void) {
         return 5;
     }
     char items[4][33] = {0};
-    (void) strncpy(items[0], "One", 32);
-    (void) strncpy(items[1], "Two", 32);
-    (void) strncpy(items[2], "Three", 32);
-    (void) strncpy(items[3], "Four", 32);
+    cnx_string_copy(items[0], "One", 32U);
+    cnx_string_copy(items[1], "Two", 32U);
+    cnx_string_copy(items[2], "Three", 32U);
+    cnx_string_copy(items[3], "Four", 32U);
     uint32_t totalLen = 0U;
     uint32_t i = 0U;
     while (i < 4) {
@@ -77,7 +93,7 @@ int main(void) {
     if (result != 6) {
         return 7;
     }
-    (void) strncpy(maybeEmpty, "NotEmpty", 32); maybeEmpty[32] = '\0';
+    cnx_string_copy(maybeEmpty, "NotEmpty", 32U);
     if (strlen(maybeEmpty) != 0) {
         result = 7U;
     }

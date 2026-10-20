@@ -1,0 +1,31 @@
+// test-execution
+// test-no-warnings
+// #1256: a string written to a field of a struct parameter is a bounded copy
+// into that field through the parameter, whatever the parameter is passed as.
+struct Config {
+    u32 id;
+    string<16> label;
+}
+
+void assignStructField(mut Config cfg) {
+    cfg.label <- "field";
+}
+
+u32 main() {
+    mut Config c;
+    c.id <- 7;
+    c.label <- "start";
+    assignStructField(c);
+    if (c.label != "field") {
+        return 1;
+    }
+    u32 n <- c.label.value_char_count;
+    if (n != 5) {
+        return 2;
+    }
+    // The field beside it is untouched
+    if (c.id != 7) {
+        return 3;
+    }
+    return 0;
+}

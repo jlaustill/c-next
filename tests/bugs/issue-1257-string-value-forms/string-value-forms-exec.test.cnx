@@ -1,0 +1,103 @@
+// test-execution
+// test-no-warnings
+// Tests: #1257, #2237, #1954, #2223, #2232 - one decision for a value written whole into a string<N>, in a declaration and an assignment alike
+struct Cfg {
+    string<8> name;
+}
+struct Box {
+    string<40> name;
+}
+
+scope S {
+    string<8> m <- "mm";
+    public string<8> pm <- "pq";
+
+    public u32 run() {
+        string<8> a <- "ab";
+        string<8> b <- "cd";
+        mut Cfg c;
+        c.name <- "xy";
+        string<8>[3] arr <- ["e0", "e1", "e2"];
+
+        // Controls: a bare-name concatenation and substring
+        string<40> d0 <- a + b;
+        if (d0 != "abcd") {
+            return 13;
+        }
+        string<8> d6 <- a[0, 1];
+        if (d6 != "a") {
+            return 14;
+        }
+
+        // Declarations: operands and substring sources through a field, an element and this. (#2237, #2223)
+        string<40> d1 <- c.name + "z";
+        if (d1 != "xyz") {
+            return 1;
+        }
+        string<40> d2 <- arr[1] + this.m;
+        if (d2 != "e1mm") {
+            return 2;
+        }
+        string<40> d3 <- this.m[0, 1] + c.name[1, 1] + arr[2][1, 1];
+        if (d3 != "my2") {
+            return 3;
+        }
+        // Three operands (#1954) and parentheses (#2232)
+        string<40> d4 <- (a + b) + "z";
+        if (d4 != "abcdz") {
+            return 4;
+        }
+        string<8> d5 <- ("hi");
+        if (d5 != "hi") {
+            return 5;
+        }
+
+        // Assignments build the value apart, then copy it in (#1257)
+        mut string<40> t <- "";
+        t <- a + b;
+        if (t != "abcd") {
+            return 6;
+        }
+        t <- a[1, 1];
+        if (t != "b") {
+            return 7;
+        }
+        mut Box x;
+        x.name <- c.name + arr[0];
+        if (x.name != "xye0") {
+            return 8;
+        }
+        mut string<40>[2] o <- ["", ""];
+        o[1] <- "z" + this.m[0, 1];
+        if (o[1] != "zm") {
+            return 9;
+        }
+
+        // A part that reads the target reads it unchanged
+        mut string<8> s <- "abc";
+        s <- "z" + s[0, 2];
+        if (s != "zab") {
+            return 10;
+        }
+        s <- s[1, 2];
+        if (s != "ab") {
+            return 11;
+        }
+
+        // Control: a whole string copied in, unchanged
+        t <- b;
+        if (t != "cd") {
+            return 12;
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    // A substring through a scope-qualified member (#2223)
+    string<8> q <- S.pm[0, 1];
+    if (q != "p") {
+        return 20;
+    }
+    return S.run();
+}

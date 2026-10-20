@@ -8,6 +8,22 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // test-no-warnings
 // ADR-003/ADR-045: Static string buffer allocation
@@ -27,12 +43,12 @@ uint32_t getLogLength(void) {
 
 // Issue #138 fixed: assignment from const parameter now generates valid C
 void copyMessage(const char* source) {
-    (void) strncpy(messageBuffer, source, 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, source, 64U);
 }
 
 // Issue #139 fixed: string literal assignment in function body now works
 void setDefaultMessage(void) {
-    (void) strncpy(messageBuffer, "DefaultValue", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "DefaultValue", 64U);
 }
 
 int main(void) {
@@ -68,7 +84,7 @@ int main(void) {
     if (logLen != 13) {
         return 10U;
     }
-    (void) strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
+    cnx_string_copy(messageBuffer, "Modified", 64U);
     if (strlen(messageBuffer) != 8) {
         return 11U;
     }

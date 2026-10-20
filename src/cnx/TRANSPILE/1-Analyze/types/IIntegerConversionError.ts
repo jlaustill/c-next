@@ -6,6 +6,7 @@
  * - E0869: an implicit narrowing or sign-changing conversion
  * - E0891: an implicit floating-to-integer conversion
  * - E0914: a string value landing in an integer, float or bool
+ * - E0923: a value that is not a string landing in a string<N>
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 

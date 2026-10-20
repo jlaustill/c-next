@@ -34,7 +34,7 @@ describe("AssignmentHandlerRegistry", () => {
         AssignmentKind.SIMPLE,
         AssignmentKind.BITMAP_FIELD,
         AssignmentKind.ARRAY_ELEMENT,
-        AssignmentKind.STRING_SIMPLE,
+        AssignmentKind.STRING_COPY,
         AssignmentKind.REGISTER_BIT,
         AssignmentKind.INTEGER_BIT,
         AssignmentKind.GLOBAL_MEMBER,

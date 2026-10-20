@@ -21,6 +21,22 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return (uint8_t)(a + (uint8_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #1019 review feedback: do-while assignment should be detected
 // A scope member assigned inside a do-while body should be readable elsewhere
@@ -30,7 +46,7 @@ static char S__buf[17] = "";
 void S__init(void) {
     uint8_t i = 0U;
     do {
-        (void) strncpy(S__buf, "initialized", 16); S__buf[16] = '\0';
+        cnx_string_copy(S__buf, "initialized", 16U);
         i = cnx_clamp_add_u8(i, 1U);
     } while (i < 1);
 }

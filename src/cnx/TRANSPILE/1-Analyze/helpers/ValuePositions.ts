@@ -287,20 +287,7 @@ class ValuePositionWalk {
         field.value,
         structName === null
           ? NO_TYPE
-          : {
-              ...NO_TYPE,
-              typeText:
-                symbols.structFields.get(structName)?.get(field.name) ?? null,
-              isArray:
-                symbols.structFieldArrays.get(structName)?.has(field.name) ??
-                false,
-              dimensions: stringlessDimensions(
-                symbols.structFields.get(structName)?.get(field.name) ?? null,
-                symbols.structFieldDimensions
-                  .get(structName)
-                  ?.get(field.name) ?? [],
-              ),
-            },
+          : fieldPosition(symbols, structName, field.name),
         {
           site: { kind: "field", initializer: init, field: field.name },
           outer: site,
@@ -308,6 +295,29 @@ class ValuePositionWalk {
       );
     }
   }
+}
+
+/**
+ * A struct field's position. A `string<N>` field is stored as `char[N+1]`,
+ * but its value is one string, not an array (#2236): its last dimension is
+ * its characters' (#1782), so it is an array only with dimensions of its own.
+ */
+function fieldPosition(
+  symbols: IAnalysisContext["symbols"],
+  structName: string,
+  fieldName: string,
+): IValuePosition {
+  const typeText = symbols.structFields.get(structName)?.get(fieldName) ?? null;
+  const stored =
+    symbols.structFieldDimensions.get(structName)?.get(fieldName) ?? [];
+  const dimensions = stringlessDimensions(typeText, stored);
+  const element =
+    typeText === null ? null : TypeText.withoutDimensions(typeText);
+  const isArray =
+    element !== null && TypeCheckUtils.isSizedStringName(element)
+      ? element !== typeText
+      : (symbols.structFieldArrays.get(structName)?.has(fieldName) ?? false);
+  return { ...NO_TYPE, typeText, isArray, dimensions };
 }
 
 /** A string field's last dimension is its characters', not an array's (#1782) */

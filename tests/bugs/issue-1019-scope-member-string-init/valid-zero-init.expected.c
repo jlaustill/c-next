@@ -8,6 +8,22 @@
 #include <stdint.h>
 #include <string.h>
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-execution
 // Issue #1019 Bug #2: Scope-member string should emit valid C for zero-init
 // When scope-member string IS initialized before read, codegen must be valid
@@ -15,7 +31,7 @@
 static char S__buf[17] = "";
 
 void S__init(void) {
-    (void) strncpy(S__buf, "", 16); S__buf[16] = '\0';
+    cnx_string_copy(S__buf, "", 16U);
 }
 
 uint8_t S__len(void) {

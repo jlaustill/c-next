@@ -28,6 +28,22 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a - (uint32_t)b);
 }
 
+/* MISRA C:2012 Rule 19.1: string copied a character at a time by `cnx_string_copy` (`strncpy` would be passed overlapping arguments when a string is written from itself). */
+static inline void cnx_string_copy(char* target, const char* source, uint32_t capacity) {
+    const char* next = source;
+    uint32_t i = 0U;
+    while ((i < capacity) && (*next != '\0')) {
+        target[i] = *next;
+        next++;
+        i++;
+    }
+    while (i < capacity) {
+        target[i] = '\0';
+        i++;
+    }
+    target[capacity] = '\0';
+}
+
 // test-adr: 057
 // ADR-057: coverage sweep, derived from the EMISSION SITES rather than from the
 // defect history.
@@ -103,7 +119,7 @@ uint32_t S__positions(const uint32_t flag) {
     S__positions__pcfg.x = 7U;
     acc = cnx_clamp_add_u32(acc, S__positions__pcfg.x);
     acc = cnx_clamp_add_u32(acc, 4);
-    (void) strncpy(S__positions__pstr, "cd", 8); S__positions__pstr[8] = '\0';
+    cnx_string_copy(S__positions__pstr, "cd", 8U);
     acc = cnx_clamp_add_u32(acc, strlen(S__positions__pstr));
     const Holder made = { .x = S__positions__probe };
     acc = cnx_clamp_add_u32(acc, made.x);
