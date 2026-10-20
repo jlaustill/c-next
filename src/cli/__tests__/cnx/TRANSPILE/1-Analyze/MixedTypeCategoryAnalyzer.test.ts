@@ -663,3 +663,35 @@ describe("MixedTypeCategoryAnalyzer -- positions, operators, inner levels", () =
     ]);
   });
 });
+
+describe("MixedTypeCategoryAnalyzer -- an integer beside an unreadable header macro (#1688)", () => {
+  function analyzeWithMacro(body: string) {
+    const { syntax, context } = testAnalysisContextFor(
+      `void main() { u32 i <- 3; bool lt <- true; ${body} }`,
+      { cppMode: false, macros: { RAW: { kind: "unreadable" } } },
+    );
+    return new MixedTypeCategoryAnalyzer(context)
+      .analyze(syntax)
+      .map((e) => `${e.code} ${e.message}`);
+  }
+
+  it.each([
+    [
+      "a binary operator",
+      "u32 b <- i * RAW;",
+      "E0811 Binary operator combines an integer operand and a header macro whose type cnx cannot read",
+    ],
+    [
+      "a compound assignment",
+      "i +<- RAW;",
+      "E0811 Compound assignment combines an integer and a header macro whose type cnx cannot read",
+    ],
+    [
+      "a conditional's value arms",
+      "u32 e <- (lt = true) ? i : RAW;",
+      "E0812 Conditional operator's value arms combine an integer and a header macro whose type cnx cannot read",
+    ],
+  ])("names the site for %s", (_label, body, expected) => {
+    expect(analyzeWithMacro(body)).toEqual([expected]);
+  });
+});

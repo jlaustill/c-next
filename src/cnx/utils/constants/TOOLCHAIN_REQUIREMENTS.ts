@@ -1,6 +1,34 @@
 import type IToolchainRequirement from "../../types/IToolchainRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
+import type TLanguageStandard from "../../types/TLanguageStandard";
+import type TOutputMode from "../../types/TOutputMode";
 import IRQ_WRAPPER_GUARDS from "./IRQ_WRAPPER_GUARDS";
+
+/** A mode's baseline: what every file in that mode costs, unconditionally */
+function baseline(
+  key: TRequirementKey,
+  mode: TOutputMode,
+  standard: TLanguageStandard,
+  reason: string,
+  incurredBy: string,
+  adr: string,
+): IToolchainRequirement {
+  return {
+    key,
+    modes: [mode],
+    feature: "baseline",
+    standard,
+    compiler: null,
+    extensions: [],
+    platformLib: null,
+    condition: null,
+    reason,
+    incurredBy,
+    probe: null,
+    adr,
+    misra: ["1.1"],
+  };
+}
 
 /**
  * Issue #1143: The single source of truth for what generated output costs.
@@ -23,37 +51,23 @@ import IRQ_WRAPPER_GUARDS from "./IRQ_WRAPPER_GUARDS";
  * __builtin_*_overflow calls removed in #1143.
  */
 const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
-  "baseline-c": {
-    key: "baseline-c",
-    modes: ["c"],
-    feature: "baseline",
-    standard: "C99",
-    compiler: null,
-    extensions: [],
-    platformLib: null,
-    condition: null,
-    reason: "stdint fixed-width types, // comments, mixed declarations",
-    incurredBy: "any cnx file transpiled to C",
-    probe: null,
-    adr: "ADR-044",
-    misra: ["1.1"],
-  },
+  "baseline-c": baseline(
+    "baseline-c",
+    "c",
+    "C99",
+    "stdint fixed-width types, // comments, mixed declarations",
+    "any cnx file transpiled to C",
+    "ADR-044",
+  ),
 
-  "baseline-cpp": {
-    key: "baseline-cpp",
-    modes: ["cpp"],
-    feature: "baseline",
-    standard: "C++11",
-    compiler: null,
-    extensions: [],
-    platformLib: null,
-    condition: null,
-    reason: "nullptr, static_cast, reinterpret_cast",
-    incurredBy: "any cnx file transpiled with --cpp",
-    probe: null,
-    adr: "ADR-010",
-    misra: ["1.1"],
-  },
+  "baseline-cpp": baseline(
+    "baseline-cpp",
+    "cpp",
+    "C++11",
+    "nullptr, static_cast, reinterpret_cast",
+    "any cnx file transpiled with --cpp",
+    "ADR-010",
+  ),
 
   "float-assert-c11": {
     key: "float-assert-c11",
