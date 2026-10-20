@@ -443,7 +443,8 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     setupSymbols({
       bitmapFields: controlBits,
       knownRegisters: new Set(["MOTOR"]),
-      registerMemberTypes: new Map([["MOTOR__CTRL", "ControlBits"]]),
+      knownBitmaps: new Set(["ControlBits"]),
+      registerMemberCTypes: new Map([["MOTOR__CTRL", "ControlBits"]]),
     });
 
     expect(
@@ -461,7 +462,8 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
       bitmapFields: new Map([
         ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
       ]),
-      registerMemberTypes: new Map([["MOTOR__CTRL", "ControlBits"]]),
+      knownBitmaps: new Set(["ControlBits"]),
+      registerMemberCTypes: new Map([["MOTOR__CTRL", "ControlBits"]]),
     });
 
     expect(

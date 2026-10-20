@@ -1,0 +1,5 @@
+// A bitmap two include hops from cross-file-bitmap-register (#1514).
+bitmap16 Deep {
+    A,
+    B[15]
+}

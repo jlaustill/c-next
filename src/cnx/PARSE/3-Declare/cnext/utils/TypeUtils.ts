@@ -3,7 +3,6 @@
  */
 
 import type TTypeSyntax from "../../../../types/syntax/TTypeSyntax";
-import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import TypeNameLadder from "../../../../utils/TypeNameLadder";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TTypeUtils from "../../../../utils/TTypeUtils";
@@ -121,16 +120,6 @@ class TypeUtils {
     }
 
     return TTypeUtils.createDeferred(classified.written, scopePath);
-  }
-
-  /**
-   * Convert a C-Next type name to its C equivalent.
-   *
-   * @param typeName The C-Next type name
-   * @returns The C type name
-   */
-  static cnextTypeToCType(typeName: string): string {
-    return CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
   }
 }
 

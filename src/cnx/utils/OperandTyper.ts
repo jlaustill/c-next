@@ -1556,7 +1556,9 @@ class OperandTyper {
         };
         // #1514: the member's C type, and whether it names a bitmap, read
         // from the names this file SEES, so an included bitmap counts
-        const cType = ctx.symbols.registerMemberCTypes.get(registerMember.cName);
+        const cType = ctx.symbols.registerMemberCTypes.get(
+          registerMember.cName,
+        );
         if (cType === undefined) return UNKNOWN;
         const named = OperandTyper.namedFacts(cType, ctx);
         if (named.bitmapTypeName !== null) {

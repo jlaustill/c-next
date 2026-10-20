@@ -1,9 +1,9 @@
 // test-error
 // test-adr: 004
 // E0870/E0871/E0872 on register members typed by a bitmap from an INCLUDED
-// file (#2155 review 8). An included bitmap type is not resolved where the
-// register is declared (#1514); the member's access rules still apply,
-// because they belong to the member, not to its type.
+// file (#2155 review 8). The access rules belong to the member, not to its
+// type, so they apply whether its bitmap is declared here or included (since
+// #1514 the included bitmap is also resolved as one).
 
 #include "register-imported-bitmap-type.cnx"
 

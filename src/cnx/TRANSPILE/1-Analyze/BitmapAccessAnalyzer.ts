@@ -13,7 +13,7 @@
  * asked those separately -- the literal-overflow check keyed on the assignment
  * handler's already-resolved field, the unknown-field check on a map lookup
  * deep in expression generation, and the bracket check on
- * `registerMemberTypes` keyed by a GENERATED C name, which is why it could
+ * a register-member map keyed by a GENERATED C name, which is why it could
  * only ever fire for registers. Here both routes answer one question,
  * the typer's chain (#1749 review), and all three rules read it.
  *

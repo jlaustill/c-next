@@ -261,7 +261,8 @@ describe("BitmapHandlers", () => {
       HandlerTestUtils.setupMockSymbols(state, {
         bitmapBackingType: new Map([["Bits", "uint8_t"]]),
         bitmapFields: new Map([["Bits", new Map([field])]]),
-        registerMemberTypes: new Map([[member, "Bits"]]),
+        knownBitmaps: new Set(["Bits"]),
+        registerMemberCTypes: new Map([[member, "Bits"]]),
         registerMemberAccess: new Map(
           access === undefined ? [] : [[member, access]],
         ),

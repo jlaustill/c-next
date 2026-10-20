@@ -15,6 +15,8 @@
 // in the register's name.
 
 #include "lib/bitmaps.cnx"
+#include "lib/mid.cnx"
+#include "lib/periph.cnx"
 
 bitmap8 Local {
     En,
@@ -30,6 +32,11 @@ register SREG @ 0x40002000 {
     RW: Local rw @ 0x00,
 }
 
+register DREG @ 0x40005000 {
+    D: Deep rw @ 0x00,
+    M: EMode rw @ 0x02,
+}
+
 scope Dev {
     register CTRL @ 0x40000000 {
         STATUS: Chip.Flags rw @ 0x00,
@@ -41,6 +48,16 @@ scope Dev {
 
     public bool busy() {
         return this.CTRL.STATUS.Busy;
+    }
+}
+
+scope Bus {
+    register G @ 0x40006000 {
+        C: global.Ctl rw @ 0x00,
+    }
+
+    public void go() {
+        this.G.C.En <- true;
     }
 }
 
@@ -72,6 +89,19 @@ void main() {
     Dev.go();
     bool b <- Dev.busy();
     Chip.set();
+
+    // ASSERTION -- a bitmap two include hops away, and `global.` naming an
+    // included file-scope bitmap from inside a scope.
+    DREG.D.A <- true;
+    DREG.D.B <- 3;
+    Bus.go();
+
+    // ASSERTION -- a public register declared in an included file.
+    Periph.CTRL.CR.Mode <- 2;
+
+    // NEGATIVE CONTROL -- an included enum types its member as that enum,
+    // not as a bitmap.
+    DREG.M <- EMode.On;
 
     if ((en = sen) && (b = true)) {
         LREG.RW.Hi <- 0;

@@ -9,6 +9,7 @@ import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbol
 import type IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
 import type IRegisterSymbol from "../../../types/symbols/IRegisterSymbol";
 import type TSymbol from "../../../types/symbols/TSymbol";
+import TypeResolver from "../../../utils/TypeResolver";
 import TestExpression from "../../../types/__testUtils__/testExpression";
 
 /**
@@ -56,9 +57,8 @@ const register = (
         "DR",
         {
           offset: TestExpression.hex("0x00"),
-          cType: "uint32_t",
+          type: TypeResolver.resolve(bitmapType ?? "u32"),
           access: "rw",
-          bitmapType,
         },
       ],
     ]),

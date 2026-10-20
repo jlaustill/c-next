@@ -1,9 +1,15 @@
 // Bitmaps declared in their own file, for the register members of
-// cross-file-bitmap-register to be typed by (#1514).
+// cross-file-bitmap-register to be typed by (#1514). `EMode` is the
+// negative control: an included NON-bitmap stays what it is.
 bitmap8 Ctl {
     En,
     Mode[3],
     Hi[4]
+}
+
+enum EMode {
+    Off,
+    On
 }
 
 scope Chip {
