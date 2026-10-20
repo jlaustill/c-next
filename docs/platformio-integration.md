@@ -7,13 +7,13 @@ C-Next integrates seamlessly with PlatformIO embedded projects. The transpiler a
 From your PlatformIO project root:
 
 ```bash
-cnext --pio-install
+cnx --pio-install
 ```
 
 This command:
 
-- Creates `cnext_build.py` (pre-build transpilation script)
-- Modifies `platformio.ini` to add `extra_scripts = pre:cnext_build.py`
+- Creates `cnx_build.py` (pre-build transpilation script, which runs `cnx`)
+- Modifies `platformio.ini` to add `extra_scripts = pre:cnx_build.py`
 - Creates/updates `cnx.config.json` (adds `.pio/libdeps` to `include`, sets `headerOut: include`)
 
 ## Project Configuration (`cnx.config.json`)
@@ -41,7 +41,7 @@ project includes, which only the library can fix.
 Relative paths in `cnx.config.json` resolve against the directory holding the
 config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve
 against the current working directory. So `"headerOut": "include"` names the same
-directory whether you run `cnext` from the project root or from `src/`, while
+directory whether you run `cnx` from the project root or from `src/`, while
 `--header-out include` follows your shell.
 
 Example (Teensy + a C++ library such as FlexCAN_T4):
@@ -61,9 +61,9 @@ Every program has exactly one target (ADR-049). In a PlatformIO project you
 usually need not name it: when no `#pragma target` and no `--target` (or config
 `target`) says otherwise, the board of the environment being built names it.
 
-- `cnext_build.py` passes the environment PlatformIO is building
+- `cnx_build.py` passes the environment PlatformIO is building
   (`--pio-env $PIOENV`), so `pio run -e uno` builds for `uno`'s board.
-- Run by hand, `cnext` uses `default_envs`, else every environment, and those
+- Run by hand, `cnx` uses `default_envs`, else every environment, and those
   must agree (E0511 if they do not). As in PlatformIO, the build machine's
   `PLATFORMIO_DEFAULT_ENVS`, when it is set, is appended to `default_envs`. A
   diagnostic about an environment only that variable named says so, rather
@@ -71,13 +71,15 @@ usually need not name it: when no `#pragma target` and no `--target` (or config
 - A board names a target when the catalog has that name (`teensy41`), or when its
   platform is `atmelavr` (target `avr`) or `native` (target `host`). Any other
   board is E0510 — name the target with `#pragma target <name>` or `target` in
-  `cnx.config.json`. `cnext --help` lists the known targets.
+  `cnx.config.json`. `cnx --help` lists the known targets.
 
 The run prints the target it used and where it came from, e.g.
 `Target: teensy41 (platformio)`, and `pio run` shows that line.
 
-**Upgrading:** re-run `cnext --pio-install` after upgrading C-Next. It rewrites
-`cnext_build.py`. A script written before the target was required passes no
+**Upgrading:** re-run `cnx --pio-install` after upgrading C-Next. It rewrites
+`cnx_build.py`. In a project that still has `cnext_build.py` it stops instead:
+see [Migrating from `cnext_build.py`](#migrating-from-cnext_buildpy). A script
+written before the target was required passes no
 `--pio-env`, so in a project whose environments name different targets and that
 sets no `default_envs`, every build fails with E0511.
 
@@ -126,11 +128,14 @@ pio run
 Output:
 
 ```
-Transpiling 2 c-next files...
-  ✓ ConfigStorage.cnx
-  ✓ SensorProcessor.cnx
+Transpiling from main.cnx...
+  Target: teensy41 (platformio)
+  ✓ Transpilation complete
 Building...
 ```
+
+If `cnx` is not on the PATH PlatformIO builds with, the build stops with
+`✗ cnx not found on PATH: npm i -g <package>`.
 
 3. **Commit both `.cnx` and generated `.c|.cpp|.h` files** to version control
 
@@ -164,7 +169,7 @@ This follows the same pattern as TypeScript committing `.js` files or Bison comm
 ```
 my-teensy-project/
 ├── platformio.ini           # PlatformIO config
-├── cnext_build.py           # Auto-generated transpilation script
+├── cnx_build.py             # Auto-generated transpilation script
 ├── src/
 │   ├── main.cpp             # C++ entry point
 │   ├── ConfigStorage.cnx    # c-next source
@@ -177,18 +182,32 @@ my-teensy-project/
 
 ## Uninstall
 
-To remove c-next integration:
+To remove the cnx integration:
 
 ```bash
-cnext --pio-uninstall
+cnx --pio-uninstall
 ```
 
 This removes:
 
-- `cnext_build.py` script
-- `extra_scripts` reference from `platformio.ini`
+- the `cnx_build.py` script, and the old `cnext_build.py`
+- either one's `extra_scripts` reference from `platformio.ini`
 
 Your `.cnx` files and generated `.c|.cpp|.h` files remain untouched.
+
+## Migrating from `cnext_build.py`
+
+Before the command was renamed `cnx`, `--pio-install` wrote `cnext_build.py`, which
+runs `cnext`. That command no longer exists, so every build with the old script
+fails. Replace it:
+
+```bash
+cnx --pio-uninstall
+cnx --pio-install
+```
+
+Until you do, `cnx --pio-install` stops with that instruction and writes nothing,
+since adding `cnx_build.py` beside the old script would leave every build running both.
 
 ## Manual Integration
 
@@ -196,8 +215,8 @@ If you prefer manual control, you can also run the transpiler explicitly:
 
 ```bash
 # Transpile from entry point (includes are followed automatically)
-cnext src/main.cnx
+cnx src/main.cnx
 
-# For one environment's board, as cnext_build.py does
-cnext src/main.cnx --pio-env teensy41
+# For one environment's board, as cnx_build.py does
+cnx src/main.cnx --pio-env teensy41
 ```

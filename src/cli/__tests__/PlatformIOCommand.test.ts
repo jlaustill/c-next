@@ -10,6 +10,7 @@ import IFileSystem from "../../cnx/types/IFileSystem";
 import TestFileSystem from "../../cnx/types/__testUtils__/TestFileSystem";
 import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
 import DiagnosticText from "../DiagnosticText";
+import packageJson from "../../../package.json" with { type: "json" };
 
 /**
  * A PlatformIO project in memory at the cwd, which install and uninstall
@@ -103,14 +104,14 @@ describe("PlatformIOCommand", () => {
       );
     });
 
-    it("creates cnext_build.py script", () => {
+    it("creates cnx_build.py script", () => {
       const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
       PlatformIOCommand.install(project.fs);
 
-      const script = project.file("cnext_build.py");
+      const script = project.file("cnx_build.py");
       expect(script).toContain("Import");
-      expect(script).toContain("transpile_cnext");
+      expect(script).toContain("transpile_cnx");
     });
 
     it("generates script that uses entry point, not per-file loop", () => {
@@ -118,12 +119,12 @@ describe("PlatformIOCommand", () => {
 
       PlatformIOCommand.install(project.fs);
 
-      const script = project.file("cnext_build.py");
+      const script = project.file("cnx_build.py");
       // Should use entry point approach
       expect(script).toContain('Path("src/main.cnx")');
       // ADR-049: the environment being built names the target (#1668)
       expect(script).toContain(
-        '["cnext", str(entry), "--pio-env", env["PIOENV"]]',
+        '["cnx", str(entry), "--pio-env", env["PIOENV"]]',
       );
 
       // Should NOT loop over individual .cnx files
@@ -131,12 +132,24 @@ describe("PlatformIOCommand", () => {
       expect(script).not.toContain("rglob");
     });
 
+    it("generates script that names a missing cnx and how to install it (#2174)", () => {
+      const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
+
+      PlatformIOCommand.install(project.fs);
+
+      const script = project.file("cnx_build.py");
+      expect(script).toContain("except FileNotFoundError:");
+      expect(script).toContain(
+        `print("  ✗ cnx not found on PATH: npm i -g ${packageJson.name}")`,
+      );
+    });
+
     it("generates script that shows a successful run's target and warnings", () => {
       const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
       PlatformIOCommand.install(project.fs);
 
-      const script = project.file("cnext_build.py");
+      const script = project.file("cnx_build.py");
       // #1760 review: the ADR-049 `Target:` line was filtered out of pio run,
       // and warnings, which go to stderr, were printed only on failure
       expect(script).toContain(
@@ -154,13 +167,13 @@ describe("PlatformIOCommand", () => {
 
       PlatformIOCommand.install(project.fs);
 
-      const script = project.file("cnext_build.py");
+      const script = project.file("cnx_build.py");
       // Should NOT use AddPreAction (runs too late)
       expect(script).not.toContain("AddPreAction");
       expect(script).not.toContain("buildprog");
 
-      // Should call transpile_cnext() at top level (import time)
-      expect(script).toContain("transpile_cnext()");
+      // Should call transpile_cnx() at top level (import time)
+      expect(script).toContain("transpile_cnx()");
     });
 
     it("adds extra_scripts to platformio.ini when not present", () => {
@@ -171,7 +184,7 @@ describe("PlatformIOCommand", () => {
       PlatformIOCommand.install(project.fs);
 
       expect(project.file("platformio.ini")).toContain(
-        "extra_scripts = pre:cnext_build.py",
+        "extra_scripts = pre:cnx_build.py",
       );
     });
 
@@ -184,14 +197,14 @@ describe("PlatformIOCommand", () => {
 
       const ini = project.file("platformio.ini");
       expect(ini).toContain("post:other.py");
-      expect(ini).toContain("pre:cnext_build.py");
+      expect(ini).toContain("pre:cnx_build.py");
     });
 
     // #2221 review: since a reinstall goes on to set up the config, nothing
     // pinned what it leaves alone; writing platformio.ini again lists the
     // script twice, and the first-install banner is not a reinstall's
     it("leaves platformio.ini and the first-install banner alone on a reinstall", () => {
-      const ini = "[env:esp32]\nextra_scripts = pre:cnext_build.py\n";
+      const ini = "[env:esp32]\nextra_scripts = pre:cnx_build.py\n";
       const project = new PioProject({ "platformio.ini": ini });
 
       PlatformIOCommand.install(project.fs);
@@ -333,7 +346,7 @@ describe("PlatformIOCommand", () => {
       // the config was set up, so a reinstall left it without the defaults
       it("updates the config on a reinstall too", () => {
         const project = new PioProject({
-          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
           ".cnxrc": JSON.stringify({ target: "teensy41" }),
         });
 
@@ -356,7 +369,7 @@ describe("PlatformIOCommand", () => {
         ["null", "null"],
       ])("stops at a config holding %s, writing nothing", (_label, content) => {
         const project = new PioProject({
-          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
           ".cnxrc": content,
         });
 
@@ -406,7 +419,7 @@ describe("PlatformIOCommand", () => {
 
       it("rewrites no config that already has the defaults", () => {
         const project = new PioProject({
-          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
           ".cnxrc": JSON.stringify({
             include: [".pio/libdeps"],
             headerOut: "include",
@@ -415,7 +428,7 @@ describe("PlatformIOCommand", () => {
 
         PlatformIOCommand.install(project.fs);
 
-        expect(project.written).toEqual(["cnext_build.py"]);
+        expect(project.written).toEqual(["cnx_build.py"]);
         expect(consoleLogSpy).toHaveBeenCalledWith(
           expect.stringContaining("already has the PlatformIO defaults"),
         );
@@ -441,9 +454,217 @@ describe("PlatformIOCommand", () => {
           `Error: ${DiagnosticText.of(error)}`,
         );
         expect(project.file("platformio.ini")).toBe(ini);
-        expect(project.file("cnext_build.py")).toBeUndefined();
+        expect(project.file("cnx_build.py")).toBeUndefined();
         expect(project.file(".cnxrc")).toBeUndefined();
       });
+    });
+  });
+
+  describe("which entries name the hook", () => {
+    it("adds the hook beside a script whose name only ends in cnx_build.py", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:my_cnx_build.py\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:my_cnx_build.py, pre:cnx_build.py\n",
+      );
+    });
+
+    it("adds the hook beside a script whose name only starts with cnx_build.py", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py.bak\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:cnx_build.py.bak, pre:cnx_build.py\n",
+      );
+    });
+
+    it("installs where only a comment names cnext_build.py", () => {
+      const ini = "; replaced cnext_build.py\n[env:esp32]\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "; replaced cnext_build.py\n[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
+      );
+    });
+
+    it.each([
+      ["first", "pre:cnx_build.py, post:other.py"],
+      ["last", "post:other.py, pre:cnx_build.py"],
+    ])(
+      "reinstall leaves a one-line list with the hook %s alone",
+      (_where, list) => {
+        const ini = `[env:esp32]\nextra_scripts = ${list}\n`;
+        const project = new PioProject({ "platformio.ini": ini });
+
+        PlatformIOCommand.install(project.fs);
+
+        expect(project.file("platformio.ini")).toBe(ini);
+      },
+    );
+
+    it("installs where the only cnx_build.py entry is commented out", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\n; extra_scripts = pre:cnx_build.py\nextra_scripts =\n    post:other.py ; uploads\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\n; extra_scripts = pre:cnx_build.py\nextra_scripts =\n    post:other.py ; uploads\n    pre:cnx_build.py\n",
+      );
+    });
+
+    it("adds to a one-line list as one more item, its comment kept", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts = pre:a.py, post:b.py ; ours\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:a.py, post:b.py, pre:cnx_build.py ; ours\n",
+      );
+    });
+
+    it("stops at an old entry in a one-line list", () => {
+      const ini =
+        "[env:esp32]\nextra_scripts = post:other.py, pre:cnext_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+        "process.exit(1)",
+      );
+      expect(project.written).toEqual([]);
+    });
+
+    it("installs where the only cnext_build.py entry is commented out", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\n# extra_scripts = pre:cnext_build.py\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts = pre:cnx_build.py\n# extra_scripts = pre:cnext_build.py\n",
+      );
+    });
+
+    // #2174 review: PlatformIO splits a value after expanding its references
+    it("adds a line of its own to a reference to a list of lines", () => {
+      const common = "[common]\nextra_scripts =\n    pre:a.py\n    post:b.py\n";
+      const project = new PioProject({
+        "platformio.ini": `[env:a]\nextra_scripts = \${common.extra_scripts}\n${common}`,
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        `[env:a]\nextra_scripts = \${common.extra_scripts}\n    pre:cnx_build.py\n${common}`,
+      );
+    });
+
+    it("adds an item to a reference to a one-line list", () => {
+      const common = "[common]\nextra_scripts = pre:a.py, post:b.py\n";
+      const project = new PioProject({
+        "platformio.ini": `[env:a]\nextra_scripts = \${common.extra_scripts}\n${common}`,
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        `[env:a]\nextra_scripts = \${common.extra_scripts}, pre:cnx_build.py\n${common}`,
+      );
+    });
+
+    it("stops at a reference only the build machine can expand", () => {
+      const ini = "[env:a]\nextra_scripts = ${sysenv.SCRIPTS}\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+        "process.exit(1)",
+      );
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Error: extra_scripts = ${sysenv.SCRIPTS} in [env:a] names a value only the build machine knows, so it is not known how to add the hook; nothing was written. Add pre:cnx_build.py to it by hand, then run cnx --pio-install again.",
+      );
+      expect(project.written).toEqual([]);
+    });
+
+    it("reinstalls over a hook already beside a build machine's reference", () => {
+      const ini =
+        "[env:a]\nextra_scripts = ${sysenv.SCRIPTS}, pre:cnx_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(ini);
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        "✓ PlatformIO already configured for cnx",
+      );
+    });
+
+    it("installs into a CRLF file with its line breaks and indent", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\r\nextra_scripts =\r\n\tpost:other.py\r\n",
+      });
+
+      PlatformIOCommand.install(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\r\nextra_scripts =\r\n\tpost:other.py\r\n\tpre:cnx_build.py\r\n",
+      );
+    });
+
+    it("uninstall keeps an entry that only starts with pre:cnx_build.py", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts =\n    pre:cnx_build.py.bak\n    pre:cnx_build.py\n",
+        "cnx_build.py": "",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts =\n    pre:cnx_build.py.bak\n",
+      );
+    });
+  });
+
+  describe("install over the old cnext_build.py integration (#2174)", () => {
+    it.each([
+      [
+        "its platformio.ini entry",
+        {
+          "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+        },
+      ],
+      [
+        "its script",
+        { "platformio.ini": "[env:esp32]\n", "cnext_build.py": "" },
+      ],
+    ])("stops at %s, writing nothing", (_what, files) => {
+      const project = new PioProject(files);
+
+      expect(() => PlatformIOCommand.install(project.fs)).toThrow(
+        "process.exit(1)",
+      );
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Error: this project has the old cnext_build.py integration, which runs `cnext`; nothing was written. Run cnx --pio-uninstall, then cnx --pio-install.",
+      );
+      expect(project.written).toEqual([]);
     });
   });
 
@@ -460,23 +681,21 @@ describe("PlatformIOCommand", () => {
       );
     });
 
-    it("removes cnext_build.py when it exists", () => {
+    it("removes cnx_build.py when it exists", () => {
       const project = new PioProject({
         "platformio.ini": "[env:esp32]\n",
-        "cnext_build.py": "",
+        "cnx_build.py": "",
       });
 
       PlatformIOCommand.uninstall(project.fs);
 
-      expect(project.removed).toEqual([
-        resolve(process.cwd(), "cnext_build.py"),
-      ]);
+      expect(project.removed).toEqual([resolve(process.cwd(), "cnx_build.py")]);
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining("Removed"),
       );
     });
 
-    it("reports when cnext_build.py doesn't exist", () => {
+    it("reports when cnx_build.py doesn't exist", () => {
       const project = new PioProject({ "platformio.ini": "[env:esp32]\n" });
 
       PlatformIOCommand.uninstall(project.fs);
@@ -486,30 +705,144 @@ describe("PlatformIOCommand", () => {
       );
     });
 
-    it("removes cnext_build.py reference from platformio.ini", () => {
-      const project = new PioProject({
-        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
-        "cnext_build.py": "",
-      });
-
-      PlatformIOCommand.uninstall(project.fs);
-
-      expect(project.file("platformio.ini")).not.toContain("cnext_build.py");
-    });
-
-    it("removes an indented cnext_build.py and keeps its sibling scripts", () => {
+    it("removes the hook from a one-line list holding a build machine's reference", () => {
       const project = new PioProject({
         "platformio.ini":
-          "[env:esp32]\nextra_scripts =\n    pre:cnext_build.py\n    post:other.py\n",
-        "cnext_build.py": "",
+          "[env:a]\nextra_scripts = ${sysenv.SCRIPTS}, pre:cnx_build.py\n",
       });
 
       PlatformIOCommand.uninstall(project.fs);
 
-      const ini = project.file("platformio.ini");
-      expect(ini).not.toContain("cnext_build.py");
-      // The removed run reaches back only to the previous entry, never through it.
-      expect(ini).toContain("post:other.py");
+      expect(project.file("platformio.ini")).toBe(
+        "[env:a]\nextra_scripts = ${sysenv.SCRIPTS}\n",
+      );
+    });
+
+    it("removes cnx_build.py reference from platformio.ini", () => {
+      const project = new PioProject({
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
+        "cnx_build.py": "",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).not.toContain("cnx_build.py");
+    });
+
+    it("removes an indented cnx_build.py and keeps its sibling scripts", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts =\n    pre:cnx_build.py\n    post:other.py\n",
+        "cnx_build.py": "",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts =\n    post:other.py\n",
+      );
+    });
+
+    it.each([
+      [
+        "standalone",
+        "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
+        "[env:esp32]\n",
+      ],
+      [
+        "indented",
+        "[env:esp32]\nextra_scripts =\n    pre:cnext_build.py\n    post:other.py\n",
+        "[env:esp32]\nextra_scripts =\n    post:other.py\n",
+      ],
+    ])(
+      "removes the old cnext_build.py and its %s entry (#2174)",
+      (_form, ini, cleaned) => {
+        const project = new PioProject({
+          "platformio.ini": ini,
+          "cnext_build.py": "",
+        });
+
+        PlatformIOCommand.uninstall(project.fs);
+
+        expect(project.removed).toEqual([
+          resolve(process.cwd(), "cnext_build.py"),
+        ]);
+        expect(project.file("platformio.ini")).toBe(cleaned);
+      },
+    );
+
+    // #2174 review: PlatformIO splits a one-line list at ", ", reads a value
+    // on the key's line together with the indented lines below it, and skips
+    // a commented-out line
+    it.each([
+      [
+        "first in a one-line list",
+        "[env:esp32]\nextra_scripts = pre:cnext_build.py, post:other.py\n",
+        "[env:esp32]\nextra_scripts = post:other.py\n",
+      ],
+      [
+        "last in a one-line list",
+        "[env:esp32]\nextra_scripts = post:other.py, pre:cnext_build.py ; ours\n",
+        "[env:esp32]\nextra_scripts = post:other.py ; ours\n",
+      ],
+      [
+        "on the key's line, with scripts continuing below it",
+        "[env:esp32]\nextra_scripts = pre:cnext_build.py\n    post:upload.py\n",
+        "[env:esp32]\nextra_scripts =\n    post:upload.py\n",
+      ],
+      [
+        "below a commented-out line, in a later section too",
+        "[env:a]\n; extra_scripts = pre:cnext_build.py\n[env:b]\nextra_scripts = pre:cnext_build.py\n",
+        "[env:a]\n; extra_scripts = pre:cnext_build.py\n[env:b]\n",
+      ],
+    ])("removes the old entry %s", (_form, ini, cleaned) => {
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(cleaned);
+    });
+
+    it("leaves a commented-out entry alone", () => {
+      const ini = "[env:esp32]\n; extra_scripts = pre:cnx_build.py\n";
+      const project = new PioProject({ "platformio.ini": ini });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(ini);
+      expect(project.written).toEqual([]);
+    });
+
+    it("removes the entries of every section, keeping each one's other scripts", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:a]\nextra_scripts =\n    pre:cnx_build.py\n    post:a.py\n[env:b]\nextra_scripts = pre:cnext_build.py, post:b.py\n",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.file("platformio.ini")).toBe(
+        "[env:a]\nextra_scripts =\n    post:a.py\n[env:b]\nextra_scripts = post:b.py\n",
+      );
+    });
+
+    it("removes both scripts and both entries when both names are present", () => {
+      const project = new PioProject({
+        "platformio.ini":
+          "[env:esp32]\nextra_scripts =\n    pre:cnext_build.py\n    pre:cnx_build.py\n    post:other.py\n",
+        "cnext_build.py": "",
+        "cnx_build.py": "",
+      });
+
+      PlatformIOCommand.uninstall(project.fs);
+
+      expect(project.removed).toEqual([
+        resolve(process.cwd(), "cnx_build.py"),
+        resolve(process.cwd(), "cnext_build.py"),
+      ]);
+      expect(project.file("platformio.ini")).toBe(
+        "[env:esp32]\nextra_scripts =\n    post:other.py\n",
+      );
     });
 
     it("reports when no integration found", () => {
@@ -518,13 +851,13 @@ describe("PlatformIOCommand", () => {
       PlatformIOCommand.uninstall(project.fs);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining("No c-next integration found"),
+        expect.stringContaining("No cnx integration found"),
       );
     });
 
     it("handles file deletion errors", () => {
       const project = new PioProject(
-        { "platformio.ini": "[env:esp32]\n", "cnext_build.py": "" },
+        { "platformio.ini": "[env:esp32]\n", "cnx_build.py": "" },
         {
           unlink: () => {
             throw new Error("Permission denied");
@@ -544,8 +877,8 @@ describe("PlatformIOCommand", () => {
 
     it("outputs success message after removal", () => {
       const project = new PioProject({
-        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnext_build.py\n",
-        "cnext_build.py": "",
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:cnx_build.py\n",
+        "cnx_build.py": "",
       });
 
       PlatformIOCommand.uninstall(project.fs);

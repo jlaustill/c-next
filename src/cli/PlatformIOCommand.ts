@@ -12,22 +12,53 @@ import type IFileSystem from "../cnx/types/IFileSystem";
 import ConfigLoader from "./ConfigLoader";
 import ResultPrinter from "./ResultPrinter";
 import type TConfigObject from "./types/TConfigObject";
+import PlatformIOIni from "../cnx/PARSE/1-Discover/PlatformIOIni";
+import type IPlatformIOIniOption from "../cnx/PARSE/1-Discover/types/IPlatformIOIniOption";
+import packageJson from "../../package.json" with { type: "json" };
 
-/**
- * Resolved paths for PlatformIO project.
- */
-interface IPioProjectPaths {
-  pioIniPath: string;
-  scriptPath: string;
+/** The pre-build script `--pio-install` writes. */
+const BUILD_SCRIPT = "cnx_build.py";
+
+/** The name the script had before the rename (#2174): uninstall still removes it. */
+const OLD_BUILD_SCRIPT = "cnext_build.py";
+
+/** Every name uninstall removes, the current one first. */
+const BUILD_SCRIPTS = [BUILD_SCRIPT, OLD_BUILD_SCRIPT] as const;
+
+/** The `extra_scripts` entry that runs the script `name` before a build. */
+function entryOf(name: string): string {
+  return `pre:${name}`;
+}
+
+/** Every `extra_scripts` option in `pioIni`, as PlatformIO reads the file. */
+function extraScripts(pioIni: string): IPlatformIOIniOption[] {
+  return PlatformIOIni.layout(pioIni).options.filter(
+    (option) => option.key === "extra_scripts",
+  );
 }
 
 /**
- * Get PlatformIO project paths and validate that platformio.ini exists.
- * Exits with error if not in a PlatformIO project directory.
+ * Whether `pioIni` runs the script `name`: an `extra_scripts` item is its
+ * entry, read as PlatformIO reads the list. `pre:my_cnx_build.py`, a comment
+ * naming the file, and a commented-out entry do not count.
  */
-function getPioProjectPaths(fs: IFileSystem): IPioProjectPaths {
-  const pioIniPath = resolve(process.cwd(), "platformio.ini");
-  const scriptPath = resolve(process.cwd(), "cnext_build.py");
+function hasEntry(pioIni: string, name: string): boolean {
+  return extraScripts(pioIni).some((option) =>
+    PlatformIOIni.list(option.value).includes(entryOf(name)),
+  );
+}
+
+/** `name` in the project being configured. */
+function inProject(name: string): string {
+  return resolve(process.cwd(), name);
+}
+
+/**
+ * The project's platformio.ini. Exits with error if not in a PlatformIO
+ * project directory.
+ */
+function getPioIniPath(fs: IFileSystem): string {
+  const pioIniPath = inProject("platformio.ini");
 
   if (!fs.exists(pioIniPath)) {
     console.error("Error: platformio.ini not found in current directory");
@@ -35,46 +66,7 @@ function getPioProjectPaths(fs: IFileSystem): IPioProjectPaths {
     process.exit(1);
   }
 
-  return { pioIniPath, scriptPath };
-}
-
-/** The pre-build script entry cnext writes into platformio.ini. */
-const CNEXT_BUILD_SCRIPT = "pre:cnext_build.py";
-
-/**
- * Remove every occurrence of `entry` together with the whitespace run
- * immediately before it.
- *
- * Replaces /[\n\t ]+pre:cnext_build\.py/g, which retries the whitespace run
- * from each of its positions and is super-linear on a long run (S8786).
- *
- * An occurrence with no whitespace before it is left in place, matching the
- * `+` in the original -- that form is handled by the standalone-line replace
- * above.
- */
-function removeEntryWithLeadingWhitespace(text: string, entry: string): string {
-  const isIndent = (character: string): boolean =>
-    character === "\n" || character === "\t" || character === " ";
-
-  let result = "";
-  let cursor = 0;
-  for (;;) {
-    const at = text.indexOf(entry, cursor);
-    if (at === -1) {
-      return result + text.slice(cursor);
-    }
-
-    let start = at;
-    while (start > cursor && isIndent(text[start - 1])) {
-      start -= 1;
-    }
-
-    result +=
-      start === at
-        ? text.slice(cursor, at + entry.length) // no leading whitespace: keep it
-        : text.slice(cursor, start);
-    cursor = at + entry.length;
-  }
+  return pioIniPath;
 }
 
 /**
@@ -83,7 +75,12 @@ function removeEntryWithLeadingWhitespace(text: string, entry: string): string {
 class PlatformIOCommand {
   /**
    * Setup PlatformIO integration
-   * Creates cnext_build.py and modifies platformio.ini
+   * Creates cnx_build.py and modifies platformio.ini
+   *
+   * #2174: a project that still has the old cnext_build.py integration stops
+   * before anything is written. Adding cnx_build.py beside it would leave
+   * every build running the old script, which calls a `cnext` that no longer
+   * exists.
    *
    * #2165: a config under an old name stops it with E0918 before anything is
    * written. Writing a new-name config beside the old one would leave the
@@ -92,7 +89,33 @@ class PlatformIOCommand {
    * the settings or shadowing the file.
    */
   static install(fs: IFileSystem = NodeFileSystem.instance): void {
-    const { pioIniPath, scriptPath } = getPioProjectPaths(fs);
+    const pioIniPath = getPioIniPath(fs);
+    const scriptPath = inProject(BUILD_SCRIPT);
+    const pioIni = fs.readFile(pioIniPath);
+    if (
+      fs.exists(inProject(OLD_BUILD_SCRIPT)) ||
+      hasEntry(pioIni, OLD_BUILD_SCRIPT)
+    ) {
+      PlatformIOCommand.stopBeforeWriting(
+        [
+          `this project has the old ${OLD_BUILD_SCRIPT} integration, which runs \`cnext\``,
+        ],
+        "Run cnx --pio-uninstall, then cnx --pio-install.",
+      );
+    }
+    const scripts = extraScripts(pioIni).at(0);
+    if (
+      scripts !== undefined &&
+      !hasEntry(pioIni, BUILD_SCRIPT) &&
+      PlatformIOIni.isOneLine(pioIni, scripts) === undefined
+    ) {
+      PlatformIOCommand.stopBeforeWriting(
+        [
+          `extra_scripts = ${scripts.value} in [${scripts.section}] names a value only the build machine knows, so it is not known how to add the hook`,
+        ],
+        `Add ${entryOf(BUILD_SCRIPT)} to it by hand, then run cnx --pio-install again.`,
+      );
+    }
     const config = ConfigLoader.inDirectory(process.cwd(), fs);
     if (config.kind === "renamed") {
       for (const error of config.errors) {
@@ -119,7 +142,7 @@ class PlatformIOCommand {
         ? config.path
         : resolve(process.cwd(), CONFIG_FILE_NAMES[0]);
 
-    // Create cnext_build.py script
+    // Create cnx_build.py script
     // Issue #833: Run transpilation at import time (before compilation),
     // not as a pre-action on buildprog (which runs after compilation)
     const buildScript = String.raw`Import("env")
@@ -127,8 +150,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-def transpile_cnext():
-    """Transpile from main.cnx entry point — cnext follows includes"""
+def transpile_cnx():
+    """Transpile from main.cnx entry point — cnx follows includes"""
     entry = Path("src/main.cnx")
     if not entry.exists():
         return
@@ -139,7 +162,7 @@ def transpile_cnext():
         # ADR-049: the environment being built names the target. Without it,
         # "pio run -e X" in a project whose default_envs names Y would get Y's.
         result = subprocess.run(
-            ["cnext", str(entry), "--pio-env", env["PIOENV"]],
+            ["cnx", str(entry), "--pio-env", env["PIOENV"]],
             check=True,
             capture_output=True,
             text=True
@@ -157,22 +180,23 @@ def transpile_cnext():
         print(f"  ✗ Transpilation failed")
         print(e.stderr)
         sys.exit(1)
+    except FileNotFoundError:
+        # Not on PATH: say what is missing, not a Python traceback (#2174)
+        print("  ✗ cnx not found on PATH: npm i -g ${packageJson.name}")
+        sys.exit(1)
 
 # Run transpilation at import time (before compilation starts)
-transpile_cnext()
+transpile_cnx()
 `;
 
     Write.file(fs, scriptPath, buildScript);
     console.log(`✓ Created: ${scriptPath}`);
 
-    // Read platformio.ini
-    const pioIni = fs.readFile(pioIniPath);
-
     // An already-configured platformio.ini is left as it is; the config is
     // set up either way (#2221 review: a reinstall used to return first)
-    const alreadyConfigured = pioIni.includes("cnext_build.py");
+    const alreadyConfigured = hasEntry(pioIni, BUILD_SCRIPT);
     if (alreadyConfigured) {
-      console.log("✓ PlatformIO already configured for c-next");
+      console.log("✓ PlatformIO already configured for cnx");
     } else {
       Write.file(fs, pioIniPath, PlatformIOCommand.withBuildScript(pioIni));
       console.log(`✓ Modified: ${pioIniPath}`);
@@ -198,32 +222,41 @@ transpile_cnext()
   }
 
   /**
-   * Stop before anything is written, with each reason the project's config
-   * cannot be used: the one way install refuses a config (#2221 review).
+   * Stop before anything is written, with each reason install cannot go on
+   * and what to do about it: the one way install refuses (#2221 review,
+   * #2174 review).
    */
-  private static stopBeforeWriting(reasons: readonly string[]): never {
+  private static stopBeforeWriting(
+    reasons: readonly string[],
+    remedy = "Fix it and run --pio-install again.",
+  ): never {
     for (const reason of reasons) {
-      console.error(
-        `Error: ${reason}; nothing was written. Fix it and run --pio-install again.`,
-      );
+      console.error(`Error: ${reason}; nothing was written. ${remedy}`);
     }
     process.exit(1);
   }
 
-  /** `pioIni` with the pre-build script in its `extra_scripts`. */
+  /**
+   * `pioIni` with the pre-build script added to its first `extra_scripts`,
+   * in the form that list is written in, else on a new `extra_scripts` line
+   * opening the first `[env:*]` section. TODO(#2273): every other env builds
+   * without the hook.
+   */
   private static withBuildScript(pioIni: string): string {
-    if (pioIni.includes("extra_scripts")) {
-      // Append to existing extra_scripts
-      return pioIni.replace(
-        /extra_scripts\s*=\s*(.+)/,
-        "extra_scripts = $1\n    pre:cnext_build.py",
-      );
+    const entry = entryOf(BUILD_SCRIPT);
+    const scripts = extraScripts(pioIni).at(0);
+    if (scripts !== undefined) {
+      return PlatformIOIni.withItems(pioIni, scripts, [
+        ...PlatformIOIni.list(scripts.value),
+        entry,
+      ]);
     }
-    // Add new extra_scripts line after first [env:*] section
-    return pioIni.replace(
-      /(\[env:[^\]]+\])/,
-      "$1\nextra_scripts = pre:cnext_build.py",
+    const env = PlatformIOIni.layout(pioIni).sections.find((section) =>
+      section.name.startsWith("env:"),
     );
+    return env === undefined
+      ? pioIni
+      : PlatformIOIni.withOption(pioIni, env, "extra_scripts", entry);
   }
 
   /**
@@ -266,15 +299,18 @@ transpile_cnext()
 
   /**
    * Remove PlatformIO integration
-   * Deletes cnext_build.py and removes extra_scripts from platformio.ini
+   * Deletes cnx_build.py, and cnext_build.py from before the rename (#2174),
+   * and removes their extra_scripts entries from platformio.ini
    */
   static uninstall(fs: IFileSystem = NodeFileSystem.instance): void {
-    const { pioIniPath, scriptPath } = getPioProjectPaths(fs);
+    const pioIniPath = getPioIniPath(fs);
 
     let hasChanges = false;
 
-    // Remove cnext_build.py if it exists
-    if (fs.exists(scriptPath)) {
+    const scriptPaths = BUILD_SCRIPTS.map(inProject).filter((path) =>
+      fs.exists(path),
+    );
+    for (const scriptPath of scriptPaths) {
       try {
         Write.remove(fs, scriptPath);
         console.log(`✓ Removed: ${scriptPath}`);
@@ -283,34 +319,19 @@ transpile_cnext()
         console.error(`Error removing ${scriptPath}:`, err);
         process.exit(1);
       }
-    } else {
-      console.log("✓ cnext_build.py not found (already removed)");
+    }
+    if (scriptPaths.length === 0) {
+      console.log(`✓ ${BUILD_SCRIPT} not found (already removed)`);
     }
 
-    // Read platformio.ini
-    let pioIni = fs.readFile(pioIniPath);
-
-    // Check if extra_scripts includes cnext_build.py
-    if (pioIni.includes("cnext_build.py")) {
-      // Remove the cnext_build.py reference
-      // Handle both standalone and appended cases
-      // Remove standalone "extra_scripts = pre:cnext_build.py" line (with newline)
-      pioIni = pioIni.replace(
-        /^extra_scripts[ \t]*=[ \t]*pre:cnext_build\.py[ \t]*\n/m,
-        "",
-      );
-      // Remove from multi-line extra_scripts (e.g., "    pre:cnext_build.py")
-      pioIni = removeEntryWithLeadingWhitespace(pioIni, CNEXT_BUILD_SCRIPT);
-      // Clean up multiple consecutive blank lines
-      pioIni = pioIni.replaceAll(/\n\n\n+/g, "\n\n");
-
-      Write.file(fs, pioIniPath, pioIni);
+    const pioIni = fs.readFile(pioIniPath);
+    const cleaned = PlatformIOCommand.withoutBuildScripts(pioIni);
+    if (cleaned !== pioIni) {
+      Write.file(fs, pioIniPath, cleaned);
       console.log(`✓ Modified: ${pioIniPath}`);
       hasChanges = true;
     } else {
-      console.log(
-        "✓ platformio.ini already clean (no c-next integration found)",
-      );
+      console.log("✓ platformio.ini already clean (no cnx integration found)");
     }
 
     if (hasChanges) {
@@ -321,8 +342,32 @@ transpile_cnext()
       console.log("To re-enable integration: cnx --pio-install");
     } else {
       console.log("");
-      console.log("No c-next integration found - nothing to remove.");
+      console.log("No cnx integration found - nothing to remove.");
     }
+  }
+
+  /**
+   * `pioIni` with no `extra_scripts` item running either script, every other
+   * item left in place (#2174 review: removing the line
+   * `extra_scripts = pre:cnext_build.py` left the indented scripts below it
+   * with no key).
+   */
+  private static withoutBuildScripts(pioIni: string): string {
+    const entries: string[] = BUILD_SCRIPTS.map(entryOf);
+    const options = extraScripts(pioIni);
+    let cleaned = pioIni;
+    // Last first, so each option's line numbers still hold when it is edited
+    for (let index = options.length - 1; index >= 0; index -= 1) {
+      const items = PlatformIOIni.list(options[index].value);
+      const kept = items.filter((item) => !entries.includes(item));
+      if (kept.length < items.length) {
+        cleaned = PlatformIOIni.withItems(cleaned, options[index], kept);
+      }
+    }
+    return cleaned === pioIni
+      ? pioIni
+      : // Clean up multiple consecutive blank lines
+        cleaned.replaceAll(/\n\n\n+/g, "\n\n");
   }
 }
 
