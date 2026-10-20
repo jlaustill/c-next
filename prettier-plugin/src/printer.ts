@@ -917,7 +917,7 @@ function printRule(
   // Never silently pass text through: a formatter that guesses at an unknown
   // construct can mangle it. Refusing leaves the file untouched.
   throw new Error(
-    `C-Next formatter has no layout for grammar rule '${Cst.ruleNameOf(node) ?? ruleIndex}'`,
+    `cnx formatter has no layout for grammar rule '${Cst.ruleNameOf(node) ?? ruleIndex}'`,
   );
 }
 
@@ -946,7 +946,7 @@ function printNode(
     // A layout that leaves children behind has dropped their text and any
     // comments anchored to them. Fail loudly rather than emit a lossy file.
     throw new Error(
-      `C-Next formatter left ${cursor.remaining()} child node(s) unprinted in rule '${Cst.ruleNameOf(node) ?? ruleIndex}'`,
+      `cnx formatter left ${cursor.remaining()} child node(s) unprinted in rule '${Cst.ruleNameOf(node) ?? ruleIndex}'`,
     );
   }
   return result;

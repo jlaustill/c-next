@@ -11,7 +11,7 @@ const BASELINE = {
   condition: null,
   probe: null,
   misra: ["1.1"],
-} as const;
+} as const satisfies Partial<IToolchainRequirement>;
 
 /**
  * Issue #1143: The single source of truth for what generated output costs.
