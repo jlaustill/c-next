@@ -21,6 +21,8 @@
  * 61 -> 65 with nothing going red.
  */
 
+import RegExpUtils from "../../src/cnx/utils/RegExpUtils";
+
 /** One distinct call shape in one file, and how many times it occurs there. */
 interface ISite {
   readonly file: string;
@@ -328,7 +330,7 @@ class ScopeJoinSites {
       }
     }
     const window = source.slice(start, at);
-    const escaped = element.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = RegExpUtils.escape(element);
     return new RegExp(`\\bis(?:Known)?Scope\\(\\s*${escaped}\\s*[),]`).test(
       window,
     );
