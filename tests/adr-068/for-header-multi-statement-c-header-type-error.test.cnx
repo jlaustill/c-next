@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 068
+// #2155 review 8: a write to an `atomic` of a C header integer type is an
+// atomic read-modify-write, so a `for` header cannot hold it (E0715), as it
+// cannot hold one to a C-Next integer.
+
+#include "../atomic/atomic-c-header-type.h"
+
+// NEGATIVE CONTROL -- the same write in the body, and a plain header type
+// written in the header.
+void controls() {
+    atomic int_fast16_t f <- 0;
+    mut int_fast16_t plain <- 0;
+    for (mut u8 i <- 0; i < 3; plain +<- 1) {
+        f +<- 1;
+    }
+}
+
+void main() {
+    atomic int_fast16_t f <- 0;
+    // ASSERTION -- E0715 in the update clause
+    for (mut u8 i <- 0; i < 3; f +<- 1) {}
+}

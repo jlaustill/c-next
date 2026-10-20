@@ -4,16 +4,16 @@
 #pragma target teensy41
 
 // Atomic wrap variables - wrapping arithmetic
-atomic mut wrap u8 tick8 <- 0;
+atomic wrap u8 tick8 <- 0;
 
-atomic mut wrap u16 tick16 <- 0;
+atomic wrap u16 tick16 <- 0;
 
-atomic mut wrap u32 tick32 <- 0;
+atomic wrap u32 tick32 <- 0;
 
 // Wrap is useful for counters that should overflow
-atomic mut wrap u8 sequenceNumber <- 0;
+atomic wrap u8 sequenceNumber <- 0;
 
-atomic mut wrap u16 frameCounter <- 0;
+atomic wrap u16 frameCounter <- 0;
 
 void incrementTicks() {
     tick8 +<- 1; // Wraps from 255 to 0

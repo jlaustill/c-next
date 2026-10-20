@@ -1,0 +1,2 @@
+21:4 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
+       help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).

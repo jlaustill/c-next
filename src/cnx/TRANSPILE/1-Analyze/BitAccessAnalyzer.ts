@@ -50,9 +50,10 @@ import OperandTyper from "../../utils/OperandTyper";
 import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
-import RegisterMemberReference from "./helpers/RegisterMemberReference";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import SourceOrder from "../../utils/SourceOrder";
+import ConstantExpression from "./helpers/ConstantExpression";
 
 class BitAccessCheck {
   private readonly found: IBitAccessError[] = [];
@@ -88,12 +89,14 @@ class BitAccessCheck {
   }
 
   public checkExpression(expr: TExpression, inFunction: boolean): void {
+    this.checkBitBounds(expr);
     const parts = BitAccessCheck.partsOf(expr);
     if (parts === null) return;
     this.checkChain(parts, expr, inFunction);
   }
 
   public checkSite(site: IAssignmentSyntax): void {
+    this.checkBitBounds(site.target);
     const parts = BitAccessCheck.partsOf(site.target);
     if (parts === null) return;
     this.checkChain(parts, site.target, true);
@@ -122,16 +125,22 @@ class BitAccessCheck {
     }
   }
 
+  /**
+   * The typer's last step, read as the classifier reads it (#1749 review): a
+   * bit, a bit range or a bitmap field, on anything but a
+   * write-1 register member.
+   */
   private isReadModifyWrite(target: TExpression): boolean {
     const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
     if (last === undefined) return false;
-    const writesBits =
-      last.subscript === "bit_single" || last.subscript === "bit_range";
-    const writesBitmapField =
-      last.subscript === null && (last.before?.bitmapTypeName ?? null) !== null;
-    if (!writesBits && !writesBitmapField) return false;
-    const register = RegisterMemberReference.ofChain(target, this.context);
-    return !RegisterAccessMode.isWriteOne(register?.access);
+    const symbols = this.context.symbols;
+    const field = BitmapFieldStep.fieldOf(last, symbols.bitmapFields);
+    if (!BitmapFieldStep.writesBits(last, field)) return false;
+    const member = last.beforeRegisterMember;
+    return (
+      member === null ||
+      !RegisterAccessMode.isWriteOne(symbols.registerMemberAccess.get(member))
+    );
   }
 
   private checkChain(
@@ -192,6 +201,45 @@ class BitAccessCheck {
       `Float bit range '${name}${reached}[${bounds.join(", ")}]' cannot be read at file scope`,
       "Reading a float's bits copies it through a union (MISRA C:2012 Rule 21.15 forbids the pointer cast), and a copy is a statement -- there is none at file scope. Read it inside a function.",
     );
+  }
+
+  /**
+   * E0920 (ADR-007, #1808): a constant bit index, or a constant bit range's
+   * last bit, past the width the typer gives the value it indexes -- its
+   * declared type's, or a bitmap field's (#2251: `p.Mode[3]` on a 3-bit field
+   * would write the next field). A runtime index is not checked here.
+   */
+  private checkBitBounds(expr: TExpression): void {
+    if (expr.kind !== "postfix") return;
+    const steps = OperandTyper.chainOf(expr, this.context).steps;
+    const ops = expr.ops.slice(expr.ops.length - steps.length);
+    steps.forEach((step, at) => {
+      const op = ops[at];
+      if (op?.kind !== "subscript") return;
+      if (step.subscript !== "bit_single" && step.subscript !== "bit_range") {
+        return;
+      }
+      const width = step.before?.bitWidth ?? null;
+      if (width === null) return;
+      const start = ConstantExpression.valueAt(op.indexes[0], this.context);
+      if (start === null) return;
+      const count =
+        op.indexes.length === 2
+          ? ConstantExpression.valueAt(op.indexes[1], this.context)
+          : 1;
+      if (count === null || start + count <= width) return;
+      const written = expr.written;
+      const what =
+        op.indexes.length === 2
+          ? `bit range [${start}, ${count}] ends at bit ${start + count - 1}`
+          : `bit ${start}`;
+      this.report(
+        expr,
+        "E0920",
+        `Bit index out of range in '${written}': ${what}, but the value has ${width} bits (0-${width - 1})`,
+        "A bit index counts within the indexed value's own bits: its declared type's, or a bitmap field's (ADR-007, ADR-034). Index a wider value, or a bit that exists.",
+      );
+    });
   }
 
   /**

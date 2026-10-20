@@ -41,6 +41,11 @@ function step(
     callee: null,
     beforeNamesType: false,
     beforeIsBitField: false,
+    fieldBits: null,
+    beforeRegisterMember: null,
+    beforeRegister: null,
+    registerMember: null,
+    member: subscript === null ? "name" : null,
   };
 }
 

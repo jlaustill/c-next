@@ -1,0 +1,42 @@
+#pragma target host
+// test-adr: 049
+// Review of #2155: on a target with neither LDREX/STREX nor an interrupt mask
+// (ADR-049, #1789), a bit, a bit range and a bitmap field written to an atomic
+// value are a compare-exchange loop, as a compound write is: an unsigned and
+// a signed integer, a bitmap, an f32 and an f64 through their bits' unions,
+// and a u64. The written values are not literals, and the file has no other
+// `bool`, so 2.2 plans <stdbool.h> for the single-bit writes' operand.
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+atomic u32 word;
+atomic i32 sword;
+atomic u64 dword;
+atomic Flags flags;
+atomic f32 fl;
+atomic f64 dbl;
+
+void set(u32 x) {
+    word[3] <- x > 5;
+    word[2, 3] <- x;
+    sword[4] <- x > 6;
+    sword[8, 4] <- x;
+    dword[40] <- x > 7;
+    flags.Mode <- 3;
+    flags.A <- x > 8;
+    fl[31] <- x > 9;
+    fl[0, 4] <- x;
+    dbl[63] <- x > 10;
+    dbl[0, 8] <- x;
+}
+
+void main() {
+    set(6);
+}

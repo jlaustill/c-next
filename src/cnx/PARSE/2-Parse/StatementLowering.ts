@@ -163,14 +163,17 @@ class StatementLowering {
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
   ): IVariableDeclarationSyntax {
     const identifier = ctx.IDENTIFIER();
+    const atomic = ctx.atomicModifier() !== null;
+    const writtenMut = ctx.mutModifier() !== null;
     return {
       modifiers: {
-        atomic: ctx.atomicModifier() !== null,
+        atomic,
         volatile: ctx.volatileModifier() !== null,
         const:
           ctx instanceof Parser.VariableDeclarationContext &&
           ctx.constModifier() !== null,
-        mut: ctx.mutModifier() !== null,
+        mut: writtenMut || atomic,
+        atomicMut: writtenMut && atomic,
         overflow: SyntaxLowering.overflow(ctx.overflowModifier()),
       },
       type: SyntaxLowering.type(ctx.type()),

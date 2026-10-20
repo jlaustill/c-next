@@ -131,7 +131,7 @@ class StringDeclarationCheck {
     if (length === undefined || this.constantOf(length) !== null) return;
     this.report(
       length,
-      "E0919",
+      "E0922",
       `A substring's length must be a compile-time constant, not '${length.written}'`,
       "Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.",
     );

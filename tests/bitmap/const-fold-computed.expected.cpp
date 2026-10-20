@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
         threshold = static_cast<uint8_t>(((atoi(argv[2U])) & 0xFFU));
     }
     for (uint8_t i = 0U; i < iterations; i = cnx_clamp_add_u8(i, 1U)) {
-        f = (uint8_t)((f & ~(1U << 0)) | (((i % 2) == 0 ? 1U : 0U) << 0));
-        f = (uint8_t)((f & ~(1U << 1)) | ((i > threshold ? 1U : 0U) << 1));
+        f = (uint8_t)((f & ~(1U << 0)) | ((((i % 2) == 0) ? 1U : 0U) << 0));
+        f = (uint8_t)((f & ~(1U << 1)) | (((i > threshold) ? 1U : 0U) << 1));
         if (((f >> 0) & 1) == true) {
             f = (uint8_t)((f & ~(1U << 2)) | (0U << 2));
         } else {

@@ -55,17 +55,17 @@ const CASES: readonly ICase[] = [
   },
   {
     name: "atomic read-modify-write without LDREX/STREX (interrupt-masked)",
-    source: `atomic mut u32 n <- 0;\nvoid main() { n +<- 1; }`,
+    source: `atomic u32 n <- 0;\nvoid main() { n +<- 1; }`,
     target: "cortex-m0+",
   },
   {
     name: "atomic read-modify-write wider than the word (libatomic)",
-    source: `atomic mut u64 n <- 0;\nvoid main() { n +<- 1; }`,
+    source: `atomic u64 n <- 0;\nvoid main() { n +<- 1; }`,
     target: "esp32",
   },
   {
     name: "atomic read-modify-write, no critical block",
-    source: `atomic mut u32 n <- 0;\nvoid main() { n +<- 1; }`,
+    source: `atomic u32 n <- 0;\nvoid main() { n +<- 1; }`,
   },
   {
     name: "float bit indexing",
@@ -120,7 +120,7 @@ describe("atomic-libatomic", () => {
   const keysFor = async (type: string) =>
     (
       await generate(
-        `atomic mut ${type} n <- 0;\nvoid main() { n +<- 1; }`,
+        `atomic ${type} n <- 0;\nvoid main() { n +<- 1; }`,
         "c",
         "esp32",
       )

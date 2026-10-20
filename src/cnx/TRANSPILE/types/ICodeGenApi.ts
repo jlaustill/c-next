@@ -11,9 +11,8 @@
  * type, so the two modules imported each other. A member that no caller needs
  * is not a channel; it is a second way to ask, which is what this card removes.
  */
-import type IFloatBitWrite from "../../types/IFloatBitWrite";
-import type TTypeInfo from "../../types/TTypeInfo";
-import type TAtomicForm from "./TAtomicForm";
+import type IFloatBitWrite from "./IFloatBitWrite";
+import type IPlannedAtomic from "./IPlannedAtomic";
 
 interface ICodeGenApi {
   /**
@@ -26,10 +25,19 @@ interface ICodeGenApi {
     target: string,
     op: string,
     value: string,
-    typeInfo: TTypeInfo,
+    atomic: IPlannedAtomic,
     clampOp: string | null,
-    form: TAtomicForm,
-    valueType: string | null,
+  ): string;
+
+  /**
+   * A bit, bit-range or bitmap-field write to an `atomic` value (ADR-049,
+   * #2200): `newValue` computes the stored value from the value read.
+   */
+  generateAtomicStore(
+    target: string,
+    value: string,
+    atomic: IPlannedAtomic,
+    newValue: (read: string, value: string) => string,
   ): string;
 
   /** Generate a float bit write through a union (ADR-007) */

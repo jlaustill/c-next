@@ -7,11 +7,15 @@
  * #2207 is one `cnx_string_copy` call; #2234 asks whether it still should.
  *
  * One decision, read off the operand typer: 2.1 reports it as E0715, and the
- * header renderer asserts it, so neither derives it again.
+ * header renderer asserts it, so neither derives it again. Which writes are
+ * atomic is `AtomicOwner`'s answer, the one 2.2 plans the write's form from:
+ * a bit or bitmap-field write to an atomic is a read-modify-write too (#2200),
+ * and its written type, a bit, carries no `atomic` (#2155 review).
  */
 
+import AtomicOwner from "./AtomicOwner";
+import BitmapFieldStep from "./BitmapFieldStep";
 import OperandTyper from "./OperandTyper";
-import type IOperandType from "../types/IOperandType";
 import type ITypingContext from "../types/ITypingContext";
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 
@@ -29,28 +33,20 @@ class ForHeaderAssignment {
     if (isBitWrite && last.before?.category === "floating") {
       return "a float bit write is more than one statement";
     }
-    const written = OperandTyper.typeOfTarget(target, ctx);
-    const isPlain = site.operator === "<-";
-    if (ForHeaderAssignment.isAtomic(written)) {
-      return isPlain
-        ? "an atomic store is more than one statement"
-        : "an atomic read-modify-write is more than one statement";
+    const field = BitmapFieldStep.fieldOf(last, ctx.symbols.bitmapFields);
+    if (AtomicOwner.ofWrite(site, ctx, field) !== null) {
+      return "an atomic read-modify-write is more than one statement";
     }
-    if (!isPlain) return null;
+    const written = OperandTyper.typeOfTarget(target, ctx);
+    if (site.operator !== "<-") return null;
+    if (AtomicOwner.isDeclaredAtomic(written))
+      return "an atomic store is more than one statement";
     if (steps.some((step) => step.subscript === "array_slice")) {
       return "a slice write is more than one statement";
     }
     return OperandTyper.stringCopyCapacity(target, ctx) === null
       ? null
       : "a string copy, which ADR-068 keeps out of a header (#2234)";
-  }
-
-  /** Declared `atomic`, by the declaration the target binds to */
-  static isAtomic(t: IOperandType | null): boolean {
-    const binding = t?.binding;
-    if (binding?.kind === "local") return binding.declaration.isAtomic;
-    if (binding?.kind === "variable") return binding.symbol.isAtomic;
-    return false;
   }
 }
 

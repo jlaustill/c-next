@@ -77,8 +77,9 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
     return (uint64_t)(a + (uint64_t)b);
 }
 
-// Edge case 1: atomic + const combination
-const volatile uint32_t CONFIG = 42U;
+// Edge case 1: an atomic nothing in this file writes is still writable
+// (#2233): its extern is `extern volatile uint32_t CONFIG;`, with no const
+volatile uint32_t CONFIG = 42U;
 
 // Edge case 2: atomic 2D array
 volatile uint8_t matrix[4][4] = {0};
@@ -90,12 +91,12 @@ volatile int64_t bigSignedCounter = 0;
 volatile uint64_t bigUnsignedCounter = 0ULL;
 
 // Edge case 5: atomic string type
-const volatile char statusMessage[17] = "";
+volatile char statusMessage[17] = "";
 
 // Edge case 6: atomic struct (non-array)
 volatile TStatus currentStatus = {0};
 
-// Edge case 7: atomic with wrap + const (multiple modifiers)
+// Edge case 7: atomic with wrap (multiple modifiers)
 volatile uint16_t sequence = 0U;
 
 // Edge case 8: atomic with clamp (saturation)
@@ -131,9 +132,9 @@ int main(void) {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
         int32_t __operand = 10;
         do {
-            int8_t __old = __LDREXB(&temperature);
+            int8_t __old = (int8_t)__LDREXB((volatile uint8_t *)&temperature);
             int8_t __new = cnx_clamp_add_i8(__old, __operand);
-            if (__STREXB(__new, &temperature) == 0) {
+            if (__STREXB((uint8_t)__new, (volatile uint8_t *)&temperature) == 0) {
                 break;
             }
         } while (1);

@@ -101,7 +101,7 @@ mut u32 total; // a global with no initializer is zero-filled
 u32 MAX <- 100; // read-only: a compile-time constant
 mut clamp u8 brightness <- 200; // saturating arithmetic (DEFAULT behavior)
 mut wrap u32 counter <- 0; // wrapping arithmetic (opt-in)
-atomic mut u32 shared <- 0; // ISR-safe
+atomic u32 shared <- 0; // ISR-safe
 ```
 
 A **global** with no initializer is zero-filled, and a global struct's callback field gets
@@ -110,8 +110,9 @@ is `E0381` ("use of uninitialized variable 'y'"), and so is reading a field of a
 struct declared without an initializer. A name is defined only once its declaration
 closes, so `u32 k <- k + 1;` is `E0427`.
 
-**Modifier order:** `atomic` or `volatile`, then `mut`, then `clamp` or `wrap`:
-`atomic mut clamp u8`, `volatile mut u32`, `mut wrap u32`. `mut atomic`, `mut volatile`
+**Modifier order:** `volatile`, then `mut`, then `clamp` or `wrap`; `atomic` takes no
+`mut` (E0919): `atomic clamp u8`, `volatile mut u32`, `mut wrap u32`. `atomic` already
+makes a binding writable (ADR-071). `mut atomic`, `mut volatile`
 and `wrap mut` are parse errors. The message names the misplaced token (`extraneous input 'atomic'`,
 `extraneous input 'mut'`) but never says where it goes.
 
@@ -119,7 +120,7 @@ and `wrap mut` are parse errors. The message names the misplaced token (`extrane
 
 - **Default is clamp** (saturating): `mut u8 x <- 200; x +<- 100;` → x = 255
 - **opt-in wrap**: `mut wrap u32 c <- 0; c -<- 1;` → c = UINT32_MAX
-- Combine with atomic: `atomic mut clamp u8 brightness <- 0;`
+- Combine with atomic: `atomic clamp u8 brightness <- 0;`
 - **A struct field can carry its own modifier.** The default is `clamp`, and an array
   element takes its array's modifier:
 
@@ -679,9 +680,9 @@ registerHandler(timerHandler);                       // pass by name
 ## Atomic Types (ADR-049)
 
 ```cnx
-atomic mut u32 counter <- 0;
-atomic mut clamp u8 brightness <- 0;
-atomic mut bool ready <- false;
+atomic u32 counter <- 0;
+atomic clamp u8 brightness <- 0;
+atomic bool ready <- false;
 
 counter +<- 1; // lock-free on Cortex-M3+ (LDREX/STREX)
 brightness +<- 10; // atomic add with clamp
@@ -1321,7 +1322,7 @@ void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const 
 | `flags[3] <- true`                | bit-set expression                                        |
 | `val[0, 8]`                       | `(val >> 0) & 0xFF`                                       |
 | `x[8,8] <- v[0,4]`                | clear 8-bit window + write 4-bit value (zero-extended)    |
-| `atomic mut u32 x`                | `volatile uint32_t x` + LDREX/STREX                       |
+| `atomic u32 x`                    | `volatile uint32_t x` + LDREX/STREX                       |
 | `volatile mut u32 x`              | `volatile uint32_t x` (no atomics)                        |
 | `critical { ... }`                | PRIMASK save/disable/restore                              |
 | `#include "x.cnx"`                | `#include "x.hpp"` (C++ mode) / `#include "x.h"` (C mode) |

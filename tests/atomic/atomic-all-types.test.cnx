@@ -4,11 +4,11 @@
 // Tests: atomic works with u8, u16, u32, u64
 #pragma target teensy41
 
-atomic mut u8 byte_counter <- 0;
+atomic u8 byte_counter <- 0;
 
-atomic mut u16 word_counter <- 0;
+atomic u16 word_counter <- 0;
 
-atomic mut u32 dword_counter <- 0;
+atomic u32 dword_counter <- 0;
 
 void main() {
     byte_counter +<- 1;

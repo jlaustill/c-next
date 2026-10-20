@@ -4,17 +4,18 @@
 // Bug #468: Comprehensive coverage to prevent regression
 #pragma target teensy41
 
-// Edge case 1: atomic + const combination
+// Edge case 1: an atomic nothing in this file writes is still writable
+// (#2233): its extern is `extern volatile uint32_t CONFIG;`, with no const
 atomic u32 CONFIG <- 42;
 
 // Edge case 2: atomic 2D array
-atomic mut u8[4][4] matrix;
+atomic u8[4][4] matrix;
 
 // Edge case 3: atomic i64 (signed 64-bit)
-atomic mut i64 bigSignedCounter <- 0;
+atomic i64 bigSignedCounter <- 0;
 
 // Edge case 4: atomic u64 (unsigned 64-bit)
-atomic mut u64 bigUnsignedCounter <- 0;
+atomic u64 bigUnsignedCounter <- 0;
 
 // Edge case 5: atomic string type
 atomic string<16> statusMessage;
@@ -24,13 +25,13 @@ struct TStatus {
     u32 code;
     bool active;
 }
-atomic mut TStatus currentStatus;
+atomic TStatus currentStatus;
 
-// Edge case 7: atomic with wrap + const (multiple modifiers)
-atomic mut wrap u16 sequence <- 0;
+// Edge case 7: atomic with wrap (multiple modifiers)
+atomic wrap u16 sequence <- 0;
 
 // Edge case 8: atomic with clamp (saturation)
-atomic mut clamp i8 temperature <- 0;
+atomic clamp i8 temperature <- 0;
 
 void main() {
     // Use all variables to prevent dead code elimination

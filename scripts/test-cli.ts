@@ -464,7 +464,7 @@ extra_scripts = pre:custom_script.py
 `;
 
 // Simple atomic .cnx file for target tests
-const atomicCnx = `atomic mut u32 counter <- 0;
+const atomicCnx = `atomic u32 counter <- 0;
 
 void increment() {
     counter +<- 1;

@@ -15,7 +15,7 @@ describe("BitUtils.boolToInt", () => {
   });
 
   it("wraps comparison expressions in ternary with unsigned values", () => {
-    expect(BitUtils.boolToInt("x > 5")).toBe("(x > 5 ? 1U : 0U)");
+    expect(BitUtils.boolToInt("x > 5")).toBe("((x > 5) ? 1U : 0U)");
   });
 
   it("wraps variable expressions in ternary with unsigned values", () => {
@@ -23,11 +23,33 @@ describe("BitUtils.boolToInt", () => {
   });
 
   it("wraps complex expressions in ternary with unsigned values", () => {
-    expect(BitUtils.boolToInt("a && b")).toBe("(a && b ? 1U : 0U)");
+    expect(BitUtils.boolToInt("a && b")).toBe("((a && b) ? 1U : 0U)");
   });
 
   it("wraps function calls in ternary with unsigned values", () => {
     expect(BitUtils.boolToInt("isReady()")).toBe("(isReady() ? 1U : 0U)");
+  });
+  // A compile-time value folds however it is spelled: `(0x1 ? 1U : 0U)` is
+  // an invariant controlling expression (MISRA C:2012 Rule 14.3)
+  it.each([
+    ["1", 1, "1U"],
+    ["1U", 1, "1U"],
+    ["0x1", 1, "1U"],
+    ["0b1", 1, "1U"],
+    ["ONE", 1, "1U"],
+    ["0", 0, "0U"],
+    ["0U", 0, "0U"],
+    ["0x0", 0, "0U"],
+    ["0b0", 0, "0U"],
+    ["OFF", 0, "0U"],
+  ])("folds %s, whose value is %d, to %s", (expr, folded, expected) => {
+    expect(BitUtils.boolToInt(expr, folded)).toBe(expected);
+  });
+
+  it("folds a single-bit write's constant value by its value", () => {
+    expect(BitUtils.singleBitWrite("x", 3, "0x1", "uint8_t", 1)).toBe(
+      BitUtils.singleBitWrite("x", 3, "true", "uint8_t"),
+    );
   });
 });
 
@@ -93,7 +115,7 @@ describe("BitUtils.singleBitWrite", () => {
   it.each([
     ["true", "flags = (flags & ~(1U << 0)) | (1U << 0);"],
     ["false", "flags = (flags & ~(1U << 0)) | (0U << 0);"],
-    ["x > 5", "flags = (flags & ~(1U << 0)) | ((x > 5 ? 1U : 0U) << 0);"],
+    ["x > 5", "flags = (flags & ~(1U << 0)) | (((x > 5) ? 1U : 0U) << 0);"],
   ])("writes %s into storage of unknown type", (value, code) => {
     expect(BitUtils.singleBitWrite("flags", 0, value)).toBe(code);
   });

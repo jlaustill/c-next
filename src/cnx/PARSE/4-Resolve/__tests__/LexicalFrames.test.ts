@@ -145,8 +145,9 @@ void f(u8 p) {
 
   it("records the modifiers a local declares", () => {
     const source = `void f() {
-    atomic mut wrap u8 a <- 1;
+    atomic wrap u8 a <- 1;
     volatile u16 b <- 2;
+    u16 c <- 3;
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "}");
@@ -159,7 +160,13 @@ void f(u8 p) {
       isConst: true,
       isVolatile: true,
       overflowBehavior: "clamp",
-      constValue: { kind: "value", digits: "2", typeName: "u16" },
+      // ADR-064: a volatile is never a compile-time value (#2155 review 9)
+      constValue: null,
+    });
+    expect(program.lexicalDeclarationAt("a.cnx", "c", use)).toMatchObject({
+      isConst: true,
+      isVolatile: false,
+      constValue: { kind: "value", digits: "3", typeName: "u16" },
     });
   });
 });

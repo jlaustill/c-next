@@ -327,7 +327,7 @@ CNX enforces strict compile-time safety. These are **errors**, not warnings:
 | Assignment from larger  | `ERROR: Cannot assign string<64> to string<32> (potential truncation)`            |
 | Substring out of bounds | `ERROR: Substring [60,10] exceeds source capacity 64`                             |
 | In-place concatenation  | `ERROR: Self-referential concat: 64 < 64 + 6`                                     |
-| Not a string            | `error[E0920]: A value that is not a string cannot be assigned to string<8>: 'n'` |
+| Not a string            | `error[E0923]: A value that is not a string cannot be assigned to string<8>: 'n'` |
 
 ```cnx
 string<4> s <- "Hello";           // ERROR: 5 > 4
@@ -342,7 +342,7 @@ b <- b + "!";                     // ERROR: 64 < 64 + 1
 Only a string lands in a `string<N>`: a literal, another string, a
 concatenation, a substring, or a C string (a `char*` or a `char[]`). Anything
 else -- an integer, a float or its bits, a bool, a char, an enum, a struct or
-an array -- is E0920, as a declaration's initializer, an assignment's value or
+an array -- is E0923, as a declaration's initializer, an assignment's value or
 an argument (#1634). Until then each was accepted at exit 0 and emitted as the
 string copy, which C reads as an address. A string array's list element is
 ADR-035's E0866, which takes only a string literal there (#2195). E0914
@@ -363,7 +363,7 @@ so a part may read the string written (`message <- message[0, 58] + " World"`).
 A substring contributes at most its length, and never more than the space left in
 the string it is written into.
 A substring's length is a compile-time constant -- a literal or a constant --
-wherever the substring is read (#2240): a run-time length is E0919, because
+wherever the substring is read (#2240): a run-time length is E0922, because
 what it copies could not be checked to fit. Its start may be computed at run
 time.
 An argument is written into its `string<N>` parameter, so the same rules hold

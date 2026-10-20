@@ -1,0 +1,60 @@
+// test-error
+// test-adr: 034
+// E0857 on a compound operator to a bitmap field, whatever spells its prefix.
+//
+// #2159: `flat.Mode +<- 1` was lowered as the plain write `flat.Mode <- 1` --
+// the `+` dropped, gcc happy, exit 0. A bitmap field is a bit or a run of bits
+// of its backing value, as a bit index is (ADR-007), so it is rejected the same
+// way. The rule reads the chain's typed final step, so a field reached through
+// an array element, a struct member, `this.` or a register member is the same
+// rule as a bare variable's. `shared.Level` is a bitmap declared in an included
+// file (ADR-034's imported-direct cell).
+
+#include "lib/compound-flags.cnx"
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+struct Holder {
+    Flags fl;
+    u8 count;
+}
+
+register MOTOR @ 0x40000000 {
+    CTRL: Flags rw @ 0x00,
+}
+
+mut Flags flat;
+mut Holder[2] gss;
+
+scope Sc {
+    mut Flags fl;
+
+    public void bump() {
+        // NEGATIVE CONTROL -- a plain write to the same field is fine
+        this.fl.Mode <- 1;
+
+        this.fl.Mode +<- 1;
+    }
+}
+
+u32 main() {
+    // NEGATIVE CONTROLS -- plain writes through the same chains, and a
+    // compound operator on the struct's own scalar beside the bitmap
+    flat.Mode <- 1;
+    gss[1].fl.Mode <- 1;
+    gss[1].count +<- 1;
+
+    flat.Mode +<- 1;
+    gss[1].fl.Mode +<- 1;
+    MOTOR.CTRL.Mode +<- 1;
+    shared.Level +<- 1;
+
+    return 0;
+}

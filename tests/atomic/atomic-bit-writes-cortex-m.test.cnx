@@ -1,0 +1,61 @@
+#pragma target teensy41
+// test-adr: 049
+// Issue #2200: a bit, a bit range and a bitmap field written to an atomic
+// value are read-modify-writes, made atomic as a compound write to the value
+// is, in every spelling: a variable, a bitmap, a scope member through the
+// scope's name and through this. A float's bits are written through its
+// integer view, inside the same form (review of #2155). A compound write to
+// a scope member is atomic in every spelling too (#1179).
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+atomic u8 word;
+atomic u16 wide;
+atomic Flags flags;
+atomic i32 sword;
+atomic i8 sbyte;
+atomic i16 shalf;
+atomic f32 fl;
+mut u8 plain;
+
+scope Sc {
+    public atomic Flags paf;
+    public atomic wrap u8 cnt;
+
+    public void viaThis() {
+        this.paf.Mode <- 2;
+        this.cnt +<- 1;
+    }
+}
+
+void set(bool on) {
+    word[1] <- true;
+    word[2, 3] <- 5;
+    word[0] <- on;
+    wide[9, 4] <- 11;
+    flags.Mode <- 3;
+    flags.A <- on;
+    Sc.paf.B <- true;
+    // #2208: a signed atomic is accessed through its unsigned type
+    sword[3] <- true;
+    sword +<- 1;
+    sbyte +<- 1;
+    shalf[2] <- true;
+    shalf +<- 1;
+    fl[31] <- true;
+    fl[0, 4] <- 3;
+    Sc.cnt +<- 1;
+    plain[1] <- true;
+}
+
+void main() {
+    set(true);
+    Sc.viaThis();
+}

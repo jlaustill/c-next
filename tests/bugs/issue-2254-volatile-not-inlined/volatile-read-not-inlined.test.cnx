@@ -1,0 +1,40 @@
+// test-execution
+// test-adr: 064
+// #2254, #2155 review 9: a read-only `volatile` is never a compile-time
+// value (ADR-064). A private scope member's reads, a bit write's value and a
+// switch label never inline its initializer, so each reads it at run time.
+// The plain private const is the control: it still inlines.
+scope Ctl {
+    volatile bool OFF <- false;
+    volatile u8 STATUS <- 2;
+    u8 LIMIT <- 3;
+
+    public u8 status() {
+        return this.STATUS;
+    }
+
+    public u8 limit() {
+        return this.LIMIT;
+    }
+
+    public bool off() {
+        return this.OFF;
+    }
+}
+
+u32 main() {
+    mut u8 word <- 0;
+    word[3] <- Ctl.off();
+    if (word != 0) {
+        return 1;
+    }
+    u8 status <- Ctl.status();
+    if (status != 2) {
+        return 2;
+    }
+    u8 limit <- Ctl.limit();
+    if (limit != 3) {
+        return 3;
+    }
+    return 0;
+}

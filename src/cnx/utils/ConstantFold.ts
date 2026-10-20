@@ -28,6 +28,20 @@ import type TType from "../types/TType";
 
 class ConstantFold {
   /** What a name is worth where it is written in `sourceFile`: the program's answer */
+  /**
+   * Whether a binding has a compile-time value: a read-only one that is not
+   * `volatile`. A volatile is read where it is written -- its value is the
+   * hardware's or an interrupt's, never its initializer (ADR-064, #2155
+   * review 8). The one answer 1.4 settles by, and every reader of a settled
+   * const (case labels, dimensions, inlined private consts) follows it.
+   */
+  static hasCompileTimeValue(binding: {
+    readonly isConst: boolean;
+    readonly isVolatile: boolean;
+  }): boolean {
+    return binding.isConst && !binding.isVolatile;
+  }
+
   static environment(
     program: IProgram,
     sourceFile: string,

@@ -5,7 +5,8 @@ import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IEmissionPlan from "../../../types/IEmissionPlan";
 import type TPlannedNarrowing from "./TPlannedNarrowing";
-import type TAtomicForm from "../../types/TAtomicForm";
+import type IPlannedAtomic from "../../types/IPlannedAtomic";
+import type IBitmapFieldTarget from "../../../types/IBitmapFieldTarget";
 import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
@@ -74,8 +75,13 @@ interface IFilePlan {
   readonly floatBitReads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
   /** ADR-007: each assignment target, and the union it writes a float's bits through (null: none) */
   readonly floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits | null>;
+  /** ADR-034: each assignment, and the bitmap field it writes (null: it writes none) */
+  readonly bitmapFieldWrites: ReadonlyMap<
+    IAssignmentSyntax,
+    IBitmapFieldTarget | null
+  >;
   /** ADR-049: each assignment, and how it is written atomically (null: it is not atomic) */
-  readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm | null>;
+  readonly atomicForms: ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null>;
   /** ADR-051: each written `safe_div`/`safe_mod` call, and the helper it is written as */
   readonly safeDivisions: ReadonlyMap<TExpression, string>;
   /** ADR-044: each written `+ - *` chain, and the clamp helpers it calls (null: none) */
@@ -97,7 +103,7 @@ interface IFilePlan {
   readonly stringValueForms: ReadonlyMap<TExpression, TStringValueForm>;
   /**
    * #2240: each substring part's length, keyed by its chain, folded once
-   * here: E0919 has made every one a compile-time constant
+   * here: E0922 has made every one a compile-time constant
    */
   readonly substringCounts: ReadonlyMap<TExpression, number>;
   /**

@@ -39,7 +39,7 @@ mut bool flag;  // bool
 // Assignment uses <- (not =)
 mut u32 x <- 42;
 
-// Every binding is read-only unless declared mut (ADR-071). The generated C
+// Every binding is read-only unless declared mut (ADR-071; atomic implies mut). The generated C
 // marks a read-only binding `const`; a binding the code writes says `mut`.
 u32 limit <- 10;            // read-only: const uint32_t limit = 10U;
 mut u32 total <- 0;         // written below, so it is declared mut
@@ -546,8 +546,9 @@ GPIO7.DR_SET[3] <- true;        // Set bit 3 (atomic)
 // 15. ATOMIC & CRITICAL SECTIONS
 // =============================================================================
 
-// Atomic variables - ISR-safe
-atomic mut u32 counter <- 0;
+// Atomic variables - ISR-safe. `atomic` already makes a binding writable,
+// so it takes no `mut` (`atomic mut` is E0919).
+atomic u32 counter <- 0;
 
 void increment() {
     counter +<- 1;              // Lock-free on Cortex-M3+

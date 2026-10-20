@@ -9,17 +9,9 @@ import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import TAssignmentHandler from "./TAssignmentHandler";
-import TTypeInfo from "../../../../../types/TTypeInfo";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
-
-/**
- * The target's type info. Both kinds are classified only when it resolved.
- */
-function targetTypeInfo(ctx: IAssignmentContext): TTypeInfo {
-  return AssignmentClassifier.targetTypeInfo(ctx)!;
-}
 
 /**
  * Handle atomic read-modify-write: atomic counter +<- 1
@@ -29,21 +21,18 @@ function targetTypeInfo(ctx: IAssignmentContext): TTypeInfo {
  * operation saturates is the classifier's decision, passed in.
  */
 function handleAtomicRMW(ctx: IAssignmentContext): string {
-  invariant(ctx.atomicForm !== null, "2.2 planned every atomic 2.3 writes");
-  const typeInfo = targetTypeInfo(ctx);
+  const atomic = ctx.atomic;
+  invariant(atomic !== null, "2.2 planned every atomic 2.3 writes");
   const target = ctx.renderTarget();
 
-  return ctx.state
-    .requireGenerator()
-    .generateAtomicRMW(
-      target,
-      ctx.cOp,
-      ctx.generatedValue,
-      typeInfo,
-      AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
-      ctx.atomicForm,
-      ctx.valueExpressionType(),
-    );
+  return ctx.state.requireGenerator().generateAtomicRMW(
+    target,
+    ctx.cOp,
+    ctx.generatedValue,
+    // #1179: the value 2.2 found atomic, however the target spells it
+    atomic,
+    AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
+  );
 }
 
 const HOISTED_CLAMP_ANNOTATION =

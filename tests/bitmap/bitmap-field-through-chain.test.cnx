@@ -1,0 +1,164 @@
+// test-execution
+// test-adr: 034
+// Tests: Issue 1749 - a bitmap field written through a struct member, an array
+// element, a scope member or this. is a bit write on the bitmap value it reaches.
+// The same holds through a `mut` parameter (a pointer in C), an array
+// parameter, and a scope member that shadows a global of the same name.
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+struct Holder {
+    Flags fl;
+    Flags[2] fls;
+}
+
+mut Holder gs;
+mut Holder[2] gss;
+mut Flags shadowed;
+
+scope Sc {
+    public mut Flags pfl;
+    public mut Holder ps;
+    mut Flags fl;
+    mut Holder gs;
+
+    public void setC() {
+        gs.fls[0].C <- true;
+    }
+
+    public bool getC() {
+        return gs.fls[0].C;
+    }
+
+    public void setA() {
+        this.fl.A <- true;
+    }
+
+    public bool getA() {
+        return this.fl.A;
+    }
+}
+
+void viaParam(mut Holder h) {
+    h.fls[1].Mode <- 3;
+}
+
+void viaParamArray(mut Holder[2] hs) {
+    hs[1].fl.B <- true;
+}
+
+u8 writeShadow() {
+    mut Flags shadowed;
+    shadowed.A <- true;
+    shadowed.Mode <- 6;
+    return shadowed.Mode;
+}
+
+u32 main() {
+    gss[1].fl.Mode <- 5;
+    if (gss[1].fl.Mode != 5) {
+        return 1;
+    }
+    if (gss[0].fl.Mode != 0) {
+        return 2;
+    }
+    if (gss[1].fl.A != false) {
+        return 3;
+    }
+
+    gs.fls[1].A <- true;
+    if (gs.fls[1].A != true) {
+        return 4;
+    }
+    if (gs.fls[0].A != false) {
+        return 5;
+    }
+    if (gs.fls[1].B != false) {
+        return 6;
+    }
+
+    gs.fl.B <- true;
+    if (gs.fl.B != true) {
+        return 7;
+    }
+
+    Sc.pfl.B <- true;
+    if (Sc.pfl.B != true) {
+        return 8;
+    }
+    if (Sc.pfl.A != false) {
+        return 9;
+    }
+
+    Sc.ps.fl.Mode <- 2;
+    if (Sc.ps.fl.Mode != 2) {
+        return 10;
+    }
+    if (Sc.ps.fl.C != false) {
+        return 11;
+    }
+
+    Sc.ps.fls[1].Mode <- 7;
+    if (Sc.ps.fls[1].Mode != 7) {
+        return 12;
+    }
+    if (Sc.ps.fls[0].Mode != 0) {
+        return 13;
+    }
+
+    Sc.setA();
+    bool scopeA <- Sc.getA();
+    if (scopeA != true) {
+        return 14;
+    }
+
+    u8 localMode <- writeShadow();
+    if (localMode != 6) {
+        return 15;
+    }
+    if (shadowed.A != false) {
+        return 16;
+    }
+    if (shadowed.Mode != 0) {
+        return 17;
+    }
+
+    viaParam(gs);
+    if (gs.fls[1].Mode != 3) {
+        return 18;
+    }
+    if (gs.fls[1].A != true) {
+        return 19;
+    }
+    if (gs.fls[0].Mode != 0) {
+        return 20;
+    }
+
+    viaParamArray(gss);
+    if (gss[1].fl.B != true) {
+        return 21;
+    }
+    if (gss[1].fl.Mode != 5) {
+        return 22;
+    }
+    if (gss[0].fl.B != false) {
+        return 23;
+    }
+
+    Sc.setC();
+    bool scopeC <- Sc.getC();
+    if (scopeC != true) {
+        return 24;
+    }
+    if (gs.fls[0].C != false) {
+        return 25;
+    }
+
+    return 0;
+}

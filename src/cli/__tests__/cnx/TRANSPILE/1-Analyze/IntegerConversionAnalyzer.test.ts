@@ -220,7 +220,7 @@ describe("IntegerConversionAnalyzer", () => {
     });
   });
 
-  describe("E0920 -- only a string lands in a string<N> (#1634)", () => {
+  describe("E0923 -- only a string lands in a string<N> (#1634)", () => {
     const codes = (source: string) => errors(source).map((e) => e.code);
 
     it("rejects an integer, a literal, a float's bits, a bool, a char literal and an enum", () => {
@@ -233,7 +233,7 @@ describe("IntegerConversionAnalyzer", () => {
                 "    string<8> s4 <- b;\n    string<8> s5 <- 'A';\n    string<8> s6 <- c;",
             ),
         ),
-      ).toEqual(["E0920", "E0920", "E0920", "E0920", "E0920", "E0920"]);
+      ).toEqual(["E0923", "E0923", "E0923", "E0923", "E0923", "E0923"]);
     });
 
     it("rejects a struct and an array, which no category list names (#1731 review)", () => {
@@ -245,7 +245,7 @@ describe("IntegerConversionAnalyzer", () => {
                 "    string<8> s1 <- p;\n    string<8> s2 <- bytes;",
             ),
         ),
-      ).toEqual(["E0920", "E0920"]);
+      ).toEqual(["E0923", "E0923"]);
     });
 
     it("rejects one assigned, passed and in a ternary arm", () => {
@@ -256,9 +256,9 @@ describe("IntegerConversionAnalyzer", () => {
           ),
       );
       expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
-        ["E0920", 8, 9],
-        ["E0920", 9, 9],
-        ["E0920", 10, 9],
+        ["E0923", 8, 9],
+        ["E0923", 9, 9],
+        ["E0923", 10, 9],
       ]);
     });
 

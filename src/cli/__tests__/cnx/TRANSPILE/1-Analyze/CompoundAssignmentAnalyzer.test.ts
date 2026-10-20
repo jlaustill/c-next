@@ -64,6 +64,44 @@ describe("CompoundAssignmentAnalyzer", () => {
     expect(found[0].message).toContain("string");
   });
 
+  describe("a bitmap field (#2159), whatever spells its prefix", () => {
+    const bitmapSource = (body: string): string =>
+      [
+        "bitmap8 Flags { A, B, Mode[3], C, D, E }",
+        "struct Holder { Flags fl; u8 count; }",
+        "mut Flags flat;",
+        "mut Holder[2] gss;",
+        "scope Sc {",
+        "    mut Flags fl;",
+        "    public void bump() {",
+        `        ${body}`,
+        "    }",
+        "}",
+      ].join("\n");
+
+    it.each(["flat.Mode", "gss[1].fl.Mode", "this.fl.Mode"])(
+      "rejects a compound operator on %s",
+      (target) => {
+        const found = errors(bitmapSource(`${target} +<- 1;`));
+        expect(found).toHaveLength(1);
+        expect(found[0].code).toBe("E0857");
+        expect(found[0].message).toContain("bitmap field");
+      },
+    );
+
+    it("accepts a plain write to the field and a compound one to a sibling scalar", () => {
+      // NEGATIVE CONTROL: the same chains, but a plain write, and a compound
+      // operator on the struct's own scalar beside the bitmap
+      expect(
+        errors(
+          bitmapSource(
+            "gss[1].fl.Mode <- 1; this.fl.Mode <- 1; gss[1].count +<- 1;",
+          ),
+        ),
+      ).toEqual([]);
+    });
+  });
+
   it("accepts a plain assignment to any of them", () => {
     // The rule is about the OPERATOR. Every target above is fine with `<-`.
     expect(

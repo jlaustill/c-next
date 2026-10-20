@@ -25,6 +25,10 @@
 // it after the boundary. A second derivation that happens to agree same-file is
 // what both bugs are made of.
 //
+// #1749: the same field reached through a chain -- an included struct's
+// member, an element of its bitmap array, a member of an included struct
+// array's element -- is one bit write too.
+//
 // `local` is the NEGATIVE CONTROL: a bitmap declared in THIS file, which was
 // always correct and must stay correct. A fix that made the cross-file path
 // work by breaking the local one fails here.
@@ -43,6 +47,11 @@ u32 main() {
     shared.Active <- 1;
     shared.Level <- 5;
 
+    // Cross-file bitmap through a chain (#1749).
+    sharedHolder.fl.Level <- 6;
+    sharedHolder.fls[1].Ready <- 1;
+    sharedHolders[1].fl.Active <- 1;
+
     // Same-file bitmap: the control.
     local.On <- 1;
     local.Mode <- 3;
@@ -58,6 +67,21 @@ u32 main() {
     }
     if (local.Mode != 3) {
         return 4;
+    }
+    if (sharedHolder.fl.Level != 6) {
+        return 5;
+    }
+    if (sharedHolder.fls[1].Ready != 1) {
+        return 6;
+    }
+    if (sharedHolder.fls[0].Ready != 0) {
+        return 7;
+    }
+    if (sharedHolders[1].fl.Active != 1) {
+        return 8;
+    }
+    if (sharedHolders[0].fl.Active != 0) {
+        return 9;
     }
     return 0;
 }

@@ -266,7 +266,7 @@ class LexicalFrames {
     });
     const type = DeferredTypes.settleType(declaration.type, isScopeType);
     const constValue =
-      declaration.isConst &&
+      ConstantFold.hasCompileTimeValue(declaration) &&
       declaration.initialValueExpr !== null &&
       arrayDimensions.length === 0
         ? ConstantFold.constValue(declaration.initialValueExpr, env, type)

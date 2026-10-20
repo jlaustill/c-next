@@ -971,7 +971,7 @@ class Program {
   private static hasConstInitializer(symbol: TSymbol): boolean {
     return (
       symbol.kind === "variable" &&
-      symbol.isConst &&
+      ConstantFold.hasCompileTimeValue(symbol) &&
       symbol.initialValueExpr !== undefined
     );
   }

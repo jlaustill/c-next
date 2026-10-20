@@ -205,6 +205,41 @@ describe("RegisterAccessAnalyzer", () => {
     });
   });
 
+  describe("E0872 -- a zero assigned to a field of a write-1 member (#2027)", () => {
+    const FIELDS = [
+      "bitmap8 Flags { Enable, Mode[3], Rest[4] }",
+      "register PWM @ 0x40000000 { FLAGS: Flags w1c @ 0x00, CTRL: Flags rw @ 0x04, }",
+    ].join(" ");
+
+    it("rejects `false` on a one-bit field and `0` on a wider one", () => {
+      const found = errors(
+        FIELDS +
+          inMain("    PWM.FLAGS.Enable <- false;\n    PWM.FLAGS.Mode <- 0;"),
+      );
+      expect(found.map((e) => [e.code, e.line])).toEqual([
+        ["E0872", 2],
+        ["E0872", 3],
+      ]);
+      expect(found[0].message).toBe(
+        "Cannot assign false to write-only register bit PWM.FLAGS.Enable",
+      );
+      expect(found[1].message).toBe(
+        "Cannot assign 0 to write-only register bits PWM.FLAGS.Mode",
+      );
+    });
+
+    it("accepts a non-zero value, and a zero on an rw member's field", () => {
+      expect(
+        errors(
+          FIELDS +
+            inMain(
+              "    PWM.FLAGS.Enable <- true;\n    PWM.FLAGS.Mode <- 2;\n    PWM.CTRL.Mode <- 0;",
+            ),
+        ),
+      ).toEqual([]);
+    });
+  });
+
   it("says nothing without a symbol view", () => {
     // The view is real; it just declares no register `R`.
     expect(errors(inMain("    u32 v <- R.CMD;"))).toEqual([]);

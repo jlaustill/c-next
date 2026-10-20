@@ -277,7 +277,10 @@ myVar[8] <- true; // ERROR: u8 only has bits 0-7
 myVar[0, 9] <- 5; // ERROR: 9 bits exceeds u8 width
 ```
 
-This is tracked as future work (compile-time validation phase).
+A constant index past the value's width, or a constant range whose last bit is,
+is E0920 (#1808, implemented 2026-10-19 in #2155). A bitmap field is indexed
+within its own width (ADR-034, #2251): on `Mode[3]`, `p.Mode[3]` is E0920
+rather than a write into the next field. A runtime index is not checked.
 
 ### Implemented: subscript depth (E0856, Issue #1106)
 

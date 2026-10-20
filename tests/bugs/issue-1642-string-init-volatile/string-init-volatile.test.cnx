@@ -20,9 +20,10 @@ volatile string<16> volatileNoInit;
 // puts `atomic`/`volatile` FIRST, so these read as non-const and were rejected
 // with E0862 before reaching codegen. That rejection is what hid the second
 // bug -- the unsized arm emits a hardcoded `const char`, dropping the
-// qualifier the .h still derives from the symbol.
+// qualifier the .h still derives from the symbol. An unsized atomic string
+// is no longer this arm: atomic implies mut (#2233), so it is E0862, which
+// tests/adr-049/atomic-unsized-string-error asserts.
 volatile string unsizedVolatile <- "v";
-atomic string unsizedAtomic <- "a";
 
 // Negative control: a non-string atomic was never affected, and an unqualified
 // string must not gain a qualifier.

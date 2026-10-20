@@ -21,8 +21,16 @@ extern "C" {
  */
 typedef uint8_t Flags;
 
+/* Struct definitions */
+typedef struct FlagHolder {
+    Flags fl;
+    Flags fls[2];
+} FlagHolder;
+
 /* External variables */
 extern Flags shared;
+extern FlagHolder sharedHolder;
+extern FlagHolder sharedHolders[2];
 
 #ifdef __cplusplus
 }

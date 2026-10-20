@@ -861,6 +861,84 @@ void main() {
     expect(chain.steps.at(-1)?.subscript).toBe("bit_single");
   });
 
+  // #2158/#2185: the register member a step's prefix is, however the
+  // register is spelled -- the one answer the classifier and handlers read
+  describe("the register member a step reads from", () => {
+    const declarations = `register MOTOR @ 0x40000000 {
+    CTRL: u8 rw @ 0x00,
+}
+scope Drive {
+    register PWM @ 0x40001000 {
+        FLAGS: u8 w1c @ 0x04,
+    }
+    public void bare() { %BODY% }
+}
+`;
+    const lastOf = (body: string) =>
+      targetOf(declarations.replace("%BODY%", body)).steps.at(-1);
+
+    it.each([
+      [
+        "a scope's own bare register",
+        "PWM.FLAGS[0] <- true;",
+        "Drive__PWM__FLAGS",
+        "Drive__PWM",
+      ],
+      [
+        "this.",
+        "this.PWM.FLAGS[0] <- true;",
+        "Drive__PWM__FLAGS",
+        "Drive__PWM",
+      ],
+      [
+        "the scope's name",
+        "Drive.PWM.FLAGS[0] <- true;",
+        "Drive__PWM__FLAGS",
+        "Drive__PWM",
+      ],
+      ["a global register", "MOTOR.CTRL[1] <- true;", "MOTOR__CTRL", "MOTOR"],
+      ["global.", "global.MOTOR.CTRL[1] <- true;", "MOTOR__CTRL", "MOTOR"],
+    ])("names the member through %s", (_, body, member, register) => {
+      const step = lastOf(body);
+      expect(step?.beforeRegisterMember).toBe(member);
+      expect(step?.beforeRegister).toBe(register);
+      expect(step?.subscript).toBe("bit_single");
+    });
+
+    it("names the member a bitmap field of a register member is in", () => {
+      const step = targetOf(`bitmap8 Ctl { A, B, Mode[3], C, D, E }
+scope Drive {
+    register PWM @ 0x40001000 {
+        CTRL: Ctl rw @ 0x00,
+    }
+    public void bare() { PWM.CTRL.Mode <- 2; }
+}
+`).steps.at(-1);
+      expect(step?.member).toBe("Mode");
+      expect(step?.beforeRegisterMember).toBe("Drive__PWM__CTRL");
+      expect(step?.beforeRegister).toBe("Drive__PWM");
+      expect(step?.before?.bitmapTypeName).toBe("Ctl");
+    });
+
+    it("names no member for a struct's field", () => {
+      const step = targetOf(`struct P { u8 word; }
+void main() {
+    mut P p;
+    p.word[3] <- true;
+}`).steps.at(-1);
+      expect(step?.beforeRegisterMember).toBeNull();
+    });
+
+    it("records the name a member step reads", () => {
+      const steps = targetOf(`struct P { u8 word; }
+void main() {
+    mut P p;
+    p.word <- 1;
+}`).steps;
+      expect(steps.map((step) => step.member)).toEqual(["word"]);
+    });
+  });
+
   describe("a subscript's kind on a C or C++ header's value (S25)", () => {
     /** The subscript kind of `r`'s initializer, a postfix chain */
     function subscriptOf(

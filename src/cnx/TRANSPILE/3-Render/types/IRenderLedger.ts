@@ -20,6 +20,7 @@ interface IRenderLedger {
   readonly clampChains: Set<TExpression>;
   readonly floatBitWrites: Set<TExpression>;
   readonly compoundClamps: Set<IAssignmentSyntax>;
+  readonly bitmapFieldWrites: Set<IAssignmentSyntax>;
   readonly atomicForms: Set<IAssignmentSyntax>;
 }
 

@@ -4724,7 +4724,7 @@ describe("CodeGenWalker", () => {
   describe("Critical statement", () => {
     it("should generate critical section with interrupt disable", () => {
       const source = `
-        atomic mut u32 counter <- 0;
+        atomic u32 counter <- 0;
         void main() {
           critical {
             counter <- counter + 1;
@@ -9572,7 +9572,7 @@ describe("CodeGenWalker", () => {
     describe("atomic variables", () => {
       it("should generate atomic variable declaration", () => {
         const source = `
-          atomic mut u32 counter <- 0;
+          atomic u32 counter <- 0;
           void test() {
             counter +<- 1;
           }
@@ -16547,7 +16547,7 @@ describe("CodeGenWalker", () => {
     describe("atomic variable", () => {
       it("should generate volatile for atomic", () => {
         const source = `
-          atomic mut u32 counter <- 0;
+          atomic u32 counter <- 0;
           void test() {
             counter <- 1;
           }

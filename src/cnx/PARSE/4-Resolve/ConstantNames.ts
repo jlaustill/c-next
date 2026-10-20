@@ -35,6 +35,7 @@ import ELEMENT_STEP from "../../types/ELEMENT_STEP";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
+import ConstantFold from "../../utils/ConstantFold";
 import type TSettledConst from "../../types/TSettledConst";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
@@ -185,7 +186,7 @@ class ConstantNames {
     if (declaration.kind === "parameter") {
       return ConstantNames.without("parameter", walk);
     }
-    if (declaration.isConst) {
+    if (ConstantFold.hasCompileTimeValue(declaration)) {
       return ConstantNames.ofSettled(settled?.constValue ?? undefined, walk);
     }
     return ConstantNames.without("variable", walk);
@@ -203,7 +204,9 @@ class ConstantNames {
         walk,
       );
     }
-    if (!symbol.isConst) return ConstantNames.without("variable", walk);
+    if (!ConstantFold.hasCompileTimeValue(symbol)) {
+      return ConstantNames.without("variable", walk);
+    }
     return ConstantNames.ofSettled(walk.facts.constValue(symbol), walk);
   }
 

@@ -1,5 +1,5 @@
 // Helper for program-pragma: declares no target, so it takes the program's.
-atomic mut u32 helperCounter <- 0;
+atomic u32 helperCounter <- 0;
 
 void helperIncrement() {
     helperCounter +<- 1;

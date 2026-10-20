@@ -146,7 +146,7 @@ class ConstantDimensionCheck {
       ...at,
       message: `Array dimension must be known at compile time: ${why}`,
       helpText:
-        "An array's size is built from literals, read-only bindings, length properties (.type_byte_length) and casts (ADR-058). C-Next has no variable-length arrays",
+        "An array's size is built from literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts (ADR-058). C-Next has no variable-length arrays",
     });
   }
 }

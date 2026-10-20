@@ -20,3 +20,11 @@
        help: assign at the end of the loop body and write it as a while loop
 82:9 error[E0715]: a for-loop header cannot hold this assignment: a float bit write is more than one statement
        help: assign before the loop and leave the init clause empty
+104:24 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+107:9 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
+       help: assign before the loop and leave the init clause empty
+107:33 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
+       help: assign at the end of the loop body and write it as a while loop
+110:9 error[E0715]: a for-loop header cannot hold this assignment: an atomic read-modify-write is more than one statement
+       help: assign before the loop and leave the init clause empty

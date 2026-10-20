@@ -38,6 +38,7 @@ class StringFormCheck {
         stringType,
         isArray,
         !declaration.modifiers.mut,
+        declaration.modifiers.atomic,
         initializer,
       );
       return;
@@ -58,6 +59,7 @@ class StringFormCheck {
     stringType: TStringTypeSyntax,
     isArray: boolean,
     isReadOnly: boolean,
+    isAtomic: boolean,
     initializer: TExpression | null,
   ): void {
     if (isArray) {
@@ -66,6 +68,15 @@ class StringFormCheck {
         "E0862",
         "A string array requires an explicit capacity",
         "Write the element capacity, e.g. string<64>[4].",
+      );
+      return;
+    }
+    if (!isReadOnly && isAtomic) {
+      this.report(
+        stringType.span,
+        "E0862",
+        "An `atomic` string requires an explicit capacity",
+        "`atomic` makes a binding writable (ADR-071), and only a read-only string can have its capacity inferred. Give it a capacity: `atomic string<64>`.",
       );
       return;
     }

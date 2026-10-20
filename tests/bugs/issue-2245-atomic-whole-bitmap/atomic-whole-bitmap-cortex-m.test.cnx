@@ -1,0 +1,23 @@
+#pragma target teensy41
+// test-adr: 049
+// #2245: on Cortex-M, a compound write to a whole `atomic` bitmap and a
+// write to its field take the same form, an `__LDREXH` loop on the backing
+// `uint16_t`. Before #2155 the compound write took PRIMASK while the field
+// write took LDREX/STREX.
+bitmap16 F {
+    A,
+    Mode[3],
+    Rest[12]
+}
+
+atomic F fl;
+
+void set(u8 m) {
+    fl +<- 1;
+    fl.Mode <- m;
+}
+
+u32 main() {
+    set(2);
+    return 0;
+}

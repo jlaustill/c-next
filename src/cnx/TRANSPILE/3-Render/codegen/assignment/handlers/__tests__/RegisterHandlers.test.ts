@@ -13,6 +13,32 @@ import enterScope from "../../../../../__tests__/enterScope";
 import TestExpression from "../../../../../../types/__testUtils__/testExpression";
 
 /**
+ * The typer's step for a register member's bit: the member it names and its
+ * register (#2185)
+ */
+function registerTarget(
+  member: string,
+  register: string,
+): IAssignmentContext["target"] {
+  return {
+    last: {
+      before: null,
+      subscript: null,
+      after: null,
+      property: null,
+      callee: null,
+      beforeNamesType: false,
+      beforeIsBitField: false,
+      fieldBits: null,
+      beforeRegisterMember: member,
+      beforeRegister: register,
+      registerMember: null,
+      member: null,
+    },
+  } as IAssignmentContext["target"];
+}
+
+/**
  * Create mock context for testing.
  */
 function createMockContext(
@@ -47,6 +73,8 @@ function createMockContext(
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
+    bitmapField: null,
+    atomic: null,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -66,6 +94,11 @@ function createMockContext(
     // it is handed, so the mock context carries the same instance the test
     // set its facts up on.
     state,
+    // The typer names the register as the chain's names before the member
+    target: registerTarget(
+      identifiers.join("__"),
+      identifiers.slice(0, -1).join("__"),
+    ),
     ...overrides,
   } as IAssignmentContext;
 }
@@ -85,12 +118,10 @@ describe("RegisterHandlers", () => {
 
       expect(kinds).toContain(AssignmentKind.REGISTER_BIT);
       expect(kinds).toContain(AssignmentKind.REGISTER_BIT_RANGE);
-      expect(kinds).toContain(AssignmentKind.SCOPED_REGISTER_BIT);
-      expect(kinds).toContain(AssignmentKind.SCOPED_REGISTER_BIT_RANGE);
     });
 
-    it("exports exactly 4 handlers", () => {
-      expect(registerHandlers).toHaveLength(4);
+    it("exports exactly 2 handlers", () => {
+      expect(registerHandlers).toHaveLength(2);
     });
   });
 
@@ -134,7 +165,10 @@ describe("RegisterHandlers", () => {
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
-      const ctx = createMockContext({ generatedValue: "false" });
+      const ctx = createMockContext({
+        generatedValue: "false",
+        foldValue: () => 0,
+      });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
@@ -146,7 +180,10 @@ describe("RegisterHandlers", () => {
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "w1s"]]),
       });
-      const ctx = createMockContext({ generatedValue: "0" });
+      const ctx = createMockContext({
+        generatedValue: "0",
+        foldValue: () => 0,
+      });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
@@ -248,6 +285,7 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "0",
+        foldValue: () => 0,
       });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
@@ -259,8 +297,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
-        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
-          Number(node.mockValue),
+        // The value is not a constant; each subscript folds to its mock
+        tryEvaluateConstant: vi.fn((node: { mockValue: string } | null) =>
+          node === null ? undefined : Number(node.mockValue),
         ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
@@ -295,8 +334,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("8")
           .mockReturnValueOnce("16"),
-        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
-          Number(node.mockValue),
+        // The value is not a constant; each subscript folds to its mock
+        tryEvaluateConstant: vi.fn((node: { mockValue: string } | null) =>
+          node === null ? undefined : Number(node.mockValue),
         ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
@@ -325,10 +365,10 @@ describe("RegisterHandlers", () => {
     });
   });
 
-  describe("handleScopedRegisterBit (SCOPED_REGISTER_BIT)", () => {
+  describe("handleRegisterBit on a scope's own register (this.GPIO7)", () => {
     const getHandler = () =>
       registerHandlers.find(
-        ([kind]) => kind === AssignmentKind.SCOPED_REGISTER_BIT,
+        ([kind]) => kind === AssignmentKind.REGISTER_BIT,
       )?.[1];
 
     it("generates read-modify-write for scoped register bit", () => {
@@ -338,6 +378,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
+        target: registerTarget("Motor__GPIO7__DR_SET", "Motor__GPIO7"),
         hasThis: true,
       });
 
@@ -357,6 +398,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
+        target: registerTarget("Motor__GPIO7__DR_SET", "Motor__GPIO7"),
         hasThis: true,
       });
 
@@ -381,18 +423,20 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "DR_SET"],
+        target: registerTarget("Motor__GPIO7__DR_SET", "Motor__GPIO7"),
         hasThis: true,
         generatedValue: "false",
+        foldValue: () => 0,
       });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
   });
 
-  describe("handleScopedRegisterBitRange (SCOPED_REGISTER_BIT_RANGE)", () => {
+  describe("handleRegisterBitRange on a scope's own register (this.GPIO7)", () => {
     const getHandler = () =>
       registerHandlers.find(
-        ([kind]) => kind === AssignmentKind.SCOPED_REGISTER_BIT_RANGE,
+        ([kind]) => kind === AssignmentKind.REGISTER_BIT_RANGE,
       )?.[1];
 
     it("generates read-modify-write for scoped register bit range", () => {
@@ -405,6 +449,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
@@ -433,6 +478,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
@@ -454,8 +500,9 @@ describe("RegisterHandlers", () => {
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("32"),
-        tryEvaluateConstant: vi.fn((node: { mockValue: string }) =>
-          Number(node.mockValue),
+        // The value is not a constant; each subscript folds to its mock
+        tryEvaluateConstant: vi.fn((node: { mockValue: string } | null) =>
+          node === null ? undefined : Number(node.mockValue),
         ),
       });
       HandlerTestUtils.setupMockSymbols(state, {
@@ -469,6 +516,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
           { mockValue: "32" } as never,
@@ -504,12 +552,14 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
+        target: registerTarget("Motor__GPIO7__ICR1", "Motor__GPIO7"),
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "6" } as never,
           { mockValue: "2" } as never,
         ]),
         hasThis: true,
         generatedValue: "0",
+        foldValue: () => 0,
       });
 
       expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");

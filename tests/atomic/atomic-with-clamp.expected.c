@@ -60,9 +60,9 @@ volatile uint32_t counter = 0U;
 // Signed atomic clamp
 volatile int8_t temperature = 0;
 
-const volatile int16_t offset = 0;
+volatile int16_t offset = 0;
 
-const volatile int32_t position = 0;
+volatile int32_t position = 0;
 
 void adjustBrightness(const uint8_t delta) {
     {
@@ -125,9 +125,9 @@ void adjustTemperature(const int8_t delta) {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
         int32_t __operand = delta;
         do {
-            int8_t __old = __LDREXB(&temperature);
+            int8_t __old = (int8_t)__LDREXB((volatile uint8_t *)&temperature);
             int8_t __new = cnx_clamp_add_i8(__old, __operand);
-            if (__STREXB(__new, &temperature) == 0) {
+            if (__STREXB((uint8_t)__new, (volatile uint8_t *)&temperature) == 0) {
                 break;
             }
         } while (1);

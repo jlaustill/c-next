@@ -18,9 +18,9 @@
 //
 // #1164 fixed the same drop on the WITHOUT-initializer branch, and that branch
 // is the negative control below: it was already correct and must stay so.
-extern const volatile char atomicWithInit[17] = "a";
+volatile char atomicWithInit[17] = "a";
 
-extern const volatile char atomicNoInit[17] = "";
+volatile char atomicNoInit[17] = "";
 
 extern const volatile char volatileWithInit[17] = "v";
 
@@ -31,14 +31,14 @@ extern const volatile char volatileNoInit[17] = "";
 // puts `atomic`/`volatile` FIRST, so these read as non-const and were rejected
 // with E0862 before reaching codegen. That rejection is what hid the second
 // bug -- the unsized arm emits a hardcoded `const char`, dropping the
-// qualifier the .h still derives from the symbol.
+// qualifier the .h still derives from the symbol. An unsized atomic string
+// is no longer this arm: atomic implies mut (#2233), so it is E0862, which
+// tests/adr-049/atomic-unsized-string-error asserts.
 extern const volatile char unsizedVolatile[2] = "v";
-
-extern const volatile char unsizedAtomic[2] = "a";
 
 // Negative control: a non-string atomic was never affected, and an unqualified
 // string must not gain a qualifier.
-extern const volatile uint32_t plainAtomic = 1U;
+volatile uint32_t plainAtomic = 1U;
 
 extern const char unqualified[17] = "u";
 

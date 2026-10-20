@@ -1,0 +1,14 @@
+// Helper (not a test): atomic values declared here, written by the files
+// that include it, directly and through atomic-shared-hop.cnx. Whether a
+// write is atomic is a property of the DECLARATION, so it has to reach across
+// the include (ADR-049 scope-context matrix, review of #2155).
+
+bitmap8 SharedFlags {
+    Ready,
+    Busy,
+    Level[3],
+    Spare[3]
+}
+
+atomic wrap u32 sharedCount;
+atomic SharedFlags sharedFlags;

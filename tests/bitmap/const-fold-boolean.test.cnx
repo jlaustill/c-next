@@ -26,11 +26,20 @@ u32 main() {
         return 2;
     }
 
-    // Variable (should keep ternary)
+    // A local const keeps the ternary: folding its one read would leave its
+    // declaration unread (#1791, #2155 review 8)
     bool val <- true;
     f.bit2 <- val;
     if (f.bit2 != true) {
         return 3;
+    }
+
+    // A variable keeps the ternary
+    mut bool live <- false;
+    live <- f.bit0;
+    f.bit3 <- live;
+    if (f.bit3 != true) {
+        return 4;
     }
 
     return 0;

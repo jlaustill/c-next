@@ -81,3 +81,35 @@ void floatBits() {
     for (n <- 0; n < 2; values[1][0] <- true) {}
     for (sample.value[0] <- true; n < 2; n +<- 1) {}
 }
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+atomic u32 word;
+atomic Flags flags;
+
+// ASSERTIONS -- a bit, a bit range and a bitmap field written to an atomic are
+// read-modify-writes of it (ADR-049, #2200), in the init and in the update
+// (review of #2155: these crashed codegen instead). CONTROL: the same writes
+// in the body, and a bit write to a non-atomic in a header, stay legal.
+void atomicBits() {
+    u8 n <- 0;
+    mut u32 plain <- 0;
+    for (n <- 0; n < 4; word[3] <- true) {
+        n +<- 1;
+    }
+    for (word[4, 2] <- 1; n < 4; flags.A <- true) {
+        n +<- 1;
+    }
+    for (flags.Mode <- 3; n < 4; plain[2] <- true) {
+        word[3] <- true;
+        word[4, 2] <- 1;
+        flags.Mode <- 3;
+    }
+}

@@ -1,10 +1,10 @@
-15:26 error[E0919]: A substring's length must be a compile-time constant, not 'n'
+15:26 error[E0922]: A substring's length must be a compile-time constant, not 'n'
        help: Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.
-18:16 error[E0919]: A substring's length must be a compile-time constant, not 'n'
+18:16 error[E0922]: A substring's length must be a compile-time constant, not 'n'
        help: Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.
-20:26 error[E0919]: A substring's length must be a compile-time constant, not 'n'
+20:26 error[E0922]: A substring's length must be a compile-time constant, not 'n'
        help: Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.
-22:25 error[E0919]: A substring's length must be a compile-time constant, not 'n'
+22:25 error[E0922]: A substring's length must be a compile-time constant, not 'n'
        help: Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.
-24:28 error[E0919]: A substring's length must be a compile-time constant, not 'n'
+24:28 error[E0922]: A substring's length must be a compile-time constant, not 'n'
        help: Write the length as a literal or a constant, so the substring is known to fit what it is copied into (ADR-045). The start may be computed at run time.

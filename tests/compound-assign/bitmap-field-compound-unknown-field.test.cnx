@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 034
+// #2159 review: a compound operator on a field the bitmap does not declare is
+// E0882, the unknown field, as the same write without the operator is. It is
+// no bitmap field, so E0857's "not supported on a bitmap field" would send the
+// user to split a write that still could not compile. It sits apart from
+// bitmap-field-compound.test.cnx because 2.1 halts at the first failing stage.
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+mut Flags flat;
+
+u32 main() {
+    flat.Nope +<- 1;
+    return 0;
+}

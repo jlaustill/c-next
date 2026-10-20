@@ -8,23 +8,11 @@
 enum AssignmentKind {
   // === Bitmap operations (check first - specific patterns) ===
 
-  /** flags.Running <- true (single-bit bitmap field) */
-  BITMAP_FIELD_SINGLE_BIT,
+  /** flags.Mode <- 3, gss[1].fl.Mode <- 3, this.fl.A <- true (a field of a bitmap value) */
+  BITMAP_FIELD,
 
-  /** flags.Mode <- 3 (multi-bit bitmap field) */
-  BITMAP_FIELD_MULTI_BIT,
-
-  /** bitmapArr[i].Field <- value (array of bitmap elements) */
-  BITMAP_ARRAY_ELEMENT_FIELD,
-
-  /** device.flags.Active <- true (struct member is bitmap) */
-  STRUCT_MEMBER_BITMAP_FIELD,
-
-  /** MOTOR.CTRL.Running <- true (register member is bitmap) */
+  /** MOTOR.CTRL.Running <- true, Scope.GPIO7.ICR1.LED <- v, this.PWM.CTRL.Enable <- true (a field of a register member) */
   REGISTER_MEMBER_BITMAP_FIELD,
-
-  /** Scope.GPIO7.ICR1.LED_BUILTIN <- value (scoped register bitmap) */
-  SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
 
   // === Register bit operations ===
 
@@ -33,12 +21,6 @@ enum AssignmentKind {
 
   /** GPIO7.DR_SET[0, 8] <- value (bit range, includes MMIO optimization) */
   REGISTER_BIT_RANGE,
-
-  /** this.GPIO7.DR_SET[LED_BIT] <- true (scoped register bit) */
-  SCOPED_REGISTER_BIT,
-
-  /** this.GPIO7.ICR1[6, 2] <- value (scoped register bit range) */
-  SCOPED_REGISTER_BIT_RANGE,
 
   // === Integer bit operations ===
 

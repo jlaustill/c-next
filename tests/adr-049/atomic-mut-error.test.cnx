@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 049
+// E0919 (#2233): atomic already makes a binding writable, so atomic mut is
+// rejected on a global and on a scope member. The atomic-only global and
+// member beside them are written with no mut and stay silent.
+#pragma target stm32f4
+
+atomic mut u32 tick_count <- 0;
+atomic u32 ticks <- 0;
+
+scope Timer {
+    atomic mut u8 pending <- 0;
+    atomic u8 fired <- 0;
+
+    public void tick() {
+        this.pending +<- 1;
+        this.fired +<- 1;
+    }
+}
+
+void main() {
+    tick_count +<- 1;
+    ticks +<- 1;
+    Timer.tick();
+}

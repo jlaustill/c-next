@@ -1,5 +1,5 @@
 // test-error
-// Tests: #2240 - a substring's length must be a compile-time constant (E0919) wherever the substring is read; a constant length beside each, and a run-time start, are the controls
+// Tests: #2240 - a substring's length must be a compile-time constant (E0922) wherever the substring is read; a constant length beside each, and a run-time start, are the controls
 struct Cfg {
     string<4> name;
 }

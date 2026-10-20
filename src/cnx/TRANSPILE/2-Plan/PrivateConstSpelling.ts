@@ -72,7 +72,7 @@ class PrivateConstSpelling {
     const symbol = program.symbolByCName(cName);
     if (
       symbol?.kind !== "variable" ||
-      !symbol.isConst ||
+      !ConstantFold.hasCompileTimeValue(symbol) ||
       symbol.isArray ||
       symbol.initialValueExpr === undefined ||
       symbol.initialValue === undefined

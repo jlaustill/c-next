@@ -161,7 +161,7 @@ class ArrayListCount {
   /** What C's `{v}` gives every slot it leaves out: zero, or a string's `""` */
   private static fillsWithZero(fill: TExpression, at: IListPosition): boolean {
     if (ExpressionShape.isStringLiteral(fill)) return fill.written === '""';
-    return ZeroValue.of(fill, fill, at.context);
+    return ZeroValue.of(fill, at.context);
   }
 }
 

@@ -4,7 +4,7 @@
 // type and dropped `volatile`, which C rejects under -Werror and which would
 // turn each register write into a plain store.
 volatile mut u8[2][2] regs;
-atomic mut u8[2] flags;
+atomic u8[2] flags;
 mut u32 rowCalls <- 0;
 
 u32 row() {

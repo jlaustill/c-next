@@ -45,7 +45,7 @@ bool                   // boolean
 ### Read-Only by Default (ADR-071)
 
 Every binding — global, scope member, local, parameter, `for` variable — is
-read-only unless it is declared `mut`. Writing one that is not is a compile
+read-only unless it is declared `mut` (`atomic` implies `mut`). Writing one that is not is a compile
 error, and so is a `mut` that nothing writes, or a `const` (it is the default):
 
 ```cnx
@@ -420,13 +420,15 @@ ISR-safe variables with hardware-assisted atomicity:
 ```cnx
 #pragma target teensy41
 
-atomic mut u32 counter <- 0;           // ISR-safe with LDREX/STREX
-atomic mut clamp u8 brightness <- 100; // Combines atomic + clamp
+atomic u32 counter <- 0;           // ISR-safe with LDREX/STREX
+atomic clamp u8 brightness <- 100; // Combines atomic + clamp
 
 void increment() {
     counter +<- 1;   // Lock-free atomic increment
 }
 ```
+
+`atomic` already makes a binding writable, so it takes no `mut`: `atomic mut` is E0919 (#2233).
 
 Generates optimized code based on target platform:
 

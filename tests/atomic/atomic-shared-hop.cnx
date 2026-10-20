@@ -1,0 +1,6 @@
+// Helper (not a test): reaches atomic-shared.cnx's atomic values through one
+// more include, for the transitive cells of ADR-049's matrix.
+
+#include "atomic-shared.cnx"
+
+u32 ATOMIC_SHARED_HOP_MARKER <- 2;

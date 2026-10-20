@@ -1,0 +1,26 @@
+#pragma target teensy41
+// test-adr: 049
+// Review of #2155: an atomic bit write whose value is not a literal holds it
+// in a `bool` before the retry loop, and 2.2 plans that type's header. This
+// file has no other `bool`, so nothing else plans <stdbool.h> for it.
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+atomic u32 word;
+atomic Flags flags;
+
+void set(u32 x) {
+    word[3] <- x > 5;
+    flags.A <- x > 7;
+}
+
+void main() {
+    set(6);
+}

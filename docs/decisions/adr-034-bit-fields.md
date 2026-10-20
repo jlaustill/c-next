@@ -361,6 +361,18 @@ bitmap's value in either place: `{ Running: 1 }` is E0358 (ADR-014). Owner
 ruling, 2026-09-28: _"a bitmap should be defined the exact same way it is
 anywhere else, being inside a struct changes nothing"_.
 
+Arithmetic on a whole bitmap is legal and operates on its backing integer:
+`flags +<- 1` and `flags <- flags + 1` are integer arithmetic on the bitmap's
+fixed-size value, carries into the next field included. Owner ruling,
+2026-10-19 (#2245): _"it's the entire reason for making bitmaps a fixed size
+and requiring a full definition"_. An `atomic` bitmap's compound write is a
+read-modify-write of that integer, the same as a write to one of its fields
+(ADR-049, `tests/bugs/issue-2245-atomic-whole-bitmap`).
+
+A compound operator on a bitmap field (`flags.Mode +<- 1`) is an error
+(E0857); write the read and the write out separately. Owner ruling,
+2026-10-18 (#2159).
+
 ### Overflow Behavior
 
 - **Compile-time literals**: Error if value exceeds field width
@@ -393,18 +405,25 @@ uint8_t mode = ((status.flags >> 3) & 0x7);
 
 ## Diagnostics
 
-| Code  | Reported when                                                             | Asserted by                                                                                                          |
-| ----- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| E0881 | A value written to a bitmap field does not fit the field's declared width | `tests/adr-034/bitmap-error-overflow.test.cnx`                                                                       |
-| E0882 | A member access names something the bitmap does not declare               | `tests/adr-034/bitmap-unknown-field-error.test.cnx`                                                                  |
-| E0883 | A bitmap is addressed by bit index rather than by named field             | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`                                                               |
-| E0893 | A bitmap's field widths do not add up to its size, at the bitmap          | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx` |
+| Code  | Reported when                                                                    | Asserted by                                                                                                          |
+| ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| E0857 | A compound operator such as `+<-` writes a bitmap field (#2159)                  | `tests/compound-assign/bitmap-field-compound.test.cnx`                                                               |
+| E0881 | A value written to a bitmap field does not fit the field's declared width        | `tests/adr-034/bitmap-error-overflow.test.cnx`                                                                       |
+| E0882 | A member access names something the bitmap does not declare                      | `tests/adr-034/bitmap-unknown-field-error.test.cnx`                                                                  |
+| E0883 | A bitmap is addressed by bit index rather than by named field                    | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`                                                               |
+| E0893 | A bitmap's field widths do not add up to its size, at the bitmap                 | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx` |
+| E0921 | A field is read or written on a bitmap array that names no whole element (#2186) | `tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx`                                               |
 
 A bitmap is reached two ways -- through a variable declared with a bitmap type,
-and through a register member typed by one -- and all three rules ask the same
-question of both. The distinction matters: bracket indexing was rejected only
+and through a register member typed by one -- and E0881, E0882, E0883 and
+E0921 ask the same question of both. The distinction matters: bracket indexing was rejected only
 through a register until #1322, so indexing a bitmap variable was accepted and
 lowered to a bit index, which is the shape ADR-034 exists to replace.
+
+A bitmap reached through a struct member, an array element, a scope member or
+`this.` is checked by E0881, E0882, E0883 and E0921 exactly as a bitmap
+variable is (#1749,
+`tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx`).
 
 The four shape properties ADR-058 defines describe the type rather than name a
 field, so they are not unknown members.
@@ -423,7 +442,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | same file           | error    |
 | scope member       | same file           | warn     |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | warn     |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | warn     |
 | scope member       | imported direct     | warn     |
 | top-level function | imported transitive | warn     |
@@ -434,7 +453,10 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 A bitmap's fields and a register member's type can both be declared in an
 included file, so every imported cell is reachable and none is `off`.
 
-`top-level function | imported direct` is `error`: #1651 built it. A bitmap
+`top-level function | imported direct` is `error`: #1651 built it, and
+`scope method | imported direct` is `error`:
+`tests/compound-assign/bitmap-field-included-scope-method` writes an
+included bitmap's fields from a scope method (#2155 review 9). A bitmap
 declared one hop away was assigned as a struct member and emitted
 `shared.Active = 1` -- a member access on a scalar, rejected by the C compiler,
 with the same statement lowering correctly in the declaring file. That cell is

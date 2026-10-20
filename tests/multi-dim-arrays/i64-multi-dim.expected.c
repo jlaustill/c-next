@@ -105,7 +105,7 @@ int main(void) {
     }
     for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
-            matrix2d[i][j] = (((cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), j))) & 0xFFFFFFFFFFFFFFFFU);
+            matrix2d[i][j] = (int64_t)(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), j));
         }
     }
     if (matrix2d[0U][0U] != 0) {
@@ -124,7 +124,7 @@ int main(void) {
     for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
             for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
-                cube3d[i][j][k] = (((cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), cnx_clamp_mul_u32(j, 10)), k))) & 0xFFFFFFFFFFFFFFFFU);
+                cube3d[i][j][k] = (int64_t)(cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_mul_u32(i, 100), cnx_clamp_mul_u32(j, 10)), k));
                 sum = cnx_clamp_add_i64(sum, cube3d[i][j][k]);
             }
         }

@@ -19,6 +19,7 @@ import QualifiedCName from "../../../../../../utils/QualifiedCName";
 import TYPE_WIDTH from "../../../../../../types/TYPE_WIDTH";
 import TypeCheckUtils from "../../../../../../utils/TypeCheckUtils";
 import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
+import BitmapFieldStep from "../../../../../../utils/BitmapFieldStep";
 
 /**
  * Set up mock symbols on state.
@@ -333,11 +334,34 @@ function bitWriteOf(
       callee: null,
       beforeNamesType: false,
       beforeIsBitField: false,
+      fieldBits: null,
+      beforeRegisterMember: null,
+      beforeRegister: null,
+      registerMember: null,
+      member: null,
     },
   };
 }
 
+/**
+ * ADR-034: `ctx` with 2.2's bitmap-field decision, made by the call 2.2 makes
+ * on the target's final step -- after a case has typed that step
+ */
+function withPlannedBitmapField(
+  state: TranspileState,
+  ctx: IAssignmentContext,
+): IAssignmentContext {
+  return {
+    ...ctx,
+    bitmapField: BitmapFieldStep.fieldOf(
+      ctx.target.last,
+      state.symbols!.bitmapFields,
+    ),
+  };
+}
+
 export default class HandlerTestUtils {
+  static readonly withPlannedBitmapField = withPlannedBitmapField;
   static readonly bitWriteOf = bitWriteOf;
   static readonly operandOf = operandOf;
   static readonly plannedClampOf = plannedClampOf;
