@@ -21,47 +21,6 @@ import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
  */
 class AssignmentClassifier {
   /**
-   * The type info of the assignment TARGET, for the three simple patterns.
-   *
-   * #1450: one decision, and it was derived twice. `classifySpecialCompound`
-   * resolved it across three branches to classify atomics and overflow clamps;
-   * the string classifiers resolved it again, branch for branch, sixty lines
-   * below. They agreed, which is the failure mode rather than the defense --
-   * changing how a target resolves (qualifying `global.member`, say) meant
-   * editing both, and nothing said so. (#1731 replaced those string
-   * classifiers with the typer's answer, `OperandTyper.stringCopyCapacity`,
-   * which 2.1's E0715 asks too.)
-   *
-   * The pattern GUARD stays with each caller, because the pattern is what picks
-   * the `AssignmentKind`. Only the resolution is shared: what a target is named
-   * is one question, and which kind that makes the assignment is another.
-   *
-   * `undefined` for a target that is none of the three, which is exactly what
-   * its callers already treated a missing type info as.
-   *
-   * #1668 (C7): the resolution is the target's binding now, made once where
-   * the target is typed. This used to re-spell the target as a registry key --
-   * the bare name, or `qualifyInScope` for `this.` -- and a bare spelling of a
-   * scope member only agreed with the qualified one because an unrelated
-   * cross-file fallback caught the registry's miss. The binder reads `this.`
-   * and `global.` off the target itself, so there is no key to get right.
-   */
-  static targetTypeInfo(ctx: IAssignmentContext): TTypeInfo | undefined {
-    return AssignmentClassifier.isSimpleTarget(ctx)
-      ? ctx.target.typeInfo
-      : undefined;
-  }
-
-  /** Whether the target is `x`, `this.x` or `global.x` */
-  private static isSimpleTarget(ctx: IAssignmentContext): boolean {
-    return (
-      ctx.isSimpleIdentifier ||
-      ctx.isSimpleThisAccess ||
-      ctx.isSimpleGlobalAccess
-    );
-  }
-
-  /**
    * Classify an assignment context into an AssignmentKind.
    */
   static classify(ctx: IAssignmentContext): AssignmentKind {
