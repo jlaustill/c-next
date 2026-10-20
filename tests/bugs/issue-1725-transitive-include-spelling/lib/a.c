@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/a.h"
+#include "a.h"
 
 // Issue #1725: spells the header beside it, relative to lib/.
 #include "dev.h"

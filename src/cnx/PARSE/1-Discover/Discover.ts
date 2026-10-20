@@ -35,6 +35,7 @@ import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import IncludePath from "../../utils/IncludePath";
 import ConfigFileNames from "./ConfigFileNames";
 
 /** The configuration a run's discovery reads. */
@@ -257,25 +258,45 @@ class Discover {
    */
   private _spelledIncludes(
     headerExtension: THeaderExtension,
+    outputs: ReadonlyMap<string, IOutputPaths>,
   ): ReadonlyMap<string, IFileIncludes> {
     const spelled = new Map<string, IFileIncludes>();
+    const paths = this.anchor.pathResolver;
     const headerIncludePathFor = (cnxPath: string): string | null =>
-      this.anchor.pathResolver.getHeaderIncludePath(cnxPath, headerExtension);
+      paths.getHeaderIncludePath(cnxPath, headerExtension);
+    const writtenIn = (directory: string) => ({
+      directory,
+      headerPathFor: (cnxPath: string) =>
+        paths.headerPathFor(cnxPath, headerExtension),
+    });
     for (const [path, { resolved, quotedIncludeDirectory }] of this
       .resolvedIncludes) {
+      const output = outputs.get(path);
       // Issue #1467: PathResolver's answer to "where is this .cnx's header
       // reachable from?", so the include text and the header's location are
-      // the same derivation rather than two that happen to agree.
+      // the same derivation rather than two that happen to agree. #2272/#1473:
+      // a quoted include is spelled from where each generated file is written,
+      // so the .h and the .c each get their own spelling of it.
       const spelling = IncludeResolver.spell(
         resolved,
         headerExtension,
         headerIncludePathFor,
+        output === undefined ? null : writtenIn(dirname(output.header)),
       );
+      const sourceSpelling =
+        output === undefined
+          ? spelling
+          : IncludeResolver.spell(
+              resolved,
+              headerExtension,
+              headerIncludePathFor,
+              writtenIn(dirname(output.source)),
+            );
       spelled.set(
         path,
         Object.freeze({
-          // Issue #1467: one resolution, read later by both the .c and the .h
-          cnxIncludeRewrites: spelling.cnextIncludeRewrites,
+          // Issue #1467: one resolution, read later by the .c
+          includeRewrites: sourceSpelling.includeRewrites,
           // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
           resolutions: resolved.resolutions,
           cnextAlternatives: resolved.cnextAlternatives,
@@ -285,6 +306,12 @@ class Discover {
           // #1435: the directory its quoted includes resolve from, which a
           // generated header spells them relative to (#1725)
           quotedIncludeDirectory,
+          // #2272: where its generated header is written, which every quoted
+          // include that header carries is spelled relative to
+          generatedHeaderDirectory:
+            output === undefined
+              ? quotedIncludeDirectory
+              : dirname(output.header),
           // Issues #497/#854: how this file spells each header and .cnx it
           // includes, which is what its own generated header must say (#1435)
           headerIncludeDirectives: spelling.headerIncludeDirectives,
@@ -292,7 +319,7 @@ class Discover {
           // #1444: what its own generated header includes, from the tokens
           // read here rather than from 1.2's tree in Stage 5
           userIncludes: Object.freeze(spelling.userIncludes),
-          cHeaderIncludes: Object.freeze(resolved.cHeaderIncludes),
+          cHeaderIncludes: Object.freeze(spelling.cHeaderIncludes),
           cHeaderSpecs: Object.freeze(resolved.cHeaderSpecs),
         }),
       );
@@ -338,6 +365,14 @@ class Discover {
    * entry is the included file's own `discoveredFile`.
    */
   private _freeze(files: TDiscoveredFiles, unit: IHeaderUnit): ISourceGraph {
+    const outputs = {
+      c: this._outputs(files, false),
+      cpp: this._outputs(files, true),
+    };
+    // #2272: a source run writes nothing, so its headers are spelled from the
+    // directory each `.cnx` is in, where they would be generated beside it
+    const written = (paths: ReadonlyMap<string, IOutputPaths>) =>
+      files.writeOutputToDisk ? paths : new Map<string, IOutputPaths>();
     return Discover._frozen({
       cnextFiles: files.cnextFiles,
       headerFiles: files.headerFiles,
@@ -353,8 +388,14 @@ class Discover {
       headerSearchPaths: files.headerSearchPaths,
       includeSearchPaths: files.includeSearchPaths,
       includes: {
-        c: this._spelledIncludes(OutputExtensions.forCppMode(false).header),
-        cpp: this._spelledIncludes(OutputExtensions.forCppMode(true).header),
+        c: this._spelledIncludes(
+          OutputExtensions.forCppMode(false).header,
+          written(outputs.c),
+        ),
+        cpp: this._spelledIncludes(
+          OutputExtensions.forCppMode(true).header,
+          written(outputs.cpp),
+        ),
       },
       anchor: {
         directory: this.anchor.directory,
@@ -370,10 +411,7 @@ class Discover {
           process.env.CNEXT_CROSS_COMPILER || this.anchor.compiler,
       },
       writeOutputToDisk: files.writeOutputToDisk,
-      outputs: {
-        c: this._outputs(files, false),
-        cpp: this._outputs(files, true),
-      },
+      outputs,
       targetCatalog: this._targetCatalog(),
       run: {
         debugMode: this.settings.debugMode,
@@ -398,8 +436,9 @@ class Discover {
   }
 
   /**
-   * #1991: where each file's output goes in a run of one mode (#1713). A source run's file is named by its basename, as a files run
-   * names a file outside every input directory.
+   * #1991: where each file's output goes in a run of one mode (#1713). A
+   * source run's file is named by its basename, as a files run names a file
+   * outside every input directory.
    */
   private _outputs(
     files: TDiscoveredFiles,
@@ -408,19 +447,31 @@ class Discover {
     const extensions = OutputExtensions.forCppMode(cppMode);
     const paths = this.anchor.pathResolver;
     return new Map(
-      files.cnextFiles.map((file): [string, IOutputPaths] => [
-        file.path,
-        {
-          sourceRelativePath: files.writeOutputToDisk
-            ? paths.getSourceRelativePath(file.path)
-            : basename(file.path),
-          source: paths.getOutputPath(file.discoveredFile, extensions.source),
-          header: paths.getHeaderOutputPath(
-            file.discoveredFile,
-            extensions.header,
-          ),
-        },
-      ]),
+      files.cnextFiles.map((file): [string, IOutputPaths] => {
+        const source = paths.getOutputPath(
+          file.discoveredFile,
+          extensions.source,
+        );
+        const header = paths.getHeaderOutputPath(
+          file.discoveredFile,
+          extensions.header,
+        );
+        return [
+          file.path,
+          {
+            // #2272/#1473: relative to the .c, so it does not depend on which
+            // entry pulled the file in
+            selfInclude: files.writeOutputToDisk
+              ? IncludePath.relative(dirname(source), header)
+              : CNextSourcePath.withExtension(
+                  basename(file.path),
+                  extensions.header,
+                ),
+            source,
+            header,
+          },
+        ];
+      }),
     );
   }
 

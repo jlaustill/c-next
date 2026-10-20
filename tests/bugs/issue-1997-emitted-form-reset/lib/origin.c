@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/origin.h"
+#include "origin.h"
 
 #include <stdint.h>
 

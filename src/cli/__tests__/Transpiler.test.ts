@@ -528,8 +528,9 @@ describe("Transpiler", () => {
           await transpiler.transpile({ kind: "files" });
 
           expect(mockFs.getWriteLog().map((w) => w.path)).toContain("util.h");
+          // Spelled from main.c's directory (#2272), so it needs no -I
           expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
-            '#include "util.h"',
+            '#include "../../elsewhere/util.h"',
           );
         },
       );

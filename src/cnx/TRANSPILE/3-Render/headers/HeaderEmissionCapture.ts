@@ -1,8 +1,9 @@
-import { basename, relative, sep } from "node:path";
+import { basename } from "node:path";
 
 import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import CNextSourcePath from "../../../utils/CNextSourcePath";
+import IncludePath from "../../../utils/IncludePath";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
 import ParameterPassing from "../../2-Plan/ParameterPassing";
@@ -256,8 +257,9 @@ class HeaderEmissionCapture {
    * #1725: a header it reaches only through another file takes that file's
    * spelling when it is valid from anywhere -- an angle include, a spelling
    * found along the search path, an output-root path -- and is re-spelled
-   * relative to `request.sourcePath` when it was relative to the file that wrote it.
-   * Copied, `"dev.h"` from lib/a.cnx named `src/dev.h` in src/main.h.
+   * relative to this file's generated header when it was relative to the file
+   * that wrote it (#2272: where a compiler resolves it from). Copied,
+   * `"dev.h"` from lib/a.cnx named `src/dev.h` in src/main.h.
    *
    * The ORDER is the run's first-seen order, unchanged, because
    * `ExternalTypeHeaderBuilder` lets the first header declaring a type win,
@@ -267,7 +269,7 @@ class HeaderEmissionCapture {
     request: IHeaderEmissionRequest,
   ): ReadonlyMap<string, string> {
     const own = request.ownIncludes;
-    const here = own.quotedIncludeDirectory;
+    const here = own.generatedHeaderDirectory;
     const directives = new Map<string, string>();
     for (const file of request.includes.values()) {
       for (const [header, directive] of file.headerIncludeDirectives) {
@@ -276,10 +278,12 @@ class HeaderEmissionCapture {
           header,
           named === undefined
             ? directive
-            : `#include "${relative(here, named).split(sep).join("/")}"`,
+            : `#include "${IncludePath.relative(here, named)}"`,
         );
       }
     }
+    // #1435: its own, as 1.1 spelled them for this header -- the same text
+    // as its `cHeaderIncludes`, so the #424 path cannot add a second spelling
     for (const [header, directive] of own.headerIncludeDirectives) {
       directives.set(header, directive);
     }

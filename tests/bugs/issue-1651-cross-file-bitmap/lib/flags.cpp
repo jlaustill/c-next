@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/flags.hpp"
+#include "flags.hpp"
 
 #include <stdint.h>
 

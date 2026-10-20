@@ -84,6 +84,23 @@ class DeclaredTypeFacts {
     return sets?.knownBitmaps.has(name) ?? false;
   }
 
+  /**
+   * The bitmap a register member is typed by, or null (#1514): its settled C
+   * type asked of the bitmaps this file sees, so one declared in an included
+   * file counts. The one answer 2.1's operand typer and 2.3's codegen read.
+   */
+  static registerMemberBitmap(
+    sets: IDeclaredTypeSets & {
+      readonly registerMemberCTypes: ReadonlyMap<string, string>;
+    },
+    memberCName: string,
+  ): string | null {
+    const cType = sets.registerMemberCTypes.get(memberCName);
+    return cType !== undefined && DeclaredTypeFacts.isBitmap(sets, cType)
+      ? cType
+      : null;
+  }
+
   /** @see isEnum */
   static isScope(sets: IDeclaredTypeSets | null, name: string): boolean {
     return sets?.knownScopes.has(name) ?? false;

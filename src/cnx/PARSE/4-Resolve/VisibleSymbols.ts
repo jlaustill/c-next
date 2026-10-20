@@ -46,7 +46,6 @@ interface IMergeAccumulator {
   readonly knownRegisters: Set<string>;
   readonly scopedRegisters: Map<string, TExpression>;
   readonly registerMemberAccess: Map<string, string>;
-  readonly registerMemberTypes: Map<string, string>;
   readonly registerBaseAddresses: Map<string, TExpression>;
   readonly registerMemberOffsets: Map<string, TExpression>;
   readonly registerMemberCTypes: Map<string, string>;
@@ -101,7 +100,6 @@ class VisibleSymbols {
     const mergedKnownRegisters = new Set(base.knownRegisters);
     const mergedScopedRegisters = new Map(base.scopedRegisters);
     const mergedRegisterMemberAccess = new Map(base.registerMemberAccess);
-    const mergedRegisterMemberTypes = new Map(base.registerMemberTypes);
     const mergedRegisterBaseAddresses = new Map(base.registerBaseAddresses);
     const mergedRegisterMemberOffsets = new Map(base.registerMemberOffsets);
     const mergedRegisterMemberCTypes = new Map(base.registerMemberCTypes);
@@ -132,7 +130,6 @@ class VisibleSymbols {
         knownRegisters: mergedKnownRegisters,
         scopedRegisters: mergedScopedRegisters,
         registerMemberAccess: mergedRegisterMemberAccess,
-        registerMemberTypes: mergedRegisterMemberTypes,
         registerBaseAddresses: mergedRegisterBaseAddresses,
         registerMemberOffsets: mergedRegisterMemberOffsets,
         registerMemberCTypes: mergedRegisterMemberCTypes,
@@ -158,7 +155,6 @@ class VisibleSymbols {
       knownRegisters: mergedKnownRegisters,
       scopedRegisters: mergedScopedRegisters,
       registerMemberAccess: mergedRegisterMemberAccess,
-      registerMemberTypes: mergedRegisterMemberTypes,
       registerBaseAddresses: mergedRegisterBaseAddresses,
       registerMemberOffsets: mergedRegisterMemberOffsets,
       registerMemberCTypes: mergedRegisterMemberCTypes,
@@ -257,10 +253,6 @@ class VisibleSymbols {
     VisibleSymbols._mergePreferringLocal(
       external.registerMemberAccess,
       into.registerMemberAccess,
-    );
-    VisibleSymbols._mergePreferringLocal(
-      external.registerMemberTypes,
-      into.registerMemberTypes,
     );
     VisibleSymbols._mergePreferringLocal(
       external.registerBaseAddresses,

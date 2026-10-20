@@ -103,9 +103,6 @@ interface ICodeGenSymbols {
   /** Register member access patterns: "scope.reg.field" -> access code */
   readonly registerMemberAccess: ReadonlyMap<string, string>;
 
-  /** Register member types: "scope.reg.field" -> typeName */
-  readonly registerMemberTypes: ReadonlyMap<string, string>;
-
   // Issue #187: Register address info for width-appropriate memory access
   /** Register base addresses: registerName -> base address expression */
   readonly registerBaseAddresses: ReadonlyMap<string, TExpression>;

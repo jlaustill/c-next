@@ -11,7 +11,6 @@ import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
 import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
-import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
 import ParameterPassing from "./ParameterPassing";
 import ResolvedTarget from "../../utils/ResolvedTarget";
@@ -187,7 +186,7 @@ class FilePlanner {
       debugMode: options.debugMode,
       cppMode: options.program.cppMode(),
       targetDescription: options.targetDescription,
-      cnxIncludeRewrites: options.cnxIncludeRewrites,
+      includeRewrites: options.includeRewrites,
       includeKinds: options.includeKinds,
       scopeMembers: symbols.scopeMembers,
     };
@@ -2546,11 +2545,7 @@ class FilePlanner {
     if (!options.hasPublicInterface) {
       return null;
     }
-    // Issue #933/#1319: the run's header extension, not re-derived from the mode
-    return CNextSourcePath.withExtension(
-      options.sourceRelativePath,
-      this.state.outputExtensions.header,
-    );
+    return options.selfInclude;
   }
 
   /**
@@ -2639,7 +2634,7 @@ class FilePlanner {
   private transformIncludeDirective(includeText: string): string {
     return includeGenerators.transformIncludeDirective(includeText, {
       sourcePath: this.state.sourcePath,
-      rewrites: this.state.cnxIncludeRewrites,
+      rewrites: this.state.includeRewrites,
       kinds: this.state.includeKinds,
       headerExtension: this.state.outputExtensions.header,
     });

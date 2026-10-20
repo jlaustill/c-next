@@ -20,7 +20,6 @@ class RegisterCollector {
    *
    * @param syntax The register declaration, as 1.2 lowered it
    * @param sourceFile Source file path
-   * @param knownBitmaps Set of known bitmap type names for reference resolution
    * @param scopePath The path of the scope this register belongs to (dotted path, "" at file scope)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The register symbol with proper scope reference
@@ -28,7 +27,6 @@ class RegisterCollector {
   static collect(
     syntax: IRegisterDeclarationSyntax,
     sourceFile: string,
-    knownBitmaps: Set<string>,
     scopePath: string,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
@@ -51,32 +49,13 @@ class RegisterCollector {
       const offset = member.offset;
       const accessMod = member.access;
 
-      // Get member type and convert to C type
-      const typeName = TypeUtils.getTypeName(
-        member.type,
-        scopePath,
-        isScopeType,
-      );
-      const cType = TypeUtils.cnextTypeToCType(typeName);
-
-      // Is the member type a bitmap? ONE key, the one the ladder produced.
-      //
-      // ADR-057: "Qualify from the parse tree, never from a resolved name."
-      // `typeName` has already been through the single TypeNameLadder
-      // above, which qualified it if and only if the syntax and the scope
-      // called for it. Re-qualifying it here was a SECOND qualification
-      // decision taken on an already-resolved name -- and by that point
-      // `global.Flags` and a bare `Flags` are byte-identical, so probing the
-      // re-qualified key FIRST let a scope-local `Chip__Flags` capture a
-      // deliberate `global.Flags`. The transpiler exited 0 and emitted
-      // `volatile Chip__Flags*`, whose bit names differ, so the field access
-      // was never lowered and gcc rejected the generated C.
-      //
-      // One key is sufficient because `knownBitmaps` is keyed exactly as the
-      // ladder resolves: file-scope bitmaps by their bare `name`, scope
-      // bitmaps by `fullyQualifiedCName`. The two shapes are complementary,
-      // never alternatives for the same declaration.
-      const bitmapType = knownBitmaps.has(typeName) ? typeName : undefined;
+      // #1514: the member's type is recorded, not judged. Whether it names a
+      // bitmap is a cross-file fact -- the bitmap may be declared in an
+      // included file -- so this file cannot answer it, and asking a per-file
+      // set here read "not declared here" as "not a bitmap". A bare name
+      // inside a scope may also name an included scope's type, which is why
+      // this is `resolveType`: it defers that case to 1.4 Resolve (ADR-057).
+      const type = TypeUtils.resolveType(member.type, scopePath, isScopeType);
 
       const memberInfo: IRegisterMemberSymbol = {
         ...MemberSymbolBase.of({
@@ -88,9 +67,8 @@ class RegisterCollector {
           visibility,
         }),
         offset,
-        cType,
+        type,
         access: accessMod,
-        bitmapType,
       };
 
       members.set(memberName, memberInfo);

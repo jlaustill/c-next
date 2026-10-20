@@ -13,12 +13,16 @@ import type EFileType from "./EFileType";
  */
 interface IFileIncludes {
   /**
-   * The author's `.cnx` include spelling mapped to the path its generated
-   * header is reachable at (#1467).
+   * How the `.c` names each include, by the author's spelling: a `.cnx`
+   * include's generated header (#1467), spelled from the `.c`'s directory
+   * when the `.cnx` was found beside this file (#2272), and a quoted C header
+   * found beside this file, also from the `.c`'s directory (#1746).
    *
-   * Read by both the `.c` and the `.h` path, so neither re-derives it.
+   * The `.c`'s spelling only: the `.h` is spelled from its own directory, and
+   * 1.1 has already applied that spelling to `headerIncludeDirectives`,
+   * `userIncludes` and `cHeaderIncludes`.
    */
-  readonly cnxIncludeRewrites: ReadonlyMap<string, string>;
+  readonly includeRewrites: ReadonlyMap<string, string>;
 
   /**
    * The file each `#include` directive resolved to, or null, keyed by
@@ -60,6 +64,14 @@ interface IFileIncludes {
   readonly quotedIncludeDirectory: string;
 
   /**
+   * The directory this file's generated header is written to (#2272). Every
+   * quoted include the header carries is spelled relative to it, which is how
+   * a compiler resolves one, so the header compiles with no `-I` and reads the
+   * same whichever entry pulled the file in.
+   */
+  readonly generatedHeaderDirectory: string;
+
+  /**
    * How this file spells each header and `.cnx` it includes: resolved header
    * path to directive, in discovery order (#497, #854). A quoted spelling is
    * relative to the file that wrote it, so it is a fact of the file, not of
@@ -81,9 +93,11 @@ interface IFileIncludes {
   readonly userIncludes: readonly string[];
 
   /**
-   * This file's other includes, exactly as written, in source order. A
-   * generated header carries them only when it names a macro one of them
-   * supplies (#424), and #985's translation-unit recovery is built from them.
+   * This file's other includes, as its generated header names them, in source
+   * order: a quoted C header found beside the file is named from the header's
+   * directory (#1746), like the matching `headerIncludeDirectives` entry, and
+   * any other is kept as written. A generated header carries them only when it
+   * names a macro one of them supplies (#424).
    */
   readonly cHeaderIncludes: readonly string[];
 

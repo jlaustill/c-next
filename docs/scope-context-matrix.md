@@ -36,13 +36,15 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-6 linked fixtures with no derivable context:
+8 linked fixtures with no derivable context:
 
 - `adr-004/register-expression-address-mmio.test.cnx`
 - `adr-004/register-imported-bitmap-member.test.cnx`
 - `adr-004/register-imported-expression-mmio.test.cnx`
 - `adr-004/register-imported-rw.test.cnx`
 - `adr-004/register-imported-wo-mmio.test.cnx`
+- `bugs/issue-1514-cross-file-bitmap-register/cross-file-bitmap-register-out-of-closure-error.test.cnx`
+- `bugs/issue-1514-cross-file-bitmap-register/cross-file-bitmap-register.test.cnx`
 - `bugs/issue-2258-register-enum-member/register-enum-member.test.cnx`
 
 ## ADR-006
@@ -338,9 +340,9 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | warn   | warn       | n/a         | n/a        |
-| top-level function | ok        | ok     | warn       | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
-| scope method       | ok        | ok     | warn       | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
 3 linked fixtures with no derivable context:

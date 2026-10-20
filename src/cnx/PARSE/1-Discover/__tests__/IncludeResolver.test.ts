@@ -613,7 +613,7 @@ describe("IncludeResolver", () => {
       expect([...result.headerIncludeDirectives.values()]).toEqual([
         "#include <Display/shared.h>",
       ]);
-      expect([...result.cnextIncludeRewrites.entries()]).toEqual([
+      expect([...result.includeRewrites.entries()]).toEqual([
         ["shared.cnx", "Display/shared.h"],
       ]);
     });

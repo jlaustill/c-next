@@ -36,7 +36,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         sourceFile,
-        new Set(),
       );
     };
 
@@ -87,7 +86,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       expect(result.scopeSymbol.kind).toBe("scope");
@@ -115,7 +113,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       expect(result.scopeSymbol.members).toEqual(["init", "update"]);
@@ -156,7 +153,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       expect(result.scopeSymbol.members).toEqual(["position", "speed"]);
@@ -195,7 +191,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       expect(result.scopeSymbol.members).toEqual(["State"]);
@@ -226,7 +221,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       // Struct has bare name with scope reference
@@ -259,7 +253,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       // Bitmap has bare name with scope reference
@@ -292,7 +285,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       // Register has bare name with scope reference
@@ -331,7 +323,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       expect(result.scopeSymbol.members).toEqual(["position", "init", "State"]);
@@ -362,7 +353,6 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      // Simulate bitmap being collected in pass 1
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
       // Production always threads this predicate down from CNextResolver's
       // pass 0b; supplying it is what makes the test model production. Nothing
@@ -373,16 +363,15 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        knownBitmaps,
         isScopeType,
       );
 
       const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
-        expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(
-          "Motor__MotorFlags",
-        );
+        expect(
+          TypeResolver.getTypeName(regSymbol.members.get("FLAGS")!.type),
+        ).toBe("Motor__MotorFlags");
       }
     });
 
@@ -405,14 +394,15 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        knownBitmaps,
         isScopeType,
       );
 
       const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
-        expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe("MotorFlags");
+        expect(
+          TypeResolver.getTypeName(regSymbol.members.get("FLAGS")!.type),
+        ).toBe("MotorFlags");
       }
     });
   });
@@ -429,7 +419,6 @@ describe("ScopeCollector", () => {
         registry,
         FirstDeclaration.scope(tree),
         "test.cnx",
-        new Set(),
       );
 
       expect(result.scopeSymbol.span.line).toBe(3);

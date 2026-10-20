@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/remote-callback.hpp"
+#include "remote-callback.hpp"
 
 #include <stdint.h>
 

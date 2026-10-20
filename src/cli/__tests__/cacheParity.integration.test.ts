@@ -137,7 +137,8 @@ describe("cache parity (integration, #1225)", () => {
       name.endsWith(".hpp"),
     )![1];
 
-    expect(header).toContain('#include "external.hpp"');
+    // Named from out/, where the header is written (#1746)
+    expect(header).toContain('#include "../external.hpp"');
     // The guess this issue is named for: an incomplete struct where the truth
     // is a pointer to opaque_t.
     expect(header).not.toContain("typedef struct handle_t handle_t;");

@@ -1,0 +1,9 @@
+// A PUBLIC register typed by an included bitmap: the header that exports it
+// must also bring in the bitmap's definition (#1453, #1514).
+#include "bitmaps.cnx"
+
+scope Periph {
+    public register CTRL @ 0x40004000 {
+        CR: Ctl rw @ 0x00,
+    }
+}

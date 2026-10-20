@@ -264,7 +264,9 @@ describe("CNextResolver Integration", () => {
       const regSymbol = symbols.find((s) => s.name === "GPIO");
       expect(regSymbol).toBeDefined();
       if (SymbolGuards.isRegister(regSymbol!)) {
-        expect(regSymbol.members.get("STATUS")?.bitmapType).toBe("StatusFlags");
+        expect(
+          TypeResolver.getTypeName(regSymbol.members.get("STATUS")!.type),
+        ).toBe("StatusFlags");
       }
     });
 
@@ -298,9 +300,9 @@ describe("CNextResolver Integration", () => {
       expect(regSymbol).toBeDefined();
       expect(regSymbol!.scopePath).toBe("Motor");
       if (SymbolGuards.isRegister(regSymbol!)) {
-        expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(
-          "Motor__CtrlFlags",
-        );
+        expect(
+          TypeResolver.getTypeName(regSymbol.members.get("FLAGS")!.type),
+        ).toBe("Motor__CtrlFlags");
       }
     });
   });

@@ -3,6 +3,6 @@
  * A safer C for embedded systems
  */
 
-#include "Display/AppData.hpp"
+#include "AppData.hpp"
 
 // AppData struct definition (the original source)

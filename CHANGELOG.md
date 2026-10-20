@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A generated quoted `#include` is spelled from the file that carries it** (ADR-010, Issues
+  #2272, #1473, #1746). A file's output no longer depends on which entry pulled it in, and it
+  compiles with no `-I` where `cnx` wrote it. A header in a subdirectory names its sibling as
+  `"bitmaps.h"`, not `"lib/bitmaps.h"`, and a `.c` names its own header as `"uart.h"`, or
+  across the split with `--header-out` (`"../../include/lib/a.h"`). A quoted C header found
+  beside a `.cnx` is named by a path back into the source tree (`"../../src/lib/dev.h"` with
+  `-o out`). The cost: output is tied to where it was written relative to the sources, so a
+  build that copies generated output elsewhere (a Docker context, a vendored `gen/`) and
+  compiles it with `-I` flags that used to work now fails. Generate in place, or regenerate
+  where it is built. Angle includes and includes found along the search path are unchanged.
 - **`atomic` implies `mut`, and `atomic mut` is error E0919** (ADR-049, ADR-071, Issue #2233).
   An `atomic` binding is writable on its own, so `atomic u32 count <- 0;` is now written, not
   read-only, and generates `volatile uint32_t`, not `const volatile`. Every `atomic mut`

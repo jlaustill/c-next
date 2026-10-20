@@ -59,8 +59,8 @@ interface ITestGenerateOptions {
   readonly cppMode: boolean;
   readonly targetName?: string;
   readonly sourcePath?: string;
-  readonly sourceRelativePath?: string;
-  readonly cnxIncludeRewrites?: ReadonlyMap<string, string>;
+  readonly selfInclude?: string;
+  readonly includeRewrites?: ReadonlyMap<string, string>;
   readonly includeKinds?: ReadonlyMap<string, EFileType>;
   readonly debugMode?: boolean;
 }
@@ -151,7 +151,7 @@ class ProgramGeneration {
     };
     const includes = {
       ...noIncludes(),
-      cnxIncludeRewrites: options.cnxIncludeRewrites ?? new Map(),
+      includeRewrites: options.includeRewrites ?? new Map(),
       kinds: options.includeKinds ?? new Map(),
     };
     return {
@@ -170,8 +170,12 @@ class ProgramGeneration {
           [
             sourcePath,
             {
-              sourceRelativePath:
-                options.sourceRelativePath ?? basename(sourcePath),
+              selfInclude:
+                options.selfInclude ??
+                basename(sourcePath).replace(
+                  /\.cnx$/,
+                  options.cppMode ? ".hpp" : ".h",
+                ),
               source: sourcePath,
               header: sourcePath,
             },

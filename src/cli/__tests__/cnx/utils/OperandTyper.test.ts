@@ -810,7 +810,10 @@ void main() {
 
 describe("OperandTyper.chainOf", () => {
   /** The first assignment target in `source`, and the context to type it */
-  function targetOf(source: string) {
+  function targetOf(
+    source: string,
+    view: (ctx: ITypingContext) => ITypingContext = (ctx) => ctx,
+  ) {
     const { tree, context } = testAnalysisContextFor(source, {
       cppMode: false,
     });
@@ -826,10 +829,10 @@ describe("OperandTyper.chainOf", () => {
       tree,
     );
     expect(found).not.toBeNull();
-    return OperandTyper.chainOf(SyntaxLowering.assignmentTarget(found!), {
-      ...context,
-      sourceFile: "test.cnx",
-    });
+    return OperandTyper.chainOf(
+      SyntaxLowering.assignmentTarget(found!),
+      view({ ...context, sourceFile: "test.cnx" }),
+    );
   }
 
   it("types each operation of a target, with its subscript kind", () => {
@@ -903,6 +906,22 @@ scope Drive {
       expect(step?.beforeRegisterMember).toBe(member);
       expect(step?.beforeRegister).toBe(register);
       expect(step?.subscript).toBe("bit_single");
+    });
+
+    // #2275: `this.` through a scope spanned from an un-included file still
+    // reaches a register this file's view does not type (`global.` cannot:
+    // E0427); the member is still named. Retire with that fix
+    it("names a member this file's view does not type", () => {
+      const step = targetOf(
+        declarations.replace("%BODY%", "global.MOTOR.CTRL[1] <- true;"),
+        (ctx) => ({
+          ...ctx,
+          symbols: { ...ctx.symbols, registerMemberCTypes: new Map() },
+        }),
+      ).steps.at(-1);
+      expect(step?.beforeRegisterMember).toBe("MOTOR__CTRL");
+      expect(step?.beforeRegister).toBe("MOTOR");
+      expect(step?.before?.typeName).toBeNull();
     });
 
     it("names the member a bitmap field of a register member is in", () => {

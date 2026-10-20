@@ -51,7 +51,6 @@ function createMockSymbols(
     // Register information
     scopedRegisters: new Map(),
     registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
     registerBaseAddresses: new Map(),
     registerMemberOffsets: new Map(),
     registerMemberCTypes: new Map(),

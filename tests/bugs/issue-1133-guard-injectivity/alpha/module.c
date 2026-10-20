@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "alpha/module.h"
+#include "module.h"
 
 #include <stdint.h>
 

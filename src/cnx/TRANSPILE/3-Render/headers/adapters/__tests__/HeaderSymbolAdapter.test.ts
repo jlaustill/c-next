@@ -511,7 +511,7 @@ describe("HeaderSymbolAdapter", () => {
             [
               "DATA",
               {
-                cType: "u32",
+                type: TTypeUtils.createPrimitive("u32"),
                 offset: TestExpression.hex("0x00"),
                 access: "rw" as const,
               },
@@ -519,7 +519,7 @@ describe("HeaderSymbolAdapter", () => {
             [
               "DIR",
               {
-                cType: "u32",
+                type: TTypeUtils.createPrimitive("u32"),
                 offset: TestExpression.hex("0x04"),
                 access: "rw" as const,
               },
