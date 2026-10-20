@@ -186,7 +186,7 @@ class FilePlanner {
       debugMode: options.debugMode,
       cppMode: options.program.cppMode(),
       targetDescription: options.targetDescription,
-      cnxIncludeRewrites: options.cnxIncludeRewrites,
+      includeRewrites: options.includeRewrites,
       includeKinds: options.includeKinds,
       scopeMembers: symbols.scopeMembers,
     };
@@ -2634,7 +2634,7 @@ class FilePlanner {
   private transformIncludeDirective(includeText: string): string {
     return includeGenerators.transformIncludeDirective(includeText, {
       sourcePath: this.state.sourcePath,
-      rewrites: this.state.cnxIncludeRewrites,
+      rewrites: this.state.includeRewrites,
       kinds: this.state.includeKinds,
       headerExtension: this.state.outputExtensions.header,
     });

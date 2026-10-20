@@ -285,7 +285,11 @@ class HeaderEmissionCapture {
     for (const file of request.includes.values()) {
       spell(file);
     }
-    spell(own);
+    // #1435: its own, as 1.1 spelled them for this header -- the same text
+    // as its `cHeaderIncludes`, so the #424 path cannot add a second spelling
+    for (const [header, directive] of own.headerIncludeDirectives) {
+      directives.set(header, directive);
+    }
     return directives;
   }
 }

@@ -140,7 +140,9 @@ interface IIncludeSpelling {
   /**
    * Issue #1467: for each `.cnx` include, the author's spelling mapped to the
    * path the generated header is actually reachable at, relative to the header
-   * output root -- e.g. `"utils.cnx"` => `"Display/utils.h"`.
+   * output root -- e.g. `"utils.cnx"` => `"Display/utils.h"`. #2272/#1746: or
+   * relative to the generated file, for a quoted include found beside the
+   * `.cnx` -- a C header's own path then, e.g. `"dev.h"` => `"../../src/dev.h"`.
    *
    * Recorded here because this class is where an include's spelling and its
    * RESOLVED file are both in hand; every consumer downstream has one or the
@@ -148,7 +150,7 @@ interface IIncludeSpelling {
    * never from the spelling: those were derived independently in three places,
    * and agreed only because all three copied what the author typed.
    */
-  cnextIncludeRewrites: Map<string, string>;
+  includeRewrites: Map<string, string>;
 
   /**
    * #1725: for each quoted include that resolved beside the file that wrote
@@ -166,9 +168,16 @@ interface IIncludeSpelling {
   writerRelativeIncludes: Map<string, string>;
 
   /**
+   * The file's other includes, as its generated file names them, in source
+   * order: a quoted C header found beside the `.cnx` is named from where that
+   * file is written (#1746), and any other directive is kept as written.
+   */
+  cHeaderIncludes: string[];
+
+  /**
    * The file's `.cnx` includes, each rendered as the include its generated
    * header carries: the author's directive with its path replaced by the
-   * header `cnextIncludeRewrites` names, or by the extension swap when it
+   * header `includeRewrites` names, or by the extension swap when it
    * names none (#1467). In source order, the author's spacing and form kept.
    *
    * Issue #589 / #941: these define types used in function signatures, so the
@@ -300,17 +309,25 @@ class IncludeResolver {
   ): IIncludeSpelling {
     const spelling: IIncludeSpelling = {
       headerIncludeDirectives: new Map<string, string>(),
-      cnextIncludeRewrites: new Map<string, string>(),
+      includeRewrites: new Map<string, string>(),
       writerRelativeIncludes: new Map<string, string>(),
+      cHeaderIncludes: [],
       userIncludes: [],
     };
     for (const include of resolved.included) {
       const { absolutePath, includeInfo, besideWriter } = include;
       if (!include.isCNext) {
-        // Issue #497: Track the original include directive for this header
+        // Issue #497: the directive for this header. #1746: a quoted header
+        // found beside the `.cnx` is named from where the generated file is
+        // written, as a `.cnx`'s header is (#2272), so it needs no `-I`
+        let path = includeInfo.path;
+        if (besideWriter && writer !== null) {
+          path = PathResolver.posixRelative(writer.directory, absolutePath);
+          spelling.includeRewrites.set(includeInfo.path, path);
+        }
         spelling.headerIncludeDirectives.set(
           absolutePath,
-          IncludeDirectiveText.join(includeInfo),
+          IncludeDirectiveText.join({ path, isLocal: includeInfo.isLocal }),
         );
         if (besideWriter) {
           spelling.writerRelativeIncludes.set(absolutePath, absolutePath);
@@ -341,7 +358,7 @@ class IncludeResolver {
           isLocal: includeInfo.isLocal,
         }),
       );
-      spelling.cnextIncludeRewrites.set(includeInfo.path, headerPath);
+      spelling.includeRewrites.set(includeInfo.path, headerPath);
       // #1725: an output-root path is valid from every file. A spelling
       // relative to the writer is not, so another includer must spell the
       // header it names relative to itself: the header written for the `.cnx`
@@ -355,12 +372,22 @@ class IncludeResolver {
         );
       }
     }
+    for (const directive of resolved.cHeaderIncludes) {
+      spelling.cHeaderIncludes.push(
+        IncludeRewriter.rewrite(
+          directive,
+          resolved.kinds,
+          spelling.includeRewrites,
+          headerExtension,
+        ),
+      );
+    }
     for (const directive of resolved.cnextDirectives) {
       spelling.userIncludes.push(
         IncludeRewriter.rewrite(
           directive,
           resolved.kinds,
-          spelling.cnextIncludeRewrites,
+          spelling.includeRewrites,
           headerExtension,
         ),
       );

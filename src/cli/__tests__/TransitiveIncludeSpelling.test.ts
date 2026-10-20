@@ -10,9 +10,11 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
 
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import ToolchainDetector from "../../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
 
 const DEV_H = `#ifndef DEV_H
 #define DEV_H
@@ -170,14 +172,108 @@ describe("a quoted include spelled from the generated file (#2272)", () => {
     // out/include/main.h
     const main = fileOf("main.cnx")?.headerCode ?? "";
     expect(main).toContain('#include "../../lib/dev.h"');
+    expect(main).not.toContain('#include "dev.h"');
     expect(main).toContain('#include "lib/b.h"');
-    // out/include/lib/a.h
+    // out/include/lib/a.h: one spelling per header (#2271 review)
     const a = fileOf("lib/a.cnx")?.headerCode ?? "";
     expect(a).toContain('#include "../../../lib/dev.h"');
+    expect(a).not.toContain('#include "dev.h"');
     expect(a).toContain('#include "b.h"');
-    // out/src/lib/a.c
+    // out/src/lib/a.c: its own C header too (#1746)
     const aSource = fileOf("lib/a.cnx")?.code ?? "";
     expect(aSource).toContain('#include "../../include/lib/a.h"');
     expect(aSource).toContain('#include "../../include/lib/b.h"');
+    expect(aSource).toContain('#include "../../../lib/dev.h"');
+    expect(aSource).not.toContain('#include "dev.h"');
+  });
+});
+
+// #1746: a quoted C header beside the `.cnx` is named from where each
+// generated file is written, so output compiles with no `-I` wherever
+// `-o`/`--header-out` put it
+describe("a C header beside the .cnx, wherever the output goes (#1746)", () => {
+  const gcc = ToolchainDetector.fromPath("gcc", NodeFileSystem.instance);
+  let project: string;
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), "cnext-1746-"));
+    mkdirSync(join(project, "src", "lib"), { recursive: true });
+    writeFileSync(join(project, "src", "lib", "dev.h"), DEV_H);
+    writeFileSync(
+      join(project, "src", "lib", "bitmaps.cnx"),
+      "bitmap8 Ctl { En, Rest[7] }\n",
+    );
+    writeFileSync(
+      join(project, "src", "lib", "uart.cnx"),
+      `#include "dev.h"
+#include "bitmaps.cnx"
+
+scope Uart {
+    public u32 put(Dev d, Ctl c) {
+        return d.id;
+    }
+}
+`,
+    );
+    writeFileSync(
+      join(project, "src", "main.cnx"),
+      '#include "lib/uart.cnx"\n\nvoid main() { }\n',
+    );
+  });
+
+  afterEach(() => {
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  async function transpile(outDir: string, headerOutDir?: string) {
+    const result = await new Transpiler(
+      {
+        target: "host",
+        input: join(project, "src", "main.cnx"),
+        outDir: join(project, outDir),
+        ...(headerOutDir === undefined
+          ? {}
+          : { headerOutDir: join(project, headerOutDir) }),
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
+    expect(result.errors).toEqual([]);
+    return result;
+  }
+
+  /** The include lines a generated file carries */
+  const includesOf = (code: string | null | undefined) =>
+    (code ?? "").split("\n").filter((line) => line.startsWith("#include"));
+
+  /** Every written `.c` compiles with no `-I` */
+  function compilesAlone(written: readonly string[]): void {
+    for (const file of written.filter((f) => f.endsWith(".c"))) {
+      execFileSync(gcc!.cc, ["-std=c99", "-fsyntax-only", file]);
+    }
+  }
+
+  it.each([
+    ["beside the source (control)", "src", undefined, '"dev.h"'],
+    ["with -o", "out", undefined, '"../../src/lib/dev.h"'],
+    [
+      "with -o and --header-out at another depth",
+      "out/build",
+      "out/inc/x",
+      '"../../../../src/lib/dev.h"',
+    ],
+  ])("compiles %s", async (_, outDir, headerOutDir, devInHeader) => {
+    const result = await transpile(outDir, headerOutDir);
+    const uart = result.files.find((f) =>
+      f.sourcePath.endsWith(join("lib", "uart.cnx")),
+    );
+    const devLines = includesOf(uart?.headerCode).filter((line) =>
+      line.includes("dev.h"),
+    );
+    expect(devLines).toEqual([`#include ${devInHeader}`]);
+    expect(
+      includesOf(uart?.code).filter((line) => line.includes("dev.h")),
+    ).toHaveLength(1);
+    if (gcc !== null) compilesAlone(result.outputFiles);
   });
 });

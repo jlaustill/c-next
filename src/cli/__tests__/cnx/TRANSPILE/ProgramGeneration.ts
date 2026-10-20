@@ -60,7 +60,7 @@ interface ITestGenerateOptions {
   readonly targetName?: string;
   readonly sourcePath?: string;
   readonly selfInclude?: string;
-  readonly cnxIncludeRewrites?: ReadonlyMap<string, string>;
+  readonly includeRewrites?: ReadonlyMap<string, string>;
   readonly includeKinds?: ReadonlyMap<string, EFileType>;
   readonly debugMode?: boolean;
 }
@@ -151,7 +151,7 @@ class ProgramGeneration {
     };
     const includes = {
       ...noIncludes(),
-      cnxIncludeRewrites: options.cnxIncludeRewrites ?? new Map(),
+      includeRewrites: options.includeRewrites ?? new Map(),
       kinds: options.includeKinds ?? new Map(),
     };
     return {

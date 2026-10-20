@@ -55,7 +55,7 @@ class TranspileState {
    * reads it and derives nothing. Replaces `inputs`/`includeDirs`, which
    * described a resolution codegen was never given the data to perform.
    */
-  cnxIncludeRewrites: ReadonlyMap<string, string> = new Map<string, string>();
+  includeRewrites: ReadonlyMap<string, string> = new Map<string, string>();
   /**
    * #1444, owner ruling 1: the kind of file each `#include` directive of this
    * file names, as 1.1 Discover classified it. Codegen rewrites a directive by
@@ -1010,7 +1010,7 @@ class TranspileState {
     this.sourcePath = inputs.sourcePath;
     this.debugMode = inputs.debugMode;
     this.cppMode = inputs.cppMode;
-    this.cnxIncludeRewrites = inputs.cnxIncludeRewrites;
+    this.includeRewrites = inputs.includeRewrites;
     this.includeKinds = inputs.includeKinds;
     for (const [scope, members] of inputs.scopeMembers) {
       this.setScopeMembers(scope, new Set(members));
@@ -1062,7 +1062,7 @@ class TranspileState {
       debugMode: this.debugMode,
       cppMode: this.cppMode,
       targetDescription: this.targetDescription,
-      cnxIncludeRewrites: this.cnxIncludeRewrites,
+      includeRewrites: this.includeRewrites,
       includeKinds: this.includeKinds,
       selfIncludeAdded: decided.selfIncludeAdded,
       needsISR: decided.needsISR,
@@ -1158,7 +1158,7 @@ class TranspileState {
     this.indentLevel = 0;
     this.lengthCache = null;
     this.debugMode = false;
-    this.cnxIncludeRewrites = new Map<string, string>();
+    this.includeRewrites = new Map<string, string>();
     this.includeKinds = new Map<string, EFileType>();
   }
 }

@@ -119,14 +119,12 @@ describe("Discover", () => {
       '#include "b.h"',
     );
     expect(nested?.userIncludes).toEqual(['#include "b.h"']);
-    expect(nested?.cnxIncludeRewrites.get("b.cnx")).toBe(
-      "../../include/lib/b.h",
-    );
+    expect(nested?.includeRewrites.get("b.cnx")).toBe("../../include/lib/b.h");
     expect(nested?.generatedHeaderDirectory).toBe("/out/include/lib");
     expect(graph.outputs.c.get("/proj/lib/a.cnx")?.selfInclude).toBe(
       "../../include/lib/a.h",
     );
-    expect(graph.includes.c.get("/proj/app.cnx")?.cnxIncludeRewrites).toEqual(
+    expect(graph.includes.c.get("/proj/app.cnx")?.includeRewrites).toEqual(
       new Map([["lib/a.cnx", "../include/lib/a.h"]]),
     );
   });
@@ -179,7 +177,7 @@ describe("Discover", () => {
       "/proj/src/board.h",
     );
     expect(app?.quotedIncludeDirectory).toBe("/proj/src");
-    expect(app?.cnxIncludeRewrites.get("lib.cnx")).toBe("lib.h");
+    expect(app?.includeRewrites.get("lib.cnx")).toBe("lib.h");
   });
 
   it("carries the anchor's facts", async () => {

@@ -14,11 +14,12 @@ import type EFileType from "./EFileType";
 interface IFileIncludes {
   /**
    * The author's `.cnx` include spelling mapped to the path its generated
-   * header is reachable at (#1467).
+   * header is reachable at (#1467), and a quoted C header found beside the
+   * file to its path from where the `.c` is written (#1746).
    *
    * Read by both the `.c` and the `.h` path, so neither re-derives it.
    */
-  readonly cnxIncludeRewrites: ReadonlyMap<string, string>;
+  readonly includeRewrites: ReadonlyMap<string, string>;
 
   /**
    * The file each `#include` directive resolved to, or null, keyed by
@@ -89,9 +90,11 @@ interface IFileIncludes {
   readonly userIncludes: readonly string[];
 
   /**
-   * This file's other includes, exactly as written, in source order. A
-   * generated header carries them only when it names a macro one of them
-   * supplies (#424), and #985's translation-unit recovery is built from them.
+   * This file's other includes, as its generated header names them, in source
+   * order: a quoted C header found beside the file is named from the header's
+   * directory (#1746), like the matching `headerIncludeDirectives` entry, and
+   * any other is kept as written. A generated header carries them only when it
+   * names a macro one of them supplies (#424).
    */
   readonly cHeaderIncludes: readonly string[];
 

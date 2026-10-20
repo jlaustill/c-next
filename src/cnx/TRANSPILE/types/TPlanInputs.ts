@@ -9,7 +9,7 @@ type TPlanInputs = Pick<
   | "debugMode"
   | "cppMode"
   | "targetDescription"
-  | "cnxIncludeRewrites"
+  | "includeRewrites"
   | "includeKinds"
   | "scopeMembers"
 >;

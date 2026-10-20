@@ -50,6 +50,7 @@ import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
+import DeclaredTypeFacts from "./DeclaredTypeFacts";
 
 /** Where a chain walk stands between operations */
 type TChainValue =
@@ -1554,17 +1555,30 @@ class OperandTyper {
           register: current.name,
           cName: QualifiedCName.fromParts([current.name, member]),
         };
-        // #1514: the member's C type, and whether it names a bitmap, read
-        // from the names this file SEES, so an included bitmap counts
+        // #1514: whether it names a bitmap is asked of the names this file
+        // SEES, so an included bitmap counts
+        const bitmap = DeclaredTypeFacts.registerMemberBitmap(
+          ctx.symbols,
+          registerMember.cName,
+        );
+        if (bitmap !== null) {
+          const t = {
+            ...OperandTyper.plain(bitmap),
+            category: "none" as const,
+            enumTypeName: null,
+            bitmapTypeName: bitmap,
+          };
+          return { k: "value", registerMember, t };
+        }
         const cType = ctx.symbols.registerMemberCTypes.get(
           registerMember.cName,
         );
-        if (cType === undefined) return UNKNOWN;
-        const named = OperandTyper.namedFacts(cType, ctx);
-        if (named.bitmapTypeName !== null) {
-          const t = { ...OperandTyper.plain(cType), ...named };
-          return { k: "value", registerMember, t };
+        // A register reached through `global.`/`this.` that this file's view
+        // does not hold: named, so its access rules apply, of unknown type
+        if (cType === undefined) {
+          return { k: "value", registerMember, t: OperandTyper.plain(null) };
         }
+        const named = OperandTyper.namedFacts(cType, ctx);
         // A member records its C spelling (`uint16_t`)
         const foreign = ForeignTypeFacts.operandType(
           cType,

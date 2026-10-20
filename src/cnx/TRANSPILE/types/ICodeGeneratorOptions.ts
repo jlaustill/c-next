@@ -44,7 +44,7 @@ interface ICodeGeneratorOptions {
    * supplied, so the resolution was dead for the whole pipeline while the
    * options advertised it.
    */
-  cnxIncludeRewrites: ReadonlyMap<string, string>;
+  includeRewrites: ReadonlyMap<string, string>;
   /**
    * #1444, owner ruling 1: the kind of file each `#include` directive's
    * spelling names, keyed by `IncludeDirectiveText.join`, as 1.1 Discover

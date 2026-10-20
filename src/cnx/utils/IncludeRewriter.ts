@@ -42,7 +42,8 @@ class IncludeRewriter {
 
   /**
    * Rewrite one directive by 1.1's kind: an include of C-Next source names its
-   * generated header, and any other directive is returned unchanged.
+   * generated header, a quoted C header takes the spelling 1.1 recorded for
+   * the generated file (#1746), and any other directive is returned unchanged.
    *
    * It used to classify the spelling itself, as the third copy of a decision
    * 1.1 and 2.1 also made.
@@ -59,17 +60,22 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    const spec = IncludeRewriter._cnextSpec(includeText, kinds);
+    const cnext = IncludeRewriter._cnextSpec(includeText, kinds);
+    const spec = cnext ?? IncludeDirectiveText.split(includeText);
     if (spec === null) return includeText;
+    // #1746: a quoted C header 1.1 named from the generated file
+    const path =
+      cnext === null
+        ? spec.isLocal
+          ? rewrites.get(spec.path)
+          : undefined
+        : IncludeRewriter._headerFor(spec.path, rewrites, ext);
+    if (path === undefined) return includeText;
     // The path is everything between the delimiters, and the closing one is
     // the token's last character, so only the path is replaced: the author's
     // spacing and form survive.
     const pathStart = includeText.length - 1 - spec.path.length;
-    return (
-      includeText.slice(0, pathStart) +
-      IncludeRewriter._headerFor(spec.path, rewrites, ext) +
-      includeText.slice(-1)
-    );
+    return includeText.slice(0, pathStart) + path + includeText.slice(-1);
   }
 
   /**

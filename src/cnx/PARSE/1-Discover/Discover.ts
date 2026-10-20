@@ -296,7 +296,7 @@ class Discover {
         path,
         Object.freeze({
           // Issue #1467: one resolution, read later by the .c
-          cnxIncludeRewrites: sourceSpelling.cnextIncludeRewrites,
+          includeRewrites: sourceSpelling.includeRewrites,
           // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
           resolutions: resolved.resolutions,
           cnextAlternatives: resolved.cnextAlternatives,
@@ -319,7 +319,7 @@ class Discover {
           // #1444: what its own generated header includes, from the tokens
           // read here rather than from 1.2's tree in Stage 5
           userIncludes: Object.freeze(spelling.userIncludes),
-          cHeaderIncludes: Object.freeze(resolved.cHeaderIncludes),
+          cHeaderIncludes: Object.freeze(spelling.cHeaderIncludes),
           cHeaderSpecs: Object.freeze(resolved.cHeaderSpecs),
         }),
       );

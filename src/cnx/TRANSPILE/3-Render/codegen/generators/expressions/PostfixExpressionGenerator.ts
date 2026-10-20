@@ -1042,21 +1042,6 @@ const tryStructParamAccess = (
 };
 
 /**
- * The bitmap a register member is typed by, or null. #1514: asked of the
- * VISIBLE bitmaps, so one declared in an included file counts.
- */
-const registerMemberBitmap = (
-  input: IGeneratorInput,
-  memberCName: string,
-): string | null => {
-  const cType = input.symbols!.registerMemberCTypes.get(memberCName);
-  return cType !== undefined &&
-    DeclaredTypeFacts.isBitmap(input.symbols!, cType)
-    ? cType
-    : null;
-};
-
-/**
  * Check for register member with bitmap type (e.g., MOTOR_CTRL.Running).
  */
 const tryRegisterBitmapAccess = (
@@ -1065,7 +1050,10 @@ const tryRegisterBitmapAccess = (
   effects: TGeneratorEffect[],
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  const bitmapType = registerMemberBitmap(input, ctx.result);
+  const bitmapType = DeclaredTypeFacts.registerMemberBitmap(
+    input.symbols!,
+    ctx.result,
+  );
   if (bitmapType === null) {
     return null;
   }
@@ -1230,7 +1218,10 @@ const validateNotBitmapMember = (
   ctx: ISubscriptAccessContext,
   input: IGeneratorInput,
 ): void => {
-  const bitmapType = registerMemberBitmap(input, ctx.result);
+  const bitmapType = DeclaredTypeFacts.registerMemberBitmap(
+    input.symbols!,
+    ctx.result,
+  );
   if (bitmapType === null) return;
 
   invariant(
