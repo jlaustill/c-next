@@ -463,13 +463,13 @@ describe("PlatformIOCommand", () => {
   describe("which entries name the hook", () => {
     it("adds the hook beside a script whose name only ends in cnx_build.py", () => {
       const project = new PioProject({
-        "platformio.ini": "[env:esp32]\nextra_scripts = pre:mycnx_build.py\n",
+        "platformio.ini": "[env:esp32]\nextra_scripts = pre:my_cnx_build.py\n",
       });
 
       PlatformIOCommand.install(project.fs);
 
       expect(project.file("platformio.ini")).toBe(
-        "[env:esp32]\nextra_scripts = pre:mycnx_build.py\n    pre:cnx_build.py\n",
+        "[env:esp32]\nextra_scripts = pre:my_cnx_build.py\n    pre:cnx_build.py\n",
       );
     });
 

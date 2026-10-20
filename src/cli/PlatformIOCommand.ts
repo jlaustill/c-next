@@ -35,7 +35,7 @@ function entrySource(name: string): string {
 
 /**
  * Whether `pioIni` runs the script `name`: its entry as a whole token, so
- * `pre:mycnx_build.py` or a comment naming the file does not count.
+ * `pre:my_cnx_build.py` or a comment naming the file does not count.
  */
 function hasEntry(pioIni: string, name: string): boolean {
   return new RegExp(
