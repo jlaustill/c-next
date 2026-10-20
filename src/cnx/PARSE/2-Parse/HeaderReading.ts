@@ -7,8 +7,8 @@ import type IReadHeaders from "./types/IReadHeaders";
 import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type TCachedHeaderRead from "./types/TCachedHeaderRead";
 import type THeaderDeclarationCache from "./types/THeaderDeclarationCache";
-import CrossCompilerVariable from "../1-Discover/CrossCompilerVariable";
 import EFileType from "../1-Discover/types/EFileType";
+import CROSS_COMPILER_VARIABLE from "../../types/CROSS_COMPILER_VARIABLE";
 import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
 import type IDiscoveredFile from "../1-Discover/types/IDiscoveredFile";
 import type IHeaderInclude from "../1-Discover/types/IHeaderInclude";
@@ -227,7 +227,7 @@ class HeaderReading {
       ),
       helpText:
         typeof compiler === "string"
-          ? `${compiler}. Set ${CrossCompilerVariable.NAME} to the compiler for the ` +
+          ? `${compiler}. Set ${CROSS_COMPILER_VARIABLE} to the compiler for the ` +
             "target's headers."
           : `Target '${target.name}' reads its headers with ` +
             `'${compiler.driver}', which is not installed. Install it.`,
@@ -253,7 +253,7 @@ class HeaderReading {
           `different platform than target '${target.name}'`,
       ),
       helpText:
-        `${disagreement}. Set ${CrossCompilerVariable.NAME} (or compile_commands.json) ` +
+        `${disagreement}. Set ${CROSS_COMPILER_VARIABLE} (or compile_commands.json) ` +
         `to a compiler for '${target.name}', or remove it to use the target's own.`,
       severity: "error",
     });

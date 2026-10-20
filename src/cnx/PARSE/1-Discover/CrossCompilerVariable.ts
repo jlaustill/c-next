@@ -1,3 +1,4 @@
+import CROSS_COMPILER_VARIABLE from "../../types/CROSS_COMPILER_VARIABLE";
 import CodedErrorText from "../../utils/CodedErrorText";
 import type ITranspileError from "../../types/ITranspileError";
 import type TEnvironment from "./types/TEnvironment";
@@ -8,19 +9,16 @@ const OLD_NAME = "CNEXT_CROSS_COMPILER";
 /**
  * Issue #2166: the environment variable that names the compiler a project
  * reads its headers with (#1713), for a target whose headers only its own
- * compiler preprocesses (ESP32/xtensa). Its name is written here once, for
- * 1.1's read and for every diagnostic that tells the user to set it.
+ * compiler preprocesses (ESP32/xtensa). 1.1 reads it here, and only here.
  *
  * An empty value is unset, as it always was. A set old name is E0924, so a
  * project that still sets it never has its headers read by another compiler
  * with no diagnostic.
  */
 class CrossCompilerVariable {
-  static readonly NAME = "CNX_CROSS_COMPILER";
-
   /** The compiler the environment names; null when it names none */
   static compiler(environment: TEnvironment): string | null {
-    return environment[CrossCompilerVariable.NAME] || null;
+    return environment[CROSS_COMPILER_VARIABLE] || null;
   }
 
   /**
@@ -35,7 +33,7 @@ class CrossCompilerVariable {
     if (!old) {
       return null;
     }
-    const name = CrossCompilerVariable.NAME;
+    const name = CROSS_COMPILER_VARIABLE;
     return {
       sourcePath: input,
       line: 1,
