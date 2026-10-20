@@ -5,7 +5,7 @@
 
 #include "cross-file-bitmap-register.test.h"
 
-// test-adr: 004
+// test-adr: 004, 034
 // #1514: a register member typed by a bitmap declared in ANOTHER file lost its
 // bitmap. A field write emitted a flat identifier nothing declares, and a field
 // read a struct member access on an integer -- transpiler exit 0, gcc rejects:

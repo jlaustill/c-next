@@ -36,13 +36,8 @@ interface ICodeGeneratorOptions {
    */
   selfInclude: string;
   /**
-   * Issue #1467: author spelling -> resolved header path, decided once by
-   * PathResolver during discovery.
-   *
-   * Replaces the `includeDirs`/`inputs` pair added for #349. Those declared a
-   * path resolution inside codegen that the only production caller never
-   * supplied, so the resolution was dead for the whole pipeline while the
-   * options advertised it.
+   * How the `.c` names each include, as 1.1 spelled it
+   * (`IFileIncludes.includeRewrites`); codegen reads it and derives nothing.
    */
   includeRewrites: ReadonlyMap<string, string>;
   /**

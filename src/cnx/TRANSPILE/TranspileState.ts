@@ -50,10 +50,8 @@ import type TPlanInputs from "./types/TPlanInputs";
  */
 class TranspileState {
   /**
-   * Issue #1467: author spelling -> resolved header path for this file's `.cnx`
-   * includes. Decided by PathResolver during discovery and handed here; codegen
-   * reads it and derives nothing. Replaces `inputs`/`includeDirs`, which
-   * described a resolution codegen was never given the data to perform.
+   * How the `.c` names each include, as 1.1 spelled it
+   * (`IFileIncludes.includeRewrites`); codegen reads it and derives nothing.
    */
   includeRewrites: ReadonlyMap<string, string> = new Map<string, string>();
   /**

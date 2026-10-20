@@ -155,8 +155,9 @@ interface IIncludeSpelling {
   /**
    * #1725: for each quoted include that resolved beside the file that wrote
    * it -- so its spelling is relative to that file -- the absolute file the
-   * spelling names: the header, or the generated header beside a `.cnx` whose
-   * header the output root does not reach. Keyed like
+   * spelling names: the header, or for a `.cnx` the header generated for it:
+   * where 1.1 writes it (#2272), or, with no writer known, beside the `.cnx`
+   * when the output root does not reach it. Keyed like
    * `headerIncludeDirectives`.
    *
    * Another file that needs the same header spells it relative to ITSELF from

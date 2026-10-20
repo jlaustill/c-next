@@ -4,7 +4,6 @@ import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import CNextSourcePath from "../../../utils/CNextSourcePath";
 import IncludePath from "../../../utils/IncludePath";
-import type IFileIncludes from "../../../PARSE/1-Discover/types/IFileIncludes";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
 import ParameterPassing from "../../2-Plan/ParameterPassing";
@@ -272,7 +271,7 @@ class HeaderEmissionCapture {
     const own = request.ownIncludes;
     const here = own.generatedHeaderDirectory;
     const directives = new Map<string, string>();
-    const spell = (file: IFileIncludes): void => {
+    for (const file of request.includes.values()) {
       for (const [header, directive] of file.headerIncludeDirectives) {
         const named = file.writerRelativeIncludes.get(header);
         directives.set(
@@ -282,9 +281,6 @@ class HeaderEmissionCapture {
             : `#include "${IncludePath.relative(here, named)}"`,
         );
       }
-    };
-    for (const file of request.includes.values()) {
-      spell(file);
     }
     // #1435: its own, as 1.1 spelled them for this header -- the same text
     // as its `cHeaderIncludes`, so the #424 path cannot add a second spelling
