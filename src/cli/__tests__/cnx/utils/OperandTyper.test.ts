@@ -908,8 +908,9 @@ scope Drive {
       expect(step?.subscript).toBe("bit_single");
     });
 
-    // #1514 review: `global.` binds the register run-wide, so this file's
-    // view may not type its member; the member is still named
+    // #2275: `this.` through a scope spanned from an un-included file still
+    // reaches a register this file's view does not type (`global.` cannot:
+    // E0427); the member is still named. Retire with that fix
     it("names a member this file's view does not type", () => {
       const step = targetOf(
         declarations.replace("%BODY%", "global.MOTOR.CTRL[1] <- true;"),

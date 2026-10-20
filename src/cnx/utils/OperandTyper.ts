@@ -1571,8 +1571,10 @@ class OperandTyper {
         const cType = ctx.symbols.registerMemberCTypes.get(
           registerMember.cName,
         );
-        // A register reached through `global.`/`this.` that this file's view
-        // does not hold: named, so its access rules apply, of unknown type
+        // A register this file's view does not hold. `global.` cannot reach
+        // one (E0427); `this.` through a scope spanned from an un-included
+        // file still can, at exit 0 (#2275). Named, so its access rules apply,
+        // of unknown type -- TODO(#2275): unreachable once that is rejected
         if (cType === undefined) {
           return { k: "value", registerMember, t: OperandTyper.plain(null) };
         }
