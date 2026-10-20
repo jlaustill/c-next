@@ -10,6 +10,7 @@ import TargetResolver from "./TargetResolver";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IParsedArgs from "./types/IParsedArgs";
 import CONFIG_FILE_NAMES from "../cnx/types/CONFIG_FILE_NAMES";
+import PROJECT_MARKERS from "../cnx/types/PROJECT_MARKERS";
 
 /**
  * Interface for yargs parsed result
@@ -158,8 +159,10 @@ A safer C for embedded systems development.`,
 
 Target platforms: ${TargetResolver.names(NodeFileSystem.instance).join(", ")}
 
-Config files (searched in order, JSON format):
+Config files (JSON; the first non-empty one in the project root is read):
   ${CONFIG_FILE_NAMES.join(", ")}
+The project root is the nearest directory, from the entry file up, holding
+any of ${PROJECT_MARKERS.join(", ")}. No config above it is read.
 
 Config options:
   cppRequired    Output .cpp (true) or .c (false); unset: detected (boolean)

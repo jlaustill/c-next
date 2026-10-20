@@ -4,10 +4,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
 import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
+import IncludeDiscovery from "../../cnx/PARSE/1-Discover/IncludeDiscovery";
 import IFileConfig from "../types/IFileConfig";
 import MockFileSystem from "./MockFileSystem";
 import IFileSystem from "../../cnx/types/IFileSystem";
@@ -82,21 +83,19 @@ describe("ConfigLoader", () => {
       expect(config.target).toBe("from-cnx-json");
     });
 
-    it("skips an empty config file and keeps searching upward", () => {
-      // cosmiconfig's default (ignoreEmptySearchPlaces), kept by #1653's
-      // replacement: an empty file is not a config, so the search continues.
+    // #2261 (owner ruling, 2026-10-19): any config file marks its directory as
+    // the project root. An empty one used to be skipped, as cosmiconfig's
+    // ignoreEmptySearchPlaces did, which read a config above the root.
+    it("is the default settings for an empty config, and reads none above it", () => {
       const subDir = join(tempDir, "app");
       mkdirSync(subDir, { recursive: true });
       writeFileSync(join(subDir, "cnx.config.json"), "  \n");
       writeFileSync(
         join(tempDir, ".cnxrc"),
-        JSON.stringify({ target: "found-above-the-empty-one" }),
+        JSON.stringify({ target: "above-the-empty-one" }),
       );
 
-      const config = loaded(subDir);
-
-      expect(config.target).toBe("found-above-the-empty-one");
-      expect(config._path).toBe(join(tempDir, ".cnxrc"));
+      expect(loaded(subDir)).toEqual({});
     });
 
     it("searches up the directory tree", () => {
@@ -117,9 +116,10 @@ describe("ConfigLoader", () => {
       expect(config._path).toBe(join(tempDir, "cnx.config.json"));
     });
 
-    // #1826 review: cosmiconfig skipped a config it could not read and kept
-    // searching; the replacement let EACCES escape and abort the run.
-    it("skips an unreadable config with a warning and keeps searching upward", () => {
+    // #1826 review: the replacement for cosmiconfig let EACCES escape and abort
+    // the run. #2261: the file still marks the root, so a run warns and reads
+    // no config above it, where it used to go on to an ancestor's.
+    it("warns about an unreadable config and reads none above it", () => {
       const fs = new MockFileSystem()
         .addFile("/p/app/cnx.config.json", "{}")
         .addFile("/p/.cnxrc", JSON.stringify({ target: "from-parent" }));
@@ -137,7 +137,7 @@ describe("ConfigLoader", () => {
 
       const config = loaded("/p/app", unreadable);
 
-      expect(config.target).toBe("from-parent");
+      expect(config).toEqual({});
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to read config /p/app/cnx.config.json"),
       );
@@ -370,6 +370,86 @@ describe("ConfigLoader", () => {
         .addFile("/p/cnext.config.json", JSON.stringify({ target: "far" }));
 
       expect(loaded("/p/app", fs).target).toBe("near");
+    });
+  });
+
+  // #2261: the config is read from the project root, and from no directory
+  // above it, so a run's settings and its root are one directory.
+  describe("the project root", () => {
+    it.each([
+      [
+        "package.json",
+        (fs: MockFileSystem) => fs.addFile("/proj/tools/package.json", "{}"),
+      ],
+      [".git", (fs: MockFileSystem) => fs.addDirectory("/proj/tools/.git")],
+      [
+        "platformio.ini",
+        (fs: MockFileSystem) => fs.addFile("/proj/tools/platformio.ini", ""),
+      ],
+    ])("reads no config above a %s", (_marker, mark) => {
+      const fs = new MockFileSystem().addFile(
+        "/proj/cnx.config.json",
+        JSON.stringify({ headerOut: "include" }),
+      );
+      mark(fs);
+
+      expect(loaded("/proj/tools", fs)).toEqual({});
+    });
+
+    it("reads the config above a directory with no marker, which is the root", () => {
+      const fs = new MockFileSystem().addFile(
+        "/proj/cnx.config.json",
+        JSON.stringify({ headerOut: "include" }),
+      );
+
+      expect(loaded("/proj/tools", fs)).toMatchObject({
+        _path: "/proj/cnx.config.json",
+        headerOut: "/proj/include",
+      });
+    });
+
+    it("reads no home .cnxrc for a project below a .git; without it, home is the root", () => {
+      const fs = new MockFileSystem()
+        .addFile("/home/.cnxrc", JSON.stringify({ headerOut: "headers" }))
+        .addDirectory("/home/work/p/.git");
+
+      expect(loaded("/home/work/p", fs)).toEqual({});
+      expect(loaded("/home/work/q", fs)._path).toBe("/home/.cnxrc");
+    });
+
+    it("never reaches an old name above the root, so it is not E0918", () => {
+      const fs = new MockFileSystem()
+        .addFile("/p/app/package.json", "{}")
+        .addFile("/p/.cnextrc", JSON.stringify({ target: "teensy41" }));
+
+      expect(ConfigLoader.load("/p/app", fs)).toEqual({
+        kind: "loaded",
+        config: {},
+      });
+    });
+
+    it.each([
+      ["/proj/tools", "/proj/tools", "/proj/tools/.cnxrc"],
+      ["/proj/lib/deep", "/proj", "/proj/cnx.config.json"],
+      ["/proj/app", "/proj/app", undefined],
+      ["/home/work/p", "/home/work/p", "/home/work/p/.cnx.json"],
+      ["/home/work/r", "/home/work/r", undefined],
+      ["/home/work/q", "/home", "/home/.cnxrc"],
+    ])("from %s, the root is %s and the config %s", (start, root, config) => {
+      const fs = new MockFileSystem()
+        .addFile("/proj/cnx.config.json", "{}")
+        .addFile("/proj/tools/.cnxrc", "{}")
+        .addFile("/proj/app/package.json", "{}")
+        .addFile("/home/.cnxrc", "{}")
+        .addDirectory("/home/work/p/.git")
+        .addFile("/home/work/p/.cnx.json", "{}")
+        .addDirectory("/home/work/r/.git");
+
+      const read = loaded(start, fs)._path;
+
+      expect(IncludeDiscovery.findProjectRoot(start, fs).root).toBe(root);
+      expect(read).toBe(config);
+      expect(read === undefined || dirname(read) === root).toBe(true);
     });
   });
 

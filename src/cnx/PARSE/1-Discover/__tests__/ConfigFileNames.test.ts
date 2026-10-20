@@ -63,7 +63,7 @@ describe("ConfigFileNames (#2165)", () => {
     });
 
     // #2221 review: this named the first new-name file that exists, where the
-    // config walk reads the first non-empty one, so the help sent a user's
+    // run reads the first non-empty one, so the help sent a user's
     // settings into a file whose filling then shadowed the config in use.
     it("names the config a run reads, not an empty one ahead of it", () => {
       const fs = filesystemHolding({

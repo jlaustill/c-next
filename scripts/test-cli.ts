@@ -847,10 +847,10 @@ test("a config under an old name is E0918 and exits 1", () => {
   });
 });
 
-// Issue #2165: the case only the config walk sees. Discovery's root walk stops
-// at pkg/package.json; the config walk goes on up, as it always has, and meets
-// the old name there instead of dropping its settings without a word.
-test("an old-name config above a package root is E0918 and exits 1", () => {
+// Issue #2261: a config above the project root is not the run's, whatever its
+// name. pkg/package.json ends the walk, so the old name above it is never
+// reached: it is neither read nor E0918.
+test("an old-name config above a package root is not reached", () => {
   withTempTest("cnx-renamed-config-test-", ({ tempDir }) => {
     const pkg = join(tempDir, "pkg");
     mkdirSync(pkg);
@@ -859,15 +859,94 @@ test("an old-name config above a package root is E0918 and exits 1", () => {
     writeFileSync(join(pkg, "package.json"), "{}");
     writeFileSync(join(tempDir, ".cnextrc"), '{"target":"teensy41"}');
 
-    const result = runCliInDir(pkg, [cnxFile], true);
-    assert(result.exitCode === 1, `Exit code should be 1: ${result.stderr}`);
+    const result = runCliInDir(pkg, [cnxFile, "--target", "host"], true);
+    assert(result.exitCode === 0, `Exit code should be 0: ${result.stderr}`);
     assert(
-      result.stderr.includes(
-        "error[E0918]: a config file has its old name: .cnextrc is now .cnxrc",
-      ),
-      `The error should name the old file: ${result.stderr}`,
+      !result.stderr.includes("E0918"),
+      `Nothing above the root is reported: ${result.stderr}`,
     );
   });
+});
+
+/**
+ * Issue #2261: where one run put its settings and its root. `headerOut` names
+ * the directory the config was read from; `.cnx/`, the cache, names the root.
+ */
+function settingsAndRoot(
+  cwd: string,
+  cnxFile: string,
+): { header: string | null; cacheRoot: string | null } {
+  const result = runCliInDir(cwd, [cnxFile, "--target", "host"]);
+  assert(result.success, `Compile should succeed: ${result.output}`);
+  const header = [
+    join(dirname(cnxFile), "x.h"),
+    join(cwd, "include", "x.h"),
+    join(cwd, "headers", "x.h"),
+  ].find((path) => existsSync(path));
+  const cacheRoot = [dirname(cnxFile), cwd].find((dir) =>
+    existsSync(join(dir, ".cnx")),
+  );
+  return { header: header ?? null, cacheRoot: cacheRoot ?? null };
+}
+
+// Issue #2261, reproduction 1: proj's config sits above tools/package.json,
+// which is the root. Control: without it, proj is both.
+test("a config above a package.json does not apply below it", () => {
+  for (const marked of [false, true]) {
+    withTempTest("cnx-config-root-test-", ({ tempDir }) => {
+      mkdirSync(join(tempDir, ".git"));
+      writeFileSync(
+        join(tempDir, "cnx.config.json"),
+        '{"headerOut":"include"}',
+      );
+      const tools = join(tempDir, "tools");
+      mkdirSync(tools);
+      if (marked) {
+        writeFileSync(join(tools, "package.json"), '{"name":"tools"}');
+      }
+      const cnxFile = join(tools, "x.cnx");
+      writeFileSync(cnxFile, "u32 value <- 7;\n", "utf-8");
+
+      const run = settingsAndRoot(tempDir, cnxFile);
+
+      const root = marked ? tools : tempDir;
+      const header = marked
+        ? join(tools, "x.h")
+        : join(tempDir, "include", "x.h");
+      assert(
+        run.cacheRoot === root && run.header === header,
+        `package.json ${marked ? "present" : "absent"}: expected the root ${root} and the header ${header}, got ${JSON.stringify(run)}`,
+      );
+    });
+  }
+});
+
+// Issue #2261, reproduction 2: a .cnxrc in the home directory, above a
+// project's .git. Control: without the .git, the home directory is the root.
+test("a home .cnxrc does not apply to a project below a .git", () => {
+  for (const marked of [false, true]) {
+    withTempTest("cnx-config-root-test-", ({ tempDir }) => {
+      writeFileSync(join(tempDir, ".cnxrc"), '{"headerOut":"headers"}');
+      const project = join(tempDir, "work", "p");
+      mkdirSync(project, { recursive: true });
+      if (marked) {
+        mkdirSync(join(project, ".git"));
+      }
+      const cnxFile = join(project, "x.cnx");
+      writeFileSync(cnxFile, "u32 value <- 7;\n", "utf-8");
+
+      const run = settingsAndRoot(tempDir, cnxFile);
+
+      const root = marked ? project : tempDir;
+      const header = marked
+        ? join(project, "x.h")
+        : join(tempDir, "headers", "x.h");
+      assert(
+        run.cacheRoot === root && run.header === header,
+        `.git ${marked ? "present" : "absent"}: expected the root ${root} and the header ${header}, got ${JSON.stringify(run)}`,
+      );
+    });
+  }
 });
 
 test("CLI --target overrides config file target", () => {

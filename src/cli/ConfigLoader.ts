@@ -13,34 +13,69 @@ import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
 import ConfigFileNames from "../cnx/PARSE/1-Discover/ConfigFileNames";
+import IncludeDiscovery from "../cnx/PARSE/1-Discover/IncludeDiscovery";
+import invariant from "../cnx/utils/invariant";
 
 /**
  * Load configuration from project directory
  */
 class ConfigLoader {
   /**
-   * Load config from project directory, searching up the directory tree
+   * Load the config of the project `startDir` is in: the one its project root
+   * holds, and none above it.
+   *
+   * #2261: the root is `IncludeDiscovery.findProjectRoot`'s, the walk that
+   * also decides the include tiers, the `.cnx/` cache and the compile
+   * database. The config had a walk of its own, which went on past the `.git`
+   * or `package.json` that walk stops at, so a run could take its settings
+   * from one directory and its root from another, and a `~/.cnxrc` applied to
+   * every project on the machine with no config of its own. Every config
+   * name is a marker, so a config of any content ends the walk: an empty one
+   * is the default settings, and an unreadable one warns.
+   *
+   * #1653 replaced cosmiconfig, which read the disk outside the injected port
+   * and, with `stopDir` set, also searched the OS config directory for
+   * `config.js` and more, executing a JavaScript one. Only the documented
+   * search remains: the three names, JSON, and this walk.
+   *
    * @param startDir - Directory to start searching from
    * @returns The loaded configuration (empty if none was found), or E0918
-   *   for each file under an old name the walk met first (#2165)
+   *   for each file under an old name the walk passed (#2165)
    */
   static load(
     startDir: string,
     fs: IFileSystem = NodeFileSystem.instance,
   ): TConfigLoad {
-    const found = ConfigLoader.find(resolve(startDir), fs);
-    if (found.kind === "renamed") {
-      return found;
+    const walk = IncludeDiscovery.findProjectRoot(startDir, fs);
+    if (walk.renamedConfigs.length > 0) {
+      return {
+        kind: "renamed",
+        errors: walk.renamedConfigs.map((file) =>
+          ConfigFileNames.errorFor(file),
+        ),
+      };
+    }
+    if (walk.root === null) {
+      return { kind: "loaded", config: {} };
+    }
+    const found = ConfigLoader.inDirectory(walk.root, fs);
+    invariant(
+      found.kind !== "renamed",
+      "the root walk has reported every renamed config in the root it returns",
+    );
+    for (const file of found.unreadable) {
+      console.error(`Warning: ${file.reason}`);
     }
     return { kind: "loaded", config: ConfigLoader.parse(found) };
   }
 
   /**
-   * What `dir` alone holds for the walk (#2165): an old-name file is E0918,
-   * whatever else is there; otherwise `ConfigFileNames.readIn`'s config, the
-   * one decision of which new-name file that is. `--pio-install` asks it about
-   * the directory it configures and updates that directory's config (#2235:
-   * with none there, the one it writes shadows an ancestor's).
+   * What `dir` alone holds (#2165): an old-name file is E0918, whatever else
+   * is there; otherwise `ConfigFileNames.readIn`'s config, the one decision of
+   * which new-name file that is. `load` asks it about the project root.
+   * `--pio-install` asks it about the directory it configures, which holds
+   * `platformio.ini` and so is its own root (#2261): that directory's config
+   * is the one a run there reads, and no ancestor's applies.
    */
   static inDirectory(dir: string, fs: IFileSystem): TConfigInDirectory {
     const renamed = ConfigFileNames.renamedIn(dir, fs);
@@ -98,38 +133,6 @@ class ConfigLoader {
     }
     read.config._path = found.path;
     return ConfigLoader.anchorPaths(read.config, dirname(found.path));
-  }
-
-  /**
-   * #1653: the first non-empty config file, from `startDir` up to the root.
-   *
-   * This replaces cosmiconfig, for two reasons. First, cosmiconfig read the
-   * disk itself, outside the injected port, where no gate could see it. Second,
-   * it read more than `cnx --help` documents. With `stopDir` set, cosmiconfig
-   * 9 switches to its "global" strategy, so after the upward walk it also
-   * searched the OS config directory for `config`, `config.json`,
-   * `config.yaml`, `config.js`, `config.ts` and more, and a JavaScript one
-   * would be executed. Only the documented search remains: the three names,
-   * JSON, and the upward walk. #2165: the first directory holding an
-   * old-name file ends it, as E0918.
-   *
-   * An empty file is skipped and the search continues, as cosmiconfig's
-   * default `ignoreEmptySearchPlaces` did. So is a file that cannot be read,
-   * as cosmiconfig skipped EACCES, now with a warning (#1826 review: letting
-   * the error escape aborted every run under an unreadable ancestor config).
-   */
-  private static find(startDir: string, fs: IFileSystem): TConfigInDirectory {
-    for (let dir = startDir; ; dir = dirname(dir)) {
-      const found = ConfigLoader.inDirectory(dir, fs);
-      if (found.kind !== "renamed") {
-        for (const file of found.unreadable) {
-          console.error(`Warning: ${file.reason}`);
-        }
-      }
-      if (found.kind !== "none" || dirname(dir) === dir) {
-        return found;
-      }
-    }
   }
 
   /**

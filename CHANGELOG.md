@@ -27,8 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   script, Makefile or `package.json` that runs `cnext` must run `cnx` instead. `cnx --version`
   prints `cnx v<version>`, and `cnx --help` names `cnx` throughout. The config file names, the
   PlatformIO build script and the npm package name move to cnx separately (#2165, #2174, #2181).
-- **Config files are `cnx.config.json`, `.cnx.json` and `.cnxrc`** (Issue #2165), searched
-  in that order by the same upward walk as before. A file under an old name (`cnext.config.json`,
+- **Config files are `cnx.config.json`, `.cnx.json` and `.cnxrc`** (Issue #2165): the first
+  non-empty one in a directory is read. A file under an old name (`cnext.config.json`,
   `.cnext.json`, `.cnextrc`) is never read: it is error E0918, naming the file and its new name, and
   so is an old name beside a new one. Discovery reports one in any directory a project-root walk
   passes, so a library still shipping `cnext.config.json` stops the build of a consumer that includes
@@ -36,6 +36,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unaffected. The editor's server reports a workspace config's E0918 on every transpile, and picks up
   the renamed file at the next one, with no restart. `--pio-install` updates whichever config the
   project already has, where it used to write `cnext.config.json` beside a `.cnextrc` and shadow it.
+- **A config is read from the project root, and never from a directory above it** (Issue #2261).
+  The project root is the nearest directory, from the entry file up, that holds a config,
+  `platformio.ini`, `.git` or `package.json`. It already decided the include directories and the
+  `.cnx/` cache; a separate search for the config went on past the `.git` or `package.json`, so a
+  run could take its settings from one directory and its root from another. A config above the
+  nearest `.git`, `package.json` or `platformio.ini` no longer applies: a shared config above
+  several PlatformIO projects, or a `~/.cnxrc`, must be copied into each project that needs it. An
+  empty config file marks the root and means the default settings, and an unreadable one warns;
+  both used to pass the search on to a config above. An old-name config above the root is no
+  longer reached, so it is not E0918, and `--pio-install` no longer shadows an ancestor's config
+  (#2235), since none applies.
 - **The repository moved to [smeltworks/cnx](https://github.com/smeltworks/cnx)** (Issue #2180).
   Old `github.com/jlaustill/c-next` links and git remotes redirect; update a clone with
   `git remote set-url origin https://github.com/smeltworks/cnx.git`. The coverage report moved
