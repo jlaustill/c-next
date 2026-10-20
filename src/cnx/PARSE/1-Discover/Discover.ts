@@ -7,7 +7,6 @@ import DependencyGraph from "./DependencyGraph";
 import FileDiscovery from "./FileDiscovery";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeResolver from "./IncludeResolver";
-import PathResolver from "./PathResolver";
 import InputExpansion from "./InputExpansion";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
@@ -36,6 +35,7 @@ import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import IncludePath from "../../utils/IncludePath";
 import ConfigFileNames from "./ConfigFileNames";
 
 /** The configuration a run's discovery reads. */
@@ -462,7 +462,7 @@ class Discover {
             // #2272/#1473: relative to the .c, so it does not depend on which
             // entry pulled the file in
             selfInclude: files.writeOutputToDisk
-              ? PathResolver.posixRelative(dirname(source), header)
+              ? IncludePath.relative(dirname(source), header)
               : CNextSourcePath.withExtension(
                   basename(file.path),
                   extensions.header,

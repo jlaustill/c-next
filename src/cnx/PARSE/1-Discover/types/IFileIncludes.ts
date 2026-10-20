@@ -13,11 +13,14 @@ import type EFileType from "./EFileType";
  */
 interface IFileIncludes {
   /**
-   * The author's `.cnx` include spelling mapped to the path its generated
-   * header is reachable at (#1467), and a quoted C header found beside the
-   * file to its path from where the `.c` is written (#1746).
+   * How the `.c` names each include, by the author's spelling: a `.cnx`
+   * include's generated header (#1467), spelled from the `.c`'s directory
+   * when the `.cnx` was found beside this file (#2272), and a quoted C header
+   * found beside this file, also from the `.c`'s directory (#1746).
    *
-   * Read by both the `.c` and the `.h` path, so neither re-derives it.
+   * The `.c`'s spelling only: the `.h` is spelled from its own directory, and
+   * 1.1 has already applied that spelling to `headerIncludeDirectives`,
+   * `userIncludes` and `cHeaderIncludes`.
    */
   readonly includeRewrites: ReadonlyMap<string, string>;
 

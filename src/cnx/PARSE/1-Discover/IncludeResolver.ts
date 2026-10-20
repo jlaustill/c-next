@@ -5,7 +5,7 @@ import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeRewriter from "../../utils/IncludeRewriter";
 import CNextSourcePath from "../../utils/CNextSourcePath";
-import PathResolver from "./PathResolver";
+import IncludePath from "../../utils/IncludePath";
 import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
@@ -322,7 +322,7 @@ class IncludeResolver {
         // written, as a `.cnx`'s header is (#2272), so it needs no `-I`
         let path = includeInfo.path;
         if (besideWriter && writer !== null) {
-          path = PathResolver.posixRelative(writer.directory, absolutePath);
+          path = IncludePath.relative(writer.directory, absolutePath);
           spelling.includeRewrites.set(includeInfo.path, path);
         }
         spelling.headerIncludeDirectives.set(
@@ -344,7 +344,7 @@ class IncludeResolver {
       let reachable: string | null;
       if (besideWriter && writer !== null) {
         writerHeader = writer.headerPathFor(absolutePath);
-        reachable = PathResolver.posixRelative(writer.directory, writerHeader);
+        reachable = IncludePath.relative(writer.directory, writerHeader);
       } else {
         reachable = headerIncludePathFor?.(absolutePath) ?? null;
       }

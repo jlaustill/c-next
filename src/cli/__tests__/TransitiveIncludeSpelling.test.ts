@@ -253,7 +253,7 @@ scope Uart {
     }
   }
 
-  it.each([
+  const layouts: [string, string, string | undefined, string][] = [
     ["beside the source (control)", "src", undefined, '"dev.h"'],
     ["with -o", "out", undefined, '"../../src/lib/dev.h"'],
     [
@@ -262,18 +262,30 @@ scope Uart {
       "out/inc/x",
       '"../../../../src/lib/dev.h"',
     ],
-  ])("compiles %s", async (_, outDir, headerOutDir, devInHeader) => {
-    const result = await transpile(outDir, headerOutDir);
-    const uart = result.files.find((f) =>
-      f.sourcePath.endsWith(join("lib", "uart.cnx")),
-    );
-    const devLines = includesOf(uart?.headerCode).filter((line) =>
-      line.includes("dev.h"),
-    );
-    expect(devLines).toEqual([`#include ${devInHeader}`]);
-    expect(
-      includesOf(uart?.code).filter((line) => line.includes("dev.h")),
-    ).toHaveLength(1);
-    if (gcc !== null) compilesAlone(result.outputFiles);
-  });
+  ];
+
+  it.each(layouts)(
+    "names it once %s",
+    async (_, outDir, headerOutDir, devInHeader) => {
+      const result = await transpile(outDir, headerOutDir);
+      const uart = result.files.find((f) =>
+        f.sourcePath.endsWith(join("lib", "uart.cnx")),
+      );
+      const devLines = includesOf(uart?.headerCode).filter((line) =>
+        line.includes("dev.h"),
+      );
+      expect(devLines).toEqual([`#include ${devInHeader}`]);
+      expect(
+        includesOf(uart?.code).filter((line) => line.includes("dev.h")),
+      ).toHaveLength(1);
+    },
+  );
+
+  it.skipIf(gcc === null).each(layouts)(
+    "compiles with no -I %s",
+    async (_, outDir, headerOutDir) => {
+      const result = await transpile(outDir, headerOutDir);
+      compilesAlone(result.outputFiles);
+    },
+  );
 });

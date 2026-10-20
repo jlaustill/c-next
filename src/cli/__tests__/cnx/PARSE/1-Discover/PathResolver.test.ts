@@ -102,21 +102,6 @@ describe("PathResolver", () => {
     });
   });
 
-  // #2272/#1473: a quoted include resolves from the including file's directory
-  describe("posixRelative", () => {
-    it("names a file beside the directory by its basename", () => {
-      expect(PathResolver.posixRelative("/out/lib", "/out/lib/a.h")).toBe(
-        "a.h",
-      );
-    });
-
-    it("climbs out of the directory with forward slashes", () => {
-      expect(
-        PathResolver.posixRelative("/out/src/lib", "/out/include/lib/a.h"),
-      ).toBe("../../include/lib/a.h");
-    });
-  });
-
   describe("getOutputPath", () => {
     it("generates .c output path in outDir", () => {
       const resolver = new PathResolver(

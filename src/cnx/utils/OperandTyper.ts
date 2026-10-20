@@ -1543,8 +1543,8 @@ class OperandTyper {
         }
         return OperandTyper.enumMember(current.name);
       case "register": {
-        // The register symbol is the one source; the per-file map only
-        // records bitmap-typed members
+        // The register symbol confirms the member exists; its type comes
+        // from this file's view, which holds every member's C type
         const register = ctx.program.symbolByCName(current.name);
         const info =
           register?.kind === "register" ? register.members.get(member) : null;
@@ -1564,8 +1564,6 @@ class OperandTyper {
         if (bitmap !== null) {
           const t = {
             ...OperandTyper.plain(bitmap),
-            category: "none" as const,
-            enumTypeName: null,
             bitmapTypeName: bitmap,
           };
           return { k: "value", registerMember, t };
@@ -1578,7 +1576,6 @@ class OperandTyper {
         if (cType === undefined) {
           return { k: "value", registerMember, t: OperandTyper.plain(null) };
         }
-        const named = OperandTyper.namedFacts(cType, ctx);
         // A member records its C spelling (`uint16_t`)
         const foreign = ForeignTypeFacts.operandType(
           cType,
@@ -1593,6 +1590,7 @@ class OperandTyper {
           };
         }
         // A C-Next enum types the member as that enum (#2155 review 9)
+        const named = OperandTyper.namedFacts(cType, ctx);
         const t =
           named.category === "enum"
             ? { ...OperandTyper.plain(cType), ...named }

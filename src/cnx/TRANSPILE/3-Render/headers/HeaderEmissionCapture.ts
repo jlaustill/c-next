@@ -1,8 +1,9 @@
-import { basename, relative, sep } from "node:path";
+import { basename } from "node:path";
 
 import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import CNextSourcePath from "../../../utils/CNextSourcePath";
+import IncludePath from "../../../utils/IncludePath";
 import type IFileIncludes from "../../../PARSE/1-Discover/types/IFileIncludes";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
@@ -278,7 +279,7 @@ class HeaderEmissionCapture {
           header,
           named === undefined
             ? directive
-            : `#include "${relative(here, named).split(sep).join("/")}"`,
+            : `#include "${IncludePath.relative(here, named)}"`,
         );
       }
     };

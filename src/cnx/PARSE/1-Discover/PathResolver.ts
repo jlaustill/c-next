@@ -6,13 +6,14 @@
  * including directory structure preservation.
  */
 
-import { join, basename, relative, dirname, resolve, sep } from "node:path";
+import { join, basename, relative, dirname, resolve } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import type TSourceExtension from "../../types/TSourceExtension";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IFileSystem from "../../types/IFileSystem";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import IncludePath from "../../utils/IncludePath";
 
 /**
  * Configuration for PathResolver
@@ -135,28 +136,13 @@ class PathResolver {
    * work regardless. The caller keeps the author's spelling there.
    */
   getHeaderIncludePath(cnxPath: string, ext: THeaderExtension): string | null {
-    const headerDir = this.headerRoot();
-    const includePath = relative(
-      resolve(headerDir),
-      resolve(this.headerPathFor(cnxPath, ext)),
-    );
-
-    if (!includePath || includePath.startsWith("..")) {
-      return null;
-    }
-
     // POSIX separators: this becomes the text inside `#include <...>`, which
     // is not a filesystem path in the generated C.
-    return includePath.split(sep).join("/");
-  }
-
-  /**
-   * #2272/#1473: the path from `fromDirectory` to `to`, as `#include` text
-   * spells it. A quoted include resolves from the directory of the file that
-   * holds it, so a generated file spells one relative to where it is written.
-   */
-  static posixRelative(fromDirectory: string, to: string): string {
-    return relative(resolve(fromDirectory), resolve(to)).split(sep).join("/");
+    const includePath = IncludePath.relative(
+      this.headerRoot(),
+      this.headerPathFor(cnxPath, ext),
+    );
+    return !includePath || includePath.startsWith("..") ? null : includePath;
   }
 
   /**

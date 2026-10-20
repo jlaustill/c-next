@@ -22,7 +22,8 @@ interface IRegisterMemberSymbol extends IBaseSymbol {
   /**
    * The member's type as written, settled by 1.4 Resolve like any other
    * (#1514). Whether it is a bitmap is asked of the names the file can see
-   * (`DeclaredTypeFacts.isBitmap`), never stored here: Declare sees one file.
+   * (`DeclaredTypeFacts.registerMemberBitmap`), never stored here: Declare
+   * sees one file.
    */
   readonly type: TType;
 
