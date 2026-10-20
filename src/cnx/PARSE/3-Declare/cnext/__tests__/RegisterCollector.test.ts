@@ -3,6 +3,7 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import RegisterCollector from "../collectors/RegisterCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TypeResolver from "../../../../utils/TypeResolver";
 import FirstDeclaration from "./FirstDeclaration";
 
 describe("RegisterCollector", () => {
@@ -23,7 +24,6 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        new Set(),
         "",
         "public",
       );
@@ -42,12 +42,12 @@ describe("RegisterCollector", () => {
       expect(symbol.members.size).toBe(2);
       expect(symbol.members.get("DATA")).toMatchObject({
         offset: { kind: "literal", text: "0x00" },
-        cType: "uint32_t",
+        type: TypeResolver.resolve("u32"),
         access: "rw",
       });
       expect(symbol.members.get("DIR")).toMatchObject({
         offset: { kind: "literal", text: "0x04" },
-        cType: "uint32_t",
+        type: TypeResolver.resolve("u32"),
         access: "rw",
       });
     });
@@ -67,7 +67,6 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        new Set(),
         "",
         "public",
       );
@@ -94,21 +93,30 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        new Set(),
         "",
         "public",
       );
 
-      expect(symbol.members.get("COUNT8")?.cType).toBe("uint8_t");
-      expect(symbol.members.get("COUNT16")?.cType).toBe("uint16_t");
-      expect(symbol.members.get("COUNT32")?.cType).toBe("uint32_t");
-      expect(symbol.members.get("COUNT64")?.cType).toBe("uint64_t");
-      expect(symbol.members.get("SIGNED")?.cType).toBe("int32_t");
+      expect(TypeResolver.getTypeName(symbol.members.get("COUNT8")!.type)).toBe(
+        "u8",
+      );
+      expect(
+        TypeResolver.getTypeName(symbol.members.get("COUNT16")!.type),
+      ).toBe("u16");
+      expect(
+        TypeResolver.getTypeName(symbol.members.get("COUNT32")!.type),
+      ).toBe("u32");
+      expect(
+        TypeResolver.getTypeName(symbol.members.get("COUNT64")!.type),
+      ).toBe("u64");
+      expect(TypeResolver.getTypeName(symbol.members.get("SIGNED")!.type)).toBe(
+        "i32",
+      );
     });
   });
 
   describe("bitmap type references", () => {
-    it("detects known bitmap types in members", () => {
+    it("records a named member's type without judging whether it is a bitmap (#1514)", () => {
       const code = `
         register STATUS @ 0x40003000 {
           FLAGS: StatusFlags rw @ 0x00,
@@ -116,21 +124,18 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = FirstDeclaration.register(tree);
-      const knownBitmaps = new Set(["StatusFlags"]);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        knownBitmaps,
         "",
         "public",
       );
 
       const member = symbol.members.get("FLAGS");
-      expect(member?.bitmapType).toBe("StatusFlags");
-      expect(member?.cType).toBe("StatusFlags"); // User types stay as-is
+      expect(TypeResolver.getTypeName(member!.type)).toBe("StatusFlags");
     });
 
-    it("does not set bitmapType for non-bitmap types", () => {
+    it("records a primitive member's type as written", () => {
       const code = `
         register DATA @ 0x40004000 {
           VALUE: u32 rw @ 0x00,
@@ -141,12 +146,13 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        new Set(),
         "",
         "public",
       );
 
-      expect(symbol.members.get("VALUE")?.bitmapType).toBeUndefined();
+      expect(TypeResolver.getTypeName(symbol.members.get("VALUE")!.type)).toBe(
+        "u32",
+      );
     });
   });
 
@@ -162,7 +168,6 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
-        new Set(),
         "Motor",
         "public",
       );
@@ -193,13 +198,14 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
-        knownBitmaps,
         "Motor",
         "public",
         isScopeType,
       );
 
-      expect(symbol.members.get("FLAGS")?.bitmapType).toBe("Motor__MotorFlags");
+      expect(TypeResolver.getTypeName(symbol.members.get("FLAGS")!.type)).toBe(
+        "Motor__MotorFlags",
+      );
     });
 
     it("does not let a scope-local bitmap capture an explicit global. type", () => {
@@ -220,13 +226,14 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
-        knownBitmaps,
         "Motor",
         "public",
         isScopeType,
       );
 
-      expect(symbol.members.get("FLAGS")?.bitmapType).toBe("MotorFlags");
+      expect(TypeResolver.getTypeName(symbol.members.get("FLAGS")!.type)).toBe(
+        "MotorFlags",
+      );
     });
   });
 
@@ -242,7 +249,6 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        new Set(),
         "",
         "public",
       );
@@ -267,7 +273,6 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
-        new Set(),
         "",
         "public",
       );
@@ -289,7 +294,6 @@ describe("RegisterCollector", () => {
       const symbol = RegisterCollector.collect(
         FirstDeclaration.register(tree),
         "test.cnx",
-        new Set(),
         "",
         "private",
       );
@@ -303,7 +307,6 @@ describe("RegisterCollector", () => {
       RegisterCollector.collect(
         FirstDeclaration.register(parse(code)),
         "test.cnx",
-        new Set<string>(),
         scopePath,
         visibility as "public" | "private",
       );

@@ -421,7 +421,7 @@ describe("TSymbolInfoAdapter", () => {
               "DATA",
               {
                 offset: TestExpression.hex("0x00"),
-                cType: "u32",
+                type: TypeResolver.resolve("u32"),
                 access: "rw",
               },
             ],
@@ -453,7 +453,7 @@ describe("TSymbolInfoAdapter", () => {
               "TX",
               {
                 offset: TestExpression.hex("0x00"),
-                cType: "u32",
+                type: TypeResolver.resolve("u32"),
                 access: "wo",
               },
             ],
@@ -487,13 +487,17 @@ describe("TSymbolInfoAdapter", () => {
               "DATA",
               {
                 offset: TestExpression.hex("0x00"),
-                cType: "u32",
+                type: TypeResolver.resolve("u32"),
                 access: "rw",
               },
             ],
             [
               "STATUS",
-              { offset: TestExpression.hex("0x04"), cType: "u8", access: "ro" },
+              {
+                offset: TestExpression.hex("0x04"),
+                type: TypeResolver.resolve("u8"),
+                access: "ro",
+              },
             ],
           ]),
         ),
@@ -550,19 +554,20 @@ describe("TSymbolInfoAdapter", () => {
               "FLAGS",
               {
                 offset: TestExpression.hex("0x00"),
-                cType: "StatusFlags",
+                type: TypeResolver.resolve("StatusFlags"),
                 access: "rw",
-                bitmapType: "StatusFlags",
               },
             ],
           ]),
         ),
       };
 
-      // Include bitmap BEFORE register for knownBitmaps to be populated
       const info = TSymbolInfoAdapter.convert([bitmap, register]);
 
-      expect(info.registerMemberTypes.get("CTRL__FLAGS")).toBe("StatusFlags");
+      // #1514: a bitmap member's C type is the bitmap's name, which is what
+      // makes it a bitmap member wherever that bitmap is visible
+      expect(info.registerMemberCTypes.get("CTRL__FLAGS")).toBe("StatusFlags");
+      expect(info.knownBitmaps.has("StatusFlags")).toBe(true);
     });
   });
 

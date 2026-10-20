@@ -1,0 +1,109 @@
+// test-adr: 004, 034
+// #1514: a register member typed by a bitmap declared in ANOTHER file lost its
+// bitmap. A field write emitted a flat identifier nothing declares, and a field
+// read a struct member access on an integer -- transpiler exit 0, gcc rejects:
+//
+//     LREG.RW.En <- true      same file  ->  LREG__RW = (uint8_t)((LREG__RW & ~(1U << 0)) | ...
+//                             one hop    ->  LREG__RW__En = true;
+//
+// The member's type is a cross-file fact: which names are bitmaps is decided
+// over the file's include closure, so 1.3 Declare, which sees one file, could
+// not answer it.
+//
+// Every shape below must lower exactly as its same-file control does (the
+// `Local` bitmap and `OWNREG`), so the two halves of each function differ only
+// in the register's name.
+
+#include "lib/bitmaps.cnx"
+#include "lib/mid.cnx"
+#include "lib/periph.cnx"
+
+bitmap8 Local {
+    En,
+    Mode[3],
+    Hi[4]
+}
+
+register LREG @ 0x40001000 {
+    RW: Ctl rw @ 0x00,
+}
+
+register OWNREG @ 0x40002000 {
+    RW: Local rw @ 0x00,
+}
+
+register DREG @ 0x40005000 {
+    D: Deep rw @ 0x00,
+    M: EMode rw @ 0x02,
+}
+
+scope Dev {
+    register CTRL @ 0x40000000 {
+        STATUS: Chip.Flags rw @ 0x00,
+    }
+
+    public void go() {
+        this.CTRL.STATUS.Busy <- true;
+    }
+
+    public bool busy() {
+        return this.CTRL.STATUS.Busy;
+    }
+}
+
+scope Bus {
+    register G @ 0x40006000 {
+        C: global.Ctl rw @ 0x00,
+    }
+
+    public void go() {
+        this.G.C.En <- true;
+    }
+}
+
+scope Chip {
+    register R @ 0x40003000 {
+        DR: Flags rw @ 0x00,
+    }
+
+    public void set() {
+        this.R.DR.Busy <- true;
+        this.R.DR.Rest <- 5;
+    }
+}
+
+void main() {
+    // ASSERTION -- an included file-scope bitmap: single-bit write, multi-bit
+    // write, bit read.
+    LREG.RW.En <- true;
+    LREG.RW.Mode <- 5;
+    bool en <- LREG.RW.En;
+
+    // NEGATIVE CONTROL -- the same three through a same-file bitmap.
+    OWNREG.RW.En <- true;
+    OWNREG.RW.Mode <- 5;
+    bool sen <- OWNREG.RW.En;
+
+    // ASSERTION -- an included scope's bitmap, from another scope and from
+    // the bitmap's own scope (bare `Flags` resolving to `Chip.Flags`).
+    Dev.go();
+    bool b <- Dev.busy();
+    Chip.set();
+
+    // ASSERTION -- a bitmap two include hops away, and `global.` naming an
+    // included file-scope bitmap from inside a scope.
+    DREG.D.A <- true;
+    DREG.D.B <- 3;
+    Bus.go();
+
+    // ASSERTION -- a public register declared in an included file.
+    Periph.CTRL.CR.Mode <- 2;
+
+    // NEGATIVE CONTROL -- an included enum types its member as that enum,
+    // not as a bitmap.
+    DREG.M <- EMode.On;
+
+    if ((en = sen) && (b = true)) {
+        LREG.RW.Hi <- 0;
+    }
+}

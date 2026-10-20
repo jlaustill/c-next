@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/motor.hpp"
+#include "motor.hpp"
 
 #include "motor_cfg.h"
 

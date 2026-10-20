@@ -102,39 +102,6 @@ describe("PathResolver", () => {
     });
   });
 
-  describe("getSourceRelativePath", () => {
-    it("returns relative path when file is under input", () => {
-      const resolver = new PathResolver(
-        {
-          inputs: [srcDir],
-          outDir,
-        },
-        NodeFileSystem.instance,
-      );
-
-      const filePath = join(srcDir, "subdir", "utils.cnx");
-      writeFileSync(filePath, "");
-
-      expect(resolver.getSourceRelativePath(filePath)).toBe(
-        join("subdir", "utils.cnx"),
-      );
-    });
-
-    it("returns basename when file is not under any input", () => {
-      const resolver = new PathResolver(
-        {
-          inputs: [srcDir],
-          outDir,
-        },
-        NodeFileSystem.instance,
-      );
-
-      const filePath = "/some/other/path/file.cnx";
-
-      expect(resolver.getSourceRelativePath(filePath)).toBe("file.cnx");
-    });
-  });
-
   describe("getOutputPath", () => {
     it("generates .c output path in outDir", () => {
       const resolver = new PathResolver(

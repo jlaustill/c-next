@@ -87,3 +87,34 @@ describe("DeclaredTypeFacts.isStruct", () => {
     expect(DeclaredTypeFacts.isStruct(sets(), absent, "Gone")).toBe(false);
   });
 });
+
+// #1514: the one answer 2.1's operand typer and 2.3's codegen read
+describe("DeclaredTypeFacts.registerMemberBitmap", () => {
+  const view = (bitmaps: string[], members: [string, string][]) => ({
+    ...sets([], bitmaps),
+    registerMemberCTypes: new Map(members),
+  });
+
+  it("names the bitmap a member is typed by when the file sees it", () => {
+    const seen = view(["Ctl"], [["MOTOR_RW", "Ctl"]]);
+    expect(DeclaredTypeFacts.registerMemberBitmap(seen, "MOTOR_RW")).toBe(
+      "Ctl",
+    );
+  });
+
+  it("answers null for a member typed by anything else", () => {
+    const seen = view(["Ctl"], [["MOTOR_DR", "uint8_t"]]);
+    expect(DeclaredTypeFacts.registerMemberBitmap(seen, "MOTOR_DR")).toBeNull();
+  });
+
+  it("answers null for a bitmap the file does not see", () => {
+    const seen = view([], [["MOTOR_RW", "Ctl"]]);
+    expect(DeclaredTypeFacts.registerMemberBitmap(seen, "MOTOR_RW")).toBeNull();
+  });
+
+  it("answers null for a member the file's view does not hold", () => {
+    expect(
+      DeclaredTypeFacts.registerMemberBitmap(view(["Ctl"], []), "MOTOR_RW"),
+    ).toBeNull();
+  });
+});

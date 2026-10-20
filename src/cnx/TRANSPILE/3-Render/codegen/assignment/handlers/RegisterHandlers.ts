@@ -12,6 +12,7 @@
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
+import DeclaredTypeFacts from "../../../../../utils/DeclaredTypeFacts";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
@@ -26,9 +27,9 @@ function storageOf(
   memberName: string,
 ): string | undefined {
   const symbols = ctx.state.symbols!;
-  const cType = symbols.registerMemberCTypes.get(memberName);
-  if (cType === undefined) return undefined;
-  return symbols.bitmapBackingType.get(cType) ?? cType;
+  const bitmap = DeclaredTypeFacts.registerMemberBitmap(symbols, memberName);
+  if (bitmap !== null) return symbols.bitmapBackingType.get(bitmap) ?? bitmap;
+  return symbols.registerMemberCTypes.get(memberName);
 }
 
 /**

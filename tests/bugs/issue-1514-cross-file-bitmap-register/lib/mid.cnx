@@ -1,0 +1,4 @@
+// The middle hop: cross-file-bitmap-register sees `Deep` only through here.
+#include "deep.cnx"
+
+u8 MID_REVISION <- 1;

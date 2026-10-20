@@ -6,13 +6,14 @@
  * including directory structure preservation.
  */
 
-import { join, basename, relative, dirname, resolve, sep } from "node:path";
+import { join, basename, relative, dirname, resolve } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import type TSourceExtension from "../../types/TSourceExtension";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IFileSystem from "../../types/IFileSystem";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import IncludePath from "../../utils/IncludePath";
 
 /**
  * Configuration for PathResolver
@@ -52,8 +53,8 @@ class PathResolver {
    * Returns the relative path (e.g., "Display/Utils.cnx") or null if the file
    * is not under any input directory.
    *
-   * This is the core utility used by getSourceRelativePath, getOutputPath,
-   * and getHeaderOutputPath for directory structure preservation.
+   * This is the core utility used by getOutputPath and getHeaderOutputPath
+   * for directory structure preservation.
    */
   getRelativePathFromInputs(filePath: string): string | null {
     for (const input of this.config.inputs) {
@@ -73,15 +74,6 @@ class PathResolver {
     }
 
     return null;
-  }
-
-  /**
-   * Issue #339: Get relative path from input directory for self-include generation.
-   * Returns the relative path (e.g., "Display/Utils.cnx") or just the basename
-   * if the file is not in any input directory.
-   */
-  getSourceRelativePath(filePath: string): string {
-    return this.getRelativePathFromInputs(filePath) ?? basename(filePath);
   }
 
   /**
@@ -144,19 +136,13 @@ class PathResolver {
    * work regardless. The caller keeps the author's spelling there.
    */
   getHeaderIncludePath(cnxPath: string, ext: THeaderExtension): string | null {
-    const headerDir = this.headerRoot();
-    const includePath = relative(
-      resolve(headerDir),
-      resolve(this.headerPathFor(cnxPath, ext)),
-    );
-
-    if (!includePath || includePath.startsWith("..")) {
-      return null;
-    }
-
     // POSIX separators: this becomes the text inside `#include <...>`, which
     // is not a filesystem path in the generated C.
-    return includePath.split(sep).join("/");
+    const includePath = IncludePath.relative(
+      this.headerRoot(),
+      this.headerPathFor(cnxPath, ext),
+    );
+    return !includePath || includePath.startsWith("..") ? null : includePath;
   }
 
   /**
@@ -171,9 +157,10 @@ class PathResolver {
   /**
    * Issue #1467: where the header for `cnxPath` goes. Pure -- it creates no
    * directories, so `getHeaderIncludePath` can ask the question without the
-   * side effect that answering it used to carry.
+   * side effect that answering it used to carry. #2272: and so 1.1 can spell a
+   * quoted include relative to the file that writes it.
    */
-  private headerPathFor(cnxPath: string, ext: THeaderExtension): string {
+  headerPathFor(cnxPath: string, ext: THeaderExtension): string {
     const headerDir = this.headerRoot();
 
     const relativePath = this.getRelativePathFromInputs(cnxPath);

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/struct-literal-geom.h"
+#include "struct-literal-geom.h"
 
 #include <stdint.h>
 

@@ -50,6 +50,7 @@ import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
+import DeclaredTypeFacts from "./DeclaredTypeFacts";
 
 /** Where a chain walk stands between operations */
 type TChainValue =
@@ -1542,29 +1543,44 @@ class OperandTyper {
         }
         return OperandTyper.enumMember(current.name);
       case "register": {
-        // The register symbol is the one source; the per-file map only
-        // records bitmap-typed members
+        // The register symbol confirms the member exists; its type comes
+        // from this file's view, which holds every member's C type
         const register = ctx.program.symbolByCName(current.name);
         const info =
           register?.kind === "register" ? register.members.get(member) : null;
         if (!info) return UNKNOWN;
-        // #2155 review 8: the member is named whether or not its type
-        // resolves (an included bitmap does not, #1514), so its access rules
-        // still apply to it
+        // #2155 review 8: the member is named whatever its type, so its
+        // access rules apply to it
         const registerMember = {
           register: current.name,
           cName: QualifiedCName.fromParts([current.name, member]),
         };
-        if (info.bitmapType) {
+        // #1514: whether it names a bitmap is asked of the names this file
+        // SEES, so an included bitmap counts
+        const bitmap = DeclaredTypeFacts.registerMemberBitmap(
+          ctx.symbols,
+          registerMember.cName,
+        );
+        if (bitmap !== null) {
           const t = {
-            ...OperandTyper.plain(info.bitmapType),
-            bitmapTypeName: info.bitmapType,
+            ...OperandTyper.plain(bitmap),
+            bitmapTypeName: bitmap,
           };
           return { k: "value", registerMember, t };
         }
+        const cType = ctx.symbols.registerMemberCTypes.get(
+          registerMember.cName,
+        );
+        // A register this file's view does not hold. `global.` cannot reach
+        // one (E0427); `this.` through a scope spanned from an un-included
+        // file still can, at exit 0 (#2275). Named, so its access rules apply,
+        // of unknown type -- TODO(#2275): unreachable once that is rejected
+        if (cType === undefined) {
+          return { k: "value", registerMember, t: OperandTyper.plain(null) };
+        }
         // A member records its C spelling (`uint16_t`)
         const foreign = ForeignTypeFacts.operandType(
-          info.cType,
+          cType,
           ctx.symbolTable,
           OperandTyper.target(ctx),
         );
@@ -1575,12 +1591,11 @@ class OperandTyper {
             t: { ...foreign, form: DECLARED },
           };
         }
-        // A C-Next enum types the member as that enum (#2155 review 9); a type
-        // that does not resolve (an included bitmap, #1514) types nothing
-        const named = OperandTyper.namedFacts(info.cType, ctx);
+        // A C-Next enum types the member as that enum (#2155 review 9)
+        const named = OperandTyper.namedFacts(cType, ctx);
         const t =
           named.category === "enum"
-            ? { ...OperandTyper.plain(info.cType), ...named }
+            ? { ...OperandTyper.plain(cType), ...named }
             : OperandTyper.plain(null);
         return { k: "value", registerMember, t };
       }

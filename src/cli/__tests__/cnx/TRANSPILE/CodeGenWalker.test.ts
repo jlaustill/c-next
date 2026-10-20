@@ -284,7 +284,7 @@ describe("CodeGenWalker", () => {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
-        cnxIncludeRewrites: new Map([["utils.cnx", "Display/utils.h"]]),
+        includeRewrites: new Map([["utils.cnx", "Display/utils.h"]]),
       });
 
       expect(code).toContain("void foo");
@@ -1834,7 +1834,7 @@ describe("CodeGenWalker", () => {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
-        sourceRelativePath: "myfile.cnx",
+        selfInclude: "myfile.h",
       });
 
       expect(code).toContain('#include "myfile.h"');

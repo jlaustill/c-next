@@ -48,6 +48,7 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import DeclaredTypeFacts from "../../../../../utils/DeclaredTypeFacts";
 import PrivateConstValue from "../../PrivateConstValue";
 
 // ========================================================================
@@ -627,10 +628,11 @@ const generateLengthProperty = (
   );
   const measured = ctx.measured;
   const rule = LengthProperty.rule(name, subject);
+  if (rule.kind === "error") {
+    invariant(false, `E0867 rejects this in pass 2.1 -- ${rule.message}.`);
+  }
   const bits = name.unit === "bit_length";
   switch (rule.kind) {
-    case "error":
-      invariant(false, `E0867 rejects this in pass 2.1 -- ${rule.message}.`);
     case "logical":
       return name.unit === "element_count"
         ? generateElementCount(ctx, input)
@@ -1048,11 +1050,14 @@ const tryRegisterBitmapAccess = (
   effects: TGeneratorEffect[],
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
-  if (!input.symbols!.registerMemberTypes.has(ctx.result)) {
+  const bitmapType = DeclaredTypeFacts.registerMemberBitmap(
+    input.symbols!,
+    ctx.result,
+  );
+  if (bitmapType === null) {
     return null;
   }
 
-  const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
   const output = initializeMemberOutput(ctx);
   const bitmapResult = BitmapAccessHelper.generate(
     ctx.result,
@@ -1213,9 +1218,12 @@ const validateNotBitmapMember = (
   ctx: ISubscriptAccessContext,
   input: IGeneratorInput,
 ): void => {
-  if (!input.symbols!.registerMemberTypes.has(ctx.result)) return;
+  const bitmapType = DeclaredTypeFacts.registerMemberBitmap(
+    input.symbols!,
+    ctx.result,
+  );
+  if (bitmapType === null) return;
 
-  const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
   invariant(
     !input.symbols!.bitmapFields.has(bitmapType),
     `a bitmap is addressed by named field, never by bit index ` +

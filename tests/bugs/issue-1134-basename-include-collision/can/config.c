@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "can/config.h"
+#include "config.h"
 
 #include <stdint.h>
 

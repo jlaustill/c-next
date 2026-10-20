@@ -92,10 +92,41 @@ describe("Discover", () => {
     const { graph } = Discover.run({ kind: "files" }, anchor, tree, fs, []);
 
     expect(graph.outputs.c.get("/proj/src/lib.cnx")).toEqual({
-      sourceRelativePath: "src/lib.cnx",
+      selfInclude: "lib.h",
       source: "/out/src/lib.c",
       header: "/out/src/lib.h",
     });
+  });
+
+  // #2272/#1473: a quoted include is spelled from where each generated file is
+  // written, so a nested file's output does not depend on its entry
+  it("spells a nested file's sibling include relative to its own output", async () => {
+    fs = new MockFileSystem()
+      .addFile("/proj/app.cnx", '#include "lib/a.cnx"\n\nvoid main() { }\n')
+      .addFile("/proj/lib/a.cnx", '#include "b.cnx"\n\nu8 A <- 1;\n')
+      .addFile("/proj/lib/b.cnx", "u8 B <- 2;\n");
+    const split = {
+      ...settings,
+      input: "/proj/app.cnx",
+      outDir: "/out/src",
+      headerOutDir: "/out/include",
+    };
+    const anchor = RunAnchor.at(split.input, null, split, fs);
+    const { graph } = Discover.run({ kind: "files" }, anchor, split, fs, []);
+
+    const nested = graph.includes.c.get("/proj/lib/a.cnx");
+    expect(nested?.headerIncludeDirectives.get("/proj/lib/b.cnx")).toBe(
+      '#include "b.h"',
+    );
+    expect(nested?.userIncludes).toEqual(['#include "b.h"']);
+    expect(nested?.includeRewrites.get("b.cnx")).toBe("../../include/lib/b.h");
+    expect(nested?.generatedHeaderDirectory).toBe("/out/include/lib");
+    expect(graph.outputs.c.get("/proj/lib/a.cnx")?.selfInclude).toBe(
+      "../../include/lib/a.h",
+    );
+    expect(graph.includes.c.get("/proj/app.cnx")?.includeRewrites).toEqual(
+      new Map([["lib/a.cnx", "../include/lib/a.h"]]),
+    );
   });
 
   it("orders the files so each follows the files it includes", async () => {
@@ -146,7 +177,7 @@ describe("Discover", () => {
       "/proj/src/board.h",
     );
     expect(app?.quotedIncludeDirectory).toBe("/proj/src");
-    expect(app?.cnxIncludeRewrites.get("lib.cnx")).toBe("lib.h");
+    expect(app?.includeRewrites.get("lib.cnx")).toBe("lib.h");
   });
 
   it("carries the anchor's facts", async () => {

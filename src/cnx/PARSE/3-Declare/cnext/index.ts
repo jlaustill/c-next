@@ -60,7 +60,6 @@ class CNextResolver {
     registry: SymbolRegistry,
   ): IFileSymbols {
     const symbols: TSymbol[] = [];
-    const knownBitmaps = new Set<string>();
     // There is no const pass. A dimension naming a const keeps its text here
     // and 1.4 folds it, once, with the consts visible where it is declared:
     // the scope's own over file scope's, and a block's locals over both
@@ -102,24 +101,23 @@ class CNextResolver {
     const isScopeType = (qualifiedName: string): boolean =>
       declaredScopeTypes.has(qualifiedName);
 
-    // Pass 1: Collect all bitmap names (needed before registers reference them)
-    // This includes bitmaps in scopes
+    // Pass 1: Collect all bitmaps, including those in scopes. Whether a
+    // register member's type IS a bitmap is not decided here: the bitmap may be
+    // another file's, which only 1.4 Resolve can see (#1514).
     CNextResolver.collectBitmapsPass1(
       registry,
       program,
       sourceFile,
       symbols,
-      knownBitmaps,
       isScopeType,
     );
 
-    // Pass 2: Collect everything else (with bitmap set and const values available)
+    // Pass 2: Collect everything else
     CNextResolver.collectAllPass2(
       registry,
       program,
       sourceFile,
       symbols,
-      knownBitmaps,
       isScopeType,
     );
 
@@ -228,7 +226,6 @@ class CNextResolver {
     program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
-    knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     // #1298: file scope is the empty path; the global scope object itself is
@@ -245,8 +242,6 @@ class CNextResolver {
           ScopeUtils.getTopLevelVisibility(),
         );
         symbols.push(symbol);
-        // Use transpiled C name (global bitmaps have no scope prefix)
-        knownBitmaps.add(symbol.name);
       }
 
       // Bitmaps and structs inside scopes (collected early)
@@ -256,7 +251,6 @@ class CNextResolver {
           syntax,
           sourceFile,
           symbols,
-          knownBitmaps,
           isScopeType,
         );
       }
@@ -272,7 +266,6 @@ class CNextResolver {
     scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
-    knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const scopeName = scopeSyntax.name;
@@ -296,11 +289,6 @@ class CNextResolver {
           visibility,
         );
         symbols.push(symbol);
-        // #1285: the symbol was just built and carries its own identity, so
-        // read it rather than re-deriving one. The re-derivation here joined a
-        // leaf scope name and the stale comment beside it still said
-        // "Timer_ControlBits" -- one underscore, from before ADR-063.
-        knownBitmaps.add(symbol.fullyQualifiedCName);
       }
 
       // Collect structs early so they're available as types
@@ -326,7 +314,6 @@ class CNextResolver {
     program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
-    knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     // `_collectDeclaration` has no bitmap branch: pass 1 owns bitmaps
@@ -336,7 +323,6 @@ class CNextResolver {
         syntax,
         sourceFile,
         symbols,
-        knownBitmaps,
         isScopeType,
       );
     }
@@ -353,7 +339,6 @@ class CNextResolver {
     syntax: TDeclarationSyntax,
     sourceFile: string,
     symbols: TSymbol[],
-    knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     // #1298: file scope is the empty path.
@@ -366,7 +351,6 @@ class CNextResolver {
         syntax,
         sourceFile,
         symbols,
-        knownBitmaps,
         isScopeType,
       );
       return;
@@ -401,7 +385,6 @@ class CNextResolver {
       const symbol = RegisterCollector.collect(
         syntax,
         sourceFile,
-        knownBitmaps,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
       );
@@ -449,14 +432,12 @@ class CNextResolver {
     scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
-    knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const result = ScopeCollector.collect(
       registry,
       scopeSyntax,
       sourceFile,
-      knownBitmaps,
       isScopeType,
     );
 

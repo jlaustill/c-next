@@ -31,21 +31,15 @@ interface ICodeGeneratorOptions {
   /** ADR-010: Source file path for validating includes */
   sourcePath: string;
   /**
-   * Issue #339: Relative path from source root to source file for self-include.
-   * Self-includes use this relative path, which 1.1 settled.
-   * Example: "Display/Utils.cnx" -> #include "Display/Utils.h"
+   * How the `.c` names its own header, which 1.1 settled (#339, #2272/#1473):
+   * relative to the `.c`, e.g. `"Utils.h"` for Display/Utils.c.
    */
-  sourceRelativePath: string;
+  selfInclude: string;
   /**
-   * Issue #1467: author spelling -> resolved header path, decided once by
-   * PathResolver during discovery.
-   *
-   * Replaces the `includeDirs`/`inputs` pair added for #349. Those declared a
-   * path resolution inside codegen that the only production caller never
-   * supplied, so the resolution was dead for the whole pipeline while the
-   * options advertised it.
+   * How the `.c` names each include, as 1.1 spelled it
+   * (`IFileIncludes.includeRewrites`); codegen reads it and derives nothing.
    */
-  cnxIncludeRewrites: ReadonlyMap<string, string>;
+  includeRewrites: ReadonlyMap<string, string>;
   /**
    * #1444, owner ruling 1: the kind of file each `#include` directive's
    * spelling names, keyed by `IncludeDirectiveText.join`, as 1.1 Discover

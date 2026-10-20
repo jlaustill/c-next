@@ -26,8 +26,8 @@ class PlanOptions {
       targetDescription: target.description,
       sourcePath,
       symbolInfo,
-      sourceRelativePath: outputs.sourceRelativePath,
-      cnxIncludeRewrites: includes.cnxIncludeRewrites,
+      selfInclude: outputs.selfInclude,
+      includeRewrites: includes.includeRewrites,
       includeKinds: includes.kinds,
       // #1515: decided by the rule's owner. 1.3 Declare used to answer this,
       // which put an emission decision in the parse layer.

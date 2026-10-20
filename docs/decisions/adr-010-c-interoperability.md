@@ -225,6 +225,24 @@ which fixed generated C that named a header C-Next had written elsewhere. This
 records the guarantee the fix restored; it does not revise the decision above.
 Whether the guarantee belongs in the Decision itself is open.
 
+**Refined 2026-10-20 ([#2272](https://github.com/smeltworks/cnx/issues/2272),
+[#1473](https://github.com/smeltworks/cnx/issues/1473)), owner's ruling:** a
+quoted include is spelled relative to the generated file that carries it,
+because that is the directory a C compiler resolves it from. `lib/uart.h`
+names the header written beside it as `"bitmaps.h"`, and `lib/uart.c` names
+its own header `"uart.h"`, whichever entry pulled `lib/uart.cnx` into the
+run. The output-root spelling above made the same file's output depend on its
+entry (`"lib/bitmaps.h"` from `t.cnx`, `"bitmaps.h"` standalone), and the
+first form compiles only with the output root on `-I`. The location is still
+"where it went": the header path comes from the decision that writes the header, and only the
+directory it is spelled from changed. With `--header-out` a `.c` names its
+header across the split (`"../../include/lib/a.h"`). A quoted C header found
+beside the `.cnx` follows the same rule
+([#1746](https://github.com/smeltworks/cnx/issues/1746)): written with `-o out`,
+`lib/uart.h` names `src/lib/dev.h` as `"../../src/lib/dev.h"`, once, so output
+compiles with no `-I` wherever `-o` and `--header-out` put it. A spelling
+found along the search path, and an angle include, are unchanged.
+
 ---
 
 ## Scope-context matrix

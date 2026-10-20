@@ -5,6 +5,7 @@ import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeRewriter from "../../utils/IncludeRewriter";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import IncludePath from "../../utils/IncludePath";
 import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
@@ -114,6 +115,16 @@ interface IResolvedInclude {
 }
 
 /**
+ * #2272/#1473: the generated file a file's includes are spelled for -- its
+ * `.h` or its `.c` -- and where the header for each `.cnx` is written.
+ */
+interface IIncludeWriter {
+  /** The directory the generated file is written to */
+  readonly directory: string;
+  readonly headerPathFor: (cnxPath: string) => string;
+}
+
+/**
  * How a file spells the headers it includes, given the run's generated-header
  * extension (#1844: spelled after 1.1 settles the run's mode).
  */
@@ -129,7 +140,9 @@ interface IIncludeSpelling {
   /**
    * Issue #1467: for each `.cnx` include, the author's spelling mapped to the
    * path the generated header is actually reachable at, relative to the header
-   * output root -- e.g. `"utils.cnx"` => `"Display/utils.h"`.
+   * output root -- e.g. `"utils.cnx"` => `"Display/utils.h"`. #2272/#1746: or
+   * relative to the generated file, for a quoted include found beside the
+   * `.cnx` -- a C header's own path then, e.g. `"dev.h"` => `"../../src/dev.h"`.
    *
    * Recorded here because this class is where an include's spelling and its
    * RESOLVED file are both in hand; every consumer downstream has one or the
@@ -137,13 +150,14 @@ interface IIncludeSpelling {
    * never from the spelling: those were derived independently in three places,
    * and agreed only because all three copied what the author typed.
    */
-  cnextIncludeRewrites: Map<string, string>;
+  includeRewrites: Map<string, string>;
 
   /**
    * #1725: for each quoted include that resolved beside the file that wrote
    * it -- so its spelling is relative to that file -- the absolute file the
-   * spelling names: the header, or the generated header beside a `.cnx` whose
-   * header the output root does not reach. Keyed like
+   * spelling names: the header, or for a `.cnx` the header generated for it:
+   * where 1.1 writes it (#2272), or, with no writer known, beside the `.cnx`
+   * when the output root does not reach it. Keyed like
    * `headerIncludeDirectives`.
    *
    * Another file that needs the same header spells it relative to ITSELF from
@@ -155,9 +169,16 @@ interface IIncludeSpelling {
   writerRelativeIncludes: Map<string, string>;
 
   /**
+   * The file's other includes, as its generated file names them, in source
+   * order: a quoted C header found beside the `.cnx` is named from where that
+   * file is written (#1746), and any other directive is kept as written.
+   */
+  cHeaderIncludes: string[];
+
+  /**
    * The file's `.cnx` includes, each rendered as the include its generated
    * header carries: the author's directive with its path replaced by the
-   * header `cnextIncludeRewrites` names, or by the extension swap when it
+   * header `includeRewrites` names, or by the extension swap when it
    * names none (#1467). In source order, the author's spacing and form kept.
    *
    * Issue #589 / #941: these define types used in function signatures, so the
@@ -275,25 +296,39 @@ class IncludeResolver {
    *   caller does not know (no PathResolver yet) or the header lands outside
    *   that root; the author's spelling is kept then, with its extension
    *   swapped, which is what every caller did before.
+   * @param writer #2272/#1473: where the generated file carrying these
+   *   includes is written, and where each `.cnx`'s header is. A quoted include
+   *   found beside the `.cnx` that wrote it is spelled relative to that
+   *   generated file, so it compiles with no `-I` and does not depend on which
+   *   entry pulled the file in. Null when the caller does not know.
    */
   static spell(
     resolved: IResolvedIncludes,
     headerExtension: THeaderExtension,
     headerIncludePathFor: ((cnxPath: string) => string | null) | null,
+    writer: IIncludeWriter | null = null,
   ): IIncludeSpelling {
     const spelling: IIncludeSpelling = {
       headerIncludeDirectives: new Map<string, string>(),
-      cnextIncludeRewrites: new Map<string, string>(),
+      includeRewrites: new Map<string, string>(),
       writerRelativeIncludes: new Map<string, string>(),
+      cHeaderIncludes: [],
       userIncludes: [],
     };
     for (const include of resolved.included) {
       const { absolutePath, includeInfo, besideWriter } = include;
       if (!include.isCNext) {
-        // Issue #497: Track the original include directive for this header
+        // Issue #497: the directive for this header. #1746: a quoted header
+        // found beside the `.cnx` is named from where the generated file is
+        // written, as a `.cnx`'s header is (#2272), so it needs no `-I`
+        let path = includeInfo.path;
+        if (besideWriter && writer !== null) {
+          path = IncludePath.relative(writer.directory, absolutePath);
+          spelling.includeRewrites.set(includeInfo.path, path);
+        }
         spelling.headerIncludeDirectives.set(
           absolutePath,
-          IncludeDirectiveText.join(includeInfo),
+          IncludeDirectiveText.join({ path, isLocal: includeInfo.isLocal }),
         );
         if (besideWriter) {
           spelling.writerRelativeIncludes.set(absolutePath, absolutePath);
@@ -306,7 +341,14 @@ class IncludeResolver {
       // Issue #1467: ask the owner where the header is reachable. The
       // extension swap below is the fallback for a caller with no resolver
       // and for a header outside the output root -- not a second answer.
-      const reachable = headerIncludePathFor?.(absolutePath) ?? null;
+      let writerHeader: string | null = null;
+      let reachable: string | null;
+      if (besideWriter && writer !== null) {
+        writerHeader = writer.headerPathFor(absolutePath);
+        reachable = IncludePath.relative(writer.directory, writerHeader);
+      } else {
+        reachable = headerIncludePathFor?.(absolutePath) ?? null;
+      }
       const headerPath =
         reachable ??
         CNextSourcePath.withExtension(includeInfo.path, headerExtension);
@@ -317,23 +359,36 @@ class IncludeResolver {
           isLocal: includeInfo.isLocal,
         }),
       );
-      spelling.cnextIncludeRewrites.set(includeInfo.path, headerPath);
-      // #1725: an output-root path is valid from every file. The author's
-      // spelling is not: its header is generated beside the `.cnx`, so that
-      // file is what another includer must spell relative to itself.
-      if (reachable === null && besideWriter) {
+      spelling.includeRewrites.set(includeInfo.path, headerPath);
+      // #1725: an output-root path is valid from every file. A spelling
+      // relative to the writer is not, so another includer must spell the
+      // header it names relative to itself: the header written for the `.cnx`
+      // (#2272), or the one generated beside it when no writer is known.
+      if (writerHeader !== null) {
+        spelling.writerRelativeIncludes.set(absolutePath, writerHeader);
+      } else if (reachable === null && besideWriter) {
         spelling.writerRelativeIncludes.set(
           absolutePath,
           CNextSourcePath.withExtension(absolutePath, headerExtension),
         );
       }
     }
+    for (const directive of resolved.cHeaderIncludes) {
+      spelling.cHeaderIncludes.push(
+        IncludeRewriter.rewrite(
+          directive,
+          resolved.kinds,
+          spelling.includeRewrites,
+          headerExtension,
+        ),
+      );
+    }
     for (const directive of resolved.cnextDirectives) {
       spelling.userIncludes.push(
         IncludeRewriter.rewrite(
           directive,
           resolved.kinds,
-          spelling.cnextIncludeRewrites,
+          spelling.includeRewrites,
           headerExtension,
         ),
       );

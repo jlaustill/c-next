@@ -1390,7 +1390,8 @@ describe("PostfixExpressionGenerator", () => {
       // how the old check ended up unable to see a bitmap variable at all.
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),
-        registerMemberTypes: new Map([["GPIO__CTRL", "CtrlBits"]]),
+        knownBitmaps: new Set(["CtrlBits"]),
+        registerMemberCTypes: new Map([["GPIO__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([
           ["CtrlBits", new Map([["ENABLE", { offset: 0, width: 1 }]])],
         ]),
@@ -1947,7 +1948,8 @@ describe("PostfixExpressionGenerator", () => {
   describe("register member with bitmap type", () => {
     it("generates bitmap field access on register member", () => {
       const symbols = createMockSymbols({
-        registerMemberTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
+        knownBitmaps: new Set(["CtrlBits"]),
+        registerMemberCTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([
           ["CtrlBits", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -1967,7 +1969,8 @@ describe("PostfixExpressionGenerator", () => {
 
     it("asserts the invariant for an unknown field on a register bitmap member", () => {
       const symbols = createMockSymbols({
-        registerMemberTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
+        knownBitmaps: new Set(["CtrlBits"]),
+        registerMemberCTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([["CtrlBits", new Map()]]),
       });
       const ctx = createMockPostfixExpressionContext("MOTOR__CTRL", [
