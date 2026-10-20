@@ -26,7 +26,7 @@ class AtomicOperandType {
   ): string {
     if (oneBit) return "bool";
     if (floating) {
-      invariant(access.typeName !== null, "a float is a C-Next type");
+      invariant(access.typeName !== null, "a float is a cnx type");
       return FloatBitType.of(access.typeName);
     }
     return valueCType ?? access.cType;

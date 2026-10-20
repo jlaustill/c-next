@@ -91,7 +91,7 @@ class LoopCheck {
     this.report(
       expr,
       "E0703",
-      `'${expr.name}' is not supported in C-Next - use structured conditions instead`,
+      `'${expr.name}' is not supported in cnx - use structured conditions instead`,
       "ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.",
     );
   }

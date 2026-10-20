@@ -2,6 +2,17 @@ import type IToolchainRequirement from "../../types/IToolchainRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
 import IRQ_WRAPPER_GUARDS from "./IRQ_WRAPPER_GUARDS";
 
+/** A mode's baseline: what every file in that mode costs, unconditionally */
+const BASELINE = {
+  feature: "baseline",
+  compiler: null,
+  extensions: [],
+  platformLib: null,
+  condition: null,
+  probe: null,
+  misra: ["1.1"],
+} as const satisfies Partial<IToolchainRequirement>;
+
 /**
  * Issue #1143: The single source of truth for what generated output costs.
  *
@@ -24,35 +35,23 @@ import IRQ_WRAPPER_GUARDS from "./IRQ_WRAPPER_GUARDS";
  */
 const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
   "baseline-c": {
+    ...BASELINE,
     key: "baseline-c",
     modes: ["c"],
-    feature: "baseline",
     standard: "C99",
-    compiler: null,
-    extensions: [],
-    platformLib: null,
-    condition: null,
     reason: "stdint fixed-width types, // comments, mixed declarations",
-    incurredBy: "any C-Next file transpiled to C",
-    probe: null,
+    incurredBy: "any cnx file transpiled to C",
     adr: "ADR-044",
-    misra: ["1.1"],
   },
 
   "baseline-cpp": {
+    ...BASELINE,
     key: "baseline-cpp",
     modes: ["cpp"],
-    feature: "baseline",
     standard: "C++11",
-    compiler: null,
-    extensions: [],
-    platformLib: null,
-    condition: null,
     reason: "nullptr, static_cast, reinterpret_cast",
-    incurredBy: "any C-Next file transpiled with --cpp",
-    probe: null,
+    incurredBy: "any cnx file transpiled with --cpp",
     adr: "ADR-010",
-    misra: ["1.1"],
   },
 
   "float-assert-c11": {

@@ -118,7 +118,7 @@ void led_on(void);`,
         sourcePath: "/project/led.h",
         line: 2,
         column: 40,
-        message: "error[E0509]: C-Next source not found: led.cnx",
+        message: "error[E0509]: cnx source not found: led.cnx",
         severity: "error",
       });
     });

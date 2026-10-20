@@ -757,7 +757,7 @@ class NullCheckAnalyzer {
       line,
       column,
       message: `NULL comparison on non-nullable variable '${varName}'`,
-      helpText: `Only variables with 'c_' prefix can be compared to NULL. C-Next variables are never null.`,
+      helpText: `Only variables with 'c_' prefix can be compared to NULL. cnx variables are never null.`,
     });
   }
 

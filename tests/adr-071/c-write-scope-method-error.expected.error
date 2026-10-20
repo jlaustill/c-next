@@ -1,15 +1,15 @@
-15:15 warning[E0896]: C-Next cannot see how 'c_fill' uses parameter 1, so passing 'sm' to it is not memory safe
-       help: Consider converting 'c_fill' to C-Next.
-16:15 warning[E0896]: C-Next cannot see how 'c_show' uses parameter 1, so passing 's' to it is not memory safe
-       help: Consider converting 'c_show' to C-Next.
-20:21 warning[E0896]: C-Next cannot see how 'c_fill_bytes' uses parameter 1, so passing 'am' to it is not memory safe
-       help: Consider converting 'c_fill_bytes' to C-Next.
-21:21 warning[E0896]: C-Next cannot see how 'c_show_bytes' uses parameter 1, so passing 'a' to it is not memory safe
-       help: Consider converting 'c_show_bytes' to C-Next.
-23:15 warning[E0896]: C-Next cannot see how 'c_fill' uses parameter 1, so passing 'pm' to it is not memory safe
-       help: Consider converting 'c_fill' to C-Next.
-24:15 warning[E0896]: C-Next cannot see how 'c_show' uses parameter 1, so passing 'p' to it is not memory safe
-       help: Consider converting 'c_show' to C-Next.
+15:15 warning[E0896]: cnx cannot see how 'c_fill' uses parameter 1, so passing 'sm' to it is not memory safe
+       help: Consider converting 'c_fill' to cnx.
+16:15 warning[E0896]: cnx cannot see how 'c_show' uses parameter 1, so passing 's' to it is not memory safe
+       help: Consider converting 'c_show' to cnx.
+20:21 warning[E0896]: cnx cannot see how 'c_fill_bytes' uses parameter 1, so passing 'am' to it is not memory safe
+       help: Consider converting 'c_fill_bytes' to cnx.
+21:21 warning[E0896]: cnx cannot see how 'c_show_bytes' uses parameter 1, so passing 'a' to it is not memory safe
+       help: Consider converting 'c_show_bytes' to cnx.
+23:15 warning[E0896]: cnx cannot see how 'c_fill' uses parameter 1, so passing 'pm' to it is not memory safe
+       help: Consider converting 'c_fill' to cnx.
+24:15 warning[E0896]: cnx cannot see how 'c_show' uses parameter 1, so passing 'p' to it is not memory safe
+       help: Consider converting 'c_show' to cnx.
 14:15 error[E0900]: 's' is read-only char, and parameter 1 of 'c_fill' is a pointer 'c_fill' may write through
        help: Declare 's' `mut`, or declare the C parameter const char*.
 19:21 error[E0900]: 'a' is read-only uint8_t, and parameter 1 of 'c_fill_bytes' is a pointer 'c_fill_bytes' may write through

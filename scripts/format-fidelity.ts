@@ -212,7 +212,7 @@ async function checkFixture(file: string): Promise<IFixtureVerdict> {
     // The formatter produced text it cannot itself parse. That is the worst
     // outcome available to a formatter, so it is reported separately.
     failures.push(
-      `formatter emitted unparseable C-Next: ${(error as Error).message.split("\n")[0]}`,
+      `formatter emitted unparseable cnx: ${(error as Error).message.split("\n")[0]}`,
     );
     return { file, failures };
   }

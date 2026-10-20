@@ -111,7 +111,7 @@ describe("SymbolUtils", () => {
       expect(msg).toContain("C header struct");
       expect(msg).toContain("MyStruct");
       expect(msg).toContain("someField");
-      expect(msg).toContain("conflicts with C-Next");
+      expect(msg).toContain("conflicts with cnx");
     });
 
     it("should generate C++ warning message", () => {

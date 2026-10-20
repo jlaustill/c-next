@@ -9,11 +9,17 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
+import type THeaderMacro from "../../../../../cnx/types/THeaderMacro";
 
-function analyze(source: string, symbolTable?: SymbolTable) {
+function analyze(
+  source: string,
+  symbolTable?: SymbolTable,
+  macros?: Record<string, THeaderMacro>,
+) {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
     symbolTable,
+    macros,
   });
   return new MixedTypeCategoryAnalyzer(context).analyze(syntax);
 }
@@ -661,5 +667,35 @@ describe("MixedTypeCategoryAnalyzer -- positions, operators, inner levels", () =
     expect(where("    u32 a <- 1;\n    u32 r <- (a + 'A') * a;")).toEqual([
       ["E0810", 3, 25],
     ]);
+  });
+});
+
+describe("MixedTypeCategoryAnalyzer -- an integer beside an unreadable header macro (#1688)", () => {
+  function analyzeWithMacro(body: string) {
+    return analyze(
+      `void main() { u32 i <- 3; bool lt <- true; ${body} }`,
+      undefined,
+      { RAW: { kind: "unreadable" } },
+    ).map((e) => `${e.code} ${e.message}`);
+  }
+
+  it.each([
+    [
+      "a binary operator",
+      "u32 b <- i * RAW;",
+      "E0811 Binary operator combines an integer operand and a header macro whose type cnx cannot read",
+    ],
+    [
+      "a compound assignment",
+      "i +<- RAW;",
+      "E0811 Compound assignment combines an integer and a header macro whose type cnx cannot read",
+    ],
+    [
+      "a conditional's value arms",
+      "u32 e <- (lt = true) ? i : RAW;",
+      "E0812 Conditional operator's value arms combine an integer and a header macro whose type cnx cannot read",
+    ],
+  ])("names the site for %s", (_label, body, expected) => {
+    expect(analyzeWithMacro(body)).toEqual([expected]);
   });
 });

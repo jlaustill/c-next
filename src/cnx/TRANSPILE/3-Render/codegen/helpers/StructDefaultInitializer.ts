@@ -128,7 +128,7 @@ class StructDefaultInitializer {
     const [size, ...rest] = counts;
     invariant(
       size !== null,
-      `2.1 rejects an array of '${typeName}' whose element count C-Next cannot read (E0359)`,
+      `2.1 rejects an array of '${typeName}' whose element count cnx cannot read (E0359)`,
     );
     invariant(
       size > 0,

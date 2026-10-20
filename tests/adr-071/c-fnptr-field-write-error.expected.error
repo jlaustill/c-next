@@ -1,4 +1,4 @@
-12:11 warning[E0896]: C-Next cannot see how 'peek_cb_t' uses parameter 1, so passing 'b4' to it is not memory safe
-       help: Consider converting 'peek_cb_t' to C-Next.
+12:11 warning[E0896]: cnx cannot see how 'peek_cb_t' uses parameter 1, so passing 'b4' to it is not memory safe
+       help: Consider converting 'peek_cb_t' to cnx.
 13:11 error[E0900]: 'b4' is read-only uint8_t, and parameter 1 of 'fill_cb_t' is a pointer 'fill_cb_t' may write through
        help: Declare 'b4' `mut`, or declare the C parameter const uint8_t*.

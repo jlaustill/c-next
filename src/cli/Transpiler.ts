@@ -215,7 +215,7 @@ class Transpiler {
         return this._finalizeResult(result);
       }
       if (pipelineInput.cnextFiles.length === 0) {
-        return this._finalizeResult(result, "No C-Next source files found");
+        return this._finalizeResult(result, "No cnx source files found");
       }
 
       await this._executePipeline(pipelineInput, result);

@@ -87,7 +87,7 @@ describe("IncludeDirectiveAnalyzer (E0506)", () => {
       '#include "missing.cnx"\n\nu8 main() {\n    return 0;\n}',
     );
     expect([found.code, found.line]).toEqual(["E0506", 1]);
-    expect(found.message).toBe("Included C-Next file not found: missing.cnx");
+    expect(found.message).toBe("Included cnx file not found: missing.cnx");
     // No absolute path in the help: it would differ on every checkout, and the
     // first fixture written for this rule embedded one in an `.expected.error`.
     expect(found.helpText).not.toMatch(/\//);

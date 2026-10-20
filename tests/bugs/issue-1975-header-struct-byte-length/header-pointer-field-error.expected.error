@@ -1,13 +1,13 @@
 21:20 error[E0867]: Cannot determine .type_byte_length for type 'char*'
-       help: C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size.
+       help: cnx has no pointers, so a header's pointer, or a type cnx does not read, has no size.
 22:20 error[E0867]: Cannot determine .type_byte_length for type 'Odd'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 23:18 error[E0867]: Cannot determine .type_byte_length for type 'Odd'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 24:20 error[E0867]: Cannot determine .type_byte_length for type 'Un'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 25:20 error[E0867]: Cannot determine .type_byte_length for type 'BF'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 26:18 error[E0867]: Cannot determine .type_byte_length for type 'ISR'
        help: A length in bits is only defined for a primitive, a string, or an array of them.
 27:16 error[E0867]: Cannot determine .type_byte_length for type 'HE'

@@ -110,7 +110,7 @@ describe("ResultPrinter", () => {
               column: 0,
               sourcePath: "dup.cnx",
               message:
-                "error[E0425]: Symbol conflict: 'Lib.useIt' is defined multiple times in C-Next:\n  dup.cnx:24\n  dup.cnx:30",
+                "error[E0425]: Symbol conflict: 'Lib.useIt' is defined multiple times in cnx:\n  dup.cnx:24\n  dup.cnx:30",
               severity: "error",
             },
           ],

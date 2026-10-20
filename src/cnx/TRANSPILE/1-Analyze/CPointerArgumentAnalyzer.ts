@@ -74,8 +74,8 @@ class CPointerArgumentCheck {
       if (pointee === null) return;
       this.report(
         arg,
-        `C-Next cannot see how '${callee.name}' uses parameter ${index + 1}, so passing '${arg.written}' to it is not memory safe`,
-        `Consider converting '${callee.name}' to C-Next.`,
+        `cnx cannot see how '${callee.name}' uses parameter ${index + 1}, so passing '${arg.written}' to it is not memory safe`,
+        `Consider converting '${callee.name}' to cnx.`,
         "E0896",
         "warning",
       );

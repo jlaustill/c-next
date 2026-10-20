@@ -1,8 +1,8 @@
 12:14 error[E0867]: Cannot determine .type_byte_length for type 'KOdd'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 13:13 error[E0867]: Cannot determine .type_bit_length for type 'KUn'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 14:13 error[E0867]: Cannot determine .type_byte_length for type 'KBF'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 15:15 error[E0867]: .memory_byte_length is not available on the bit-field 'u32'
        help: A bit-field shares its storage with its neighbors, so it has no memory of its own; ask the struct or bitmap that holds it.

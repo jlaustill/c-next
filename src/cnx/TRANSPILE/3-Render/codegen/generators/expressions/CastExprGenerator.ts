@@ -60,7 +60,7 @@ function generateCast(plan: IPlannedCast, state: TranspileState): string {
     plan.targetType,
     cast,
   );
-  invariant(expression !== null, "every C-Next integer target has limits");
+  invariant(expression !== null, "every cnx integer target has limits");
   return expression;
 }
 

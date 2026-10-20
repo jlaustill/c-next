@@ -1562,7 +1562,7 @@ int main() { LED_on(); return 0; }`,
         severity: "error",
       });
       expect(result.errors[0].message).toMatch(
-        /^error\[E0509\]: C-Next source not found: ghost\.cnx/,
+        /^error\[E0509\]: cnx source not found: ghost\.cnx/,
       );
       expect(result.errors[0].message).not.toContain("Pipeline failed");
     });
@@ -1598,7 +1598,7 @@ int main() { LED_on(); return 0; }`,
         ["/project/src/phantom.h", 5, 40],
       ]);
       expect(result.errors[1].message).toMatch(
-        /^error\[E0509\]: C-Next source not found: phantom\.cnx/,
+        /^error\[E0509\]: cnx source not found: phantom\.cnx/,
       );
     });
   });

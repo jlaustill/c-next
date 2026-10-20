@@ -227,7 +227,7 @@ class LengthPropertyCheck {
         this.report(
           at,
           `Cannot determine .${property} for type '${subject}'`,
-          "A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.",
+          "A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.",
         );
       }
       return;
@@ -243,7 +243,7 @@ class LengthPropertyCheck {
         at,
         `Cannot determine .${property} for type '${subject}'`,
         typed.typeName === null && typed.cType !== null
-          ? "C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size."
+          ? "cnx has no pointers, so a header's pointer, or a type cnx does not read, has no size."
           : "A length in bits is only defined for a primitive, a string, or an array of them.",
       );
     }

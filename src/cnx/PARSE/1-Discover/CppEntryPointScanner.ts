@@ -188,10 +188,10 @@ class CppEntryPointScanner {
         column: marker.column,
         message: CodedErrorText.of(
           "E0509",
-          `C-Next source not found: ${sourcePath}`,
+          `cnx source not found: ${sourcePath}`,
         ),
         helpText:
-          "A generated header records the C-Next source it was written from. " +
+          "A generated header records the cnx source it was written from. " +
           "Check that source is present, and reachable from the include path.",
         severity: "error",
       });

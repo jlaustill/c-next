@@ -28,7 +28,7 @@ class SizeofAnalyzer {
             code: "E0603",
             line: expr.span.line,
             column: expr.span.column,
-            message: "C-Next has no 'sizeof'",
+            message: "cnx has no 'sizeof'",
             helpText:
               "Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).",
           })),
