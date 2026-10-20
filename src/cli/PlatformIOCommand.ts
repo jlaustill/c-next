@@ -103,6 +103,19 @@ class PlatformIOCommand {
         "Run cnx --pio-uninstall, then cnx --pio-install.",
       );
     }
+    const scripts = extraScripts(pioIni).at(0);
+    if (
+      scripts !== undefined &&
+      !hasEntry(pioIni, BUILD_SCRIPT) &&
+      PlatformIOIni.isOneLine(pioIni, scripts) === undefined
+    ) {
+      PlatformIOCommand.stopBeforeWriting(
+        [
+          `extra_scripts = ${scripts.value} in [${scripts.section}] names a value only the build machine knows, so it is not known how to add the hook`,
+        ],
+        `Add ${entryOf(BUILD_SCRIPT)} to it by hand, then run cnx --pio-install again.`,
+      );
+    }
     const config = ConfigLoader.inDirectory(process.cwd(), fs);
     if (config.kind === "renamed") {
       for (const error of config.errors) {
@@ -226,7 +239,8 @@ transpile_cnx()
   /**
    * `pioIni` with the pre-build script added to its first `extra_scripts`,
    * in the form that list is written in, else on a new `extra_scripts` line
-   * opening the first `[env:*]` section.
+   * opening the first `[env:*]` section. TODO(#2273): every other env builds
+   * without the hook.
    */
   private static withBuildScript(pioIni: string): string {
     const entry = entryOf(BUILD_SCRIPT);

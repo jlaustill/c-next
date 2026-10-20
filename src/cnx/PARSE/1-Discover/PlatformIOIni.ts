@@ -115,8 +115,8 @@ class PlatformIOIni {
 
   /**
    * `content` with `option` holding `items`, in the form it was written in.
-   * No items removes it, continuation lines too. A one-line value is
-   * rewritten as one line, its items split at ", " as `list()` reads it. In a
+   * No items removes it, continuation lines too. A one-line value
+   * (`isOneLine()`, or one it cannot tell) is rewritten as one line, its items split at ", " as `list()` reads it. In a
    * value written one item per line, each line whose item is gone is
    * dropped (the key's line keeps its key) and each new item is added on a
    * line of its own after the last. Comments and line breaks are kept.
@@ -133,7 +133,7 @@ class PlatformIOIni {
       for (const line of option.lines) {
         replaced.set(line, []);
       }
-    } else if (option.lines.length === 1 && option.lineValues[0] !== "") {
+    } else if (PlatformIOIni.isOneLine(content, option) ?? true) {
       replaced.set(keyLine, [
         PlatformIOIni.keyLine(lines[keyLine], items.join(", ")),
       ]);
@@ -161,6 +161,30 @@ class PlatformIOIni {
     return lines
       .flatMap((text, line) => replaced.get(line) ?? [text])
       .join(PlatformIOIni.lineBreak(content));
+  }
+
+  /**
+   * Whether PlatformIO reads `option` as a one-line list, split at ", ". It
+   * splits a value after expanding its `${section.option}` references, so
+   * `extra_scripts = ${common.extra_scripts}` is a list of lines when
+   * `common`'s is (#2174 review: install glued `, pre:cnx_build.py` onto its
+   * last item). Undefined when a reference cannot be expanded here, such as
+   * `${sysenv.X}`.
+   */
+  static isOneLine(
+    content: string,
+    option: IPlatformIOIniOption,
+  ): boolean | undefined {
+    if (option.lines.length > 1 || option.lineValues[0] === "") {
+      return false;
+    }
+    const expanded = PlatformIOIni.expand(
+      option.value,
+      PlatformIOIni.sections(content),
+      option.section,
+      0,
+    );
+    return expanded === undefined ? undefined : !expanded.includes("\n");
   }
 
   /** `content` with `key = value` as the first line of `section` */
