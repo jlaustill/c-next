@@ -47,6 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A `${section.option}` reference is expanded first, as PlatformIO does, to choose how the hook is
   added; one only the build machine can expand, such as `${sysenv.X}`, stops install with a request
   to add `pre:cnx_build.py` by hand.
+- **Diagnostics name the language `cnx`** (Issue #2169). Every error, warning, help line and the
+  "no source files found" result says `cnx` where it said `C-Next`: `C-Next has no 'sizeof'` is now
+  `cnx has no 'sizeof'`, and a symbol-conflict listing labels the language `cnx`. Tooling that
+  matches on message text must match `cnx`. The MISRA Rule 14.3 comment on a `forever` loop in
+  generated C reads "for cnx `forever`". The generated-file banner moves separately (#2168).
 - **A config is read from the project root, and never from a directory above it** (Issue #2261).
   The project root is the nearest directory, from the entry file up, that holds a config,
   `platformio.ini`, `.git` or `package.json`. It already decided the include directories and the

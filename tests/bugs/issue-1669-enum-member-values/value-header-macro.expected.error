@@ -1,2 +1,2 @@
-12:4 error[E0909]: Enum member value must be known at compile time (EMac.A): 'MODE_FAST' is not declared in C-Next, so only an included C or C++ header can define it
+12:4 error[E0909]: Enum member value must be known at compile time (EMac.A): 'MODE_FAST' is not declared in cnx, so only an included C or C++ header can define it
        help: A member's value is built from literals, read-only bindings, length properties, casts and the members of its enum declared above it (ADR-017)

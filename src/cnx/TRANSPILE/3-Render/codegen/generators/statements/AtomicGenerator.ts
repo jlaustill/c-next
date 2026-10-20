@@ -196,7 +196,7 @@ function clampHelperOf(
   if (clampOp === null) return null;
   invariant(
     atomic.typeName !== null,
-    "2.2 plans a clamp helper only for a C-Next integer",
+    "2.2 plans a clamp helper only for a cnx integer",
   );
   return `cnx_clamp_${clampOp}_${atomic.typeName}`;
 }

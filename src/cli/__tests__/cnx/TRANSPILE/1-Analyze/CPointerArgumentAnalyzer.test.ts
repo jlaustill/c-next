@@ -45,8 +45,8 @@ const at = (body: string[]): string[] => {
 describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
   it("warns that C-Next cannot see what a C function does with a pointer", () => {
     expect(at(["mut u8 b <- 1;", "take(b);", "any(b);"])).toEqual([
-      "E0896@3:9 C-Next cannot see how 'take' uses parameter 1, so passing 'b' to it is not memory safe",
-      "E0896@4:8 C-Next cannot see how 'any' uses parameter 1, so passing 'b' to it is not memory safe",
+      "E0896@3:9 cnx cannot see how 'take' uses parameter 1, so passing 'b' to it is not memory safe",
+      "E0896@4:8 cnx cannot see how 'any' uses parameter 1, so passing 'b' to it is not memory safe",
     ]);
   });
 
@@ -59,14 +59,14 @@ describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
   it("rejects a const argument only where the C pointer is not const", () => {
     expect(at(["u8 c <- 1;", "take(c);", "peek(c);"])).toEqual([
       "E0900@3:9 'c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
-      "E0896@4:9 C-Next cannot see how 'peek' uses parameter 1, so passing 'c' to it is not memory safe",
+      "E0896@4:9 cnx cannot see how 'peek' uses parameter 1, so passing 'c' to it is not memory safe",
     ]);
   });
 
   it("reaches the object `&x` hands the pointer (ADR-071)", () => {
     expect(at(["u8 c <- 1;", "take(&c);", "peek(&c);"])).toEqual([
       "E0900@3:9 '&c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
-      "E0896@4:9 C-Next cannot see how 'peek' uses parameter 1, so passing '&c' to it is not memory safe",
+      "E0896@4:9 cnx cannot see how 'peek' uses parameter 1, so passing '&c' to it is not memory safe",
     ]);
   });
 

@@ -1,4 +1,4 @@
-9:49 warning[E0896]: C-Next cannot see how 'fgets' uses parameter 3, so passing 'stdin' to it is not memory safe
-       help: Consider converting 'fgets' to C-Next.
+9:49 warning[E0896]: cnx cannot see how 'fgets' uses parameter 3, so passing 'stdin' to it is not memory safe
+       help: Consider converting 'fgets' to cnx.
 9:28 error[E0900]: 'buffer' is read-only char, and parameter 1 of 'fgets' is a pointer 'fgets' may write through
        help: Declare 'buffer' `mut`, or declare the C parameter const char*.

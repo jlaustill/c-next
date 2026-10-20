@@ -1,2 +1,2 @@
 8:18 error[E0907]: NULL comparison on non-nullable variable 'buffer'
-       help: Only variables with 'c_' prefix can be compared to NULL. C-Next variables are never null.
+       help: Only variables with 'c_' prefix can be compared to NULL. cnx variables are never null.

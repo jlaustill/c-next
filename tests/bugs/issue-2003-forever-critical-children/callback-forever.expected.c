@@ -17,7 +17,7 @@ void my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
 
 void run(void) {
     widget_t* w = widget_create();
-    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for cnx `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
         widget_set_flush_cb(w, my_flush);
     }

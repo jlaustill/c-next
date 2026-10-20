@@ -377,7 +377,7 @@ describe("AtomicGenerator", () => {
           planned(null, "int_fast16_t", "interrupt-mask"),
           "add",
         ),
-      ).toThrow("2.2 plans a clamp helper only for a C-Next integer");
+      ).toThrow("2.2 plans a clamp helper only for a cnx integer");
     });
 
     it("annotates each retry loop with the ADR that shapes it", () => {

@@ -21,7 +21,7 @@ import SymbolUtils from "../../PARSE/3-Declare/SymbolUtils";
  */
 function formatStructFieldError(fieldName: string, structName: string): string {
   return (
-    `Struct field '${fieldName}' in '${structName}' uses a reserved C-Next property name. ` +
+    `Struct field '${fieldName}' in '${structName}' uses a reserved cnx property name. ` +
     `The '.${fieldName}' property is built-in and will shadow this field.`
   );
 }

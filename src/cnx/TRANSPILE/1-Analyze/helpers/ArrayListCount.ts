@@ -67,9 +67,9 @@ class ArrayListCount {
       code: "E0866",
       line: fill.span.line,
       column: fill.span.column,
-      message: `A fill-all [${fill.written}*] other than zero needs a size C-Next can fold, and '${size}' does not`,
+      message: `A fill-all [${fill.written}*] other than zero needs a size cnx can fold, and '${size}' does not`,
       helpText:
-        "Write the elements out, fill with zero, or size the array with a C-Next constant (ADR-035).",
+        "Write the elements out, fill with zero, or size the array with a cnx constant (ADR-035).",
     };
   }
 

@@ -123,7 +123,7 @@ class DynamicAllocation {
 
   /** What to do instead. */
   static helpText(name: string): string {
-    return `C-Next has no dynamic memory allocation (ADR-003). Keep '${name}' in your C or C++ code; a .cnx file cannot call it.`;
+    return `cnx has no dynamic memory allocation (ADR-003). Keep '${name}' in your C or C++ code; a .cnx file cannot call it.`;
   }
 }
 

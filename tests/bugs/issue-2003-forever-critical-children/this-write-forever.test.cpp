@@ -17,7 +17,7 @@ uint32_t S__get(void) {
 }
 
 void S__run(void) {
-    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for cnx `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
         S__count = 5U;
     }

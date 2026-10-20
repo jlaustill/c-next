@@ -1,6 +1,6 @@
-30:19 error[E0603]: C-Next has no 'sizeof'
+30:19 error[E0603]: cnx has no 'sizeof'
        help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).
-31:20 error[E0603]: C-Next has no 'sizeof'
+31:20 error[E0603]: cnx has no 'sizeof'
        help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).
-32:19 error[E0603]: C-Next has no 'sizeof'
+32:19 error[E0603]: cnx has no 'sizeof'
        help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).

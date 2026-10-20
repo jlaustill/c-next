@@ -245,7 +245,7 @@ class SyntaxLowering {
       const operator = child.getText();
       invariant(
         SyntaxLowering.isBinaryOperator(operator),
-        `every operator of a binary expression level is a C-Next binary operator, not '${operator}'`,
+        `every operator of a binary expression level is a cnx binary operator, not '${operator}'`,
       );
       operators.push(operator);
     });

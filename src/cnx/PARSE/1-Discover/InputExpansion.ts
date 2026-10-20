@@ -69,7 +69,7 @@ class InputExpansion {
 
     throw new Error(
       `Invalid file extension '${ext}' for file '${fileName}'. ` +
-        `C-Next only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files.`,
+        `cnx only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files.`,
     );
   }
 

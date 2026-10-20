@@ -37,7 +37,7 @@ const REASON: Readonly<
   member: "is a member access",
   undeclaredMember: "is not declared",
   leadingZero:
-    "is a leading-zero literal, which has no value: C-Next has no octal literal (E0912)",
+    "is a leading-zero literal, which has no value: cnx has no octal literal (E0912)",
   divisionByZero: "divides by zero",
   negativeShift:
     "shifts by a negative amount, or shifts a negative value right",
@@ -54,7 +54,7 @@ class ConstantDiagnostics {
     if (result.kind === "foreign") {
       return {
         header: `'${result.spelling}' is defined by a C or C++ header`,
-        maybeHeader: `'${result.spelling}' is not declared in C-Next, so only an included C or C++ header can define it`,
+        maybeHeader: `'${result.spelling}' is not declared in cnx, so only an included C or C++ header can define it`,
         target: `'${result.spelling}' is a memory size, which the C compiler decides for the target`,
       }[result.why];
     }

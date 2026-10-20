@@ -168,7 +168,7 @@ class IncludeDirectiveChecks {
     this.report(
       ctx,
       "E0506",
-      `Included C-Next file not found: ${spec.path}`,
+      `Included cnx file not found: ${spec.path}`,
       "A quoted include is resolved relative to the file it appears in (ADR-010); check the spelling and the path from this file's own directory.",
     );
     return true;
@@ -194,8 +194,8 @@ class IncludeDirectiveChecks {
     this.report(
       ctx,
       "E0504",
-      `Found ${IncludeDirectiveText.join(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the C-Next version.`,
-      "The generated header describes the interface; the C-Next source is what the transpiler can check calls against (ADR-010).",
+      `Found ${IncludeDirectiveText.join(spec)} but '${cnxPath}' exists at the same location.\n       Use ${instead} instead to use the cnx version.`,
+      "The generated header describes the interface; the cnx source is what the transpiler can check calls against (ADR-010).",
     );
   }
 

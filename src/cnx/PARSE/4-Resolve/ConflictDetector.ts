@@ -208,7 +208,7 @@ class ConflictDetector {
    */
   private static languageName(symbol: TAnySymbol): string {
     const names: Record<ESourceLanguage, string> = {
-      [ESourceLanguage.CNext]: "C-Next",
+      [ESourceLanguage.CNext]: "cnx",
       [ESourceLanguage.C]: "C",
       [ESourceLanguage.Cpp]: "C++",
     };
@@ -322,7 +322,7 @@ class ConflictDetector {
         // unindented sentence here is dropped by any consumer that parses stderr --
         // including the test harness, which would capture the locations and silently
         // lose this line (scripts/test-utils.ts, continuation-line branch).
-        message: `Symbol conflict: '${conflictingDefs[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\n  Rename the C-Next symbol to resolve.`,
+        message: `Symbol conflict: '${conflictingDefs[0].name}' is defined in multiple languages:\n  ${locations.join("\n  ")}\n  Rename the cnx symbol to resolve.`,
       };
     }
 
@@ -414,7 +414,7 @@ class ConflictDetector {
         line: symbols[0].span.line,
         // #1318: the symbol's own column, not a hardcoded 0.
         column: symbols[0].span.column,
-        message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}${scopeSites}`,
+        message: `Symbol conflict: '${displayName}' is defined multiple times in cnx:\n  ${locations.join("\n  ")}${scopeSites}`,
       };
     }
 

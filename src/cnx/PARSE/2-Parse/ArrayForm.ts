@@ -81,7 +81,7 @@ class ArrayFormListener extends CNextListener {
         ctx,
         "E0874",
         `C-style array parameter is not allowed. Use '${typeText}${after} ${name}' instead of '${typeText} ${name}${after}'`,
-        "C-Next puts every array dimension in the type, before the name (ADR-036).",
+        "cnx puts every array dimension in the type, before the name (ADR-036).",
       );
       return;
     }
@@ -185,7 +185,7 @@ class ArrayVariableForm {
         declaration.span,
         "E0874",
         `C-style array declaration is not allowed. Use '${base}${existing}${after} ${declaration.name}' instead of '${base}${existing} ${declaration.name}${after}'`,
-        "C-Next puts every array dimension in the type, before the name (ADR-036).",
+        "cnx puts every array dimension in the type, before the name (ADR-036).",
       );
       return;
     }

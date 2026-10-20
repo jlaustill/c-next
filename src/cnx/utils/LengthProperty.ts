@@ -224,7 +224,7 @@ class LengthProperty {
     if (subject.category === "floating") {
       return LengthProperty.error(
         `.value_char_count is not available on the float '${subject.spelling}'`,
-        "A float prints in more than one correct way (0.1, 0.100000), and C-Next fixes no format, so it has no character count.",
+        "A float prints in more than one correct way (0.1, 0.100000), and cnx fixes no format, so it has no character count.",
       );
     }
     if (subject.category === "signed" || subject.category === "unsigned") {

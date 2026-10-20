@@ -37,7 +37,7 @@ class ComplianceAnnotations {
   /** ADR-026 `forever` lowers to `for (;;)`. */
   static readonly FOREVER_LOOP: IComplianceAnnotation = {
     citation: `${ComplianceAnnotations.MISRA} 14.3`,
-    what: "infinite loop written as `for (;;)` for C-Next `forever`",
+    what: "infinite loop written as `for (;;)` for cnx `forever`",
     why: "`while (1)` has a controlling expression with an invariant value, which the rule forbids",
   };
 

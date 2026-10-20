@@ -180,7 +180,7 @@ describe("InputExpansion", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/file.js"),
       ).toThrow(
-        "C-Next only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files",
+        "cnx only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files",
       );
     });
   });

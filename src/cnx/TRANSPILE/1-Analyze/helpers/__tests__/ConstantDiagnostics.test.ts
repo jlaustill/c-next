@@ -28,7 +28,7 @@ describe("ConstantDiagnostics (#1175, #1669)", () => {
     [
       "a name nothing binds, beside a header",
       { kind: "foreign", spelling: "MODE_FAST", why: "maybeHeader" },
-      "'MODE_FAST' is not declared in C-Next, so only an included C or C++ header can define it",
+      "'MODE_FAST' is not declared in cnx, so only an included C or C++ header can define it",
     ],
   ])("says why %s has no value", (_label, result, expected) => {
     expect(ConstantDiagnostics.why(result)).toBe(expected);

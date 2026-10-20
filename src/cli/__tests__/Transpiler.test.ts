@@ -646,7 +646,7 @@ describe("Transpiler", () => {
 
         const result = await transpiler.transpile({ kind: "files" });
 
-        expect(result.warnings).toContain("No C-Next source files found");
+        expect(result.warnings).toContain("No cnx source files found");
       });
 
       it("handles parse errors gracefully", async () => {

@@ -1,8 +1,8 @@
 10:20 error[E0867]: Cannot determine .type_byte_length for type 'Un'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 11:22 error[E0867]: Cannot determine .type_byte_length for type 'Der'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 12:20 error[E0867]: Cannot determine .type_byte_length for type 'Bf'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.
 13:20 error[E0867]: Cannot determine .type_byte_length for type 'Virt'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type cnx does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size cnx fixes.

@@ -527,7 +527,7 @@ class IncludeResolver {
     // #1435: the marker is the only thing that identifies a generated header
     // now, so it is asked of the one detector rather than spelled again here.
     if (CNextMarkerDetector.isCNextGenerated(content)) {
-      onDebug?.(`Skipping C-Next generated header: ${file.path}`);
+      onDebug?.(`Skipping cnx generated header: ${file.path}`);
       return null;
     }
 

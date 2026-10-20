@@ -1,13 +1,13 @@
-12:11 warning[E0896]: C-Next cannot see how 'c_fill' uses parameter 1, so passing 'LIBS_M' to it is not memory safe
-       help: Consider converting 'c_fill' to C-Next.
-13:11 warning[E0896]: C-Next cannot see how 'c_show' uses parameter 1, so passing 'LIBS' to it is not memory safe
-       help: Consider converting 'c_show' to C-Next.
-15:17 warning[E0896]: C-Next cannot see how 'c_fill_bytes' uses parameter 1, so passing 'LIBA_M' to it is not memory safe
-       help: Consider converting 'c_fill_bytes' to C-Next.
-16:17 warning[E0896]: C-Next cannot see how 'c_show_bytes' uses parameter 1, so passing 'LIBA' to it is not memory safe
-       help: Consider converting 'c_show_bytes' to C-Next.
-18:14 warning[E0896]: C-Next cannot see how 'dev_close' uses parameter 1, so passing 'LIBH_M' to it is not memory safe
-       help: Consider converting 'dev_close' to C-Next.
+12:11 warning[E0896]: cnx cannot see how 'c_fill' uses parameter 1, so passing 'LIBS_M' to it is not memory safe
+       help: Consider converting 'c_fill' to cnx.
+13:11 warning[E0896]: cnx cannot see how 'c_show' uses parameter 1, so passing 'LIBS' to it is not memory safe
+       help: Consider converting 'c_show' to cnx.
+15:17 warning[E0896]: cnx cannot see how 'c_fill_bytes' uses parameter 1, so passing 'LIBA_M' to it is not memory safe
+       help: Consider converting 'c_fill_bytes' to cnx.
+16:17 warning[E0896]: cnx cannot see how 'c_show_bytes' uses parameter 1, so passing 'LIBA' to it is not memory safe
+       help: Consider converting 'c_show_bytes' to cnx.
+18:14 warning[E0896]: cnx cannot see how 'dev_close' uses parameter 1, so passing 'LIBH_M' to it is not memory safe
+       help: Consider converting 'dev_close' to cnx.
 11:11 error[E0900]: 'LIBS' is read-only char, and parameter 1 of 'c_fill' is a pointer 'c_fill' may write through
        help: Declare 'LIBS' `mut`, or declare the C parameter const char*.
 14:17 error[E0900]: 'LIBA' is read-only uint8_t, and parameter 1 of 'c_fill_bytes' is a pointer 'c_fill_bytes' may write through

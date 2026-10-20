@@ -3,7 +3,7 @@
 33:15 error[E0867]: .value_byte_length is not available on the signed 'i8'
        help: A signed value's top bit is its sign; cast it to an unsigned type first, e.g. ((u32)x).value_byte_length.
 35:15 error[E0867]: .value_char_count is not available on the float 'f32'
-       help: A float prints in more than one correct way (0.1, 0.100000), and C-Next fixes no format, so it has no character count.
+       help: A float prints in more than one correct way (0.1, 0.100000), and cnx fixes no format, so it has no character count.
 37:17 error[E0867]: .value_byte_length measures a value, and 'Cfg' is a type
        help: Use .type_byte_length for the type's length.
 38:16 error[E0867]: .value_char_count measures a value, and 'u8' is a type

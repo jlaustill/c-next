@@ -385,12 +385,12 @@ class MixedTypeCategoryAnalyzer {
   /** E0811's and E0812's text for each place an integer meets an unreadable macro */
   private static unreadableMacroMessage(what: TOperatorSite): string {
     if (what === "conditional") {
-      return "Conditional operator's value arms combine an integer and a header macro whose type C-Next cannot read";
+      return "Conditional operator's value arms combine an integer and a header macro whose type cnx cannot read";
     }
     if (what === "compound") {
-      return "Compound assignment combines an integer and a header macro whose type C-Next cannot read";
+      return "Compound assignment combines an integer and a header macro whose type cnx cannot read";
     }
-    return "Binary operator combines an integer operand and a header macro whose type C-Next cannot read";
+    return "Binary operator combines an integer operand and a header macro whose type cnx cannot read";
   }
 
   /** How a category reads in a message */

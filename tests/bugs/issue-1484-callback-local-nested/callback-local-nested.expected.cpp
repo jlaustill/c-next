@@ -67,7 +67,7 @@ void onForever(const uint32_t n) {
 
 // A forever loop is only legal in a void function (E0705).
 void spinOnce(void) {
-    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for cnx `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
         const onForever_fp spin = onForever;
         spin(1U);

@@ -25,7 +25,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t sink = 0U;
 
 void spin(Point& p) {
-    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for cnx `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
         p.x = 3U;
         sink = p.x;
@@ -33,7 +33,7 @@ void spin(Point& p) {
 }
 
 void spinScalar(uint32_t& n) {
-    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for cnx `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
         n = cnx_clamp_add_u32(n, 1U);
         sink = n;

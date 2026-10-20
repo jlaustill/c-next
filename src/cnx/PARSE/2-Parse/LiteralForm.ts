@@ -38,7 +38,7 @@ class LiteralForm {
         column: token.column,
         message: CodedErrorText.of(
           "E0912",
-          `Integer literal '${token.text}' has a leading zero: C-Next has no octal literal (ADR-044)`,
+          `Integer literal '${token.text}' has a leading zero: cnx has no octal literal (ADR-044)`,
         ),
         helpText:
           "Write the value in decimal without the leading zero, or as 0x... or 0b...",

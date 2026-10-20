@@ -3135,7 +3135,7 @@ class FilePlanner {
       // field's C shape and its default disagree (#1984 types them properly)
       invariant(
         symbol !== undefined,
-        `functionReturnTypes holds C-Next functions only, but '${cName}' is not one`,
+        `functionReturnTypes holds cnx functions only, but '${cName}' is not one`,
       );
       functions.set(cName, symbol);
     }

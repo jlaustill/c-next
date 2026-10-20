@@ -92,9 +92,9 @@ function getReservedFieldWarning(
 ): string {
   return (
     `${language} header struct '${structName}' has field '${fieldName}' ` +
-    `which conflicts with C-Next's .${fieldName} property. ` +
+    `which conflicts with cnx's .${fieldName} property. ` +
     `Consider renaming the field or be aware that '${structName}.${fieldName}' ` +
-    `may not work as expected in C-Next code.`
+    `may not work as expected in cnx code.`
   );
 }
 
