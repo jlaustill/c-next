@@ -628,10 +628,11 @@ const generateLengthProperty = (
   );
   const measured = ctx.measured;
   const rule = LengthProperty.rule(name, subject);
+  if (rule.kind === "error") {
+    invariant(false, `E0867 rejects this in pass 2.1 -- ${rule.message}.`);
+  }
   const bits = name.unit === "bit_length";
   switch (rule.kind) {
-    case "error":
-      invariant(false, `E0867 rejects this in pass 2.1 -- ${rule.message}.`);
     case "logical":
       return name.unit === "element_count"
         ? generateElementCount(ctx, input)
