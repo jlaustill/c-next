@@ -22,8 +22,9 @@
  */
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
+import type IPlannedAtomic from "../types/IPlannedAtomic";
+import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
 import type IPlannedWholeArrayWrite from "./types/IPlannedWholeArrayWrite";
-import type TAtomicForm from "../types/TAtomicForm";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
@@ -35,6 +36,7 @@ import type IChainBase from "../../types/IChainBase";
 import type TranspileState from "../TranspileState";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import OperandTyper from "../../utils/OperandTyper";
+import BitUtils from "../../utils/BitUtils";
 
 /**
  * Dependencies for building context.
@@ -45,8 +47,10 @@ interface IContextBuilderDeps {
 
   /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
   readonly floatBits: IPlannedFloatBits | null;
+  /** 2.2's decision: the bitmap field the target writes (ADR-034), or null */
+  readonly bitmapField: IBitmapFieldTarget | null;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
-  readonly atomicForm: TAtomicForm | null;
+  readonly atomic: IPlannedAtomic | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
@@ -89,6 +93,9 @@ interface IContextBuilderDeps {
 
   /** Fold an expression to a compile-time constant */
   tryEvaluateConstant(expr: TExpression): number | undefined;
+
+  /** The written value's compile-time value, for a bit write to fold */
+  foldWrittenValue(expr: TExpression): number | undefined;
 
   /** The value expression's essential type */
   expressionType(expr: TExpression): string | null;
@@ -262,6 +269,43 @@ function buildAssignmentContext(
     lastSubscriptExprCount,
   } = extraction;
 
+  // #2251: a bit of a bitmap field is a bit of the bitmap, at the field's
+  // offset -- the field's prefix is the target, and its start index shifts
+  const fieldBits = deps.target.last?.fieldBits ?? null;
+  const bitStart = subscripts.length - lastSubscriptExprCount;
+  const renderSubscript = (index: number): string => {
+    const text = deps.generateExpression(subscripts[index]);
+    if (fieldBits === null || index !== bitStart) return text;
+    return BitUtils.shiftedIndex(
+      text,
+      deps.tryEvaluateConstant(subscripts[index]),
+      fieldBits.offset,
+    );
+  };
+  const foldSubscript = (index: number): number | undefined => {
+    const folded = deps.tryEvaluateConstant(subscripts[index]);
+    if (fieldBits === null || index !== bitStart || folded === undefined) {
+      return folded;
+    }
+    return folded + fieldBits.offset;
+  };
+  const lastOp = ops.at(-1);
+  const targetOps =
+    fieldBits === null || lastOp?.kind !== "subscript"
+      ? ops
+      : [
+          ...ops.slice(0, -1),
+          {
+            ...lastOp,
+            renderIndexes: () =>
+              lastOp
+                .renderIndexes()
+                .map((text, at) =>
+                  at === 0 ? renderSubscript(bitStart) : text,
+                ),
+          },
+        ];
+
   // Compute derived properties
   const memberAccessDepth = identifiers.length - 1;
   const subscriptDepth = subscripts.length;
@@ -281,12 +325,16 @@ function buildAssignmentContext(
     state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetExpr),
     renderBitTarget: () =>
-      deps.generateAssignmentTarget(targetExpr, postfixOps.length - 1),
+      deps.generateAssignmentTarget(
+        targetExpr,
+        postfixOps.length - (fieldBits === null ? 1 : 2),
+      ),
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
     floatBits: deps.floatBits,
-    atomicForm: deps.atomicForm,
+    bitmapField: deps.bitmapField,
+    atomic: deps.atomic,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
     plannedWholeArray: deps.plannedWholeArray,
@@ -297,13 +345,13 @@ function buildAssignmentContext(
     valueIntegerType: () => deps.integerExpressionType(valueExpr),
     valueHasFloatingOperand: () =>
       valueExpr.kind !== "missing" && deps.hasFloatingOperand(valueExpr),
-    foldValue: () => deps.tryEvaluateConstant(valueExpr),
+    foldValue: () => deps.foldWrittenValue(valueExpr),
     identifiers,
     subscriptCount: subscripts.length,
-    renderSubscript: (index) => deps.generateExpression(subscripts[index]),
+    renderSubscript,
     renderExpression: (expr) => deps.generateExpression(expr),
-    foldSubscript: (index) => deps.tryEvaluateConstant(subscripts[index]),
-    postfixOps: ops,
+    foldSubscript,
+    postfixOps: targetOps,
     hasThis,
     hasGlobal,
     scopePath: OperandTyper.scopePathAt(

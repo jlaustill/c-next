@@ -25,7 +25,7 @@ scope Motor {
     private mut this.EMode mode <- this.EMode.OFF;
 
     // Atomic enum variable
-    private atomic mut this.EMode atomicMode <- this.EMode.OFF;
+    private atomic this.EMode atomicMode <- this.EMode.OFF;
 
     // === GETTERS (return enum) ===
     public this.EMode getMode() {

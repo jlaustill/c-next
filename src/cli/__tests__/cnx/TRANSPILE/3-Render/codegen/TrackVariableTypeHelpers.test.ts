@@ -245,7 +245,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("handles atomic string type", async () => {
       const source = `
-        atomic mut string<64> sharedMessage;
+        atomic string<64> sharedMessage;
 
         void main() {
           sharedMessage <- "Hello";

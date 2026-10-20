@@ -196,38 +196,6 @@ class ScopeJoinSites {
       movesWith: null,
       why: "callee chain `Scope.method()`; `resolvedName` is source text, and the `isScope` guard only confirms the author named a scope",
     },
-    {
-      file: "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts",
-      element: "scopeName",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`ids[0]` of `Scope.REG.MEMBER`, admitted by `isKnownScope(scopeName)`; under nesting the author writes more components and the INDEXING changes, not the join. The `Scope.member` key this also built is the target's binding since #1668",
-    },
-    {
-      file: "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts",
-      element: "firstId",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`ids[0]` of `Scope.REG.MEMBER[bit]`, guarded by `isKnownScope`",
-    },
-    {
-      file: "src/cnx/TRANSPILE/2-Plan/AssignmentHandlerUtils.ts",
-      element: "leadingId",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`identifiers[0]` of `Scope.Register.Member`, guarded by the injected `isKnownScope`",
-    },
-    {
-      file: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts",
-      element: "scopeName",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "`ctx.identifiers[0]` of `Scope.REG.MEMBER.field`; the sibling `this.` branch already routes through `ScopeUtils.qualifyInScope`",
-    },
   ];
 
   /**

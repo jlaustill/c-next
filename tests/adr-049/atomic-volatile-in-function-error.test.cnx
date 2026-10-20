@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 049
+// E0889 in a top-level function: a local declaration carrying both atomic
+// and volatile is rejected as a file-scope one is. The atomic-only and
+// volatile-only locals are controls that stay silent.
+#pragma target stm32f4
+
+void main() {
+    atomic volatile u8 x <- 0;
+    atomic u8 z <- 0;
+    volatile mut u8 v <- 0;
+    x +<- 1;
+    z +<- 1;
+    v +<- 1;
+}

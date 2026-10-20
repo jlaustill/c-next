@@ -4,11 +4,10 @@
  */
 
 import PlanQueries from "../../2-Plan/PlanQueries";
-import type IFloatBitWrite from "../../../types/IFloatBitWrite";
+import type IFloatBitWrite from "../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
-import TTypeInfo from "../../../types/TTypeInfo";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
@@ -16,7 +15,7 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 // Expression generators
 // Statement generators
 import atomicGenerators from "./generators/statements/AtomicGenerator";
-import type TAtomicForm from "../../types/TAtomicForm";
+import type IPlannedAtomic from "../../types/IPlannedAtomic";
 // Declaration generators
 // ADR-065: Extracted utilities
 import FormatUtils from "../../../utils/FormatUtils";
@@ -733,19 +732,37 @@ export default class CodeGenerator implements IOrchestrator {
     target: string,
     cOp: string,
     value: string,
-    typeInfo: TTypeInfo,
+    atomic: IPlannedAtomic,
     clampOp: string | null,
-    form: TAtomicForm,
-    valueType: string | null,
   ): string {
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
-      typeInfo,
+      atomic,
       clampOp,
-      form,
-      valueType,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
+  /**
+   * ADR-049 (#2200): a bit write to an `atomic` value, in the planned form.
+   * Dispatched through `ICodeGenApi`, as `generateAtomicRMW` is.
+   *
+   * @public
+   */
+  generateAtomicStore(
+    target: string,
+    value: string,
+    atomic: IPlannedAtomic,
+    newValue: (read: string, value: string) => string,
+  ): string {
+    const result = atomicGenerators.generateAtomicStore(
+      target,
+      value,
+      atomic,
+      newValue,
     );
     this.applyEffects(result.effects);
     return result.code;

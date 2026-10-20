@@ -59,22 +59,44 @@ class BitUtils {
    * the mask is a literal (Issue #1094, #1096: `(1U << WIDTH) - 1U` is
    * undefined at full width); its rendered text otherwise
    */
+  /**
+   * A bit index moved `offset` bits up, as a bit of a bitmap field is a bit of
+   * its bitmap (#2251): its folded value, `NU`, when it folds, else the sum
+   */
+  static shiftedIndex(
+    text: string,
+    folded: number | undefined,
+    offset: number,
+  ): string {
+    if (offset === 0) return text;
+    return folded === undefined
+      ? `(${offset}U + ${text})`
+      : `${folded + offset}U`;
+  }
+
   static widthText(width: IBitWidth): string {
     return width.folded === undefined ? width.text : `${width.folded}U`;
   }
 
   /**
    * Convert a boolean expression to an unsigned integer (0U or 1U).
-   * Handles literal "true"/"false" and generates ternary for expressions.
+   * A compile-time value is folded, however it is spelled (`true`, `0x1`,
+   * `0b0`, a const); any other expression becomes a ternary.
    * Uses unsigned literals for MISRA C:2012 Rule 10.1 compliance.
    *
    * @param expr - The expression to convert
+   * @param folded - The expression's compile-time value, when it has one
    * @returns C code string representing the unsigned integer value
    */
-  static boolToInt(expr: string): string {
+  static boolToInt(expr: string, folded?: number): string {
+    // A constant is folded: `(1 ? 1U : 0U)` is a controlling expression that
+    // is invariant, MISRA C:2012 Rule 14.3, and one branch of it is dead code
+    if (folded !== undefined) return folded === 0 ? "0U" : "1U";
     if (expr === "true") return "1U";
     if (expr === "false") return "0U";
-    return `(${expr} ? 1U : 0U)`;
+    // One operand of `?:`: a ternary or a lower-precedence value would bind
+    // the conversion to its last arm only (#2249)
+    return `(${CExpression.operand(expr)} ? 1U : 0U)`;
   }
 
   /**
@@ -115,6 +137,7 @@ class BitUtils {
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
    * @param storage - The target's C type, when known
+   * @param folded - The value's compile-time value, when it has one
    * @returns C code string for the assignment
    */
   static singleBitWrite(
@@ -122,11 +145,26 @@ class BitUtils {
     offset: string | number,
     value: string,
     storage?: string,
+    folded?: number,
+  ): string {
+    return `${target} = ${BitUtils.singleBitValue(target, offset, value, storage, folded)};`;
+  }
+
+  /**
+   * The value a single-bit write stores: `read` with the bit at `offset` set
+   * to `value`. An atomic write reads through its own copy (ADR-049).
+   */
+  static singleBitValue(
+    read: string,
+    offset: string | number,
+    value: string,
+    storage?: string,
+    folded?: number,
   ): string {
     const one = BitUtils.widen("1U", storage);
-    const bit = BitUtils.widen(BitUtils.boolToInt(value), storage);
-    const rhs = `(${target} & ~(${one} << ${offset})) | (${bit} << ${offset})`;
-    return BitUtils.assign(target, rhs, storage);
+    const bit = BitUtils.widen(BitUtils.boolToInt(value, folded), storage);
+    const rhs = `(${read} & ~(${one} << ${offset})) | (${bit} << ${offset})`;
+    return BitUtils.narrowed(rhs, storage);
   }
 
   /**
@@ -149,10 +187,24 @@ class BitUtils {
     value: string,
     storage?: string,
   ): string {
+    return `${target} = ${BitUtils.multiBitValue(target, offset, width, value, storage)};`;
+  }
+
+  /**
+   * The value a bit-range write stores: `read` with `width` bits at `offset`
+   * set to `value`. An atomic write reads through its own copy (ADR-049).
+   */
+  static multiBitValue(
+    read: string,
+    offset: string | number,
+    width: number | IBitWidth,
+    value: string,
+    storage?: string,
+  ): string {
     const mask = BitUtils.shiftedMask(BitUtils.widthOf(width), storage);
     const masked = `(${CExpression.operand(value)} & ${mask})`;
-    const rhs = `(${target} & ~(${mask} << ${offset})) | (${masked} << ${offset})`;
-    return BitUtils.assign(target, rhs, storage);
+    const rhs = `(${read} & ~(${mask} << ${offset})) | (${masked} << ${offset})`;
+    return BitUtils.narrowed(rhs, storage);
   }
 
   /**
@@ -164,6 +216,7 @@ class BitUtils {
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
    * @param storage - The target's C type, when known
+   * @param folded - The value's compile-time value, when it has one
    * @returns C code string for the assignment
    */
   static writeOnlySingleBit(
@@ -171,8 +224,9 @@ class BitUtils {
     offset: string | number,
     value: string,
     storage?: string,
+    folded?: number,
   ): string {
-    const bit = BitUtils.widen(BitUtils.boolToInt(value), storage);
+    const bit = BitUtils.widen(BitUtils.boolToInt(value, folded), storage);
     return `${target} = ${BitUtils.narrowCast(storage)}(${bit} << ${offset});`;
   }
 
@@ -224,16 +278,9 @@ class BitUtils {
   }
 
   /** A read-modify-write's assignment, cast back as `narrowCast` says */
-  private static assign(
-    target: string,
-    rhs: string,
-    storage: string | undefined,
-  ): string {
+  private static narrowed(rhs: string, storage: string | undefined): string {
     const cast = BitUtils.narrowCast(storage);
-    if (cast === "") {
-      return `${target} = ${rhs};`;
-    }
-    return `${target} = ${cast}(${rhs});`;
+    return cast === "" ? rhs : `${cast}(${rhs})`;
   }
 
   /**

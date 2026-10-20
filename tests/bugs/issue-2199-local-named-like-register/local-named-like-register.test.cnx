@@ -1,0 +1,55 @@
+// test-execution
+// test-adr: 057
+// Issue #2199: a local named like a global register is the local, for its
+// writes as for its reads. A plain write, a bit and a bit range through the
+// local land on the local; the register is never written (it is not mapped
+// on the host, so a write to it would fault). A parameter of the same name
+// is a second assertion of the same rule (it was miscompiled too). The
+// control is `viaRegister`, never called: with nothing shadowing it, the
+// register is written, and the snapshot pins its C.
+
+register MOTOR @ 0x40002000 {
+    FLAGS: u8 w1c @ 0x04,
+    CONFIG: u8 rw @ 0x08,
+}
+
+struct Shadow {
+    u8 FLAGS;
+    u8 CONFIG;
+}
+
+u8 viaLocal() {
+    mut Shadow MOTOR <- { FLAGS: 0, CONFIG: 0 };
+    MOTOR.CONFIG <- 7;
+    MOTOR.FLAGS[0] <- true;
+    MOTOR.CONFIG[4, 2] <- 3;
+    return MOTOR.CONFIG + MOTOR.FLAGS;
+}
+
+void viaParam(mut Shadow MOTOR) {
+    MOTOR.CONFIG <- 7;
+    MOTOR.FLAGS[0] <- true;
+    MOTOR.CONFIG[4, 2] <- 3;
+}
+
+void viaRegister() {
+    MOTOR.CONFIG <- 7;
+    MOTOR.FLAGS[0] <- true;
+}
+
+u32 main() {
+    // 7 | (3 << 4) = 55, plus FLAGS bit 0
+    u8 local <- viaLocal();
+    if (local != 56) {
+        return 1;
+    }
+    mut Shadow s <- { FLAGS: 0, CONFIG: 0 };
+    viaParam(s);
+    if (s.CONFIG != 55) {
+        return 2;
+    }
+    if (s.FLAGS != 1) {
+        return 3;
+    }
+    return 0;
+}

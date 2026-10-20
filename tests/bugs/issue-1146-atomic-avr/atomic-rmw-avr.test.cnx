@@ -5,7 +5,7 @@
 // the C did not compile for AVR.
 #pragma target atmega328p
 
-atomic mut u16 ticks <- 0;
+atomic u16 ticks <- 0;
 mut u16 plain <- 0;
 
 void onTick() {

@@ -15,7 +15,7 @@
  * deep in expression generation, and the bracket check on
  * `registerMemberTypes` keyed by a GENERATED C name, which is why it could
  * only ever fire for registers. Here both routes answer one question,
- * `bitmapOf`, and all three rules ask it.
+ * the typer's chain (#1749 review), and all three rules read it.
  *
  * That is also what closes the bracket rule's hole: `f[0]` on a bitmap
  * VARIABLE was accepted and emitted as a bit index, because the check looked
@@ -25,16 +25,16 @@
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../types/syntax/TExpression";
-import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
+import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
+import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
-import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import ConstantExpression from "./helpers/ConstantExpression";
 import IBitmapAccessError from "./types/IBitmapAccessError";
-import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import SourceOrder from "../../utils/SourceOrder";
 
@@ -47,137 +47,102 @@ class BitmapAccessCheck {
     return this.found;
   }
 
-  /** A chain's leading names, its root, and the operations after the root */
-  private static partsOf(expr: TExpression): {
-    chain: string[];
-    root: TChainRoot;
-    ops: readonly TPostfixOpSyntax[];
-  } | null {
-    if (expr.kind !== "postfix") return null;
-    const root = expr.primary.kind === "root" ? expr.primary.root : null;
-    const names = expr.ops.map((op) => (op.kind === "member" ? op.name : null));
-    const head =
-      expr.primary.kind === "identifier" ? expr.primary.name : undefined;
-    return {
-      chain: RegisterMemberReference.leadingNames(head, names),
-      root,
-      ops: root === null ? expr.ops : expr.ops.slice(1),
-    };
-  }
-
   public checkExpression(expr: TExpression): void {
-    const parts = BitmapAccessCheck.partsOf(expr);
-    if (parts === null) return;
-    this.checkChain(parts.chain, parts.root, parts.ops, expr);
+    if (expr.kind === "postfix") this.checkChain(expr);
   }
 
   public checkSite(site: IAssignmentSyntax): void {
-    const parts = BitmapAccessCheck.partsOf(site.target);
-    if (parts === null) return;
-    const bitmapAt = this.checkChain(
-      parts.chain,
-      parts.root,
-      parts.ops,
-      site.target,
-    );
-    if (bitmapAt === null) return;
+    if (site.target.kind !== "postfix") return;
+    const field = this.checkChain(site.target);
+    if (field === null) return;
 
     // E0881: the value must fit the field it is written to. Folded by the
     // one binder, so a const is its value (#1760 second review: reading the
     // literal text let `f.Mode <- BIG` truncate silently).
-    const layout = this.context.symbols.bitmapFields
-      .get(bitmapAt.bitmap)
-      ?.get(bitmapAt.field);
-    if (layout === undefined) return;
     const value = ConstantExpression.valueAt(site.value, this.context);
-    const maximum = 2 ** layout.width - 1;
+    const maximum = 2 ** field.layout.width - 1;
     if (value === null || value <= maximum) return;
     this.report(
       site.value,
       "E0881",
-      `Value ${value} exceeds ${layout.width}-bit field '${bitmapAt.field}' maximum of ${maximum}`,
-      `A ${layout.width}-bit field holds 0 through ${maximum}; widen the field in the bitmap declaration, or write a value that fits (ADR-034).`,
+      `Value ${value} exceeds ${field.layout.width}-bit field '${field.fieldName}' maximum of ${maximum}`,
+      `A ${field.layout.width}-bit field holds 0 through ${maximum}; widen the field in the bitmap declaration, or write a value that fits (ADR-034).`,
     );
   }
 
   /**
-   * Walk one chain. Reports E0882 and E0883 where they apply, and returns the
-   * bitmap field a chain ends at when it ends at one.
+   * Walk one chain as the typer typed it, whatever spells its prefix (#1749
+   * review): every step off a bitmap value is a named field of it. Reports
+   * E0921, E0883 and E0882 where they apply, and returns the bitmap field the
+   * chain ends at when it ends at one.
    */
   private checkChain(
-    chain: string[],
-    root: TChainRoot,
-    ops: readonly TPostfixOpSyntax[],
-    node: TExpression,
-  ): { bitmap: string; field: string } | null {
+    node: TExpressionOf<"postfix">,
+  ): IBitmapFieldTarget | null {
     const bitmaps = this.context.symbols.bitmapFields;
-    if (!bitmaps || chain.length === 0) return null;
-
-    const found = this.bitmapOf(chain, root, node);
-    if (found === null) return null;
-    const { bitmap, at } = found;
-
-    // The op that follows the bitmap -- `ops` is aligned by the caller so that
-    // `ops[i]` follows `chain[i]`. A subscript there is E0883: ADR-034
-    // addresses a bitmap by named field, never by bit index.
-    const after = ops[at - 1];
-    if (after !== undefined && after.kind !== "member") {
-      this.report(
-        node,
-        "E0883",
-        `Cannot use bracket indexing on bitmap type '${bitmap}'`,
-        `A bitmap is addressed by named field, not by bit index -- write ${chain[at - 1]}.FIELD_NAME (ADR-034).`,
-      );
-      return null;
+    if (!bitmaps) return null;
+    const steps = OperandTyper.chainOf(node, this.context).steps;
+    for (const [i, step] of steps.entries()) {
+      const bitmap = step.before?.bitmapTypeName;
+      const fields = bitmap ? bitmaps.get(bitmap) : undefined;
+      if (!bitmap || fields === undefined) continue;
+      if (step.before!.dimensions.length > 0) {
+        if (step.member === null || step.property !== null) continue;
+        this.report(
+          node,
+          "E0921",
+          `Field '${step.member}' of an array of '${bitmap}' names no element`,
+          `A field belongs to one '${bitmap}' value; index every dimension first, e.g. NAME[i].${step.member} (ADR-034).`,
+        );
+        return null;
+      }
+      // ADR-034 addresses a bitmap by named field, never by bit index
+      if (step.subscript !== null) {
+        this.report(
+          node,
+          "E0883",
+          `Cannot use bracket indexing on bitmap type '${bitmap}'`,
+          `A bitmap is addressed by named field, not by bit index -- write ${BitmapAccessCheck.spellingBefore(node, steps.length, i)}.FIELD_NAME (ADR-034).`,
+        );
+        return null;
+      }
+      // ADR-058's properties describe the type's shape rather than name a
+      // field, so they are not unknown fields. E0867 owns whether one is used
+      // correctly.
+      const field = step.member;
+      if (field === null || step.property !== null) continue;
+      if (PROPERTY_NAMES.has(field)) continue;
+      if (!fields.has(field)) {
+        const known = [...fields.keys()];
+        const quoted = known.map((k) => `'${k}'`).join(", ");
+        this.report(
+          node,
+          "E0882",
+          `Unknown bitmap field '${field}' on '${bitmap}'`,
+          known.length === 0
+            ? "The bitmap declares no fields (ADR-034)."
+            : `'${bitmap}' declares ${quoted} (ADR-034).`,
+        );
+        return null;
+      }
     }
-
-    const field = chain[at];
-    if (field === undefined) return null;
-    // ADR-058's properties describe the type's shape rather than name a field,
-    // so they are not unknown fields. E0867 owns whether one is used correctly.
-    if (PROPERTY_NAMES.has(field)) return null;
-    if (!bitmaps.get(bitmap)?.has(field)) {
-      const known = [...(bitmaps.get(bitmap)?.keys() ?? [])];
-      const quoted = known.map((k) => `'${k}'`).join(", ");
-      this.report(
-        node,
-        "E0882",
-        `Unknown bitmap field '${field}' on '${bitmap}'`,
-        known.length === 0
-          ? "The bitmap declares no fields (ADR-034)."
-          : `'${bitmap}' declares ${quoted} (ADR-034).`,
-      );
-      return null;
-    }
-    return { bitmap, field };
+    return BitmapFieldStep.fieldOf(steps.at(-1), bitmaps);
   }
 
-  private bitmapOf(
-    chain: string[],
-    root: TChainRoot,
-    node: TExpression,
-  ): { bitmap: string; at: number } | null {
-    const symbols = this.context.symbols;
-    const member = RegisterMemberReference.resolve(
-      root,
-      chain,
-      node.span,
-      this.context,
-    );
-    if (member !== null) {
-      const type = symbols.registerMemberTypes.get(member.key);
-      if (type !== undefined && symbols.bitmapFields.has(type)) {
-        return { bitmap: type, at: member.consumed };
-      }
-      return null;
+  /**
+   * The name spelled before the typer's step `at` -- the typer types the
+   * chain's last `count` operations -- for a message to show
+   */
+  private static spellingBefore(
+    node: TExpressionOf<"postfix">,
+    count: number,
+    at: number,
+  ): string {
+    const op = node.ops[node.ops.length - count + at - 1];
+    if (op === undefined) {
+      return node.primary.kind === "identifier" ? node.primary.name : "NAME";
     }
-    if (root === "global") return null;
-    const declared = OperandTyper.chainOf(node, this.context).steps[0]?.before;
-    const bitmap =
-      declared?.dimensions.length === 0 ? declared.bitmapTypeName : null;
-    return bitmap !== null && symbols.bitmapFields.has(bitmap)
-      ? { bitmap, at: 1 }
-      : null;
+    return op.kind === "member" ? op.name : "NAME";
   }
 
   private report(

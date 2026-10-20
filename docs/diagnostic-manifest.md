@@ -12,11 +12,12 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-659 fixture(s) assert a diagnostic; 649 carry a code.
+677 fixture(s) assert a diagnostic; 667 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
 | tests/adr-004/register-access-uncovered-arms-error.test.cnx                                      | E0870, E0871, E0872 |
+| tests/adr-004/register-imported-bitmap-access-error.test.cnx                                     | E0870, E0871, E0872 |
 | tests/adr-004/register-imported-direct-error.test.cnx                                            | E0870, E0871, E0872 |
 | tests/adr-004/register-imported-transitive-error.test.cnx                                        | E0870, E0871, E0872 |
 | tests/adr-004/register-read-wo-error.test.cnx                                                    | E0870               |
@@ -167,6 +168,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-034/bitmap-bracket-indexing-error.test.cnx                                             | E0883               |
 | tests/adr-034/bitmap-error-overflow.test.cnx                                                     | E0881               |
 | tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
+| tests/adr-034/bitmap-unknown-field-through-chain-error.test.cnx                                  | E0881, E0882, E0883 |
 | tests/adr-035/array-form-error.test.cnx                                                          | E0866, E0876        |
 | tests/adr-035/array-init-error.test.cnx                                                          | E0866               |
 | tests/adr-035/array-init-string-concat-error.test.cnx                                            | E0866               |
@@ -206,7 +208,15 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0864               |
 | tests/adr-045/string-imported-transitive-global-error.test.cnx                                   | E0863               |
 | tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
+| tests/adr-049/atomic-const-error.test.cnx                                                        | E0898               |
+| tests/adr-049/atomic-mut-error.test.cnx                                                          | E0919               |
+| tests/adr-049/atomic-mut-in-function-error.test.cnx                                              | E0919               |
+| tests/adr-049/atomic-mut-in-scope-method-error.test.cnx                                          | E0919               |
+| tests/adr-049/atomic-never-written-error.test.cnx                                                | E0899               |
+| tests/adr-049/atomic-unsized-string-error.test.cnx                                               | E0862               |
 | tests/adr-049/atomic-volatile-error.test.cnx                                                     | E0889               |
+| tests/adr-049/atomic-volatile-in-function-error.test.cnx                                         | E0889               |
+| tests/adr-049/atomic-volatile-in-scope-method-error.test.cnx                                     | E0889               |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853               |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |
@@ -227,6 +237,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-058/length-property-scope-struct-transitive-error.test.cnx                             | E0867, E0886        |
 | tests/adr-058/length-property-top-level-struct-field-error.test.cnx                              | E0886               |
 | tests/adr-058/length-property-wrong-type-error.test.cnx                                          | E0867               |
+| tests/adr-068/for-header-multi-statement-c-header-type-error.test.cnx                            | E0715               |
 | tests/adr-068/for-header-multi-statement-error.test.cnx                                          | E0715               |
 | tests/adr-068/for-header-multi-statement-imported-direct-error.test.cnx                          | E0715               |
 | tests/adr-068/for-header-multi-statement-imported-transitive-error.test.cnx                      | E0715               |
@@ -541,6 +552,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1802-struct-initializer-target/non-struct-targets.test.cnx                      | E0358               |
 | tests/bugs/issue-1802-struct-initializer-target/pointer-and-function-types.test.cnx              | E0358               |
 | tests/bugs/issue-1802-struct-initializer-target/whole-array-positions.test.cnx                   | E0866               |
+| tests/bugs/issue-1808-bit-index-width/bit-index-width-error.test.cnx                             | E0920               |
 | tests/bugs/issue-1833-miscased-cnext-extension/miscased-include-error.test.cnx                   | E0518               |
 | tests/bugs/issue-1866-scope-member-is-not-external/bare-call-outside-scope.test.cnx              | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/global-call-to-scope-member.test.cnx          | E0422               |
@@ -579,6 +591,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2019-header-unclosed-name/concatenation-self.test.cnx                           | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/self-local.test.cnx                                   | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/substring-self.test.cnx                               | E0427               |
+| tests/bugs/issue-2027-register-field-zero/register-field-zero.test.cnx                           | E0872               |
 | tests/bugs/issue-2046-duplicate-case-value/duplicate-by-value.test.cnx                           | E0713               |
 | tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant.test.cnx                   | E0717               |
 | tests/bugs/issue-2073-for-header-forms/for-header-forms-cpp-error.test.cnx                       | E0917               |
@@ -588,12 +601,15 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2157-array-parameter-list/non-array-argument-error.test.cnx                     | E0866               |
 | tests/bugs/issue-2157-array-parameter-list/transitive-argument-error.test.cnx                    | E0866               |
 | tests/bugs/issue-2165-renamed-config/renamed-config-beside-include.test.cnx                      | E0918               |
+| tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx                             | E0921               |
 | tests/bugs/issue-2194-array-argument-shape/shape-error.test.cnx                                  | E0866               |
 | tests/bugs/issue-2195-array-row-slot/row-slot-declaration-error.test.cnx                         | E0866               |
 | tests/bugs/issue-2195-array-row-slot/row-slot-error.test.cnx                                     | E0866               |
 | tests/bugs/issue-2196-macro-fill-all/fill-declaration-error.test.cnx                             | E0866               |
 | tests/bugs/issue-2196-macro-fill-all/fill-error.test.cnx                                         | E0866               |
 | tests/bugs/issue-2209-array-argument-element/element-error.test.cnx                              | E0866               |
+| tests/bugs/issue-2251-bitmap-field-bit-index/field-bit-index-wo-zero-error.test.cnx              | E0872               |
+| tests/bugs/issue-2254-volatile-not-inlined/volatile-dimension-error.test.cnx                     | E0909               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |
@@ -610,6 +626,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1           |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857               |
+| tests/compound-assign/bitmap-field-compound-unknown-field.test.cnx                               | E0882               |
+| tests/compound-assign/bitmap-field-compound.test.cnx                                             | E0857               |
 | tests/compound-assign/struct-field-bit-index-compound.test.cnx                                   | E0857               |
 | tests/constructor-syntax/error-literal-arg.test.cnx                                              | (uncoded)           |
 | tests/constructor-syntax/error-non-const-arg.test.cnx                                            | E0432               |

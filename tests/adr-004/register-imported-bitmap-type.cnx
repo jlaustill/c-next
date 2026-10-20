@@ -1,0 +1,7 @@
+// A bitmap declared in its own file, for register members in another file to
+// be typed by (register-imported-bitmap-access-error).
+bitmap8 Ctl {
+    En,
+    Mode[3],
+    Hi[4]
+}

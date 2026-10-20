@@ -1,0 +1,24 @@
+#pragma target teensy41
+// test-adr: 049
+// Issue #1179: a compound write to an atomic scope member is atomic in every
+// spelling -- this., the scope's name and global. -- as the same write to an
+// atomic global is (ADR-049 Q7). this.counter +<- 1 was a plain counter += 1U.
+
+scope S {
+    atomic wrap u32 counter;
+    public atomic wrap u32 shared;
+
+    public void go() {
+        this.counter +<- 1;
+        this.shared +<- 2;
+    }
+}
+
+atomic wrap u32 counter;
+
+void main() {
+    S.go();
+    S.shared +<- 3;
+    global.S.shared +<- 4;
+    counter +<- 1;
+}

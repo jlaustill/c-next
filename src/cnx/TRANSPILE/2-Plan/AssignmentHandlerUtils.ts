@@ -5,11 +5,9 @@
  * Issue #707: Extracted from RegisterHandlers.ts and AccessPatternHandlers.ts.
  */
 
-import IRegisterNameResult from "./types/IRegisterNameResult";
-import QualifiedCName from "../../utils/QualifiedCName";
 import invariant from "../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitUtils from "../../utils/BitUtils";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import type IAssignmentContext from "./types/IAssignmentContext";
 
 /**
@@ -20,83 +18,36 @@ import type IAssignmentContext from "./types/IAssignmentContext";
  * @throws Error if compound operator is used with bit fields
  */
 // #1322: `validateNoCompoundForBitAccess` is gone. Compound assignment on a
-// bit index, bit range, slice or string is E0857 in pass 2.1 -- one decision
+// bit index, bit range, slice, bitmap field (#2159) or string is E0857 in pass 2.1 -- one decision
 // where this was six throws with four message variants, and where this very
 // helper was defined a second time, verbatim, in `BitAccessHandlers`.
 
 /**
  * A write-1 register bit is never assigned a zero here.
  *
- * #1322: E0872 rejects it in pass 2.1 (ADR-004), by VALUE -- `0x0` and a
- * zero-valued const included, which the text comparison below let through and
- * turned into a SET of the bit the author meant to clear. The generated form
- * for a single bit is `REG = (1U << bit)`, so a zero reaching this point would
- * be emitted as a set; the assertion holds the emission to the rule.
+ * #1322: E0872 rejects it in pass 2.1 (ADR-004), by VALUE -- `0x0`, `!true`
+ * and a zero-valued const included. The generated form for a single bit is
+ * `REG = (1U << bit)`, so a zero reaching this point would be emitted as a
+ * set; the assertion holds the emission to the rule by the value 2.2 folds
+ * for the write (`foldWrittenValue`), never its spelling. That fold leaves a
+ * read of a local unfolded, which E0872's `ZeroValue` still rejects in 2.1.
  *
- * @param value - The generated value being assigned
+ * @param folded - The value's constant fold, undefined when not constant
+ * @param value - The generated value, for the assertion's text
  * @param targetName - The full register name, for the assertion's text
  * @param bitIndex - The bit index expression, for the assertion's text
- * @param isSingleBit - True for single bit access, false for bit range
  */
 function validateWriteOnlyValue(
+  folded: number | undefined,
   value: string,
   targetName: string,
   bitIndex: string,
-  isSingleBit: boolean,
 ): void {
-  const zero = isSingleBit ? value === "false" || value === "0" : value === "0";
   invariant(
-    !zero,
+    folded !== 0,
     `a write-1 register bit takes a non-zero value -- E0872 rejects ` +
       `'${value}' on ${targetName}[${bitIndex}] in pass 2.1, before this runs`,
   );
-}
-
-/**
- * Build a scoped register name from scope and identifier parts.
- *
- * @param scopeName - The scope name prefix
- * @param parts - The identifier parts (register name, member name)
- * @returns The full scoped register name (e.g., "Scope_Register_Member")
- */
-function buildScopedRegisterName(
-  declaringScopePath: string,
-  parts: readonly string[],
-): string {
-  // #1285: the accumulator loop was a hand-rolled join -- each turn fed the
-  // PREVIOUS result back in as if it were a scope, which is why `forMember` had to
-  // accept an arbitrary string. The scope qualifies the head; the remaining parts
-  // are register/member components joined textually.
-  return QualifiedCName.fromParts([
-    QualifiedNameGenerator.forMember(declaringScopePath, parts[0]),
-    ...parts.slice(1),
-  ]);
-}
-
-/**
- * Build register name with automatic scope detection.
- *
- * @param identifiers - The identifier chain
- * @param isKnownScope - Function to check if an identifier is a known scope
- * @returns Object with fullName, regName, and isScoped flag
- */
-function buildRegisterNameWithScopeDetection(
-  identifiers: readonly string[],
-  isKnownScope: (name: string) => boolean,
-): IRegisterNameResult {
-  const leadingId = identifiers[0];
-
-  if (isKnownScope(leadingId) && identifiers.length >= 3) {
-    // Scoped: Scope.Register.Member
-    const regName = QualifiedCName.fromParts([leadingId, identifiers[1]]);
-    const fullName = QualifiedCName.fromParts([regName, identifiers[2]]);
-    return { fullName, regName, isScoped: true };
-  } else {
-    // Non-scoped: Register.Member
-    const regName = leadingId;
-    const fullName = QualifiedCName.fromParts([leadingId, identifiers[1]]);
-    return { fullName, regName, isScoped: false };
-  }
 }
 
 /**
@@ -143,18 +94,53 @@ function writeBits(ctx: IAssignmentContext): string {
       bitIndex: start,
       width: width ?? null,
       value: ctx.generatedValue,
+      folded: ctx.foldValue(),
       isVariable: floatBits.shared,
+      atomic: ctx.atomic,
     });
   }
-  const value = ctx.target.last?.before ?? null;
+  const step = ctx.target.last;
+  const value = step?.fieldBits
+    ? step.fieldBits.storage
+    : (step?.before ?? null);
   invariant(
     value?.category !== "floating",
     "2.2 planned every float bit write 2.3 writes",
   );
   const storage = BitUtils.storageOf(value);
-  return width === undefined
-    ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
-    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
+  if (BitmapFieldStep.writesOneBit(step, null)) {
+    return storeBits(ctx, base, (read, bit, folded) =>
+      BitUtils.singleBitValue(read, start, bit, storage, folded),
+    );
+  }
+  invariant(width !== undefined, "a bit range has a width");
+  return storeBits(ctx, base, (read, bits) =>
+    BitUtils.multiBitValue(read, start, width, bits, storage),
+  );
+}
+
+/**
+ * Store the bits a write computes from the value read (`newValue`): a plain
+ * read-modify-write, or, for an `atomic` value's bits, the form 2.2 planned
+ * (ADR-049, #2200). A retry loop reads the written value once, through
+ * `__operand`, in the C type 2.2 planned for it.
+ */
+function storeBits(
+  ctx: IAssignmentContext,
+  target: string,
+  newValue: (read: string, value: string, folded?: number) => string,
+): string {
+  const atomic = ctx.atomic;
+  if (atomic === null) {
+    return `${target} = ${newValue(target, ctx.generatedValue, ctx.foldValue())};`;
+  }
+  // A folded value is the written value only where it is written directly
+  const folded = atomic.form === "interrupt-mask" ? ctx.foldValue() : undefined;
+  return ctx.state
+    .requireGenerator()
+    .generateAtomicStore(target, ctx.generatedValue, atomic, (read, value) =>
+      newValue(read, value, folded),
+    );
 }
 
 /**
@@ -162,10 +148,8 @@ function writeBits(ctx: IAssignmentContext): string {
  */
 class AssignmentHandlerUtils {
   static readonly writeBits = writeBits;
+  static readonly storeBits = storeBits;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
-  static readonly buildScopedRegisterName = buildScopedRegisterName;
-  static readonly buildRegisterNameWithScopeDetection =
-    buildRegisterNameWithScopeDetection;
 }
 
 export default AssignmentHandlerUtils;

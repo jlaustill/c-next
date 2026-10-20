@@ -10,8 +10,10 @@ interface IVariableDeclarationSyntax extends ISyntaxNode {
     readonly volatile: boolean;
     /** ADR-071: parsed only so it can be rejected; always false in a for header */
     readonly const: boolean;
-    /** ADR-071: the binding may be written */
+    /** ADR-071: the binding may be written -- `mut`, or `atomic`, which implies it (#2233) */
     readonly mut: boolean;
+    /** #2233: `mut` written beside `atomic`; parsed only so E0919 can reject it */
+    readonly atomicMut: boolean;
     readonly overflow: "clamp" | "wrap" | null;
   };
   readonly type: TTypeSyntax;

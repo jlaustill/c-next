@@ -1,0 +1,42 @@
+// test-error
+// test-adr: 034
+// Issue #2186: a field of a bitmap array that names no whole element -- a 1-D
+// array, a partially indexed 2-D array, an array struct member, and a read --
+// is E0921. A field belongs to one bitmap value; transpiling it gave C that gcc
+// rejects (`a1.A = true;`) at exit 0.
+//
+// NEGATIVE CONTROL: the fully indexed `g2[1][0].A` writes one bitmap value and
+// must stay silent.
+
+bitmap8 F {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+struct H {
+    F[2] fls;
+}
+
+mut F[2] a1;
+mut F[2][2] g2;
+mut H h;
+
+void writes() {
+    g2[1][0].A <- true;
+    a1.A <- true;
+    g2[1].A <- true;
+    h.fls.A <- true;
+}
+
+bool reads() {
+    return a1.A;
+}
+
+u32 main() {
+    writes();
+    return 0;
+}

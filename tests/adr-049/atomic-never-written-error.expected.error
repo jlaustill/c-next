@@ -1,0 +1,4 @@
+12:4 error[E0899]: 'idle' is never written; remove `atomic`
+       help: `atomic` makes a binding writable, and only a value something writes needs a read or write that cannot be torn (ADR-049, ADR-071).
+23:15 error[E0899]: 'unused' is never written; remove `atomic`
+       help: `atomic` makes a binding writable, and only a value something writes needs a read or write that cannot be torn (ADR-049, ADR-071).

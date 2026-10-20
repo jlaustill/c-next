@@ -16,8 +16,6 @@ import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type IChainBase from "../../types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import QualifiedCName from "../../utils/QualifiedCName";
-import ScopeUtils from "../../utils/ScopeUtils";
 import CompoundOperator from "../../utils/CompoundOperator";
 import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 
@@ -100,7 +98,13 @@ class AssignmentClassifier {
       return bitmapKind;
     }
 
-    // === Priority 2: Member access with subscripts (arrays, register bits) ===
+    // === Priority 1b: A register member's bit or bit range ===
+    const registerBitKind = AssignmentClassifier.classifyRegisterBit(ctx);
+    if (registerBitKind !== null) {
+      return registerBitKind;
+    }
+
+    // === Priority 2: Member access with subscripts (arrays) ===
     const memberSubscriptKind =
       AssignmentClassifier.classifyMemberWithSubscript(ctx);
     if (memberSubscriptKind !== null) {
@@ -136,170 +140,26 @@ class AssignmentClassifier {
   }
 
   /**
-   * Classify bitmap field assignments.
-   * Patterns: var.field, struct.bitmapMember.field, REG.MEMBER.field, Scope.REG.MEMBER.field
+   * #1749: a field of a bitmap -- `flags.A`, `gss[1].fl.Mode`, `Sc.ps.fls[1].A`,
+   * `this.fl.A`, `MOTOR.CTRL.Mode` -- is the typer's answer for the chain's last
+   * step, whatever spells its prefix. A register member only changes which
+   * handler writes it: ADR-004 writes a member per its access, not by a
+   * read-modify-write (#2158), and the typer names the member.
    */
   private static classifyBitmapField(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    // Must have member access without subscripts
-    if (!ctx.hasMemberAccess || ctx.hasArrayAccess) {
+    if (ctx.bitmapField === null) {
       return null;
     }
-
-    const ids = ctx.identifiers;
-    if (ctx.subscriptCount !== 0) {
-      return null;
-    }
-
-    if (ids.length === 2) {
-      return AssignmentClassifier.classifySimpleBitmapField(
-        ctx.target.rootTypeInfo,
-        ids[1],
-        ctx,
-      );
-    }
-
-    if (ids.length === 3) {
-      return AssignmentClassifier.classifyThreeIdBitmapField(
-        ids[0],
-        ids[1],
-        ids[2],
-        ctx.target,
-        ctx,
-      );
-    }
-
-    if (ids.length === 4) {
-      return AssignmentClassifier.classifyScopedRegisterBitmapField(ids, ctx);
-    }
-
-    return null;
-  }
-
-  /**
-   * Classify 2-id bitmap field: var.field
-   */
-  private static classifySimpleBitmapField(
-    typeInfo: TTypeInfo | undefined,
-    fieldName: string,
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
-      return null;
-    }
-
-    const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      typeInfo.bitmapTypeName,
-      fieldName,
-      ctx,
-    );
-    if (width === null) {
-      return null;
-    }
-
-    return width === 1
-      ? AssignmentKind.BITMAP_FIELD_SINGLE_BIT
-      : AssignmentKind.BITMAP_FIELD_MULTI_BIT;
-  }
-
-  /**
-   * Classify 3-id bitmap field: REG.MEMBER.field or struct.bitmapMember.field
-   */
-  private static classifyThreeIdBitmapField(
-    firstName: string,
-    secondName: string,
-    fieldName: string,
-    target: IChainBase,
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    // Check if register member bitmap field: REG.MEMBER.field
-    if (ctx.state.symbols!.knownRegisters.has(firstName)) {
-      const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
-        firstName,
-        secondName,
-        ctx,
-      );
-      if (bitmapType) {
-        const width = AssignmentClassifier.lookupBitmapFieldWidth(
-          bitmapType,
-          fieldName,
-          ctx,
-        );
-        if (width !== null) {
-          return AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
-        }
-      }
-      return null;
-    }
-
-    // Check if struct member bitmap field: struct.bitmapMember.field
-    if (!AssignmentClassifier._isStructRoot(target.rootTypeInfo, ctx)) {
-      return null;
-    }
-
-    // #1737: the bitmap member is what the typer's `.field` step reads, the
-    // step the bitmap handler renders from too
-    const bitmapType = target.last?.before?.bitmapTypeName;
-    if (!bitmapType) {
-      return null;
-    }
-
-    const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      bitmapType,
-      fieldName,
-      ctx,
-    );
-    if (width !== null) {
-      return AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD;
-    }
-
-    return null;
-  }
-
-  /**
-   * Classify 4-id scoped register bitmap field: Scope.REG.MEMBER.field
-   */
-  private static classifyScopedRegisterBitmapField(
-    ids: readonly string[],
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    const scopeName = ids[0];
-    if (!ctx.state.isKnownScope(scopeName)) {
-      return null;
-    }
-
-    // #1285: textual candidate built from parse-tree identifiers, not scope
-    // qualification.
-    const fullRegName = QualifiedCName.fromParts([scopeName, ids[1]]);
-    if (!ctx.state.symbols!.knownRegisters.has(fullRegName)) {
-      return null;
-    }
-
-    const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
-      fullRegName,
-      ids[2],
-      ctx,
-    );
-    if (!bitmapType) {
-      return null;
-    }
-
-    const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      bitmapType,
-      ids[3],
-      ctx,
-    );
-    if (width !== null) {
-      return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
-    }
-
-    return null;
+    return ctx.target.last!.beforeRegisterMember === null
+      ? AssignmentKind.BITMAP_FIELD
+      : AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
   }
 
   /**
    * Classify member access with subscripts.
-   * Patterns: arr[i][j], struct.arr[i], REG.MEMBER[bit], matrix[i][j][bit]
+   * Patterns: arr[i][j], struct.arr[i], matrix[i][j][bit]
    */
   private static classifyMemberWithSubscript(
     ctx: IAssignmentContext,
@@ -317,21 +177,9 @@ class AssignmentClassifier {
     const ids = ctx.identifiers;
     const typeInfo = ctx.target.rootTypeInfo;
 
-    // Registers are asked FIRST, before any subscript-shape test. A bit range
-    // is two expressions in ONE op, so the struct-chain branch below claimed
-    // `REG.MEMBER[start, width]` and `Scope.REG.MEMBER[start, width]` before
-    // either could be recognized as a register, emitting `PORT__Set.Set` and
-    // `Hw__GPIO__Mode.GPIO.Mode` — neither of which compiles (#1244, #1052).
-    // The single-bit spellings did reach this check, which is why only bit
-    // ranges were broken.
-    const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
-      ids,
-      ctx.subscriptCount,
-      ctx,
-    );
-    if (registerKind !== null) {
-      return registerKind;
-    }
+    // A register's bits were classified before this, by `classifyRegisterBit`:
+    // a bit range is two expressions in ONE op, so the struct-chain branch
+    // below would claim `REG.MEMBER[start, width]` (#1244, #1052).
 
     // Bare `Scope.member[...]`: the fourth ADR-016 spelling (#1116). A bare
     // name resolves through ADR-057's tiers, so `resolvesBareName` is true.
@@ -352,16 +200,6 @@ class AssignmentClassifier {
       return AssignmentClassifier.classifyMultiDimArrayAccess(
         typeInfo,
         ctx.subscriptCount,
-      );
-    }
-
-    // 2+ identifiers with subscripts: bitmap array (registers handled above)
-    if (ids.length >= 2) {
-      return AssignmentClassifier.classifyBitmapArrayField(
-        ids[1],
-        typeInfo,
-        ctx.subscriptCount,
-        ctx,
       );
     }
 
@@ -393,62 +231,28 @@ class AssignmentClassifier {
   }
 
   /**
-   * Classify register bit access: REG.MEMBER[bit] or Scope.REG.MEMBER[bit]
+   * ADR-004: a bit or bit range of a register member -- `R.M[b]`, a scope's
+   * own bare `R.M[b]`, `this.R.M[b]`, `S.R.M[b]`, `global.R.M[b]` -- is the
+   * typer's answer for the chain's last step: a subscript whose prefix is a
+   * register member. The member's access decides the write, so how the
+   * register was spelled must not (#2185: a bare in-scope `PWM.FLAGS[0]` on a
+   * `w1c` member was read-modify-written).
    */
-  private static classifyRegisterBitAccess(
-    ids: readonly string[],
-    subscriptCount: number,
+  private static classifyRegisterBit(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    const firstId = ids[0];
-
-    // Check for scoped register: Scope.REG.MEMBER[bit]
-    if (ctx.state.isKnownScope(firstId) && ids.length >= 3) {
-      const scopedRegName = QualifiedCName.fromParts([firstId, ids[1]]);
-      if (ctx.state.symbols!.knownRegisters.has(scopedRegName)) {
-        return subscriptCount === 2
-          ? AssignmentKind.REGISTER_BIT_RANGE
-          : AssignmentKind.REGISTER_BIT;
-      }
-    }
-
-    // Check for non-scoped register: REG.MEMBER[bit]
-    if (ctx.state.symbols!.knownRegisters.has(firstId)) {
-      return subscriptCount === 2
-        ? AssignmentKind.REGISTER_BIT_RANGE
-        : AssignmentKind.REGISTER_BIT;
-    }
-
-    return null;
-  }
-
-  /**
-   * Classify bitmap array element field: bitmapArr[i].field
-   */
-  private static classifyBitmapArrayField(
-    secondId: string,
-    typeInfo: TTypeInfo | undefined,
-    subscriptCount: number,
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    if (subscriptCount !== 1) {
+    const step = ctx.target.last;
+    if (!step?.beforeRegisterMember) {
       return null;
     }
-
-    if (!typeInfo?.isBitmap || !typeInfo.isArray || !typeInfo.bitmapTypeName) {
-      return null;
+    switch (step.subscript) {
+      case "bit_single":
+        return AssignmentKind.REGISTER_BIT;
+      case "bit_range":
+        return AssignmentKind.REGISTER_BIT_RANGE;
+      default:
+        return null;
     }
-
-    const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      typeInfo.bitmapTypeName,
-      secondId,
-      ctx,
-    );
-    if (width !== null) {
-      return AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD;
-    }
-
-    return null;
   }
 
   /**
@@ -479,21 +283,8 @@ class AssignmentClassifier {
     const firstId = ctx.identifiers[0];
 
     if (ctx.hasArrayAccess) {
-      // Registers: `global.REG.MEMBER[bit]` and `global.Scope.REG.MEMBER[bit]`.
-      // The same single decision the bare and `this.` spellings make — the
-      // prefix does not change which register is named, so it must not select
-      // a different handler. `GLOBAL_REGISTER_BIT` used to fork here into a
-      // handler that skips the MMIO byte-aligned-write optimization, so the
-      // two spellings of one write emitted different C for a write-only
-      // register (#1244).
-      const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
-        ctx.identifiers,
-        ctx.subscriptCount,
-        ctx,
-      );
-      if (registerKind !== null) {
-        return registerKind;
-      }
+      // A register's bits (`global.REG.MEMBER[bit]`) were classified before
+      // this, by the one rule every spelling takes (#1244, #2185).
 
       // Scope-qualified variable: global.Scope.member[...]. Shared with the
       // bare spelling — see classifyScopeQualifiedSubscript.
@@ -536,7 +327,8 @@ class AssignmentClassifier {
 
   /**
    * Decide a subscript chain whose base name is scope-qualified:
-   * `Scope.REG.MEMBER[bit]` or `Scope.member[...]`.
+   * `Scope.member[...]`. A register's bits were classified before this, by
+   * the typer's step (#2185).
    *
    * Issue #1244: the `global.` prefix is a grammar token, not an identifier, so
    * `global.Other.buffer[3]` and the bare `Other.buffer[3]` arrive with
@@ -582,7 +374,7 @@ class AssignmentClassifier {
     }
 
     // Only the variable case remains: registers are decided by
-    // classifyRegisterBitAccess, which every caller asks before this method.
+    // classifyRegisterBit, which `classify` asks before this method.
     // Once `Scope.member` resolves, this is exactly the decision the bare
     // `member[...]` spelling makes, so it delegates rather than re-deriving it.
     if (ids.length === 2) {
@@ -596,38 +388,13 @@ class AssignmentClassifier {
   }
 
   /**
-   * Classify this.* patterns: this.reg[bit], this.member, this.REG.MEMBER.field
+   * Classify this.* patterns: this.arr[i], this.flags[bit], this.member. A
+   * register's bits and a bitmap's fields were classified before this.
    */
   private static classifyThisPrefix(ctx: IAssignmentContext): AssignmentKind {
-    if (!ctx.scopePath) {
-      return AssignmentKind.THIS_MEMBER;
+    if (ctx.scopePath && ctx.hasArrayAccess) {
+      return AssignmentClassifier.classifyThisWithArrayAccess(ctx);
     }
-
-    const firstId = ctx.identifiers[0];
-    const scopedRegName = ScopeUtils.qualifyInScope(firstId, ctx.scopePath);
-
-    if (ctx.hasArrayAccess) {
-      return AssignmentClassifier.classifyThisWithArrayAccess(
-        ctx,
-        scopedRegName,
-      );
-    }
-
-    // this.REG.MEMBER.field (scoped register bitmap field)
-    if (
-      ctx.identifiers.length === 3 &&
-      ctx.state.symbols!.knownRegisters.has(scopedRegName)
-    ) {
-      const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
-        scopedRegName,
-        ctx.identifiers[1],
-        ctx,
-      );
-      if (bitmapType) {
-        return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
-      }
-    }
-
     return AssignmentKind.THIS_MEMBER;
   }
 
@@ -635,28 +402,17 @@ class AssignmentClassifier {
    * Classify this.reg[bit] / this.arr[i] / this.flags[3] patterns with array access.
    * Issue #954: array vs bit access is the typer's subscript kind (#1668, C12).
    *
-   * Issue #1115: only the scoped-register check is `this.`-specific. Everything
-   * after it is the same decision the bare path makes, so it delegates rather
-   * than re-deriving it — this method used to carry a truncated copy of that
-   * switch, which silently lost ARRAY_ELEMENT_BIT, ARRAY_SLICE,
-   * MULTI_DIM_ARRAY_ELEMENT and STRING_ARRAY_ELEMENT for `this.` targets.
+   * Issue #1115: this is the same decision the bare path makes, so it
+   * delegates rather than re-deriving it — this method used to carry a
+   * truncated copy of that switch, which silently lost ARRAY_ELEMENT_BIT,
+   * ARRAY_SLICE, MULTI_DIM_ARRAY_ELEMENT and STRING_ARRAY_ELEMENT for `this.`
+   * targets. A scope's register is no longer `this.`-specific either (#2185).
    */
   private static classifyThisWithArrayAccess(
     ctx: IAssignmentContext,
-    scopedRegName: string,
   ): AssignmentKind {
-    // Check for scoped register first
-    if (ctx.state.symbols!.knownRegisters.has(scopedRegName)) {
-      const hasBitRange = ctx.postfixOps.some(
-        (op) => op.kind === "subscript" && op.indexCount === 2,
-      );
-      return hasBitRange
-        ? AssignmentKind.SCOPED_REGISTER_BIT_RANGE
-        : AssignmentKind.SCOPED_REGISTER_BIT;
-    }
-
     // Diagnostics quote the source spelling (`this.flags`) rather than the
-    // resolved `scopedRegName`, so the suggested fix is the text the developer
+    // scope-qualified C name, so the suggested fix is the text the developer
     // actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
     // writes it — echoing it back would read as a different variable.)
     return AssignmentClassifier.classifySubscriptAccess(
@@ -793,8 +549,8 @@ class AssignmentClassifier {
 
   /**
    * Classify atomic and overflow-clamped compound assignments. Atomics are
-   * the simple identifier and global.member patterns; a clamp is any target
-   * that writes a `clamp` integer.
+   * the writes 2.2 planned atomic, however the target spells them (#1179); a
+   * clamp is any target that writes a `clamp` integer.
    */
   private static classifySpecialCompound(
     ctx: IAssignmentContext,
@@ -804,7 +560,7 @@ class AssignmentClassifier {
     }
 
     // ADR-049: 2.2 planned which writes are atomic read-modify-writes
-    if (ctx.atomicForm !== null) {
+    if (ctx.atomic !== null) {
       return AssignmentKind.ATOMIC_RMW;
     }
 
@@ -998,35 +754,6 @@ class AssignmentClassifier {
     }
 
     return null;
-  }
-
-  /**
-   * Look up a bitmap field's width by bitmap type name and field name.
-   * Returns the field width if found, or null if the bitmap/field doesn't exist.
-   */
-  private static lookupBitmapFieldWidth(
-    bitmapTypeName: string,
-    fieldName: string,
-    ctx: IAssignmentContext,
-  ): number | null {
-    const fields = ctx.state.symbols!.bitmapFields.get(bitmapTypeName);
-    if (fields?.has(fieldName)) {
-      return fields.get(fieldName)!.width;
-    }
-    return null;
-  }
-
-  /**
-   * Look up the bitmap type for a register member (e.g., "REG_MEMBER" -> "BitmapType").
-   * Returns the bitmap type name if found, or null.
-   */
-  private static lookupRegisterMemberBitmapType(
-    registerName: string,
-    memberName: string,
-    ctx: IAssignmentContext,
-  ): string | null {
-    const key = QualifiedCName.fromParts([registerName, memberName]);
-    return ctx.state.symbols!.registerMemberTypes.get(key) ?? null;
   }
 }
 

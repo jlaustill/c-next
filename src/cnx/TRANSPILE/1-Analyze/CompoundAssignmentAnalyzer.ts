@@ -3,7 +3,7 @@
  *
  * `+<-` and friends are read-modify-write. C-Next implements them where the
  * target names one location it can read and write back, and rejects them on a
- * bit index, a bit range, a slice or a string.
+ * bit index, a bit range, a slice, a bitmap field, a string or a whole array.
  *
  * #1322. This was the audit's largest duplicate group: **six** throws with four
  * message variants, across `AccessPatternHandlers`, `BitAccessHandlers`,
@@ -33,11 +33,17 @@ import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
-type TRejection = "bit index" | "bit range or slice" | "string" | "whole array";
+type TRejection =
+  | "bit index"
+  | "bit range or slice"
+  | "bitmap field"
+  | "string"
+  | "whole array";
 
 class CompoundAssignmentCheck {
   private readonly found: ICompoundAssignmentError[] = [];
@@ -98,6 +104,17 @@ class CompoundAssignmentCheck {
     const typing = OperandTyper.chainOf(target, this.context);
     if (typing.steps.some((step) => step.subscript === "bit_single")) {
       return "bit index";
+    }
+    // #2159: a bitmap field is a bit or a run of bits of its backing value, as
+    // a bit index is (ADR-007), whatever spells its prefix; the owner's ruling
+    // on #2159 put it in ADR-034's Diagnostics table
+    if (
+      BitmapFieldStep.fieldOf(
+        typing.steps.at(-1),
+        this.context.symbols.bitmapFields,
+      ) !== null
+    ) {
+      return "bitmap field";
     }
     // The chain may END on a string -- `config.name +<- " suffix"` where
     // `name` is a `string<32>` field. A string is a buffer copied by

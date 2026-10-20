@@ -161,7 +161,7 @@ x <- x + 1;       // ERROR: Use x.increment()
 **Option B: Allow direct access (implicit atomic)**
 
 ```cnx
-atomic mut u32 x <- 0;
+atomic u32 x <- 0;
 x <- 5; // OK: Generates atomic store
 x <- x + 1; // OK: Generates atomic RMW
 ```
@@ -209,14 +209,18 @@ How does the compiler know which intrinsics to emit?
 
 _(Corrected 2026-09-26, #1668: Cortex-M0+ is ARMv6-M and has no LDREX/STREX, so it uses the critical section like Cortex-M0.)_
 
+_(Corrected 2026-10-19, owner ruling on #2155: a float takes the critical section on an `ldrex_strex` target. The LDREX/STREX loop would read a `float` through a `uint32_t` lvalue, which C11 6.5p7 makes undefined, and CMSIS has no float form. A compound write and a bit write to an `atomic f32` already emitted the critical section; the table said otherwise.)_
+
 _(Corrected 2026-10-17, #1789: the table named only Cortex rows. The form is chosen from the target description's `ldrex_strex` and `interrupt_mask`, not from the platform's name.)_
 
-| Platform                                          | RMW Implementation                   |
-| ------------------------------------------------- | ------------------------------------ |
-| Cortex-M3+ (`ldrex_strex`, 8/16/32-bit types)     | LDREX/STREX loop                     |
-| Cortex-M0+, Cortex-M0, a wider type on Cortex-M3+ | Critical section (PRIMASK)           |
-| AVR (atmega328p)                                  | Critical section (SREG)              |
-| host, esp32 (`interrupt_mask: false`)             | GNU `__atomic` compare-exchange loop |
+| Platform                                                     | RMW Implementation                   |
+| ------------------------------------------------------------ | ------------------------------------ |
+| Cortex-M3+ (`ldrex_strex`, 8/16/32-bit integer types)        | LDREX/STREX loop                     |
+| Cortex-M0+, Cortex-M0, a wider type or a float on Cortex-M3+ | Critical section (PRIMASK)           |
+| AVR (atmega328p)                                             | Critical section (SREG)              |
+| host, esp32 (`interrupt_mask: false`)                        | GNU `__atomic` compare-exchange loop |
+
+_(Clarified 2026-10-18, #2200: a bit, a bit range or a bitmap field written to an `atomic` value, `word[1] <- true`, `word[2, 3] <- 5`, `flags.Mode <- 3`, is a read-modify-write of the whole value, so it takes the row's form too, in every spelling of the value. A bitmap is accessed as its backing integer (Q4). These writes were emitted as a plain read-modify-write.)_
 
 A retry loop evaluates the value once, before the loop (#1807). On esp32, a type wider than `word_size` makes GCC call libatomic's `__atomic_*_N`, which the output's requirements list.
 
@@ -257,15 +261,17 @@ atomic bool ready <- false;
 - Makes `atomic` a first-class citizen in the language
 - Clear and explicit without being verbose
 
+_(Clarified 2026-10-19, owner ruling on #2233: `atomic` implies ADR-071's `mut`. Only a value something writes can be torn, so an `atomic` nothing writes protects nothing, and these examples declare writable bindings as written. `atomic mut` is E0919, as `atomic volatile` is E0889. An `atomic` local or private scope member nothing writes is ADR-071's E0899, which asks for `atomic` to be removed.)_
+
 ### Q2 & Q3: Operation Syntax ✓
 
 **Decision: Natural syntax with type-level behavior**
 
 ```cnx
 // Declaration combines atomic + overflow behavior
-atomic mut clamp u8 brightness <- 0;
-atomic mut wrap u32 counter <- 0;
-atomic mut bool ready <- false;
+atomic clamp u8 brightness <- 0;
+atomic wrap u32 counter <- 0;
+atomic bool ready <- false;
 
 // Operations use standard C-Next syntax
 brightness +<- 10; // Atomic add with clamp
@@ -355,22 +361,25 @@ The retry loop inside the transpiled code IS using CAS-like hardware (LDREX/STRE
 
 **Decision: All scalar types allowed. Transpiler handles platform differences.**
 
-| Type          | Allowed? | 32-bit MCU (Cortex-M)                   | 8-bit MCU (AVR)               |
-| ------------- | -------- | --------------------------------------- | ----------------------------- |
-| u8, i8, bool  | ✓        | Natural                                 | Natural                       |
-| u16, i16      | ✓        | Natural                                 | Critical section              |
-| u32, i32, f32 | ✓        | Natural load/store, LDREX/STREX for RMW | Critical section              |
-| u64, i64, f64 | ✓        | Critical section (document cost)        | Critical section              |
-| Enums         | ✓        | Inherits from underlying type           | Inherits from underlying type |
-| bitmap8/16/32 | ✓        | Same as underlying integer              | Same as underlying integer    |
-| Structs       | ✗        | Use `critical { }` block                | Use `critical { }` block      |
-| Arrays        | ✗        | Use `critical { }` block                | Use `critical { }` block      |
+| Type          | Allowed? | 32-bit MCU (Cortex-M)                        | 8-bit MCU (AVR)               |
+| ------------- | -------- | -------------------------------------------- | ----------------------------- |
+| u8, i8, bool  | ✓        | Natural                                      | Natural                       |
+| u16, i16      | ✓        | Natural                                      | Critical section              |
+| u32, i32      | ✓        | Natural load/store, LDREX/STREX for RMW      | Critical section              |
+| f32           | ✓        | Natural load/store, critical section for RMW | Critical section              |
+| u64, i64, f64 | ✓        | Critical section (document cost)             | Critical section              |
+| Enums         | ✓        | Inherits from underlying type                | Inherits from underlying type |
+| bitmap8/16/32 | ✓        | Same as underlying integer                   | Same as underlying integer    |
+| Structs       | ✗        | Use `critical { }` block                     | Use `critical { }` block      |
+| Arrays        | ✗        | Use `critical { }` block                     | Use `critical { }` block      |
 
 **Guiding Principle**: C-Next makes the right thing easy, the wrong thing impossible, and remains flexible in between.
 
 - 64-bit atomics on 32-bit platforms are **expensive but not wrong**
 - Atomic floats are **uncommon but not wrong**
 - The type declares **intent**, the transpiler makes it **safe for the target**
+
+_(Corrected 2026-10-19, owner ruling on #2155: `f32` was listed with `u32` and `i32` as LDREX/STREX for a read-modify-write. A float's is the critical section, for the reason Q6 gives.)_
 
 **Examples:**
 
@@ -686,20 +695,22 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                               | Asserted by                                                                                |
-| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`                                             |
-| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                    |
-| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx` |
-| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                |
-| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`    |
-| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                 |
-| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                         |
+| Code  | Reported when                                                                                                               | Asserted by                                                                                                                                    |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`, `atomic-volatile-in-function-error.test.cnx`, `atomic-volatile-in-scope-method-error.test.cnx` |
+| E0919 | A declaration carries both `atomic` and `mut` (#2233)                                                                       | `tests/adr-049/atomic-mut-error.test.cnx`, `atomic-mut-in-function-error.test.cnx`, `atomic-mut-in-scope-method-error.test.cnx`                |
+| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                                                                        |
+| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx`                                                     |
+| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                                                                    |
+| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`                                                        |
+| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                                                                     |
+| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                                                                             |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
-which. The rule is entirely syntactic -- two modifier tokens on one declaration
--- so it needs no type, no scope and no symbols.
+which. `atomic` also implies `mut` (#2233), so writing both is E0919. Both
+rules are entirely syntactic -- two modifier tokens on one declaration -- so
+they need no type, no scope and no symbols.
 
 E0510 and E0511 are the two ways a program's one target can fail to exist
 (Q6). E0510 is reported at the naming pragma, or on the entry file when the
@@ -718,24 +729,39 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
-| top-level function | same file           | warn     |
-| scope method       | same file           | warn     |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
 | global variable    | same file           | error    |
-| scope member       | same file           | warn     |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
 The modifiers are read off the declaration itself, so nothing crosses an
-include and every imported cell records that it cannot exist. A declaration can
-carry them in any of the four same-file contexts; only the file-scope one is
-covered today, and the other three are `warn` rather than `error` because this
-pass relocated the rule without widening it.
+include for E0889, and its imported cells record that it cannot exist.
+
+The atomic form of a read-modify-write (Q2, Q6, #2200, #1179) is a
+different rule: it fires at the WRITE, in a top-level function or a scope
+method, and reads `atomic` from where the value is DECLARED. An atomic value
+declared in an included file is as atomic as one declared here, so those
+contexts are declared `error` in every column, asserted by
+`atomic-across-include-direct` and `atomic-across-include-transitive`
+(review of #2155). A write cannot stand in a global or a scope member's
+declaration, so the rule adds no cell there.
+
+So a top-level function's and a scope method's same-file cells are asserted
+for both rules -- E0889 by `atomic-volatile-in-function-error` and
+`atomic-volatile-in-scope-method-error`, beside the file-scope
+`atomic-volatile-error` -- and their imported cells by the read-modify-write
+rule only. A scope member's same-file cell is `error`: E0919 on a scope
+member's declaration (`tests/adr-049/atomic-mut-error.test.cnx`, #2233) and
+E0899 on an unwritten private atomic member (`atomic-never-written-error`)
+assert it.
 
 ## References
 

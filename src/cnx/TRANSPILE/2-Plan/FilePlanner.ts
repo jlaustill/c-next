@@ -14,7 +14,6 @@ import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
 import ParameterPassing from "./ParameterPassing";
-import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
@@ -63,16 +62,15 @@ import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
-import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import StatementChildren from "../../utils/StatementChildren";
-import LDREX_MAP from "./types/LDREX_MAP";
+import ExclusiveAccess from "./ExclusiveAccess";
 import type TAtomicForm from "../types/TAtomicForm";
+import type IPlannedAtomic from "../types/IPlannedAtomic";
 import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
 import AssignmentClassifier from "./AssignmentClassifier";
-import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import AssignmentOperatorMapper from "./AssignmentOperatorMapper";
 import type IPlannedCast from "./types/IPlannedCast";
 import ConstExprLowering from "../../utils/ConstExprLowering";
@@ -111,6 +109,10 @@ import FunctionCatalog from "./FunctionCatalog";
 import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
+import type IBitmapFieldTarget from "../../types/IBitmapFieldTarget";
+import AtomicOwner from "../../utils/AtomicOwner";
+import AtomicOperandType from "./AtomicOperandType";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
 import SymbolTypeResolver from "../../utils/TypeResolver";
@@ -368,6 +370,22 @@ class FilePlanner {
       AdrProvenance.record("010", type.span.line);
     }
     return resolved ?? type.text;
+  }
+
+  /**
+   * A written value's compile-time value, which a bit write folds into its
+   * mask (`BitUtils.boolToInt`). None when it reads a local: the fold would
+   * leave the local's declaration with no reader, which `-Wunused-variable`
+   * rejects (#1791, #2155 review 8). A `volatile` has none either way.
+   */
+  foldWrittenValue(expr: TExpression): number | undefined {
+    const typing = this.state.typingContext();
+    const readsLocal = ExpressionNodes.direct(expr).some(
+      (node) =>
+        (node.kind === "identifier" || node.kind === "postfix") &&
+        OperandTyper.typeOf(node, typing)?.binding?.kind === "local",
+    );
+    return readsLocal ? undefined : this.constantOf(expr);
   }
 
   /** Try to evaluate a constant expression at compile time */
@@ -978,11 +996,7 @@ class FilePlanner {
     }
     const complementCasts = this.planComplementCasts(program, inlinedConsts);
     const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
-    const atomicForms = this.planInterruptSafety(
-      program,
-      decidedCTypes,
-      requirements,
-    );
+    const bitmapFieldWrites = this.planBitmapFieldWrites(program);
     // ADR-007: each union copy is checked by the float static assert
     const floatBitWrites = [...floatBits.writes.values()].filter(
       (write) => write !== null,
@@ -1041,6 +1055,14 @@ class FilePlanner {
       foreignRegisterValues,
       decidedCTypes,
     );
+    const atomicForms = this.planInterruptSafety(
+      program,
+      bitmapFieldWrites,
+      floatBits.writes,
+      clamps.compound,
+      decidedCTypes,
+      requirements,
+    );
     const sliceSources = new Map<IAssignmentSyntax, IPlannedSliceSource>();
     const compoundCasts = new Map<IAssignmentSyntax, string>();
     this.planAssignmentCTypes(
@@ -1069,12 +1091,19 @@ class FilePlanner {
       complementCasts,
       floatBitReads: floatBits.reads,
       floatBitWrites: floatBits.writes,
+      bitmapFieldWrites,
       atomicForms,
-      cTypes: this.planCTypes(program, inlinedConsts, types, [
-        ...decidedCTypes,
-        ...negativeMinimums.values(),
-        ...complementCasts.values(),
-      ]),
+      cTypes: this.planCTypes(
+        program,
+        inlinedConsts,
+        types,
+        bitmapFieldWrites,
+        [
+          ...decidedCTypes,
+          ...negativeMinimums.values(),
+          ...complementCasts.values(),
+        ],
+      ),
       safeDivisions,
       clampChains: clamps.chains,
       compoundClamps: clamps.compound,
@@ -1509,29 +1538,26 @@ class FilePlanner {
       StatementNodes.assignments(entry.declaration),
     );
     for (const site of sites) {
-      const parts = AssignmentTarget.parts(site.target);
-      const range = parts.ops.at(-1);
+      const range = AssignmentTarget.parts(site.target).ops.at(-1);
+      // The register member the typer names, however it is spelled (#2185)
+      const step = this.targetDeclaration(site.target).last;
+      const member =
+        step?.subscript === "bit_range" ? step.beforeRegisterMember : null;
+      const register = step?.beforeRegister ?? null;
       if (
-        parts.identifier === null ||
+        !member ||
+        !register ||
         range?.kind !== "subscript" ||
         range.indexes.length !== 2
       ) {
         continue;
       }
-      const members = parts.ops.slice(0, -1);
-      if (!members.every((op) => op.kind === "member")) continue;
-      const names = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-        [parts.identifier, ...members.map((op) => op.name)],
-        (name) => this.state.isKnownScope(name),
-      );
-      const base = symbols.registerBaseAddresses.get(names.regName);
-      const offset = symbols.registerMemberOffsets.get(names.fullName);
+      const base = symbols.registerBaseAddresses.get(register);
+      const offset = symbols.registerMemberOffsets.get(member);
       if (
         base === undefined ||
         offset === undefined ||
-        !RegisterAccessMode.isWriteOne(
-          symbols.registerMemberAccess.get(names.fullName),
-        )
+        !RegisterAccessMode.isWriteOne(symbols.registerMemberAccess.get(member))
       ) {
         continue;
       }
@@ -1617,7 +1643,7 @@ class FilePlanner {
    */
   private planAssignmentCTypes(
     program: IProgramSyntax,
-    atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm | null>,
+    atomicForms: ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null>,
     compoundClamps: ReadonlyMap<IAssignmentSyntax, unknown>,
     sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
     compoundCasts: Map<IAssignmentSyntax, string>,
@@ -1990,25 +2016,27 @@ class FilePlanner {
       if (node.kind === "literal")
         return node.text.startsWith("'") ? [[0, "int"]] : [];
       if (node.kind !== "postfix") return [];
-      return OperandTyper.chainOf(node, typing).steps.flatMap(
-        (step, index): Array<[number, string]> => {
-          const from = step.before?.typeName ?? null;
-          if (step.subscript === "bit_single") return [[index, "int"]];
-          if (step.subscript === "bit_range") {
-            // A float's bits are read through a union's integer member, which
-            // is not promoted (ADR-007)
-            return from === null || FloatBits.rangeTypeOf(step) !== null
-              ? []
-              : [[index, NarrowingCastHelper.getPromotedType(from)]];
-          }
-          return step.subscript === null &&
-            step.property === null &&
-            from !== null &&
-            bitmapFields?.has(from)
-            ? [[index, "int"]]
-            : [];
-        },
-      );
+      const steps = OperandTyper.chainOf(node, typing).steps;
+      return steps.flatMap((step, index): Array<[number, string]> => {
+        const from = step.before?.typeName ?? null;
+        if (step.subscript === "bit_single") return [[index, "int"]];
+        if (step.subscript === "bit_range") {
+          // A float's bits are read through a union's integer member, which
+          // is not promoted (ADR-007)
+          return from === null || FloatBits.rangeTypeOf(step) !== null
+            ? []
+            : [[index, NarrowingCastHelper.getPromotedType(from)]];
+        }
+        // A field's bits (#2251) are read off the field, which is promoted
+        // only where it is the value
+        return step.subscript === null &&
+          step.property === null &&
+          index === steps.length - 1 &&
+          from !== null &&
+          bitmapFields?.has(from)
+          ? [[index, "int"]]
+          : [];
+      });
     };
     const narrowings = new Map<TExpression, Map<number, TPlannedNarrowing>>();
     for (const [value, planned] of expectedTypes) {
@@ -2071,6 +2099,10 @@ class FilePlanner {
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     types: ReadonlyMap<TTypeSyntax, IPlannedType>,
+    bitmapFieldWrites: ReadonlyMap<
+      IAssignmentSyntax,
+      IBitmapFieldTarget | null
+    >,
     decided: Iterable<string>,
   ): ReadonlySet<string> {
     const cTypes = new Set<string>(decided);
@@ -2094,7 +2126,7 @@ class FilePlanner {
       );
       if (backing !== undefined) cTypes.add(backing);
     }
-    this.planBitmapWriteCTypes(program, cTypes);
+    this.planBitmapWriteCTypes(bitmapFieldWrites, cTypes);
     this.planHeaderTextCTypes(cTypes);
     return cTypes;
   }
@@ -2130,44 +2162,44 @@ class FilePlanner {
    * member's type included)
    */
   private planBitmapWriteCTypes(
-    program: IProgramSyntax,
+    bitmapFieldWrites: ReadonlyMap<
+      IAssignmentSyntax,
+      IBitmapFieldTarget | null
+    >,
     cTypes: Set<string>,
   ): void {
     const symbols = this.state.symbols!;
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
-    for (const site of sites) {
-      const parts = AssignmentTarget.parts(site.target);
-      if (parts.identifier === null || parts.ops.at(-1)?.kind !== "member") {
-        continue;
-      }
-      const bitmap =
-        this.targetDeclaration(site.target).last?.before?.bitmapTypeName ??
-        this.registerMemberBitmap(parts.identifier, parts.ops.slice(0, -1));
-      const backing =
-        bitmap === undefined
-          ? undefined
-          : symbols.bitmapBackingType.get(bitmap);
+    for (const field of bitmapFieldWrites.values()) {
+      const backing = field
+        ? symbols.bitmapBackingType.get(field.bitmapType)
+        : undefined;
       if (backing !== undefined) cTypes.add(backing);
     }
   }
 
-  /** The bitmap type of the register member `identifier.ops` names, if it is one */
-  private registerMemberBitmap(
-    identifier: string,
-    ops: ReturnType<typeof AssignmentTarget.parts>["ops"],
-  ): string | undefined {
-    const names: string[] = [identifier];
-    for (const op of ops) {
-      if (op.kind !== "member") return undefined;
-      names.push(op.name);
+  /**
+   * ADR-034: the bitmap field each assignment writes -- its target's final
+   * step, as the typer typed the chain, whatever spells its prefix (#1749).
+   * The one decision the classifier routes on, the handler writes, the
+   * backing type is planned from and an atomic owner is found by.
+   */
+  private planBitmapFieldWrites(
+    program: IProgramSyntax,
+  ): ReadonlyMap<IAssignmentSyntax, IBitmapFieldTarget | null> {
+    const bitmapFields = this.state.symbols!.bitmapFields;
+    const writes = new Map<IAssignmentSyntax, IBitmapFieldTarget | null>();
+    for (const entry of program.declarations) {
+      for (const site of StatementNodes.assignments(entry.declaration)) {
+        writes.set(
+          site,
+          BitmapFieldStep.fieldOf(
+            this.targetDeclaration(site.target).last,
+            bitmapFields,
+          ),
+        );
+      }
     }
-    const member = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-      names,
-      (name) => this.state.isKnownScope(name),
-    ).fullName;
-    return this.state.symbols!.registerMemberTypes.get(member);
+    return writes;
   }
 
   /**
@@ -2178,10 +2210,19 @@ class FilePlanner {
    */
   private planInterruptSafety(
     program: IProgramSyntax,
+    bitmapFieldWrites: ReadonlyMap<
+      IAssignmentSyntax,
+      IBitmapFieldTarget | null
+    >,
+    floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits | null>,
+    compoundClamps: ReadonlyMap<
+      IAssignmentSyntax,
+      { operation: string; cnxType: string } | null
+    >,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
-  ): ReadonlyMap<IAssignmentSyntax, TAtomicForm | null> {
-    const forms = new Map<IAssignmentSyntax, TAtomicForm | null>();
+  ): ReadonlyMap<IAssignmentSyntax, IPlannedAtomic | null> {
+    const forms = new Map<IAssignmentSyntax, IPlannedAtomic | null>();
     const visit = (statements: readonly TStatement[]): void => {
       for (const statement of statements) {
         visit(StatementChildren.of(statement));
@@ -2195,13 +2236,22 @@ class FilePlanner {
     for (const entry of program.declarations) {
       visit(StatementNodes.roots(entry.declaration));
       for (const site of StatementNodes.assignments(entry.declaration)) {
-        const atomic = this.atomicFormOf(site);
-        forms.set(site, atomic?.form ?? null);
+        const atomic = this.atomicFormOf(
+          site,
+          bitmapFieldWrites.get(site) ?? null,
+          (floatBitWrites.get(site.target) ?? null) !== null,
+          compoundClamps.get(site)?.cnxType ?? null,
+        );
+        forms.set(site, atomic);
         if (atomic === null) continue;
+        if (atomic.form !== "interrupt-mask") {
+          // A retry loop holds the written value in `__operand` (#1807)
+          cTypes.add(atomic.operandCType);
+          cTypes.add(atomic.cType);
+        }
         if (atomic.form === "ldrex-strex") {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
-          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else if (
           atomic.form === "compare-exchange" ||
           atomic.form === "compare-exchange-libatomic"
@@ -2209,7 +2259,6 @@ class FilePlanner {
           requirements.noteCompareExchangeLoop(
             atomic.form === "compare-exchange-libatomic",
           );
-          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
           cTypes.add(PRIMASK_C_TYPE);
@@ -2220,34 +2269,61 @@ class FilePlanner {
   }
 
   /**
-   * ADR-049: a compound write to a variable declared `atomic`, named bare or
-   * through `global.`, is an LDREX/STREX loop where the target and the type
+   * ADR-049: a read-modify-write of a value declared `atomic` -- a compound
+   * write to it, or a bit, a bit range or a bitmap field of it written with
+   * `<-` (#2200) -- is an LDREX/STREX loop where the target and the type
    * allow one, otherwise the masked region, or a compare-exchange loop on a
-   * target that cannot mask interrupts (#1789). Null when the write is not
-   * atomic.
-   * An `atomic` scope member written through `this.` is not seen here, and
-   * saturates or wraps without the guard: bug #1179.
+   * target that cannot mask interrupts (#1789). `AtomicOwner` decides which
+   * value is modified, from the typer, whatever spells it (#1179). Null when
+   * the write is not atomic.
    */
   private atomicFormOf(
     site: IAssignmentSyntax,
-  ): { readonly form: TAtomicForm; readonly typeName: string } | null {
-    if (site.operator === "<-") return null;
-    const parts = AssignmentTarget.parts(site.target);
-    if (parts.ops.length > 0 || parts.root === "this") return null;
-    const written = OperandTyper.typeOfTarget(
-      site.target,
-      this.state.typingContext(),
+    bitmapField: IBitmapFieldTarget | null,
+    writesFloatBits: boolean,
+    clampType: string | null,
+  ): IPlannedAtomic | null {
+    const typing = this.state.typingContext();
+    const access = AtomicOwner.ofWrite(site, typing, bitmapField);
+    if (access === null) return null;
+    AdrProvenance.record("049", site.target.span.line);
+    const target = this.state.targetDescription;
+    const exclusive =
+      target?.ldrex_strex === true ? ExclusiveAccess.of(access) : null;
+    const form = FilePlanner.atomicFormFor(
+      target,
+      exclusive !== null,
+      access.bits,
     );
-    if (!ForHeaderAssignment.isAtomic(written)) return null;
-    const typeName = written?.typeName ?? "";
-    const exclusive = LDREX_MAP[typeName] !== undefined;
+    const planned = {
+      ...access,
+      form,
+      exclusive: form === "ldrex-strex" ? exclusive : null,
+    };
+    const valueCType = AtomicOperandType.valueCTypeOf(
+      OperandTyper.typeOf(site.value, typing),
+      this.tryEvaluateConstant(site.value),
+      access,
+    );
+    if (site.operator !== "<-") {
+      return {
+        ...planned,
+        operandCType: AtomicOperandType.ofCompound(
+          access,
+          clampType,
+          valueCType,
+        ),
+      };
+    }
+    const step = this.targetDeclaration(site.target).last;
     return {
-      form: FilePlanner.atomicFormFor(
-        this.state.targetDescription,
-        exclusive,
-        typeName,
+      ...planned,
+      operandCType: AtomicOperandType.ofBits(
+        access,
+        BitmapFieldStep.writesOneBit(step, bitmapField),
+        writesFloatBits,
+        valueCType,
       ),
-      typeName,
     };
   }
 
@@ -2258,21 +2334,20 @@ class FilePlanner {
    */
   private static widerThanWord(
     target: ITargetDescription | null,
-    typeName: string,
+    bits: number | null,
   ): boolean {
-    const width = TYPE_WIDTH[typeName];
-    return target !== null && width !== undefined && width > target.word_size;
+    return target !== null && bits !== null && bits > target.word_size;
   }
 
   /** The target's one answer to "how is a read-modify-write made atomic" */
   private static atomicFormFor(
     target: ITargetDescription | null,
     exclusive: boolean,
-    typeName: string,
+    bits: number | null,
   ): TAtomicForm {
     if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
     if (!ResolvedTarget.masksInterrupts(target)) {
-      return FilePlanner.widerThanWord(target, typeName)
+      return FilePlanner.widerThanWord(target, bits)
         ? "compare-exchange-libatomic"
         : "compare-exchange";
     }

@@ -1,0 +1,4 @@
+8:0 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).
+12:4 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).

@@ -9,9 +9,9 @@ struct TReading {
 }
 
 // Global atomic variables should generate volatile extern declarations
-atomic mut TReading[4] readings;
-atomic mut u32 counter <- 0;
-atomic mut u8 flags <- 0;
+atomic TReading[4] readings;
+atomic u32 counter <- 0;
+atomic u8 flags <- 0;
 
 scope Manager {
     public void test() {

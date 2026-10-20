@@ -22,7 +22,7 @@ Closed before the status was changed rather than waived: `STRUCT_MEMBER_BIT` was
 kind — a registered handler the classifier could never dispatch to, its own comment saying
 "this is handled through MEMBER_CHAIN" — and is deleted; the remaining five gained tests,
 each mutation-checked to redden alone with a line-shifting negative control staying green.
-**All 30 kinds are named explicitly.**
+**All 26 kinds are named explicitly** (recounted 2026-10-19).
 
 ### What shipped differently from the Decision below
 
@@ -32,8 +32,8 @@ findings about how it was carried out.
 | named below                                 | in the tree                                                                                                                               |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Context Builder `buildAssignmentContext`    | `AssignmentContextBuilder`                                                                                                                |
-| Classifier `classifyAssignment`, "25 kinds" | `AssignmentClassifier`, 30 kinds                                                                                                          |
-| Handlers                                    | 30 registered across 9 modules                                                                                                            |
+| Classifier `classifyAssignment`, "25 kinds" | `AssignmentClassifier`, 26 kinds                                                                                                          |
+| Handlers                                    | 26 registered across 7 modules                                                                                                            |
 | `BitUtils`, `StringUtils`                   | `src/cnx/utils/`, as specified                                                                                                            |
 | `MmioUtils.volatileWrite`                   | absorbed — `RegisterUtils.tryGenerateMMIO` emits the volatile store                                                                       |
 | `BitUtils.writeOnlyBitWrite`                | absorbed — `RegisterUtils.generateWriteOnlyBitRange`                                                                                      |

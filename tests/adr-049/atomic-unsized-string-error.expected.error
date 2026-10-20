@@ -1,0 +1,2 @@
+8:7 error[E0862]: An `atomic` string requires an explicit capacity
+       help: `atomic` makes a binding writable (ADR-071), and only a read-only string can have its capacity inferred. Give it a capacity: `atomic string<64>`.

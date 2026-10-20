@@ -8,3 +8,7 @@
 #include <stdint.h>
 
 Flags shared = 0;
+
+FlagHolder sharedHolder = {0};
+
+FlagHolder sharedHolders[2] = {0};

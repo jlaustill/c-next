@@ -10,6 +10,14 @@ import AssignmentKind from "../../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
+
+/** 2.2's plan for an atomic `u32` compound write on an LDREX/STREX target */
+const PLANNED_ATOMIC = {
+  form: "ldrex-strex",
+  typeName: "u32",
+  cType: "uint32_t",
+  operandCType: "uint32_t",
+} as const;
 import enterScope from "../../../../../__tests__/enterScope";
 
 /**
@@ -42,7 +50,7 @@ function createMockContext(
     targetLine: 1,
     hasValue: true,
     floatBits: null,
-    atomicForm: "ldrex-strex",
+    atomic: PLANNED_ATOMIC,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -129,12 +137,7 @@ describe("SpecialHandlers", () => {
         "counter",
         "+=",
         "1",
-        expect.objectContaining({
-          baseType: "u32",
-          isAtomic: true,
-        }),
-        null,
-        "ldrex-strex",
+        PLANNED_ATOMIC,
         null,
       );
       expect(result).toBe("LDREX/STREX pattern");
@@ -164,12 +167,7 @@ describe("SpecialHandlers", () => {
         "Motor__count",
         "+=",
         "1",
-        expect.objectContaining({
-          baseType: "u32",
-          isAtomic: true,
-        }),
-        null,
-        "ldrex-strex",
+        PLANNED_ATOMIC,
         null,
       );
       expect(result).toBe("atomic result");
@@ -214,9 +212,7 @@ describe("SpecialHandlers", () => {
         "Outer__Inner__count",
         "+=",
         "1",
-        expect.objectContaining({ baseType: "u32", isAtomic: true }),
-        null,
-        "ldrex-strex",
+        PLANNED_ATOMIC,
         null,
       );
     });
@@ -263,9 +259,7 @@ describe("SpecialHandlers", () => {
         "counter",
         "-=",
         "1",
-        expect.anything(),
-        null,
-        "ldrex-strex",
+        PLANNED_ATOMIC,
         null,
       );
     });
@@ -482,10 +476,8 @@ describe("SpecialHandlers", () => {
           "counter",
           "+=",
           "1",
-          expect.anything(),
+          PLANNED_ATOMIC,
           expected,
-          "ldrex-strex",
-          null,
         );
       },
     );

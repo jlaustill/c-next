@@ -45,6 +45,7 @@ import type TEssentialCategory from "../types/TEssentialCategory";
 import type TType from "../types/TType";
 import type TValueBinding from "../types/TValueBinding";
 import type TSubscriptKind from "../types/TSubscriptKind";
+import type IFieldBits from "../types/IFieldBits";
 import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
@@ -55,8 +56,15 @@ type TChainValue =
   | {
       readonly k: "value";
       readonly t: IOperandType;
-      /** A register member: its subscripts are bits */
-      readonly register: boolean;
+      /**
+       * A register member (ADR-004), by its C name and its register's: its
+       * subscripts are bits, and a field of it is written per the member's
+       * access. Null for any other value.
+       */
+      readonly registerMember: {
+        readonly register: string;
+        readonly cName: string;
+      } | null;
     }
   | { readonly k: "scope"; readonly scopePath: string }
   /**
@@ -352,13 +360,34 @@ class OperandTyper {
       const before = OperandTyper.measuredBy(current, op, ctx);
       const { next, subscript } = OperandTyper.applyOp(current, op, ctx);
       const member = op.kind === "member" ? op.name : null;
+      const field = bitField
+        ? OperandTyper.fieldBitsOf(steps.at(-1), subscript, ctx)
+        : null;
+      const owner = field === null ? undefined : steps.at(-1);
+      const beforeRegisterMember =
+        owner !== undefined
+          ? owner.beforeRegisterMember
+          : current.k === "value"
+            ? (current.registerMember?.cName ?? null)
+            : null;
       steps.push({
         before,
         beforeNamesType: current.k === "type" || current.k === "enumType",
         beforeIsBitField: bitField,
+        fieldBits: field,
+        beforeRegisterMember,
+        beforeRegister:
+          owner !== undefined
+            ? owner.beforeRegister
+            : current.k === "value"
+              ? (current.registerMember?.register ?? null)
+              : null,
+        registerMember:
+          next.k === "value" ? (next.registerMember?.cName ?? null) : null,
         subscript,
         after: next.k === "value" ? next.t : null,
         callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,
+        member,
         property:
           before !== null &&
           member !== null &&
@@ -442,7 +471,7 @@ class OperandTyper {
   private static enumMember(enumName: string): TChainValue {
     return {
       k: "value",
-      register: false,
+      registerMember: null,
       t: {
         ...OperandTyper.plain(enumName),
         category: "enum",
@@ -1067,7 +1096,7 @@ class OperandTyper {
     const t = OperandTyper.typeOf(head.primary, ctx);
     return {
       binding: null,
-      value: t ? { k: "value", t, register: false } : UNKNOWN,
+      value: t ? { k: "value", t, registerMember: null } : UNKNOWN,
       ops: rest,
     };
   }
@@ -1103,7 +1132,7 @@ class OperandTyper {
       const t = OperandTyper.boundValue(binding, ctx);
       return {
         binding,
-        value: t ? { k: "value", t, register: false } : UNKNOWN,
+        value: t ? { k: "value", t, registerMember: null } : UNKNOWN,
         ops,
       };
     }
@@ -1137,7 +1166,7 @@ class OperandTyper {
       const t = OperandTyper.boundValue(binding, ctx);
       return {
         binding,
-        value: t ? { k: "value", t, register: false } : UNKNOWN,
+        value: t ? { k: "value", t, registerMember: null } : UNKNOWN,
         ops,
       };
     }
@@ -1252,7 +1281,7 @@ class OperandTyper {
     if (ops.length !== 0) return null;
     const t = OperandTyper.headerMacroType(binding, name, ctx);
     return t
-      ? { binding: null, value: { k: "value", t, register: false }, ops }
+      ? { binding: null, value: { k: "value", t, registerMember: null }, ops }
       : null;
   }
 
@@ -1308,7 +1337,7 @@ class OperandTyper {
     return {
       binding,
       value: t
-        ? { k: "value", t, register: false }
+        ? { k: "value", t, registerMember: null }
         : { k: "foreignPath", parts: [name] },
       ops,
     };
@@ -1328,7 +1357,7 @@ class OperandTyper {
     switch (symbol?.kind) {
       case "variable": {
         const t = OperandTyper.boundValue({ kind: "variable", symbol }, ctx);
-        return t ? { k: "value", t, register: false } : UNKNOWN;
+        return t ? { k: "value", t, registerMember: null } : UNKNOWN;
       }
       case "function":
         return { k: "function", cName, returnType: symbol.returnType };
@@ -1381,7 +1410,7 @@ class OperandTyper {
     if (t.category === "enum" && !LengthProperty.isLength(member)) {
       return {
         k: "value",
-        register: false,
+        registerMember: null,
         t: { ...t, form: { kind: "enumMember" } },
       };
     }
@@ -1412,12 +1441,19 @@ class OperandTyper {
         const info =
           register?.kind === "register" ? register.members.get(member) : null;
         if (!info) return UNKNOWN;
+        // #2155 review 8: the member is named whether or not its type
+        // resolves (an included bitmap does not, #1514), so its access rules
+        // still apply to it
+        const registerMember = {
+          register: current.name,
+          cName: QualifiedCName.fromParts([current.name, member]),
+        };
         if (info.bitmapType) {
           const t = {
             ...OperandTyper.plain(info.bitmapType),
             bitmapTypeName: info.bitmapType,
           };
-          return { k: "value", register: true, t };
+          return { k: "value", registerMember, t };
         }
         // A member records its C spelling (`uint16_t`)
         const foreign = ForeignTypeFacts.operandType(
@@ -1425,9 +1461,21 @@ class OperandTyper {
           ctx.symbolTable,
           OperandTyper.target(ctx),
         );
-        if (!foreign) return UNKNOWN;
-        const t = { ...foreign, form: DECLARED };
-        return { k: "value", register: true, t };
+        if (foreign !== null) {
+          return {
+            k: "value",
+            registerMember,
+            t: { ...foreign, form: DECLARED },
+          };
+        }
+        // A C-Next enum types the member as that enum (#2155 review 9); a type
+        // that does not resolve (an included bitmap, #1514) types nothing
+        const named = OperandTyper.namedFacts(info.cType, ctx);
+        const t =
+          named.category === "enum"
+            ? { ...OperandTyper.plain(info.cType), ...named }
+            : OperandTyper.plain(null);
+        return { k: "value", registerMember, t };
       }
       case "foreignPath":
         return OperandTyper.foreignPathOf([...current.parts, member], ctx);
@@ -1498,7 +1546,7 @@ class OperandTyper {
       if (!field) return UNKNOWN;
       return {
         k: "value",
-        register: false,
+        registerMember: null,
         t: {
           ...OperandTyper.fromType(
             field.type,
@@ -1511,6 +1559,25 @@ class OperandTyper {
       };
     }
     return OperandTyper.foreignFieldOf(t, t.typeName, member, ctx);
+  }
+
+  /**
+   * ADR-034 (#2251): a bit or bit range of the bitmap field `fieldStep` read,
+   * as bits of its bitmap at the field's offset; null for a header bit-field
+   * or any other subscript
+   */
+  private static fieldBitsOf(
+    fieldStep: IChainStep | undefined,
+    subscript: TSubscriptKind | null,
+    ctx: ITypingContext,
+  ): IFieldBits | null {
+    if (subscript !== "bit_single" && subscript !== "bit_range") return null;
+    const bitmap = fieldStep?.before?.bitmapTypeName ?? null;
+    const name = fieldStep?.member ?? null;
+    if (bitmap === null || name === null) return null;
+    const layout = ctx.symbols.bitmapFields.get(bitmap)?.get(name);
+    if (layout === undefined) return null;
+    return { storage: fieldStep?.before ?? null, offset: layout.offset };
   }
 
   /** Whether `op` reads a bitmap field or a header bit-field of `current` (ADR-058) */
@@ -1548,7 +1615,7 @@ class OperandTyper {
     const typeName = width === 1 ? "bool" : OperandTyper.unsignedFor(width);
     return {
       k: "value",
-      register: false,
+      registerMember: null,
       t: {
         ...OperandTyper.plain(typeName),
         category: width === 1 ? "boolean" : "unsigned",
@@ -1585,7 +1652,7 @@ class OperandTyper {
     if (foreign) {
       return {
         k: "value",
-        register: false,
+        registerMember: null,
         // A read of the field has the struct's side effect, or its own: a
         // volatile field is one (#1760 review: the struct's replaced it)
         t: {
@@ -1600,7 +1667,7 @@ class OperandTyper {
     if (info !== undefined) {
       return {
         k: "value",
-        register: false,
+        registerMember: null,
         t: {
           ...OperandTyper.plain(null),
           cType: info.type,
@@ -1632,7 +1699,9 @@ class OperandTyper {
       ctx.symbolTable,
       OperandTyper.target(ctx),
     );
-    return t ? { k: "value", register: false, t } : { k: "foreignPath", parts };
+    return t
+      ? { k: "value", registerMember: null, t }
+      : { k: "foreignPath", parts };
   }
 
   /**
@@ -1671,7 +1740,8 @@ class OperandTyper {
     const subscript = SubscriptClassifier.classify({
       typeInfo: OperandTyper.subscriptedShape(t),
       subscriptCount: indices.length,
-      isRegisterAccess: current.k === "value" && current.register,
+      isRegisterAccess:
+        current.k === "value" && current.registerMember !== null,
     });
     if (t === null) return { next: UNKNOWN, subscript };
     // An element read whose index calls, or reads a volatile, has that side
@@ -1689,7 +1759,7 @@ class OperandTyper {
             subscript,
             next: {
               k: "value",
-              register: false,
+              registerMember: null,
               t: {
                 ...t,
                 // ADR-044: an element is declared by its array (#1887)
@@ -1711,7 +1781,7 @@ class OperandTyper {
           subscript,
           next: {
             k: "value",
-            register: false,
+            registerMember: null,
             t: {
               ...OperandTyper.plain("char"),
               category: "character",
@@ -1726,7 +1796,7 @@ class OperandTyper {
           subscript,
           next: {
             k: "value",
-            register: false,
+            registerMember: null,
             t: { ...t, overflow: null, binding: null, ...keep },
           },
         };
@@ -1735,7 +1805,7 @@ class OperandTyper {
           subscript,
           next: {
             k: "value",
-            register: false,
+            registerMember: null,
             t: {
               ...OperandTyper.plain("bool"),
               category: "boolean",
@@ -1753,7 +1823,7 @@ class OperandTyper {
           subscript,
           next: {
             k: "value",
-            register: false,
+            registerMember: null,
             t: {
               ...OperandTyper.plain(typeName),
               category: "unsigned",
@@ -1783,7 +1853,7 @@ class OperandTyper {
     if (current.k === "function") {
       return {
         k: "value",
-        register: false,
+        registerMember: null,
         t: {
           ...OperandTyper.fromType(current.returnType, [], ctx),
           hasSideEffect: true,
@@ -1797,7 +1867,7 @@ class OperandTyper {
       if (definer?.kind === "function") {
         return {
           k: "value",
-          register: false,
+          registerMember: null,
           t: {
             ...OperandTyper.fromType(definer.returnType, [], ctx),
             hasSideEffect: true,
@@ -1810,7 +1880,7 @@ class OperandTyper {
       return current.result
         ? {
             k: "value",
-            register: false,
+            registerMember: null,
             t: { ...current.result, hasSideEffect: true, form: call },
           }
         : UNKNOWN;
@@ -1821,7 +1891,7 @@ class OperandTyper {
         ctx.symbolTable,
         OperandTyper.target(ctx),
       );
-      return t ? { k: "value", register: false, t } : UNKNOWN;
+      return t ? { k: "value", registerMember: null, t } : UNKNOWN;
     }
     return UNKNOWN;
   }

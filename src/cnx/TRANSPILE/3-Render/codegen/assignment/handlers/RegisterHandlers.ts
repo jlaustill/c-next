@@ -5,8 +5,9 @@
  * - REGISTER_BIT: GPIO7.DR_SET[LED_BIT] <- true
  * - REGISTER_BIT_RANGE: GPIO7.DR_SET[0, 8] <- value
  * - REGISTER_MEMORY_MAPPED: Width-appropriate MMIO access
- * - SCOPED_REGISTER_BIT: this.GPIO7.DR_SET[bit] <- true
- * - SCOPED_REGISTER_BIT_RANGE: this.GPIO7.ICR1[6, 2] <- value
+ *
+ * However the register is spelled -- bare, a scope's own bare name, `this.`,
+ * `Scope.` or `global.` -- the typer names the member (#2185).
  */
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
@@ -14,7 +15,21 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
-import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import invariant from "../../../../../utils/invariant";
+
+/**
+ * The C type a register member's bits are written in: a bitmap member's
+ * backing integer (#2251: a bit of its field is a bit of it), else its own
+ */
+function storageOf(
+  ctx: IAssignmentContext,
+  memberName: string,
+): string | undefined {
+  const symbols = ctx.state.symbols!;
+  const cType = symbols.registerMemberCTypes.get(memberName);
+  if (cType === undefined) return undefined;
+  return symbols.bitmapBackingType.get(cType) ?? cType;
+}
 
 /**
  * A bit of a register member. A write-1 member (`wo`, `w1s`, `w1c`) is
@@ -23,21 +38,22 @@ import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator"
  */
 function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
   const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
-  const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
+  const storage = storageOf(ctx, memberName);
   const bitIndex = ctx.renderSubscript(0);
 
   if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.foldValue(),
       ctx.generatedValue,
       memberName,
       bitIndex,
-      true,
     );
     return BitUtils.writeOnlySingleBit(
       memberName,
       bitIndex,
       ctx.generatedValue,
       storage,
+      ctx.foldValue(),
     );
   }
 
@@ -46,6 +62,7 @@ function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
     bitIndex,
     ctx.generatedValue,
     storage,
+    ctx.foldValue(),
   );
 }
 
@@ -61,17 +78,17 @@ function writeRegisterBitRange(
   regName: string,
 ): string {
   const accessMod = ctx.state.symbols!.registerMemberAccess.get(memberName);
-  const storage = ctx.state.symbols!.registerMemberCTypes.get(memberName);
+  const storage = storageOf(ctx, memberName);
   const start = ctx.renderSubscript(0);
   // With its fold (#1096): a register's `[0, W]` masked a runtime `1U << 32`
   const width = { text: ctx.renderSubscript(1), folded: ctx.foldSubscript(1) };
 
   if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
+      ctx.foldValue(),
       ctx.generatedValue,
       memberName,
       `${start}, ${width.text}`,
-      false,
     );
 
     const mmio = RegisterUtils.tryGenerateMMIO(
@@ -106,59 +123,29 @@ function writeRegisterBitRange(
 }
 
 /**
+ * The register member the typer names, however the register was spelled --
+ * `R.M`, a scope's own bare `R.M`, `this.R.M`, `S.R.M` (#2185)
+ */
+function memberOf(ctx: IAssignmentContext): string {
+  const member = ctx.target.last?.beforeRegisterMember;
+  invariant(member, "the classifier routes a register member's bits here");
+  return member;
+}
+
+/**
  * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true
  */
 function handleRegisterBit(ctx: IAssignmentContext): string {
-  const { fullName } =
-    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-      ctx.identifiers,
-      (name) => ctx.state.isKnownScope(name),
-    );
-  return writeRegisterBit(ctx, fullName);
+  return writeRegisterBit(ctx, memberOf(ctx));
 }
 
 /**
  * Handle register bit range: GPIO7.DR_SET[0, 8] <- value
  */
 function handleRegisterBitRange(ctx: IAssignmentContext): string {
-  const { fullName, regName } =
-    AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
-      ctx.identifiers,
-      (name) => ctx.state.isKnownScope(name),
-    );
-  return writeRegisterBitRange(ctx, fullName, regName);
-}
-
-/**
- * Handle scoped register single bit: this.GPIO7.DR_SET[bit] <- true
- */
-function handleScopedRegisterBit(ctx: IAssignmentContext): string {
-  // Build scoped name: Scope_Register_Member
-  const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    ctx.state.currentScopePath,
-    ctx.identifiers,
-  );
-  return writeRegisterBit(ctx, regName);
-}
-
-/**
- * Handle scoped register bit range: this.GPIO7.ICR1[6, 2] <- value
- */
-function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
-  // #1298: `currentScopePath` IS the whole enclosing path. A scope's leaf name
-  // discards every outer component -- the exact leaf-only encoder #1285 removed
-  // -- so pass the path on unmodified.
-  const declaringScopePath = ctx.state.currentScopePath;
-  const parts = ctx.identifiers;
-  const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    declaringScopePath,
-    parts,
-  );
-  const scopedRegName = QualifiedNameGenerator.forMember(
-    declaringScopePath,
-    parts[0],
-  );
-  return writeRegisterBitRange(ctx, regName, scopedRegName);
+  const register = ctx.target.last?.beforeRegister;
+  invariant(register, "the typer names a register member's register");
+  return writeRegisterBitRange(ctx, memberOf(ctx), register);
 }
 
 /**
@@ -167,8 +154,6 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
 const registerHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
   [AssignmentKind.REGISTER_BIT, handleRegisterBit],
   [AssignmentKind.REGISTER_BIT_RANGE, handleRegisterBitRange],
-  [AssignmentKind.SCOPED_REGISTER_BIT, handleScopedRegisterBit],
-  [AssignmentKind.SCOPED_REGISTER_BIT_RANGE, handleScopedRegisterBitRange],
 ];
 
 export default registerHandlers;

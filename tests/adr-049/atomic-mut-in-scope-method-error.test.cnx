@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 049
+// E0919 (#2233) in a scope method: a local carrying both atomic and mut is
+// rejected as a global is. The atomic-only local is a control that is
+// written with no mut and stays silent.
+#pragma target stm32f4
+
+scope Worker {
+    public void run() {
+        atomic mut u8 y <- 0;
+        atomic u8 z <- 0;
+        y +<- 1;
+        z +<- 1;
+    }
+}
+
+void main() {
+    Worker.run();
+}

@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 049
+// E0919 (#2233) in a top-level function: a local carrying both atomic and
+// mut is rejected as a global is. The atomic-only local is a control that
+// is written with no mut and stays silent. `idle` is never written: it is
+// E0919 alone, not E0899 first (#2155 review 8).
+#pragma target stm32f4
+
+void main() {
+    atomic mut u8 x <- 0;
+    atomic u8 z <- 0;
+    atomic mut u8 idle <- 0;
+    x +<- 1;
+    z +<- 1;
+}

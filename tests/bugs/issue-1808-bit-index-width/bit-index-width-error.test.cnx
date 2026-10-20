@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 007
+// #1808: a constant bit index, or a constant bit range's last bit, past the
+// width of the value it indexes is E0920 -- its declared type's, or a bitmap
+// field's (#2251). The in-range indexes on each line before are the controls.
+bitmap8 Pins {
+    A,
+    B,
+    C,
+    LED,
+    Mode[3],
+    R7
+}
+
+mut Pins p;
+mut u8 small;
+
+void main() {
+    small[7] <- true;
+    small[20] <- true;
+    small[0, 8] <- 5;
+    small[0, 9] <- 5;
+    p.Mode[2] <- true;
+    p.Mode[3] <- true;
+    p.Mode[1, 2] <- 1;
+    p.Mode[2, 2] <- 1;
+    bool r <- small[31];
+}

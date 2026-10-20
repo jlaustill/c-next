@@ -133,6 +133,8 @@ an unwritten parameter, local, global and scope member as not written.
    what the C-Next says. For a struct or array parameter, passed by pointer, that is also
    MISRA C:2012 Rule 8.13's `const` on the pointed-to type.
 
+_(Clarified 2026-10-19, owner ruling on #2233: an `atomic` binding is writable without `mut`, since only a value something writes needs a read or write that cannot be torn (ADR-049). `atomic mut` is E0919. Decision 6 still applies: an `atomic` local or private scope member nothing writes is E0899, which asks for `atomic` to be removed.)_
+
 Rejected:
 
 - **Parameters only.** Explored first; the owner widened it so one rule covers every binding.

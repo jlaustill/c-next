@@ -98,6 +98,12 @@ A `volatile` variable:
 - **Cannot be reordered** relative to other volatile accesses
 - **Cannot be optimized away** even if the value appears unused
 
+A `volatile` binding is never a compile-time value, even when it is read-only:
+its value is the hardware's or an interrupt's, so every use reads it where it
+is written. It does not size an array (E0909), fold into a bit write, label a
+`case`, or stand in for a known zero (E0872). (Clarified 2026-10-19, review of
+#2155.)
+
 ### Code Generation
 
 ```cnx
@@ -337,7 +343,7 @@ void ISR_Handler() {
 
 ```cnx
 // CORRECT: ISR-safe
-atomic mut u32 counter <- 0;
+atomic u32 counter <- 0;
 
 void ISR_Handler() {
     counter +<- 1; // Atomic RMW operation

@@ -43,6 +43,8 @@ function createMockContext(
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
+    bitmapField: null,
+    atomic: null,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -322,6 +324,7 @@ describe("BitAccessHandlers", () => {
         width: { text: "8", folded: undefined },
         value: "true",
         isVariable: true,
+        atomic: null,
       });
       expect(result).toBe("float_range_write_result");
     });
@@ -362,6 +365,7 @@ describe("BitAccessHandlers", () => {
         width: null,
         value: "true",
         isVariable: false,
+        atomic: null,
       });
       expect(result).toBe("element_write");
     });
@@ -388,6 +392,11 @@ describe("BitAccessHandlers", () => {
             callee: null,
             beforeNamesType: false,
             beforeIsBitField: false,
+            fieldBits: null,
+            beforeRegisterMember: null,
+            beforeRegister: null,
+            registerMember: null,
+            member: null,
           },
         },
       };

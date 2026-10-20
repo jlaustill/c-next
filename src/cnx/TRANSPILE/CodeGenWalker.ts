@@ -940,8 +940,12 @@ class CodeGenWalker {
         ? this.host.state.parameterBindingAt(identifier, parts.position)
         : undefined;
     if (!hasGlobal && !hasThis && identifier) {
+      // A local named like a global register is the local, as its reads are:
+      // ADR-057 resolves a bare name local-first, writes included (#2199)
       const isKnownRegister =
-        this.host.state.symbols?.knownRegisters.has(identifier);
+        this.host.state.symbols?.knownRegisters.has(identifier) &&
+        this.host.state.bindingAt(null, identifier, parts.position)?.kind !==
+          "local";
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
       // access) must resolve through the same dereference logic as a bare
       // parameter reference (ParameterDereferenceResolver), not skip it.
@@ -1297,6 +1301,7 @@ class CodeGenWalker {
       clampChains: new Set(),
       floatBitWrites: new Set(),
       compoundClamps: new Set(),
+      bitmapFieldWrites: new Set(),
       atomicForms: new Set(),
     };
     this.planner.useParameters(plan.setup.parameters);
@@ -1473,6 +1478,11 @@ class CodeGenWalker {
       CodeGenWalker.decidedSites(this.filePlan.compoundClamps),
       this.rendering.compoundClamps,
       "compound clamp",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.bitmapFieldWrites),
+      this.rendering.bitmapFieldWrites,
+      "bitmap field write",
     );
     CodeGenWalker.assertAllRendered(
       CodeGenWalker.decidedSites(this.filePlan.atomicForms),
@@ -2967,7 +2977,13 @@ class CodeGenWalker {
         this.rendering.floatBitWrites,
         "assignment target",
       ),
-      atomicForm: CodeGenWalker.plannedAt(
+      bitmapField: CodeGenWalker.plannedAt(
+        this.filePlan.bitmapFieldWrites,
+        site,
+        this.rendering.bitmapFieldWrites,
+        "assignment",
+      ),
+      atomic: CodeGenWalker.plannedAt(
         this.filePlan.atomicForms,
         site,
         this.rendering.atomicForms,
@@ -2992,6 +3008,7 @@ class CodeGenWalker {
         this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.renderExpression(expr),
       tryEvaluateConstant: (expr) => this.planner.tryEvaluateConstant(expr),
+      foldWrittenValue: (expr) => this.planner.foldWrittenValue(expr),
       expressionType: (expr) => this.planner.directTypeOf(expr),
       integerExpressionType: (expr) => this.planner.integerTypeOf(expr),
       hasFloatingOperand: (expr) => this.planner.hasFloatingLeaf(expr),

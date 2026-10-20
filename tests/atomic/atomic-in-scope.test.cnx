@@ -5,7 +5,7 @@
 
 scope Counter {
     // Atomic variables within scope
-    atomic mut u32 value <- 0;
+    atomic u32 value <- 0;
     atomic u8 overflowCount <- 0;
     public void increment() {
         this.value +<- 1;
@@ -15,6 +15,7 @@ scope Counter {
     }
     public void reset() {
         this.value <- 0;
+        this.overflowCount <- 0;
     }
     public u32 get() {
         return this.value;
@@ -22,8 +23,8 @@ scope Counter {
 }
 
 scope Timer {
-    atomic mut wrap u32 ticks <- 0;
-    atomic mut clamp u16 period <- 1000;
+    atomic wrap u32 ticks <- 0;
+    atomic clamp u16 period <- 1000;
     public void tick() {
         this.ticks +<- 1;
     }

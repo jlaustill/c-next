@@ -32,6 +32,10 @@
 // it after the boundary. A second derivation that happens to agree same-file is
 // what both bugs are made of.
 //
+// #1749: the same field reached through a chain -- an included struct's
+// member, an element of its bitmap array, a member of an included struct
+// array's element -- is one bit write too.
+//
 // `local` is the NEGATIVE CONTROL: a bitmap declared in THIS file, which was
 // always correct and must stay correct. A fix that made the cross-file path
 // work by breaking the local one fails here.
@@ -42,9 +46,12 @@
 LocalFlags local = 0;
 
 int main(void) {
-    shared = (uint8_t)((shared & ~(1U << 0)) | ((1 ? 1U : 0U) << 0));
+    shared = (uint8_t)((shared & ~(1U << 0)) | (1U << 0));
     shared = (uint8_t)((shared & ~(0x7U << 2)) | ((5U & 0x7U) << 2));
-    local = (uint8_t)((local & ~(1U << 0)) | ((1 ? 1U : 0U) << 0));
+    sharedHolder.fl = (uint8_t)((sharedHolder.fl & ~(0x7U << 2)) | ((6U & 0x7U) << 2));
+    sharedHolder.fls[1] = (uint8_t)((sharedHolder.fls[1] & ~(1U << 1)) | (1U << 1));
+    sharedHolders[1].fl = (uint8_t)((sharedHolders[1].fl & ~(1U << 0)) | (1U << 0));
+    local = (uint8_t)((local & ~(1U << 0)) | (1U << 0));
     local = (uint8_t)((local & ~(0x7U << 1)) | ((3U & 0x7U) << 1));
     if (((shared >> 0) & 1) != 1) {
         return 1U;
@@ -57,6 +64,21 @@ int main(void) {
     }
     if (((local >> 1) & 0x7) != 3) {
         return 4U;
+    }
+    if (((sharedHolder.fl >> 2) & 0x7) != 6) {
+        return 5U;
+    }
+    if (((sharedHolder.fls[1U] >> 1) & 1) != 1) {
+        return 6U;
+    }
+    if (((sharedHolder.fls[0U] >> 1) & 1) != 0) {
+        return 7U;
+    }
+    if (((sharedHolders[1U].fl >> 0) & 1) != 1) {
+        return 8U;
+    }
+    if (((sharedHolders[0U].fl >> 0) & 1) != 0) {
+        return 9U;
     }
     return 0U;
 }

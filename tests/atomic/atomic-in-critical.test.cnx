@@ -3,9 +3,9 @@
 // Note: Compilation test only - ARM-specific code
 #pragma target teensy41
 
-atomic mut u32 sharedCounter <- 0;
+atomic u32 sharedCounter <- 0;
 
-atomic mut wrap u16 sequence <- 0;
+atomic wrap u16 sequence <- 0;
 
 mut u8[64] buffer;
 

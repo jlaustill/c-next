@@ -7,8 +7,9 @@
  */
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
+import type IPlannedAtomic from "../../types/IPlannedAtomic";
+import type IBitmapFieldTarget from "../../../types/IBitmapFieldTarget";
 import type IPlannedWholeArrayWrite from "./IPlannedWholeArrayWrite";
-import type TAtomicForm from "../../types/TAtomicForm";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
 import type IChainBase from "../../../types/IChainBase";
@@ -72,8 +73,10 @@ interface IAssignmentContext {
   readonly hasValue: boolean;
   /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
   readonly floatBits: IPlannedFloatBits | null;
+  /** 2.2's decision: the bitmap field the target writes (ADR-034), or null */
+  readonly bitmapField: IBitmapFieldTarget | null;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
-  readonly atomicForm: TAtomicForm | null;
+  readonly atomic: IPlannedAtomic | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */

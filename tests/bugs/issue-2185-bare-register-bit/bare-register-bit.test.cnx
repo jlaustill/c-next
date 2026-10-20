@@ -1,0 +1,44 @@
+// Issue #2185: a scope's register bit written by its bare name -- `PWM.FLAGS[0]`
+// inside `scope Drive` -- is written per the member's access, as the `this.`
+// spelling of the same write is. The bare name was not a known register under
+// its spelling (the register is keyed `Drive__PWM`), so a write-1 member was
+// read-modify-written: on `w1c` that writes back every pending flag it read.
+// The typer names the member under every spelling, and that decides the write.
+//
+// NEGATIVE CONTROL: the `rw` member CONFIG keeps its read-modify-write under
+// both spellings. The byte-aligned range on the `wo` member CTRL takes the
+// one-byte memory access under both spellings.
+
+scope Drive {
+    register PWM @ 0x40001000 {
+        CTRL: u8 wo @ 0x00,
+        FLAGS: u8 w1c @ 0x04,
+        SET: u8 w1s @ 0x08,
+        CONFIG: u8 rw @ 0x0C,
+    }
+
+    public void viaBare() {
+        PWM.CTRL[1] <- true;
+        PWM.FLAGS[0] <- true;
+        PWM.SET[2] <- true;
+        PWM.CONFIG[3] <- true;
+        PWM.CTRL[0, 8] <- 0x55;
+        PWM.FLAGS[1, 3] <- 5;
+        PWM.CONFIG[1, 3] <- 5;
+    }
+
+    public void viaThis() {
+        this.PWM.CTRL[1] <- true;
+        this.PWM.FLAGS[0] <- true;
+        this.PWM.SET[2] <- true;
+        this.PWM.CONFIG[3] <- true;
+        this.PWM.CTRL[0, 8] <- 0x55;
+        this.PWM.FLAGS[1, 3] <- 5;
+        this.PWM.CONFIG[1, 3] <- 5;
+    }
+}
+
+void main() {
+    Drive.viaBare();
+    Drive.viaThis();
+}

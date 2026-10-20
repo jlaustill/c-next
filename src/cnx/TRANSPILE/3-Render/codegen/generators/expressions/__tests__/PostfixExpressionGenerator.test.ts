@@ -263,6 +263,11 @@ function memberStep(
     callee: null,
     beforeNamesType: false,
     beforeIsBitField: false,
+    fieldBits: null,
+    beforeRegisterMember: null,
+    beforeRegister: null,
+    registerMember: null,
+    member: null,
   };
 }
 
@@ -467,6 +472,11 @@ function withPropertySteps(
               callee: null,
               beforeNamesType: false,
               beforeIsBitField: false,
+              fieldBits: null,
+              beforeRegisterMember: null,
+              beforeRegister: null,
+              registerMember: null,
+              member: null,
             },
           };
     }

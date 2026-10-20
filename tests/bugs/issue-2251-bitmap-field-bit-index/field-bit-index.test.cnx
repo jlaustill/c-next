@@ -1,0 +1,59 @@
+// test-execution
+// test-adr: 034
+// #2251 (owner ruling 2026-10-19): a bit or bit range of a bitmap field is
+// bits of the bitmap at the field's offset. `p.Mode[1]`, with Mode at bits
+// 4-6, is bit 5 of `p`, for reads and writes, with a constant or a runtime
+// index. The other fields are the control: they keep their values.
+bitmap8 Pins {
+    A,
+    B,
+    C,
+    LED,
+    Mode[3],
+    R7
+}
+
+mut Pins p;
+
+void setBit(u8 i) {
+    p.Mode[i] <- true;
+}
+
+u32 main() {
+    p.A <- true;
+    p.R7 <- true;
+    p.Mode[1] <- true;
+    if (p.Mode != 2) {
+        return 1;
+    }
+    bool b1 <- p.Mode[1];
+    if (b1 != true) {
+        return 2;
+    }
+    bool b0 <- p.Mode[0];
+    if (b0 != false) {
+        return 3;
+    }
+    setBit(2);
+    if (p.Mode != 6) {
+        return 4;
+    }
+    p.Mode[0, 2] <- 1;
+    if (p.Mode != 5) {
+        return 5;
+    }
+    u8 low <- p.Mode[0, 2];
+    if (low != 1) {
+        return 6;
+    }
+    if (p.A != true) {
+        return 7;
+    }
+    if (p.R7 != true) {
+        return 8;
+    }
+    if (p.LED != false) {
+        return 9;
+    }
+    return 0;
+}

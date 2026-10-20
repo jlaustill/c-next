@@ -1,0 +1,36 @@
+// test-execution
+// test-adr: 034
+// #2249: a ternary written to one bit is one operand of the bit's
+// conversion, so `f.A <- (a > b) ? a : b` sets A and nothing else. It was
+// spliced in unparenthesized, so C read `(a > b) ? a : (b ? 1U : 0U)` and
+// ORed `a` into the bitmap. The integer bit write is the second case.
+bitmap8 F {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+mut F f;
+mut u8 w;
+
+void go(u8 a, u8 b) {
+    f.A <- (a > b) ? a : b;
+    w[0] <- (a > b) ? a : b;
+}
+
+u32 main() {
+    go(4, 1);
+    if (f.A != true) {
+        return 1;
+    }
+    if (f.Mode != 0) {
+        return 2;
+    }
+    if (w != 1) {
+        return 3;
+    }
+    return 0;
+}

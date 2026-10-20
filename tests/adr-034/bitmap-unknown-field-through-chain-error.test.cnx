@@ -1,0 +1,53 @@
+// test-error
+// test-adr: 034
+// ADR-034: a field the bitmap does not declare is E0882 whatever spells the
+// bitmap's prefix. Until the #1749 review, E0882 found the bitmap only as a
+// chain's first name or a register member, so a bitmap reached through a
+// struct, an array element or a scope member reached codegen and failed there
+// as an internal error. E0881 and E0883 read the same typed chain.
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+struct S {
+    Flags fl;
+}
+
+mut S[2] gss;
+mut S gs;
+
+scope Sc {
+    public mut S ps;
+    public mut Flags fl;
+
+    public void m() {
+        this.fl.Nope <- true;
+    }
+}
+
+u8 main() {
+    // NEGATIVE CONTROLS -- declared fields through every prefix
+    gss[1].fl.Mode <- 5;
+    gs.fl.A <- true;
+    Sc.ps.fl.B <- true;
+    bool ok <- gss[1].fl.A;
+
+    // ASSERTIONS -- a field the bitmap does not declare, written and read
+    gss[1].fl.Nope <- true;
+    gs.fl.Nope <- true;
+    Sc.ps.fl.Nope <- true;
+    bool r <- gss[1].fl.Nope;
+    // E0881 (a literal too wide for the field) and E0883 (bracket indexing
+    // on a bitmap) through the same prefixes (#2155 review 9)
+    gss[1].fl.Mode <- 9;
+    Sc.ps.fl.Mode <- 8;
+    gss[1].fl[0] <- true;
+    gs.fl[0] <- true;
+    return 0;
+}

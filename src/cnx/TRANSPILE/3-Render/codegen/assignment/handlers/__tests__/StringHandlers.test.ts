@@ -45,6 +45,8 @@ function createMockContext(
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
+    bitmapField: null,
+    atomic: null,
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
@@ -222,6 +224,11 @@ describe("StringHandlers", () => {
             callee: null,
             beforeNamesType: false,
             beforeIsBitField: false,
+            fieldBits: null,
+            beforeRegisterMember: null,
+            beforeRegister: null,
+            registerMember: null,
+            member: null,
           },
         },
       };
@@ -286,6 +293,11 @@ describe("StringHandlers", () => {
             callee: null,
             beforeNamesType: false,
             beforeIsBitField: false,
+            fieldBits: null,
+            beforeRegisterMember: null,
+            beforeRegister: null,
+            registerMember: null,
+            member: null,
           },
         },
       };

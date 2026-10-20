@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 064
+// #2155 review 9: a read-only `volatile` is never a compile-time value
+// (ADR-064), so it cannot size an array (E0909). A plain read-only binding
+// is the control.
+u8 N <- 2;
+volatile u8 K <- 2;
+
+mut u8[N] ok;
+mut u8[K] buf;
+
+void main() {
+    ok[0] <- 1;
+    buf[0] <- 1;
+}
