@@ -8,6 +8,7 @@ function noIncludes(): IFileIncludes {
     cnextAlternatives: new Map(),
     kinds: new Map(),
     quotedIncludeDirectory: "/p",
+    generatedHeaderDirectory: "/p",
     headerIncludeDirectives: new Map(),
     writerRelativeIncludes: new Map(),
     userIncludes: [],

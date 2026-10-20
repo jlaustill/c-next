@@ -102,36 +102,18 @@ describe("PathResolver", () => {
     });
   });
 
-  describe("getSourceRelativePath", () => {
-    it("returns relative path when file is under input", () => {
-      const resolver = new PathResolver(
-        {
-          inputs: [srcDir],
-          outDir,
-        },
-        NodeFileSystem.instance,
-      );
-
-      const filePath = join(srcDir, "subdir", "utils.cnx");
-      writeFileSync(filePath, "");
-
-      expect(resolver.getSourceRelativePath(filePath)).toBe(
-        join("subdir", "utils.cnx"),
+  // #2272/#1473: a quoted include resolves from the including file's directory
+  describe("posixRelative", () => {
+    it("names a file beside the directory by its basename", () => {
+      expect(PathResolver.posixRelative("/out/lib", "/out/lib/a.h")).toBe(
+        "a.h",
       );
     });
 
-    it("returns basename when file is not under any input", () => {
-      const resolver = new PathResolver(
-        {
-          inputs: [srcDir],
-          outDir,
-        },
-        NodeFileSystem.instance,
-      );
-
-      const filePath = "/some/other/path/file.cnx";
-
-      expect(resolver.getSourceRelativePath(filePath)).toBe("file.cnx");
+    it("climbs out of the directory with forward slashes", () => {
+      expect(
+        PathResolver.posixRelative("/out/src/lib", "/out/include/lib/a.h"),
+      ).toBe("../../include/lib/a.h");
     });
   });
 

@@ -59,7 +59,7 @@ interface ITestGenerateOptions {
   readonly cppMode: boolean;
   readonly targetName?: string;
   readonly sourcePath?: string;
-  readonly sourceRelativePath?: string;
+  readonly selfInclude?: string;
   readonly cnxIncludeRewrites?: ReadonlyMap<string, string>;
   readonly includeKinds?: ReadonlyMap<string, EFileType>;
   readonly debugMode?: boolean;
@@ -170,8 +170,12 @@ class ProgramGeneration {
           [
             sourcePath,
             {
-              sourceRelativePath:
-                options.sourceRelativePath ?? basename(sourcePath),
+              selfInclude:
+                options.selfInclude ??
+                basename(sourcePath).replace(
+                  /\.cnx$/,
+                  options.cppMode ? ".hpp" : ".h",
+                ),
               source: sourcePath,
               header: sourcePath,
             },

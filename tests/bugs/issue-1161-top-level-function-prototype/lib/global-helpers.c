@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/global-helpers.h"
+#include "global-helpers.h"
 
 #include <stdint.h>
 

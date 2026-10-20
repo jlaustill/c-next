@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/compound-flags.hpp"
+#include "compound-flags.hpp"
 
 #include <stdint.h>
 

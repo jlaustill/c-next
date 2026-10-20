@@ -26,7 +26,7 @@ class PlanOptions {
       targetDescription: target.description,
       sourcePath,
       symbolInfo,
-      sourceRelativePath: outputs.sourceRelativePath,
+      selfInclude: outputs.selfInclude,
       cnxIncludeRewrites: includes.cnxIncludeRewrites,
       includeKinds: includes.kinds,
       // #1515: decided by the rule's owner. 1.3 Declare used to answer this,

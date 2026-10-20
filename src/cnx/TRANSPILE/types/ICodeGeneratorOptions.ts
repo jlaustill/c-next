@@ -31,11 +31,10 @@ interface ICodeGeneratorOptions {
   /** ADR-010: Source file path for validating includes */
   sourcePath: string;
   /**
-   * Issue #339: Relative path from source root to source file for self-include.
-   * Self-includes use this relative path, which 1.1 settled.
-   * Example: "Display/Utils.cnx" -> #include "Display/Utils.h"
+   * How the `.c` names its own header, which 1.1 settled (#339, #2272/#1473):
+   * relative to the `.c`, e.g. `"Utils.h"` for Display/Utils.c.
    */
-  sourceRelativePath: string;
+  selfInclude: string;
   /**
    * Issue #1467: author spelling -> resolved header path, decided once by
    * PathResolver during discovery.

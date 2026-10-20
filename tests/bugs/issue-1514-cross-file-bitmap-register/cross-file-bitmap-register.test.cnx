@@ -14,9 +14,9 @@
 // `Local` bitmap and `OWNREG`), so the two halves of each function differ only
 // in the register's name.
 
-#include "bitmaps.cnx"
-#include "mid.cnx"
-#include "periph.cnx"
+#include "lib/bitmaps.cnx"
+#include "lib/mid.cnx"
+#include "lib/periph.cnx"
 
 bitmap8 Local {
     En,

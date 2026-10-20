@@ -20,9 +20,9 @@
 // Every shape below must lower exactly as its same-file control does (the
 // `Local` bitmap and `OWNREG`), so the two halves of each function differ only
 // in the register's name.
-#include "bitmaps.h"
-#include "mid.h"
-#include "periph.h"
+#include "lib/bitmaps.h"
+#include "lib/mid.h"
+#include "lib/periph.h"
 
 #include <stdint.h>
 #include <stdbool.h>

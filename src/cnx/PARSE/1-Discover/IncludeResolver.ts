@@ -5,6 +5,7 @@ import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeRewriter from "../../utils/IncludeRewriter";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import PathResolver from "./PathResolver";
 import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
@@ -111,6 +112,16 @@ interface IResolvedInclude {
   readonly isCNext: boolean;
   /** #1725: a quoted include found beside the file that wrote it */
   readonly besideWriter: boolean;
+}
+
+/**
+ * #2272/#1473: the generated file a file's includes are spelled for -- its
+ * `.h` or its `.c` -- and where the header for each `.cnx` is written.
+ */
+interface IIncludeWriter {
+  /** The directory the generated file is written to */
+  readonly directory: string;
+  readonly headerPathFor: (cnxPath: string) => string;
 }
 
 /**
@@ -275,11 +286,17 @@ class IncludeResolver {
    *   caller does not know (no PathResolver yet) or the header lands outside
    *   that root; the author's spelling is kept then, with its extension
    *   swapped, which is what every caller did before.
+   * @param writer #2272/#1473: where the generated file carrying these
+   *   includes is written, and where each `.cnx`'s header is. A quoted include
+   *   found beside the `.cnx` that wrote it is spelled relative to that
+   *   generated file, so it compiles with no `-I` and does not depend on which
+   *   entry pulled the file in. Null when the caller does not know.
    */
   static spell(
     resolved: IResolvedIncludes,
     headerExtension: THeaderExtension,
     headerIncludePathFor: ((cnxPath: string) => string | null) | null,
+    writer: IIncludeWriter | null = null,
   ): IIncludeSpelling {
     const spelling: IIncludeSpelling = {
       headerIncludeDirectives: new Map<string, string>(),
@@ -306,7 +323,14 @@ class IncludeResolver {
       // Issue #1467: ask the owner where the header is reachable. The
       // extension swap below is the fallback for a caller with no resolver
       // and for a header outside the output root -- not a second answer.
-      const reachable = headerIncludePathFor?.(absolutePath) ?? null;
+      let writerHeader: string | null = null;
+      let reachable: string | null;
+      if (besideWriter && writer !== null) {
+        writerHeader = writer.headerPathFor(absolutePath);
+        reachable = PathResolver.posixRelative(writer.directory, writerHeader);
+      } else {
+        reachable = headerIncludePathFor?.(absolutePath) ?? null;
+      }
       const headerPath =
         reachable ??
         CNextSourcePath.withExtension(includeInfo.path, headerExtension);
@@ -318,10 +342,13 @@ class IncludeResolver {
         }),
       );
       spelling.cnextIncludeRewrites.set(includeInfo.path, headerPath);
-      // #1725: an output-root path is valid from every file. The author's
-      // spelling is not: its header is generated beside the `.cnx`, so that
-      // file is what another includer must spell relative to itself.
-      if (reachable === null && besideWriter) {
+      // #1725: an output-root path is valid from every file. A spelling
+      // relative to the writer is not, so another includer must spell the
+      // header it names relative to itself: the header written for the `.cnx`
+      // (#2272), or the one generated beside it when no writer is known.
+      if (writerHeader !== null) {
+        spelling.writerRelativeIncludes.set(absolutePath, writerHeader);
+      } else if (reachable === null && besideWriter) {
         spelling.writerRelativeIncludes.set(
           absolutePath,
           CNextSourcePath.withExtension(absolutePath, headerExtension),

@@ -8,9 +8,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "bitmaps.hpp"
-#include "mid.hpp"
-#include "periph.hpp"
+#include "lib/bitmaps.hpp"
+#include "lib/mid.hpp"
+#include "lib/periph.hpp"
 
 #ifdef __cplusplus
 extern "C" {

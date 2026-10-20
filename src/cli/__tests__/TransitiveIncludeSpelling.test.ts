@@ -128,3 +128,56 @@ describe("a header reached through another file's include (#1725)", () => {
     }
   });
 });
+
+/**
+ * #2272/#1473: a quoted include is spelled from where the generated file that
+ * carries it is written, which is where a compiler resolves it from. With
+ * `--header-out` that is not the `.cnx`'s directory.
+ */
+describe("a quoted include spelled from the generated file (#2272)", () => {
+  let project: string;
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), "cnext-2272-"));
+  });
+
+  afterEach(() => {
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("spells each header's includes from the header's directory", async () => {
+    mkdirSync(join(project, "lib"), { recursive: true });
+    writeFileSync(join(project, "lib", "dev.h"), DEV_H);
+    writeFileSync(join(project, "lib", "b.cnx"), B_CNX);
+    writeFileSync(join(project, "lib", "a.cnx"), A_CNX);
+    const mainPath = join(project, "main.cnx");
+    writeFileSync(mainPath, mainIncluding("lib/a.cnx"));
+
+    const result = await new Transpiler(
+      {
+        target: "host",
+        input: mainPath,
+        outDir: join(project, "out", "src"),
+        headerOutDir: join(project, "out", "include"),
+        noCache: true,
+      },
+      NodeFileSystem.instance,
+    ).transpile({ kind: "files" });
+    expect(result.errors).toEqual([]);
+    const fileOf = (name: string) =>
+      result.files.find((f) => f.sourcePath === join(project, name));
+
+    // out/include/main.h
+    const main = fileOf("main.cnx")?.headerCode ?? "";
+    expect(main).toContain('#include "../../lib/dev.h"');
+    expect(main).toContain('#include "lib/b.h"');
+    // out/include/lib/a.h
+    const a = fileOf("lib/a.cnx")?.headerCode ?? "";
+    expect(a).toContain('#include "../../../lib/dev.h"');
+    expect(a).toContain('#include "b.h"');
+    // out/src/lib/a.c
+    const aSource = fileOf("lib/a.cnx")?.code ?? "";
+    expect(aSource).toContain('#include "../../include/lib/a.h"');
+    expect(aSource).toContain('#include "../../include/lib/b.h"');
+  });
+});

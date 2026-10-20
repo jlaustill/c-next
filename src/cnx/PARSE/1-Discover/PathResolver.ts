@@ -52,8 +52,8 @@ class PathResolver {
    * Returns the relative path (e.g., "Display/Utils.cnx") or null if the file
    * is not under any input directory.
    *
-   * This is the core utility used by getSourceRelativePath, getOutputPath,
-   * and getHeaderOutputPath for directory structure preservation.
+   * This is the core utility used by getOutputPath and getHeaderOutputPath
+   * for directory structure preservation.
    */
   getRelativePathFromInputs(filePath: string): string | null {
     for (const input of this.config.inputs) {
@@ -73,15 +73,6 @@ class PathResolver {
     }
 
     return null;
-  }
-
-  /**
-   * Issue #339: Get relative path from input directory for self-include generation.
-   * Returns the relative path (e.g., "Display/Utils.cnx") or just the basename
-   * if the file is not in any input directory.
-   */
-  getSourceRelativePath(filePath: string): string {
-    return this.getRelativePathFromInputs(filePath) ?? basename(filePath);
   }
 
   /**
@@ -160,6 +151,15 @@ class PathResolver {
   }
 
   /**
+   * #2272/#1473: the path from `fromDirectory` to `to`, as `#include` text
+   * spells it. A quoted include resolves from the directory of the file that
+   * holds it, so a generated file spells one relative to where it is written.
+   */
+  static posixRelative(fromDirectory: string, to: string): string {
+    return relative(resolve(fromDirectory), resolve(to)).split(sep).join("/");
+  }
+
+  /**
    * #2104: the header output root. Only a missing headerOutDir falls back to
    * outDir; `""` is the cwd. The one answer, so a header and the `#include`
    * naming it are always measured from the same root.
@@ -171,9 +171,10 @@ class PathResolver {
   /**
    * Issue #1467: where the header for `cnxPath` goes. Pure -- it creates no
    * directories, so `getHeaderIncludePath` can ask the question without the
-   * side effect that answering it used to carry.
+   * side effect that answering it used to carry. #2272: and so 1.1 can spell a
+   * quoted include relative to the file that writes it.
    */
-  private headerPathFor(cnxPath: string, ext: THeaderExtension): string {
+  headerPathFor(cnxPath: string, ext: THeaderExtension): string {
     const headerDir = this.headerRoot();
 
     const relativePath = this.getRelativePathFromInputs(cnxPath);

@@ -1834,7 +1834,7 @@ describe("CodeGenWalker", () => {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
-        sourceRelativePath: "myfile.cnx",
+        selfInclude: "myfile.h",
       });
 
       expect(code).toContain('#include "myfile.h"');

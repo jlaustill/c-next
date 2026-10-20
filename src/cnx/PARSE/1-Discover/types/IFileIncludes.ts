@@ -60,6 +60,14 @@ interface IFileIncludes {
   readonly quotedIncludeDirectory: string;
 
   /**
+   * The directory this file's generated header is written to (#2272). Every
+   * quoted include the header carries is spelled relative to it, which is how
+   * a compiler resolves one, so the header compiles with no `-I` and reads the
+   * same whichever entry pulled the file in.
+   */
+  readonly generatedHeaderDirectory: string;
+
+  /**
    * How this file spells each header and `.cnx` it includes: resolved header
    * path to directive, in discovery order (#497, #854). A quoted spelling is
    * relative to the file that wrote it, so it is a fact of the file, not of

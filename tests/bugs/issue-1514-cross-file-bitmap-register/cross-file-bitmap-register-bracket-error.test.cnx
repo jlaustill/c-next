@@ -5,7 +5,7 @@
 // as it is when the bitmap is declared in the same file. Before #1514 the
 // member lost its bitmap and the slice was accepted as one on a plain integer.
 
-#include "bitmaps.cnx"
+#include "lib/bitmaps.cnx"
 
 scope Dev {
     register R @ 0x40003000 {

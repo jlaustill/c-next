@@ -5,7 +5,7 @@
  * GNU/Clang extensions: designated initializers in C++.
  */
 
-#include "lib/origin.hpp"
+#include "origin.hpp"
 
 #include <stdint.h>
 
