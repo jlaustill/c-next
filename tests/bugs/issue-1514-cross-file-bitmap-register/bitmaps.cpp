@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/bitmaps.h"
+#include "bitmaps.hpp"
 
 #include <stdint.h>
 

@@ -3,11 +3,11 @@
  * A safer C for embedded systems
  */
 
-#include "lib/periph.h"
+#include "periph.hpp"
 
 // A PUBLIC register typed by an included bitmap: the header that exports it
 // must also bring in the bitmap's definition (#1453, #1514).
-#include "lib/bitmaps.h"
+#include "bitmaps.hpp"
 
 /* Scope: Periph */
 

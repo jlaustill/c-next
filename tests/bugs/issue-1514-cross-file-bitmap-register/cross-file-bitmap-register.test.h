@@ -8,9 +8,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "lib/bitmaps.h"
-#include "lib/mid.h"
-#include "lib/periph.h"
+#include "bitmaps.h"
+#include "mid.h"
+#include "periph.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,8 +28,8 @@ typedef uint8_t Local;
 /* Register: LREG @ 0x40001000 */
 #define LREG__RW (*(volatile Ctl*)(0x40001000 + 0x00))
 
-/* Register: SREG @ 0x40002000 */
-#define SREG__RW (*(volatile Local*)(0x40002000 + 0x00))
+/* Register: OWNREG @ 0x40002000 */
+#define OWNREG__RW (*(volatile Local*)(0x40002000 + 0x00))
 
 /* Register: DREG @ 0x40005000 */
 #define DREG__D (*(volatile Deep*)(0x40005000 + 0x00))

@@ -1,10 +1,10 @@
 // test-error
 // test-adr: 004
 // #1514 negative control: a bitmap is a bitmap where its file is included.
-// `Deep` is declared in lib/deep.cnx, which nothing here includes (periph
+// `Deep` is declared in deep.cnx, which nothing here includes (periph
 // includes only bitmaps), so a register member cannot be typed by it.
 
-#include "lib/periph.cnx"
+#include "periph.cnx"
 
 register OREG @ 0x40008000 {
     D: Deep rw @ 0x00,

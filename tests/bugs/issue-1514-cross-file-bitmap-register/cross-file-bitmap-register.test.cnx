@@ -11,12 +11,12 @@
 // not answer it.
 //
 // Every shape below must lower exactly as its same-file control does (the
-// `Local` bitmap and `SREG`), so the two halves of each function differ only
+// `Local` bitmap and `OWNREG`), so the two halves of each function differ only
 // in the register's name.
 
-#include "lib/bitmaps.cnx"
-#include "lib/mid.cnx"
-#include "lib/periph.cnx"
+#include "bitmaps.cnx"
+#include "mid.cnx"
+#include "periph.cnx"
 
 bitmap8 Local {
     En,
@@ -28,7 +28,7 @@ register LREG @ 0x40001000 {
     RW: Ctl rw @ 0x00,
 }
 
-register SREG @ 0x40002000 {
+register OWNREG @ 0x40002000 {
     RW: Local rw @ 0x00,
 }
 
@@ -80,9 +80,9 @@ void main() {
     bool en <- LREG.RW.En;
 
     // NEGATIVE CONTROL -- the same three through a same-file bitmap.
-    SREG.RW.En <- true;
-    SREG.RW.Mode <- 5;
-    bool sen <- SREG.RW.En;
+    OWNREG.RW.En <- true;
+    OWNREG.RW.Mode <- 5;
+    bool sen <- OWNREG.RW.En;
 
     // ASSERTION -- an included scope's bitmap, from another scope and from
     // the bitmap's own scope (bare `Flags` resolving to `Chip.Flags`).

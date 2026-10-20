@@ -18,11 +18,11 @@
 // not answer it.
 //
 // Every shape below must lower exactly as its same-file control does (the
-// `Local` bitmap and `SREG`), so the two halves of each function differ only
+// `Local` bitmap and `OWNREG`), so the two halves of each function differ only
 // in the register's name.
-#include "lib/bitmaps.h"
-#include "lib/mid.h"
-#include "lib/periph.h"
+#include "bitmaps.h"
+#include "mid.h"
+#include "periph.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -66,9 +66,9 @@ int main(void) {
     LREG__RW = (uint8_t)((LREG__RW & ~(1U << 0)) | (1U << 0));
     LREG__RW = (uint8_t)((LREG__RW & ~(0x7U << 1)) | ((5U & 0x7U) << 1));
     const bool en = ((((LREG__RW >> 0) & 1)) != 0U);
-    SREG__RW = (uint8_t)((SREG__RW & ~(1U << 0)) | (1U << 0));
-    SREG__RW = (uint8_t)((SREG__RW & ~(0x7U << 1)) | ((5U & 0x7U) << 1));
-    const bool sen = ((((SREG__RW >> 0) & 1)) != 0U);
+    OWNREG__RW = (uint8_t)((OWNREG__RW & ~(1U << 0)) | (1U << 0));
+    OWNREG__RW = (uint8_t)((OWNREG__RW & ~(0x7U << 1)) | ((5U & 0x7U) << 1));
+    const bool sen = ((((OWNREG__RW >> 0) & 1)) != 0U);
     Dev__go();
     const bool b = Dev__busy();
     Chip__set();

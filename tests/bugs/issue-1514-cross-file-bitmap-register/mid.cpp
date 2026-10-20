@@ -3,11 +3,11 @@
  * A safer C for embedded systems
  */
 
-#include "lib/mid.h"
+#include "mid.hpp"
 
 // The middle hop: cross-file-bitmap-register sees `Deep` only through here.
-#include "lib/deep.h"
+#include "deep.hpp"
 
 #include <stdint.h>
 
-const uint8_t MID_REVISION = 1U;
+extern const uint8_t MID_REVISION = 1U;

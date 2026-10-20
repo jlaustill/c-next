@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "lib/deep.hpp"
+#include "deep.h"
 
 #include <stdint.h>
 
