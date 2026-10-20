@@ -1,34 +1,17 @@
 import type IToolchainRequirement from "../../types/IToolchainRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
-import type TLanguageStandard from "../../types/TLanguageStandard";
-import type TOutputMode from "../../types/TOutputMode";
 import IRQ_WRAPPER_GUARDS from "./IRQ_WRAPPER_GUARDS";
 
 /** A mode's baseline: what every file in that mode costs, unconditionally */
-function baseline(
-  key: TRequirementKey,
-  mode: TOutputMode,
-  standard: TLanguageStandard,
-  reason: string,
-  incurredBy: string,
-  adr: string,
-): IToolchainRequirement {
-  return {
-    key,
-    modes: [mode],
-    feature: "baseline",
-    standard,
-    compiler: null,
-    extensions: [],
-    platformLib: null,
-    condition: null,
-    reason,
-    incurredBy,
-    probe: null,
-    adr,
-    misra: ["1.1"],
-  };
-}
+const BASELINE = {
+  feature: "baseline",
+  compiler: null,
+  extensions: [],
+  platformLib: null,
+  condition: null,
+  probe: null,
+  misra: ["1.1"],
+} as const;
 
 /**
  * Issue #1143: The single source of truth for what generated output costs.
@@ -51,23 +34,25 @@ function baseline(
  * __builtin_*_overflow calls removed in #1143.
  */
 const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
-  "baseline-c": baseline(
-    "baseline-c",
-    "c",
-    "C99",
-    "stdint fixed-width types, // comments, mixed declarations",
-    "any cnx file transpiled to C",
-    "ADR-044",
-  ),
+  "baseline-c": {
+    ...BASELINE,
+    key: "baseline-c",
+    modes: ["c"],
+    standard: "C99",
+    reason: "stdint fixed-width types, // comments, mixed declarations",
+    incurredBy: "any cnx file transpiled to C",
+    adr: "ADR-044",
+  },
 
-  "baseline-cpp": baseline(
-    "baseline-cpp",
-    "cpp",
-    "C++11",
-    "nullptr, static_cast, reinterpret_cast",
-    "any cnx file transpiled with --cpp",
-    "ADR-010",
-  ),
+  "baseline-cpp": {
+    ...BASELINE,
+    key: "baseline-cpp",
+    modes: ["cpp"],
+    standard: "C++11",
+    reason: "nullptr, static_cast, reinterpret_cast",
+    incurredBy: "any cnx file transpiled with --cpp",
+    adr: "ADR-010",
+  },
 
   "float-assert-c11": {
     key: "float-assert-c11",

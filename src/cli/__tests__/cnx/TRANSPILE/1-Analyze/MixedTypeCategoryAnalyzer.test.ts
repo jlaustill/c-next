@@ -9,11 +9,17 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
+import type THeaderMacro from "../../../../../cnx/types/THeaderMacro";
 
-function analyze(source: string, symbolTable?: SymbolTable) {
+function analyze(
+  source: string,
+  symbolTable?: SymbolTable,
+  macros?: Record<string, THeaderMacro>,
+) {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
     symbolTable,
+    macros,
   });
   return new MixedTypeCategoryAnalyzer(context).analyze(syntax);
 }
@@ -666,13 +672,11 @@ describe("MixedTypeCategoryAnalyzer -- positions, operators, inner levels", () =
 
 describe("MixedTypeCategoryAnalyzer -- an integer beside an unreadable header macro (#1688)", () => {
   function analyzeWithMacro(body: string) {
-    const { syntax, context } = testAnalysisContextFor(
+    return analyze(
       `void main() { u32 i <- 3; bool lt <- true; ${body} }`,
-      { cppMode: false, macros: { RAW: { kind: "unreadable" } } },
-    );
-    return new MixedTypeCategoryAnalyzer(context)
-      .analyze(syntax)
-      .map((e) => `${e.code} ${e.message}`);
+      undefined,
+      { RAW: { kind: "unreadable" } },
+    ).map((e) => `${e.code} ${e.message}`);
   }
 
   it.each([
