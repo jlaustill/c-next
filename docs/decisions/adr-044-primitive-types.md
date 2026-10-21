@@ -419,14 +419,14 @@ A clamped size is a buffer smaller than its arithmetic says, and a wrapped one i
 still. At run time, saturating protects a value that cannot be known in advance. Here the
 value is known in advance, so the rejection reports the overflow while it can still be fixed.
 
-Owner ruling, 2026-10-21 (#1735): a file-scope or scope variable's initializer is a value fixed
+Owner ruling, 2026-10-21 ([#1735](https://github.com/smeltworks/cnx/issues/1735#issuecomment-6329098698)): a file-scope or scope variable's initializer is a value fixed
 at compile time too, with or without `mut`, and **in C++ output as in C**. It is written as its
 folded value. Where its arithmetic would clamp or wrap, the program is rejected. An initializer
 with no value at compile time, such as a read of a `mut` variable or a function call, is rejected
 as well. A cast of a value its type does not hold is rejected too, because ADR-024 forbids a
 narrowing cast; that is not part of this ruling.
 
-Owner ruling, 2026-10-21 (#2287), on a header macro in such an initializer. A macro C-Next can
+Owner ruling, 2026-10-21 ([#1735](https://github.com/smeltworks/cnx/issues/1735#issuecomment-6329098698)), on a header macro in such an initializer. A macro C-Next can
 read, such as `#define LIMIT 10`, is checked like any other value and written as the macro, so
 `u32 L <- LIMIT + A` with `A` at 4 is written `LIMIT + 4`. A macro it cannot read, such as
 `#define UNREAD (sizeof(int) * 100)`, is written through to C when it is used alone. Arithmetic
