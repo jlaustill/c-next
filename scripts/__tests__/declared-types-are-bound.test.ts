@@ -169,7 +169,7 @@ describe("declared types are bound, not registered", () => {
     try {
       // The planted file must compile. An unresolved import still prints its
       // alias name, so a stale path kept the match below green on any path at
-      // all: #1853 moved TTypeInfo, and `move:modules` cannot rewrite a path
+      // all: #1853 moved TTypeInfo, and an import rewrite cannot reach a path
       // inside a template literal (#1859 review)
       expect(planted.getPreEmitDiagnostics().map((d) => d.getCode())).toEqual(
         [],

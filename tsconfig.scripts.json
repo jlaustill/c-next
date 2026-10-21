@@ -3,9 +3,9 @@
   // never opened it. That is not a cosmetic gap: the test harness (scripts/test.ts,
   // scripts/test-utils.ts) and every gate the `lint` job runs live here, so the code
   // that decides whether everything else passes was the code nothing checked. It let
-  // `move-modules.ts` ship a template literal that closes on the `.ts` it means to
-  // print -- a statically detectable TS2339 -- and the documented mover therefore
-  // never performed a single move (#1489).
+  // a scripts/ tool ship a template literal that closes on the `.ts` it means to
+  // print -- a statically detectable TS2339 -- so the tool never did its one job
+  // (#1489).
   //
   // `rootDir` is the repo root, not ./src, because scripts import from both src/ and
   // scripts/. Everything else is inherited so the two surfaces cannot drift apart.

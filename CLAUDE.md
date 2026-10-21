@@ -240,16 +240,8 @@ anything that moves or renames across files — a relative specifier changes dif
 depending on where the IMPORTER sits, so `../../utils` from one directory and `../../../utils`
 from another cannot both be right under one regex.
 
-**Moving modules**: `npm run move:modules` (dry run) / `-- --apply`. The manifest in
-`scripts/move-modules/MOVES.ts` records every move WITH the reason for its destination, so the
-move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
-idempotent — add entries and re-run. It is read as a sequence: an entry a later entry moves
-on from is superseded (`MovePlan`), so a module moved back is not moved out again, and
-`move-plan.test.ts` fails if the committed manifest has anything left to move (#1826 review).
-
-`move:modules` rewrites the importers **ts-morph can see**, which is the root tsconfig's
-program — not `scripts/`. It reports importers outside that program by name after
-`--apply`; run `npm run typecheck:scripts` as well as `npx tsc --noEmit` after any move.
+After moving a module, run `npm run typecheck:scripts` as well as `npx tsc --noEmit`: the
+root tsconfig's program does not include `scripts/`.
 
 **Do not use the transitively-installed ts-morph 13.** It bundles TypeScript ~4.x, which
 predates `moduleResolution: "bundler"`: it cannot resolve directory-index specifiers such as
@@ -544,7 +536,7 @@ with no production caller carries `@public` and a one-line reason saying which k
   `ComplianceAnnotations.all`, `TestMarkers.names`, the printer's `handledRuleIndices`.
   A hand-listed copy in the test would be a second list.
 - **A module function exposed to its own test, or read by a guard test that is the
-  check** -- `GateRoster`, `MatrixRenderer`, `SourceScan.scan`, `MovePlan.pending`.
+  check** -- `GateRoster`, `MatrixRenderer`, `SourceScan.scan`.
 - **A member of a guard or factory set** tests narrow or build with -- `SymbolGuards`,
   `TTypeUtils`.
 

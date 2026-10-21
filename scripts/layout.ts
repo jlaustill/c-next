@@ -50,7 +50,7 @@ if (failures.length > 0) {
     chalk.red(`\nsrc/ is not the pass table: ${failures.length} failure(s).`),
   );
   console.log(
-    "A missing or unexpected entry: move the module (`npm run move:modules`), or change the tree in README §1.",
+    "A missing or unexpected entry: move the module and rewrite its importers, or change the tree in README §1.",
   );
   console.log(
     "An order failure: the module reads a later pass. Move it to the pass whose artifact it reads, or stop reading it.",
