@@ -15,7 +15,9 @@
 #include <stdbool.h>
 
 /* Scope: S */
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 static const uint8_t S__first = (uint8_t)'A';
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 static const uint32_t S__fromMacro = (LIMIT);
 
 uint32_t S__check(void) {
