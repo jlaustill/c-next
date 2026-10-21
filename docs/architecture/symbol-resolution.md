@@ -578,7 +578,7 @@ class CodeGenerator {
 
 ### Phase 3: Create Orchestrator
 
-1. Create `src/symbol_resolution/cnext/index.ts` (CnxResolver)
+1. Create `src/symbol_resolution/cnext/index.ts` (CNextResolver)
 2. Wire up all collectors
 3. Add integration tests
 4. Orchestrator returns `TSymbol[]`
@@ -694,7 +694,7 @@ describe("StructCollector", () => {
 ### Integration Tests (Orchestrator)
 
 ```typescript
-// symbol_resolution/cnext/__tests__/CnxResolver.integration.test.ts
+// symbol_resolution/cnext/__tests__/CNextResolver.integration.test.ts
 
 describe("CnxResolver", () => {
   const resolver = new CnxResolver();

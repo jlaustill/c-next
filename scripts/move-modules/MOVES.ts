@@ -2329,6 +2329,11 @@ const MOVES: readonly IMove[] = [
     because: NAMED_FOR_CNX,
   },
   {
+    from: "src/cnx/PARSE/3-Declare/cnx/__tests__/CNextResolver.integration.test.ts",
+    to: "src/cnx/PARSE/3-Declare/cnx/__tests__/CnxResolver.integration.test.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
     from: "src/cli/__tests__/MiscasedCNextExtension.test.ts",
     to: "src/cli/__tests__/MiscasedCnxExtension.test.ts",
     because: NAMED_FOR_CNX,

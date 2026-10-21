@@ -3,7 +3,7 @@
  *
  * Single source of truth for type mappings used across:
  * - CodeGenerator (src/codegen/types/TYPE_MAP.ts)
- * - TypeUtils (src/symbol_resolution/cnext/utils/TypeUtils.ts)
+ * - TypeUtils (src/cnx/PARSE/3-Declare/cnx/utils/TypeUtils.ts)
  * - Header Generator (src/codegen/headerGenerators/mapType.ts)
  */
 
