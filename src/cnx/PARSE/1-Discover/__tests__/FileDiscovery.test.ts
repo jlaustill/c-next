@@ -30,7 +30,6 @@ describe("FileDiscovery", () => {
     // Create C-Next files
     writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
     writeFileSync(join(srcDir, "utils.cnx"), "scope Utils {}");
-    writeFileSync(join(srcDir, "legacy.cnext"), "// legacy extension");
 
     // Create header files
     writeFileSync(join(includeDir, "types.h"), "typedef int MyInt;");

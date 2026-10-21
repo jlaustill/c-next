@@ -1,0 +1,3 @@
+// Helper for #2167, deliberately spelled `.cnext`: valid cnx in every way but
+// its extension, so the only thing an include of it can be is E0519.
+u32 cnextExtHelperFn() { return 3; }

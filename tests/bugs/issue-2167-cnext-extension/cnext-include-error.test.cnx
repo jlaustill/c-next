@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 010
+// Issue 2167: `.cnx` is the one cnx source extension. `.cnext`, in either form
+// of include and in any case, names no cnx source and is E0519 at the
+// directive, saying to rename it to `.cnx`. Until #2167 it was cnx source too,
+// and #1399's review kept this helper to prove a `.cnext` include was read as
+// one. `Helper.CNEXT` is not on disk: the extension alone decides.
+//
+// Negative control: the `.cnx` include beside them must stay silent.
+
+#include "cnext-control.cnx"
+#include "cnext-ext-helper.cnext"
+#include <cnext-ext-helper.cnext>
+#include "Helper.CNEXT"
+
+void test() {
+    u32 x <- cnextControlFn();
+}

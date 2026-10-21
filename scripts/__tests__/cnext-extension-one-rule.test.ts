@@ -1,6 +1,7 @@
 /**
- * #1833 box 3: whether a path is C-Next source, and what its stem is, is
- * answered by `src/cnx/utils/CNextSourcePath.ts` alone. A module that matches
+ * #1833 box 3: whether a path is cnx source, whether its extension is
+ * rejected (E0518, or E0519 for the retired `.cnext`, #2167), and what its
+ * stem is, is answered by `src/cnx/utils/CNextSourcePath.ts` alone. A module that matches
  * the extension itself -- a `/\.cnx$/` regex, `endsWith(".cnx")`, a list of
  * `".cnx"` and `".cnext"` -- can disagree with it, which is how `Colors.CNX`
  * was transpiled by discovery and then named as if it were not C-Next.
@@ -77,8 +78,9 @@ describe("one rule says what C-Next source is (#1833)", () => {
     expect(outside).toEqual([]);
   });
 
-  // Controls: the pattern sees the owner's own list, and every exemption is
-  // still live, so a stale one cannot hide a new match on its line.
+  // Controls: the pattern sees the owner's source extension and the retired
+  // one it rejects (#2167), and every exemption is still live, so a stale one
+  // cannot hide a new match on its line.
   it("sees the owner's extensions", () => {
     expect(hits.filter((hit) => hit.file === OWNER).map((h) => h.text)).toEqual(
       ['".cnx"', '".cnext"'],

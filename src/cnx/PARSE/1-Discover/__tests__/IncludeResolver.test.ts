@@ -356,7 +356,6 @@ describe("IncludeResolver", () => {
     it.each([
       ['#include "gone.cnx"', false],
       ["#include <gone.cnx>", false],
-      ['#include "gone.cnext"', false],
       ['#include "gone.h"', true],
       ["#include <gone.h>", true],
     ])("%s -> %s", (content, expected) => {
@@ -510,7 +509,6 @@ describe("IncludeResolver", () => {
       ["#include <system.cnx>", ".h", "#include <system.h>"],
       ['#include "types.cnx"', ".hpp", '#include "types.hpp"'],
       ["#include <lib.cnx>", ".hpp", "#include <lib.hpp>"],
-      ["#include <lib.cnext>", ".h", "#include <lib.h>"],
     ] as const)(
       "renders %s with the run's %s extension when it resolves to nothing",
       (directive, ext, rendered) => {
@@ -573,13 +571,14 @@ describe("IncludeResolver", () => {
     });
 
     // #1444, owner ruling 1: the one classification of an include. Render
-    // and 2.1 read this map. #1833 ruling: only a lowercase C-Next extension
-    // is C-Next; any other case is its own kind, which 2.1 rejects as E0518.
+    // and 2.1 read this map. #1833 ruling: only a lowercase `.cnx` is cnx
+    // source; any other case, and `.cnext` in any case (#2167), is its own
+    // kind, which 2.1 rejects as E0518 or E0519.
     it.each([
       ['#include "Utils.cnx"', EFileType.CNext],
-      ["#include <utils.cnext>", EFileType.CNext],
-      ['#include "Utils.CNX"', EFileType.MiscasedCNext],
-      ["#include <utils.Cnext>", EFileType.MiscasedCNext],
+      ["#include <utils.cnext>", EFileType.RejectedCNext],
+      ['#include "Utils.CNX"', EFileType.RejectedCNext],
+      ["#include <utils.Cnext>", EFileType.RejectedCNext],
       ['#include "utils.h"', EFileType.CHeader],
       ['#include "utils.cnx.h"', EFileType.CHeader],
       ['#include "impl.c++"', EFileType.CppSource],

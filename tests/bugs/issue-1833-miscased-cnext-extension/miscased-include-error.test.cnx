@@ -1,7 +1,8 @@
 // test-error
 // test-adr: 010
-// Issue 1833, owner ruling of 2026-10-13: only a lowercase .cnx or .cnext is
-// C-Next source. An include naming Colors.CNX is E0518 at the directive.
+// Issue 1833, owner ruling of 2026-10-13: only a lowercase .cnx is cnx
+// source (#2167 retired .cnext). An include naming Colors.CNX is E0518 at the
+// directive.
 // Before the ruling 1.1 Discover lowercased the extension while every
 // output-naming site did not, so an in-place build wrote generated C over
 // Colors.CNX and exited 0.

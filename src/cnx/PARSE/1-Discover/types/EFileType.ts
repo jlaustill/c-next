@@ -3,8 +3,8 @@
  */
 enum EFileType {
   CNext = "cnext",
-  /** #1833: a C-Next extension in any case but lowercase -- E0518 */
-  MiscasedCNext = "miscased_cnext",
+  /** `.cnx` in any case but lowercase (#1833, E0518), or `.cnext` (#2167, E0519) */
+  RejectedCNext = "rejected_cnext",
   CHeader = "c_header",
   CppHeader = "cpp_header",
   CSource = "c_source",

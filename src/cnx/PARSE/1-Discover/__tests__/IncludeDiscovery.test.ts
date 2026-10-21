@@ -394,12 +394,9 @@ describe("IncludeDiscovery", () => {
   describe("directivesOf", () => {
     const COMMENTED = '/*\n#include "ghost.h"\n*/\n';
 
-    it.each([["lib.cnx"], ["lib.cnext"]])(
-      "reads %s as the grammar does",
-      (path) => {
-        expect(IncludeDiscovery.directivesOf(path, COMMENTED)).toEqual([]);
-      },
-    );
+    it("reads a .cnx file as the grammar does", () => {
+      expect(IncludeDiscovery.directivesOf("lib.cnx", COMMENTED)).toEqual([]);
+    });
 
     // Today's answer for a header, which #1829 changes: the text scan does not
     // know C's comments yet. Pinned so the branch is watched, not to bless it.

@@ -198,18 +198,17 @@ class CppEntryPointScanner {
       return;
     }
 
-    if (CNextSourcePath.isMiscased(absoluteSourcePath)) {
+    const rejection = CNextSourcePath.rejection(
+      sourcePath,
+      "rename the source and regenerate this header.",
+    );
+    if (rejection !== null) {
       this.errors.push({
         sourcePath: headerPath,
         line: marker.line,
         column: marker.column,
-        message: CodedErrorText.of(
-          "E0518",
-          CNextSourcePath.miscasedMessage(sourcePath),
-        ),
-        helpText: CNextSourcePath.miscasedHelp(
-          "rename the source and regenerate this header.",
-        ),
+        message: CodedErrorText.of(rejection.code, rejection.message),
+        helpText: rejection.helpText,
         severity: "error",
       });
       return;

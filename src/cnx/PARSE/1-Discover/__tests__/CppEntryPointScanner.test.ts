@@ -123,11 +123,16 @@ void led_on(void);`,
       });
     });
 
-    // #1833 ruling: only a lowercase C-Next extension is C-Next source.
+    // #1833 ruling: only a lowercase `.cnx` is cnx source; #2167: `.cnext`,
+    // in any case, is E0519.
     it.each([
       [
         "Led.CNX",
-        "error[E0518]: C-Next source extension must be lowercase: Led.CNX",
+        "error[E0518]: cnx source extension must be lowercase: Led.CNX",
+      ],
+      [
+        "Led.cnext",
+        "error[E0519]: `.cnext` no longer names cnx source; rename it to `.cnx`: Led.cnext",
       ],
       ["Led.cnx", null],
     ])("a marker naming %s that exists: %s", (name, message) => {
