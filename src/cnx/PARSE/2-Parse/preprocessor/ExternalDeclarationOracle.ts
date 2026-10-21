@@ -29,7 +29,7 @@
  * only — a by-value macro invocation is already correct.
  *
  * Requires a toolchain that can preprocess the target's headers; for cross
- * targets (ESP32/xtensa) set CNEXT_CROSS_COMPILER.
+ * targets (ESP32/xtensa) set CNX_CROSS_COMPILER.
  */
 import type IHeaderPreprocessor from "./types/IHeaderPreprocessor";
 import STDIN_MARKER from "./STDIN_MARKER";

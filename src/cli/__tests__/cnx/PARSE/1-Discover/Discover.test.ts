@@ -7,6 +7,7 @@ import EFileType from "../../../../../cnx/PARSE/1-Discover/types/EFileType";
 import MockFileSystem from "../../../MockFileSystem";
 import ConfigFileNames from "../../../../../cnx/PARSE/1-Discover/ConfigFileNames";
 import type ISourceGraph from "../../../../../cnx/PARSE/1-Discover/types/ISourceGraph";
+import type TTranspileInput from "../../../../../cnx/types/TTranspileInput";
 
 /**
  * #1444 box 1: 1.1 Discover emits a `SourceGraph` carrying the file set, each
@@ -18,7 +19,15 @@ describe("Discover", () => {
 
   // #1844: a run with headers needs a preprocessor. This one hands back the
   // header as written, which is what a C compile meets in these headers.
+  // #2166: a developer's export must not decide what a run's anchor names
+  const exported = {
+    CNX_CROSS_COMPILER: process.env.CNX_CROSS_COMPILER,
+    CNEXT_CROSS_COMPILER: process.env.CNEXT_CROSS_COMPILER,
+  };
+
   beforeEach(() => {
+    delete process.env.CNX_CROSS_COMPILER;
+    delete process.env.CNEXT_CROSS_COMPILER;
     vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(true);
     vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
       async (file: string) => ({
@@ -32,6 +41,10 @@ describe("Discover", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    for (const [name, value] of Object.entries(exported)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
   });
 
   const noIncludeDirs: string[] = [];
@@ -238,6 +251,78 @@ describe("Discover", () => {
   });
 
   // #2165: every project-root walk reports the old-name configs it passes
+  describe("the cross compiler variable (#2166)", () => {
+    function run(input: TTranspileInput = { kind: "files" }) {
+      fs = project();
+      return Discover.run(
+        input,
+        RunAnchor.at(settings.input, null, settings, fs),
+        settings,
+        fs,
+        [],
+      );
+    }
+
+    it("names the compiler CNX_CROSS_COMPILER sets", () => {
+      process.env.CNX_CROSS_COMPILER = "xtensa-esp32-elf-gcc";
+
+      const { graph, errors } = run();
+
+      expect(errors).toEqual([]);
+      expect(graph.anchor.configuredCompiler).toBe("xtensa-esp32-elf-gcc");
+    });
+
+    it("names none when it is empty", () => {
+      process.env.CNX_CROSS_COMPILER = "";
+
+      expect(run().graph.anchor.configuredCompiler).toBeNull();
+    });
+
+    it("rejects CNEXT_CROSS_COMPILER, naming CNX_CROSS_COMPILER", () => {
+      process.env.CNEXT_CROSS_COMPILER = "xtensa-esp32-elf-gcc";
+
+      const { graph, errors } = run();
+
+      expect(errors).toEqual([
+        {
+          sourcePath: "/proj/src/app.cnx",
+          line: 1,
+          column: 0,
+          severity: "error",
+          message:
+            "error[E0924]: the environment sets CNEXT_CROSS_COMPILER, which cnx no longer reads: it is now CNX_CROSS_COMPILER",
+          helpText:
+            "Set CNX_CROSS_COMPILER to 'xtensa-esp32-elf-gcc' instead, and unset CNEXT_CROSS_COMPILER.",
+        },
+      ]);
+      expect(graph.anchor.configuredCompiler).toBeNull();
+    });
+
+    it("rejects it beside CNX_CROSS_COMPILER, which still names the compiler", () => {
+      process.env.CNEXT_CROSS_COMPILER = "old-gcc";
+      process.env.CNX_CROSS_COMPILER = "new-gcc";
+
+      const { graph, errors } = run();
+
+      expect(errors.map((e) => e.helpText)).toEqual([
+        "CNX_CROSS_COMPILER is set too, and names the compiler cnx reads headers with. Unset CNEXT_CROSS_COMPILER.",
+      ]);
+      expect(graph.anchor.configuredCompiler).toBe("new-gcc");
+    });
+
+    it("rejects it at a source run's text", () => {
+      process.env.CNEXT_CROSS_COMPILER = "old-gcc";
+
+      const { errors } = run({
+        kind: "source",
+        source: "void main() { }\n",
+        sourcePath: "/proj/src/editor.cnx",
+      });
+
+      expect(errors.map((e) => e.sourcePath)).toEqual(["/proj/src/editor.cnx"]);
+    });
+  });
+
   describe("renamed config files", () => {
     /** E0918 for an old-name file with no new-name config beside it. */
     function renamedError(path: string, successor: string): unknown {
