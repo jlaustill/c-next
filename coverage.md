@@ -8,7 +8,7 @@ This document tracks test coverage for every language construct in every valid c
 **2026-01-11: Comprehensive Postfix Expression Chain Testing**
 
 - ✅ Added 11 new test files targeting lines 5850-6285 (most complex code in transpiler)
-- ✅ Fixed grammar bug (lines 485-486 in CNext.g4) - parser now accepts complex chains
+- ✅ Fixed grammar bug (lines 485-486 in Cnx.g4) - parser now accepts complex chains
 - 🔶 Discovered code generator bug - order scrambling in mixed chains (documented)
 - 📊 Coverage increased from ~60% to ~62% overall
 - 📄 See [BUG-DISCOVERED-postfix-chains.md](../BUG-DISCOVERED-postfix-chains.md) for details
@@ -1640,7 +1640,7 @@ See `/docs/decisions/adr-064-volatile-keyword.md` for implementation details and
 | Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`           |
 | Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`        |
 
-**Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in CNext.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
+**Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in Cnx.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
 
 ### 33.2 Statement Nesting
 

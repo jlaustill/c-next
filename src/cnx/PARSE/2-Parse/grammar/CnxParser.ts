@@ -1,17 +1,17 @@
-// Generated from grammar/CNext.g4 by ANTLR 4.13.1
+// Generated from grammar/Cnx.g4 by ANTLR 4.13.1
 
 import * as antlr from "antlr4ng";
 import { Token } from "antlr4ng";
 
-import { CNextListener } from "./CNextListener.js";
-import { CNextVisitor } from "./CNextVisitor.js";
+import { CnxListener } from "./CnxListener.js";
+import { CnxVisitor } from "./CnxVisitor.js";
 
 // for running tests with parameters, TODO: discuss strategy for typed parameters in CI
 // eslint-disable-next-line no-unused-vars
 type int = number;
 
 
-export class CNextParser extends antlr.Parser {
+export class CnxParser extends antlr.Parser {
     public static readonly T__0 = 1;
     public static readonly INCLUDE_DIRECTIVE = 2;
     public static readonly DEFINE_FUNCTION = 3;
@@ -288,11 +288,11 @@ export class CNextParser extends antlr.Parser {
         "arrayType", "arrayTypeDimension", "literal",
     ];
 
-    public get grammarFileName(): string { return "CNext.g4"; }
-    public get literalNames(): (string | null)[] { return CNextParser.literalNames; }
-    public get symbolicNames(): (string | null)[] { return CNextParser.symbolicNames; }
-    public get ruleNames(): string[] { return CNextParser.ruleNames; }
-    public get serializedATN(): number[] { return CNextParser._serializedATN; }
+    public get grammarFileName(): string { return "Cnx.g4"; }
+    public get literalNames(): (string | null)[] { return CnxParser.literalNames; }
+    public get symbolicNames(): (string | null)[] { return CnxParser.symbolicNames; }
+    public get ruleNames(): string[] { return CnxParser.ruleNames; }
+    public get serializedATN(): number[] { return CnxParser._serializedATN; }
 
     protected createFailedPredicateException(predicate?: string, message?: string): antlr.FailedPredicateException {
         return new antlr.FailedPredicateException(this, predicate, message);
@@ -300,11 +300,11 @@ export class CNextParser extends antlr.Parser {
 
     public constructor(input: antlr.TokenStream) {
         super(input);
-        this.interpreter = new antlr.ParserATNSimulator(this, CNextParser._ATN, CNextParser.decisionsToDFA, new antlr.PredictionContextCache());
+        this.interpreter = new antlr.ParserATNSimulator(this, CnxParser._ATN, CnxParser.decisionsToDFA, new antlr.PredictionContextCache());
     }
     public program(): ProgramContext {
         let localContext = new ProgramContext(this.context, this.state);
-        this.enterRule(localContext, 0, CNextParser.RULE_program);
+        this.enterRule(localContext, 0, CnxParser.RULE_program);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -317,20 +317,20 @@ export class CNextParser extends antlr.Parser {
                 this.state = 182;
                 this.errorHandler.sync(this);
                 switch (this.tokenStream.LA(1)) {
-                case CNextParser.INCLUDE_DIRECTIVE:
+                case CnxParser.INCLUDE_DIRECTIVE:
                     {
                     this.state = 180;
                     this.includeDirective();
                     }
                     break;
-                case CNextParser.DEFINE_FUNCTION:
-                case CNextParser.DEFINE_WITH_VALUE:
-                case CNextParser.DEFINE_FLAG:
-                case CNextParser.IFDEF_DIRECTIVE:
-                case CNextParser.IFNDEF_DIRECTIVE:
-                case CNextParser.ELSE_DIRECTIVE:
-                case CNextParser.ENDIF_DIRECTIVE:
-                case CNextParser.PRAGMA_DIRECTIVE:
+                case CnxParser.DEFINE_FUNCTION:
+                case CnxParser.DEFINE_WITH_VALUE:
+                case CnxParser.DEFINE_FLAG:
+                case CnxParser.IFDEF_DIRECTIVE:
+                case CnxParser.IFNDEF_DIRECTIVE:
+                case CnxParser.ELSE_DIRECTIVE:
+                case CnxParser.ENDIF_DIRECTIVE:
+                case CnxParser.PRAGMA_DIRECTIVE:
                     {
                     this.state = 181;
                     this.preprocessorDirective();
@@ -359,7 +359,7 @@ export class CNextParser extends antlr.Parser {
                 _la = this.tokenStream.LA(1);
             }
             this.state = 193;
-            this.match(CNextParser.EOF);
+            this.match(CnxParser.EOF);
             }
         }
         catch (re) {
@@ -377,12 +377,12 @@ export class CNextParser extends antlr.Parser {
     }
     public includeDirective(): IncludeDirectiveContext {
         let localContext = new IncludeDirectiveContext(this.context, this.state);
-        this.enterRule(localContext, 2, CNextParser.RULE_includeDirective);
+        this.enterRule(localContext, 2, CnxParser.RULE_includeDirective);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 195;
-            this.match(CNextParser.INCLUDE_DIRECTIVE);
+            this.match(CnxParser.INCLUDE_DIRECTIVE);
             }
         }
         catch (re) {
@@ -400,31 +400,31 @@ export class CNextParser extends antlr.Parser {
     }
     public preprocessorDirective(): PreprocessorDirectiveContext {
         let localContext = new PreprocessorDirectiveContext(this.context, this.state);
-        this.enterRule(localContext, 4, CNextParser.RULE_preprocessorDirective);
+        this.enterRule(localContext, 4, CnxParser.RULE_preprocessorDirective);
         try {
             this.state = 200;
             this.errorHandler.sync(this);
             switch (this.tokenStream.LA(1)) {
-            case CNextParser.DEFINE_FUNCTION:
-            case CNextParser.DEFINE_WITH_VALUE:
-            case CNextParser.DEFINE_FLAG:
+            case CnxParser.DEFINE_FUNCTION:
+            case CnxParser.DEFINE_WITH_VALUE:
+            case CnxParser.DEFINE_FLAG:
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 197;
                 this.defineDirective();
                 }
                 break;
-            case CNextParser.IFDEF_DIRECTIVE:
-            case CNextParser.IFNDEF_DIRECTIVE:
-            case CNextParser.ELSE_DIRECTIVE:
-            case CNextParser.ENDIF_DIRECTIVE:
+            case CnxParser.IFDEF_DIRECTIVE:
+            case CnxParser.IFNDEF_DIRECTIVE:
+            case CnxParser.ELSE_DIRECTIVE:
+            case CnxParser.ENDIF_DIRECTIVE:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 198;
                 this.conditionalDirective();
                 }
                 break;
-            case CNextParser.PRAGMA_DIRECTIVE:
+            case CnxParser.PRAGMA_DIRECTIVE:
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 199;
@@ -450,7 +450,7 @@ export class CNextParser extends antlr.Parser {
     }
     public defineDirective(): DefineDirectiveContext {
         let localContext = new DefineDirectiveContext(this.context, this.state);
-        this.enterRule(localContext, 6, CNextParser.RULE_defineDirective);
+        this.enterRule(localContext, 6, CnxParser.RULE_defineDirective);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -481,7 +481,7 @@ export class CNextParser extends antlr.Parser {
     }
     public conditionalDirective(): ConditionalDirectiveContext {
         let localContext = new ConditionalDirectiveContext(this.context, this.state);
-        this.enterRule(localContext, 8, CNextParser.RULE_conditionalDirective);
+        this.enterRule(localContext, 8, CnxParser.RULE_conditionalDirective);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -512,12 +512,12 @@ export class CNextParser extends antlr.Parser {
     }
     public pragmaDirective(): PragmaDirectiveContext {
         let localContext = new PragmaDirectiveContext(this.context, this.state);
-        this.enterRule(localContext, 10, CNextParser.RULE_pragmaDirective);
+        this.enterRule(localContext, 10, CnxParser.RULE_pragmaDirective);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 206;
-            this.match(CNextParser.PRAGMA_DIRECTIVE);
+            this.match(CnxParser.PRAGMA_DIRECTIVE);
             }
         }
         catch (re) {
@@ -535,7 +535,7 @@ export class CNextParser extends antlr.Parser {
     }
     public declaration(): DeclarationContext {
         let localContext = new DeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 12, CNextParser.RULE_declaration);
+        this.enterRule(localContext, 12, CnxParser.RULE_declaration);
         try {
             this.state = 215;
             this.errorHandler.sync(this);
@@ -606,17 +606,17 @@ export class CNextParser extends antlr.Parser {
     }
     public scopeDeclaration(): ScopeDeclarationContext {
         let localContext = new ScopeDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 14, CNextParser.RULE_scopeDeclaration);
+        this.enterRule(localContext, 14, CnxParser.RULE_scopeDeclaration);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 217;
-            this.match(CNextParser.SCOPE);
+            this.match(CnxParser.SCOPE);
             this.state = 218;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 219;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 223;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -632,7 +632,7 @@ export class CNextParser extends antlr.Parser {
                 _la = this.tokenStream.LA(1);
             }
             this.state = 226;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -650,7 +650,7 @@ export class CNextParser extends antlr.Parser {
     }
     public scopeMember(): ScopeMemberContext {
         let localContext = new ScopeMemberContext(this.context, this.state);
-        this.enterRule(localContext, 16, CNextParser.RULE_scopeMember);
+        this.enterRule(localContext, 16, CnxParser.RULE_scopeMember);
         let _la: number;
         try {
             this.state = 252;
@@ -775,7 +775,7 @@ export class CNextParser extends antlr.Parser {
     }
     public visibilityModifier(): VisibilityModifierContext {
         let localContext = new VisibilityModifierContext(this.context, this.state);
-        this.enterRule(localContext, 18, CNextParser.RULE_visibilityModifier);
+        this.enterRule(localContext, 18, CnxParser.RULE_visibilityModifier);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -806,21 +806,21 @@ export class CNextParser extends antlr.Parser {
     }
     public registerDeclaration(): RegisterDeclarationContext {
         let localContext = new RegisterDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 20, CNextParser.RULE_registerDeclaration);
+        this.enterRule(localContext, 20, CnxParser.RULE_registerDeclaration);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 256;
-            this.match(CNextParser.REGISTER);
+            this.match(CnxParser.REGISTER);
             this.state = 257;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 258;
-            this.match(CNextParser.AT);
+            this.match(CnxParser.AT);
             this.state = 259;
             this.expression();
             this.state = 260;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 264;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -836,7 +836,7 @@ export class CNextParser extends antlr.Parser {
                 _la = this.tokenStream.LA(1);
             }
             this.state = 267;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -854,21 +854,21 @@ export class CNextParser extends antlr.Parser {
     }
     public registerMember(): RegisterMemberContext {
         let localContext = new RegisterMemberContext(this.context, this.state);
-        this.enterRule(localContext, 22, CNextParser.RULE_registerMember);
+        this.enterRule(localContext, 22, CnxParser.RULE_registerMember);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 269;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 270;
-            this.match(CNextParser.COLON);
+            this.match(CnxParser.COLON);
             this.state = 271;
             this.type_();
             this.state = 272;
             this.accessModifier();
             this.state = 273;
-            this.match(CNextParser.AT);
+            this.match(CnxParser.AT);
             this.state = 274;
             this.expression();
             this.state = 276;
@@ -877,7 +877,7 @@ export class CNextParser extends antlr.Parser {
             if (_la === 105) {
                 {
                 this.state = 275;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 }
             }
 
@@ -898,7 +898,7 @@ export class CNextParser extends antlr.Parser {
     }
     public accessModifier(): AccessModifierContext {
         let localContext = new AccessModifierContext(this.context, this.state);
-        this.enterRule(localContext, 24, CNextParser.RULE_accessModifier);
+        this.enterRule(localContext, 24, CnxParser.RULE_accessModifier);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -929,17 +929,17 @@ export class CNextParser extends antlr.Parser {
     }
     public structDeclaration(): StructDeclarationContext {
         let localContext = new StructDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 26, CNextParser.RULE_structDeclaration);
+        this.enterRule(localContext, 26, CnxParser.RULE_structDeclaration);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 280;
-            this.match(CNextParser.STRUCT);
+            this.match(CnxParser.STRUCT);
             this.state = 281;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 282;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 286;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -955,7 +955,7 @@ export class CNextParser extends antlr.Parser {
                 _la = this.tokenStream.LA(1);
             }
             this.state = 289;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -973,7 +973,7 @@ export class CNextParser extends antlr.Parser {
     }
     public structMember(): StructMemberContext {
         let localContext = new StructMemberContext(this.context, this.state);
-        this.enterRule(localContext, 28, CNextParser.RULE_structMember);
+        this.enterRule(localContext, 28, CnxParser.RULE_structMember);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -991,7 +991,7 @@ export class CNextParser extends antlr.Parser {
             this.state = 294;
             this.type_();
             this.state = 295;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 299;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -1007,7 +1007,7 @@ export class CNextParser extends antlr.Parser {
                 _la = this.tokenStream.LA(1);
             }
             this.state = 302;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             }
         }
         catch (re) {
@@ -1025,18 +1025,18 @@ export class CNextParser extends antlr.Parser {
     }
     public enumDeclaration(): EnumDeclarationContext {
         let localContext = new EnumDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 30, CNextParser.RULE_enumDeclaration);
+        this.enterRule(localContext, 30, CnxParser.RULE_enumDeclaration);
         let _la: number;
         try {
             let alternative: number;
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 304;
-            this.match(CNextParser.ENUM);
+            this.match(CnxParser.ENUM);
             this.state = 305;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 306;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 307;
             this.enumMember();
             this.state = 312;
@@ -1047,7 +1047,7 @@ export class CNextParser extends antlr.Parser {
                     {
                     {
                     this.state = 308;
-                    this.match(CNextParser.COMMA);
+                    this.match(CnxParser.COMMA);
                     this.state = 309;
                     this.enumMember();
                     }
@@ -1063,12 +1063,12 @@ export class CNextParser extends antlr.Parser {
             if (_la === 105) {
                 {
                 this.state = 315;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 }
             }
 
             this.state = 318;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -1086,20 +1086,20 @@ export class CNextParser extends antlr.Parser {
     }
     public enumMember(): EnumMemberContext {
         let localContext = new EnumMemberContext(this.context, this.state);
-        this.enterRule(localContext, 32, CNextParser.RULE_enumMember);
+        this.enterRule(localContext, 32, CnxParser.RULE_enumMember);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 320;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 323;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
             if (_la === 77) {
                 {
                 this.state = 321;
-                this.match(CNextParser.ASSIGN);
+                this.match(CnxParser.ASSIGN);
                 this.state = 322;
                 this.expression();
                 }
@@ -1122,7 +1122,7 @@ export class CNextParser extends antlr.Parser {
     }
     public bitmapDeclaration(): BitmapDeclarationContext {
         let localContext = new BitmapDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 34, CNextParser.RULE_bitmapDeclaration);
+        this.enterRule(localContext, 34, CnxParser.RULE_bitmapDeclaration);
         let _la: number;
         try {
             let alternative: number;
@@ -1131,9 +1131,9 @@ export class CNextParser extends antlr.Parser {
             this.state = 325;
             this.bitmapType();
             this.state = 326;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 327;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 328;
             this.bitmapMember();
             this.state = 333;
@@ -1144,7 +1144,7 @@ export class CNextParser extends antlr.Parser {
                     {
                     {
                     this.state = 329;
-                    this.match(CNextParser.COMMA);
+                    this.match(CnxParser.COMMA);
                     this.state = 330;
                     this.bitmapMember();
                     }
@@ -1160,12 +1160,12 @@ export class CNextParser extends antlr.Parser {
             if (_la === 105) {
                 {
                 this.state = 336;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 }
             }
 
             this.state = 339;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -1183,7 +1183,7 @@ export class CNextParser extends antlr.Parser {
     }
     public bitmapType(): BitmapTypeContext {
         let localContext = new BitmapTypeContext(this.context, this.state);
-        this.enterRule(localContext, 36, CNextParser.RULE_bitmapType);
+        this.enterRule(localContext, 36, CnxParser.RULE_bitmapType);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1214,24 +1214,24 @@ export class CNextParser extends antlr.Parser {
     }
     public bitmapMember(): BitmapMemberContext {
         let localContext = new BitmapMemberContext(this.context, this.state);
-        this.enterRule(localContext, 38, CNextParser.RULE_bitmapMember);
+        this.enterRule(localContext, 38, CnxParser.RULE_bitmapMember);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 343;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 347;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
             if (_la === 102) {
                 {
                 this.state = 344;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 345;
-                this.match(CNextParser.INTEGER_LITERAL);
+                this.match(CnxParser.INTEGER_LITERAL);
                 this.state = 346;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
             }
 
@@ -1252,7 +1252,7 @@ export class CNextParser extends antlr.Parser {
     }
     public functionDeclaration(): FunctionDeclarationContext {
         let localContext = new FunctionDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 40, CNextParser.RULE_functionDeclaration);
+        this.enterRule(localContext, 40, CnxParser.RULE_functionDeclaration);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1260,9 +1260,9 @@ export class CNextParser extends antlr.Parser {
             this.state = 349;
             this.type_();
             this.state = 350;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 351;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 353;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -1274,7 +1274,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 355;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 356;
             this.block();
             }
@@ -1294,7 +1294,7 @@ export class CNextParser extends antlr.Parser {
     }
     public parameterList(): ParameterListContext {
         let localContext = new ParameterListContext(this.context, this.state);
-        this.enterRule(localContext, 42, CNextParser.RULE_parameterList);
+        this.enterRule(localContext, 42, CnxParser.RULE_parameterList);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1308,7 +1308,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 359;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 this.state = 360;
                 this.parameter();
                 }
@@ -1334,7 +1334,7 @@ export class CNextParser extends antlr.Parser {
     }
     public parameter(): ParameterContext {
         let localContext = new ParameterContext(this.context, this.state);
-        this.enterRule(localContext, 44, CNextParser.RULE_parameter);
+        this.enterRule(localContext, 44, CnxParser.RULE_parameter);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1362,7 +1362,7 @@ export class CNextParser extends antlr.Parser {
             this.state = 372;
             this.type_();
             this.state = 373;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 377;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -1394,12 +1394,12 @@ export class CNextParser extends antlr.Parser {
     }
     public constModifier(): ConstModifierContext {
         let localContext = new ConstModifierContext(this.context, this.state);
-        this.enterRule(localContext, 46, CNextParser.RULE_constModifier);
+        this.enterRule(localContext, 46, CnxParser.RULE_constModifier);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 380;
-            this.match(CNextParser.CONST);
+            this.match(CnxParser.CONST);
             }
         }
         catch (re) {
@@ -1417,12 +1417,12 @@ export class CNextParser extends antlr.Parser {
     }
     public mutModifier(): MutModifierContext {
         let localContext = new MutModifierContext(this.context, this.state);
-        this.enterRule(localContext, 48, CNextParser.RULE_mutModifier);
+        this.enterRule(localContext, 48, CnxParser.RULE_mutModifier);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 382;
-            this.match(CNextParser.MUT);
+            this.match(CnxParser.MUT);
             }
         }
         catch (re) {
@@ -1440,12 +1440,12 @@ export class CNextParser extends antlr.Parser {
     }
     public volatileModifier(): VolatileModifierContext {
         let localContext = new VolatileModifierContext(this.context, this.state);
-        this.enterRule(localContext, 50, CNextParser.RULE_volatileModifier);
+        this.enterRule(localContext, 50, CnxParser.RULE_volatileModifier);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 384;
-            this.match(CNextParser.VOLATILE);
+            this.match(CnxParser.VOLATILE);
             }
         }
         catch (re) {
@@ -1463,7 +1463,7 @@ export class CNextParser extends antlr.Parser {
     }
     public overflowModifier(): OverflowModifierContext {
         let localContext = new OverflowModifierContext(this.context, this.state);
-        this.enterRule(localContext, 52, CNextParser.RULE_overflowModifier);
+        this.enterRule(localContext, 52, CnxParser.RULE_overflowModifier);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1494,12 +1494,12 @@ export class CNextParser extends antlr.Parser {
     }
     public atomicModifier(): AtomicModifierContext {
         let localContext = new AtomicModifierContext(this.context, this.state);
-        this.enterRule(localContext, 54, CNextParser.RULE_atomicModifier);
+        this.enterRule(localContext, 54, CnxParser.RULE_atomicModifier);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 388;
-            this.match(CNextParser.ATOMIC);
+            this.match(CnxParser.ATOMIC);
             }
         }
         catch (re) {
@@ -1517,13 +1517,13 @@ export class CNextParser extends antlr.Parser {
     }
     public arrayDimension(): ArrayDimensionContext {
         let localContext = new ArrayDimensionContext(this.context, this.state);
-        this.enterRule(localContext, 56, CNextParser.RULE_arrayDimension);
+        this.enterRule(localContext, 56, CnxParser.RULE_arrayDimension);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 390;
-            this.match(CNextParser.LBRACKET);
+            this.match(CnxParser.LBRACKET);
             this.state = 392;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -1535,7 +1535,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 394;
-            this.match(CNextParser.RBRACKET);
+            this.match(CnxParser.RBRACKET);
             }
         }
         catch (re) {
@@ -1553,7 +1553,7 @@ export class CNextParser extends antlr.Parser {
     }
     public variableDeclaration(): VariableDeclarationContext {
         let localContext = new VariableDeclarationContext(this.context, this.state);
-        this.enterRule(localContext, 58, CNextParser.RULE_variableDeclaration);
+        this.enterRule(localContext, 58, CnxParser.RULE_variableDeclaration);
         let _la: number;
         try {
             this.state = 432;
@@ -1615,7 +1615,7 @@ export class CNextParser extends antlr.Parser {
                 this.state = 411;
                 this.type_();
                 this.state = 412;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 this.state = 416;
                 this.errorHandler.sync(this);
                 _la = this.tokenStream.LA(1);
@@ -1636,14 +1636,14 @@ export class CNextParser extends antlr.Parser {
                 if (_la === 77) {
                     {
                     this.state = 419;
-                    this.match(CNextParser.ASSIGN);
+                    this.match(CnxParser.ASSIGN);
                     this.state = 420;
                     this.expression();
                     }
                 }
 
                 this.state = 423;
-                this.match(CNextParser.SEMI);
+                this.match(CnxParser.SEMI);
                 }
                 break;
             case 2:
@@ -1652,15 +1652,15 @@ export class CNextParser extends antlr.Parser {
                 this.state = 425;
                 this.type_();
                 this.state = 426;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 this.state = 427;
-                this.match(CNextParser.LPAREN);
+                this.match(CnxParser.LPAREN);
                 this.state = 428;
                 this.constructorArgumentList();
                 this.state = 429;
-                this.match(CNextParser.RPAREN);
+                this.match(CnxParser.RPAREN);
                 this.state = 430;
-                this.match(CNextParser.SEMI);
+                this.match(CnxParser.SEMI);
                 }
                 break;
             }
@@ -1680,13 +1680,13 @@ export class CNextParser extends antlr.Parser {
     }
     public constructorArgumentList(): ConstructorArgumentListContext {
         let localContext = new ConstructorArgumentListContext(this.context, this.state);
-        this.enterRule(localContext, 60, CNextParser.RULE_constructorArgumentList);
+        this.enterRule(localContext, 60, CnxParser.RULE_constructorArgumentList);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 434;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 439;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -1694,9 +1694,9 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 435;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 this.state = 436;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 }
                 this.state = 441;
@@ -1720,13 +1720,13 @@ export class CNextParser extends antlr.Parser {
     }
     public block(): BlockContext {
         let localContext = new BlockContext(this.context, this.state);
-        this.enterRule(localContext, 62, CNextParser.RULE_block);
+        this.enterRule(localContext, 62, CnxParser.RULE_block);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 442;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 446;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -1742,7 +1742,7 @@ export class CNextParser extends antlr.Parser {
                 _la = this.tokenStream.LA(1);
             }
             this.state = 449;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -1760,7 +1760,7 @@ export class CNextParser extends antlr.Parser {
     }
     public statement(): StatementContext {
         let localContext = new StatementContext(this.context, this.state);
-        this.enterRule(localContext, 64, CNextParser.RULE_statement);
+        this.enterRule(localContext, 64, CnxParser.RULE_statement);
         try {
             this.state = 463;
             this.errorHandler.sync(this);
@@ -1866,12 +1866,12 @@ export class CNextParser extends antlr.Parser {
     }
     public criticalStatement(): CriticalStatementContext {
         let localContext = new CriticalStatementContext(this.context, this.state);
-        this.enterRule(localContext, 66, CNextParser.RULE_criticalStatement);
+        this.enterRule(localContext, 66, CnxParser.RULE_criticalStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 465;
-            this.match(CNextParser.CRITICAL);
+            this.match(CnxParser.CRITICAL);
             this.state = 466;
             this.block();
             }
@@ -1891,7 +1891,7 @@ export class CNextParser extends antlr.Parser {
     }
     public assignmentStatement(): AssignmentStatementContext {
         let localContext = new AssignmentStatementContext(this.context, this.state);
-        this.enterRule(localContext, 68, CNextParser.RULE_assignmentStatement);
+        this.enterRule(localContext, 68, CnxParser.RULE_assignmentStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
@@ -1902,7 +1902,7 @@ export class CNextParser extends antlr.Parser {
             this.state = 470;
             this.expression();
             this.state = 471;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             }
         }
         catch (re) {
@@ -1920,7 +1920,7 @@ export class CNextParser extends antlr.Parser {
     }
     public assignmentOperator(): AssignmentOperatorContext {
         let localContext = new AssignmentOperatorContext(this.context, this.state);
-        this.enterRule(localContext, 70, CNextParser.RULE_assignmentOperator);
+        this.enterRule(localContext, 70, CnxParser.RULE_assignmentOperator);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -1951,21 +1951,21 @@ export class CNextParser extends antlr.Parser {
     }
     public assignmentTarget(): AssignmentTargetContext {
         let localContext = new AssignmentTargetContext(this.context, this.state);
-        this.enterRule(localContext, 72, CNextParser.RULE_assignmentTarget);
+        this.enterRule(localContext, 72, CnxParser.RULE_assignmentTarget);
         let _la: number;
         try {
             this.state = 500;
             this.errorHandler.sync(this);
             switch (this.tokenStream.LA(1)) {
-            case CNextParser.GLOBAL:
+            case CnxParser.GLOBAL:
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 475;
-                this.match(CNextParser.GLOBAL);
+                this.match(CnxParser.GLOBAL);
                 this.state = 476;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 477;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 this.state = 481;
                 this.errorHandler.sync(this);
                 _la = this.tokenStream.LA(1);
@@ -1982,15 +1982,15 @@ export class CNextParser extends antlr.Parser {
                 }
                 }
                 break;
-            case CNextParser.THIS:
+            case CnxParser.THIS:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 484;
-                this.match(CNextParser.THIS);
+                this.match(CnxParser.THIS);
                 this.state = 485;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 486;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 this.state = 490;
                 this.errorHandler.sync(this);
                 _la = this.tokenStream.LA(1);
@@ -2007,11 +2007,11 @@ export class CNextParser extends antlr.Parser {
                 }
                 }
                 break;
-            case CNextParser.IDENTIFIER:
+            case CnxParser.IDENTIFIER:
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 493;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 this.state = 497;
                 this.errorHandler.sync(this);
                 _la = this.tokenStream.LA(1);
@@ -2047,7 +2047,7 @@ export class CNextParser extends antlr.Parser {
     }
     public postfixTargetOp(): PostfixTargetOpContext {
         let localContext = new PostfixTargetOpContext(this.context, this.state);
-        this.enterRule(localContext, 74, CNextParser.RULE_postfixTargetOp);
+        this.enterRule(localContext, 74, CnxParser.RULE_postfixTargetOp);
         try {
             this.state = 514;
             this.errorHandler.sync(this);
@@ -2056,35 +2056,35 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 502;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 503;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 break;
             case 2:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 504;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 505;
                 this.expression();
                 this.state = 506;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
                 break;
             case 3:
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 508;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 509;
                 this.expression();
                 this.state = 510;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 this.state = 511;
                 this.expression();
                 this.state = 512;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
                 break;
             }
@@ -2104,14 +2104,14 @@ export class CNextParser extends antlr.Parser {
     }
     public expressionStatement(): ExpressionStatementContext {
         let localContext = new ExpressionStatementContext(this.context, this.state);
-        this.enterRule(localContext, 76, CNextParser.RULE_expressionStatement);
+        this.enterRule(localContext, 76, CnxParser.RULE_expressionStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 516;
             this.expression();
             this.state = 517;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             }
         }
         catch (re) {
@@ -2129,18 +2129,18 @@ export class CNextParser extends antlr.Parser {
     }
     public ifStatement(): IfStatementContext {
         let localContext = new IfStatementContext(this.context, this.state);
-        this.enterRule(localContext, 78, CNextParser.RULE_ifStatement);
+        this.enterRule(localContext, 78, CnxParser.RULE_ifStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 519;
-            this.match(CNextParser.IF);
+            this.match(CnxParser.IF);
             this.state = 520;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 521;
             this.expression();
             this.state = 522;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 523;
             this.statement();
             this.state = 526;
@@ -2149,7 +2149,7 @@ export class CNextParser extends antlr.Parser {
             case 1:
                 {
                 this.state = 524;
-                this.match(CNextParser.ELSE);
+                this.match(CnxParser.ELSE);
                 this.state = 525;
                 this.statement();
                 }
@@ -2172,18 +2172,18 @@ export class CNextParser extends antlr.Parser {
     }
     public whileStatement(): WhileStatementContext {
         let localContext = new WhileStatementContext(this.context, this.state);
-        this.enterRule(localContext, 80, CNextParser.RULE_whileStatement);
+        this.enterRule(localContext, 80, CnxParser.RULE_whileStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 528;
-            this.match(CNextParser.WHILE);
+            this.match(CnxParser.WHILE);
             this.state = 529;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 530;
             this.expression();
             this.state = 531;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 532;
             this.statement();
             }
@@ -2203,24 +2203,24 @@ export class CNextParser extends antlr.Parser {
     }
     public doWhileStatement(): DoWhileStatementContext {
         let localContext = new DoWhileStatementContext(this.context, this.state);
-        this.enterRule(localContext, 82, CNextParser.RULE_doWhileStatement);
+        this.enterRule(localContext, 82, CnxParser.RULE_doWhileStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 534;
-            this.match(CNextParser.DO);
+            this.match(CnxParser.DO);
             this.state = 535;
             this.block();
             this.state = 536;
-            this.match(CNextParser.WHILE);
+            this.match(CnxParser.WHILE);
             this.state = 537;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 538;
             this.expression();
             this.state = 539;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 540;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             }
         }
         catch (re) {
@@ -2238,15 +2238,15 @@ export class CNextParser extends antlr.Parser {
     }
     public forStatement(): ForStatementContext {
         let localContext = new ForStatementContext(this.context, this.state);
-        this.enterRule(localContext, 84, CNextParser.RULE_forStatement);
+        this.enterRule(localContext, 84, CnxParser.RULE_forStatement);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 542;
-            this.match(CNextParser.FOR);
+            this.match(CnxParser.FOR);
             this.state = 543;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 545;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -2258,7 +2258,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 547;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             this.state = 549;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -2270,7 +2270,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 551;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             this.state = 553;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -2282,7 +2282,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 555;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 556;
             this.statement();
             }
@@ -2302,12 +2302,12 @@ export class CNextParser extends antlr.Parser {
     }
     public foreverStatement(): ForeverStatementContext {
         let localContext = new ForeverStatementContext(this.context, this.state);
-        this.enterRule(localContext, 86, CNextParser.RULE_foreverStatement);
+        this.enterRule(localContext, 86, CnxParser.RULE_foreverStatement);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 558;
-            this.match(CNextParser.FOREVER);
+            this.match(CnxParser.FOREVER);
             this.state = 559;
             this.block();
             }
@@ -2327,7 +2327,7 @@ export class CNextParser extends antlr.Parser {
     }
     public forInit(): ForInitContext {
         let localContext = new ForInitContext(this.context, this.state);
-        this.enterRule(localContext, 88, CNextParser.RULE_forInit);
+        this.enterRule(localContext, 88, CnxParser.RULE_forInit);
         try {
             this.state = 563;
             this.errorHandler.sync(this);
@@ -2363,7 +2363,7 @@ export class CNextParser extends antlr.Parser {
     }
     public forVarDecl(): ForVarDeclContext {
         let localContext = new ForVarDeclContext(this.context, this.state);
-        this.enterRule(localContext, 90, CNextParser.RULE_forVarDecl);
+        this.enterRule(localContext, 90, CnxParser.RULE_forVarDecl);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -2411,7 +2411,7 @@ export class CNextParser extends antlr.Parser {
             this.state = 577;
             this.type_();
             this.state = 578;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 582;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -2432,7 +2432,7 @@ export class CNextParser extends antlr.Parser {
             if (_la === 77) {
                 {
                 this.state = 585;
-                this.match(CNextParser.ASSIGN);
+                this.match(CnxParser.ASSIGN);
                 this.state = 586;
                 this.expression();
                 }
@@ -2455,7 +2455,7 @@ export class CNextParser extends antlr.Parser {
     }
     public forAssignment(): ForAssignmentContext {
         let localContext = new ForAssignmentContext(this.context, this.state);
-        this.enterRule(localContext, 92, CNextParser.RULE_forAssignment);
+        this.enterRule(localContext, 92, CnxParser.RULE_forAssignment);
         try {
             this.enterOuterAlt(localContext, 1);
             {
@@ -2482,7 +2482,7 @@ export class CNextParser extends antlr.Parser {
     }
     public forUpdate(): ForUpdateContext {
         let localContext = new ForUpdateContext(this.context, this.state);
-        this.enterRule(localContext, 94, CNextParser.RULE_forUpdate);
+        this.enterRule(localContext, 94, CnxParser.RULE_forUpdate);
         try {
             this.enterOuterAlt(localContext, 1);
             {
@@ -2509,13 +2509,13 @@ export class CNextParser extends antlr.Parser {
     }
     public returnStatement(): ReturnStatementContext {
         let localContext = new ReturnStatementContext(this.context, this.state);
-        this.enterRule(localContext, 96, CNextParser.RULE_returnStatement);
+        this.enterRule(localContext, 96, CnxParser.RULE_returnStatement);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 597;
-            this.match(CNextParser.RETURN);
+            this.match(CnxParser.RETURN);
             this.state = 599;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -2527,7 +2527,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 601;
-            this.match(CNextParser.SEMI);
+            this.match(CnxParser.SEMI);
             }
         }
         catch (re) {
@@ -2545,21 +2545,21 @@ export class CNextParser extends antlr.Parser {
     }
     public switchStatement(): SwitchStatementContext {
         let localContext = new SwitchStatementContext(this.context, this.state);
-        this.enterRule(localContext, 98, CNextParser.RULE_switchStatement);
+        this.enterRule(localContext, 98, CnxParser.RULE_switchStatement);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 603;
-            this.match(CNextParser.SWITCH);
+            this.match(CnxParser.SWITCH);
             this.state = 604;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 605;
             this.expression();
             this.state = 606;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 607;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 609;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -2585,7 +2585,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 616;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -2603,13 +2603,13 @@ export class CNextParser extends antlr.Parser {
     }
     public switchCase(): SwitchCaseContext {
         let localContext = new SwitchCaseContext(this.context, this.state);
-        this.enterRule(localContext, 100, CNextParser.RULE_switchCase);
+        this.enterRule(localContext, 100, CnxParser.RULE_switchCase);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 618;
-            this.match(CNextParser.CASE);
+            this.match(CnxParser.CASE);
             this.state = 619;
             this.caseLabel();
             this.state = 624;
@@ -2619,7 +2619,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 620;
-                this.match(CNextParser.OR);
+                this.match(CnxParser.OR);
                 this.state = 621;
                 this.caseLabel();
                 }
@@ -2647,7 +2647,7 @@ export class CNextParser extends antlr.Parser {
     }
     public caseLabel(): CaseLabelContext {
         let localContext = new CaseLabelContext(this.context, this.state);
-        this.enterRule(localContext, 102, CNextParser.RULE_caseLabel);
+        this.enterRule(localContext, 102, CnxParser.RULE_caseLabel);
         let _la: number;
         try {
             this.state = 647;
@@ -2673,7 +2673,7 @@ export class CNextParser extends antlr.Parser {
                     this.consume();
                 }
                 this.state = 631;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 634;
                 this.errorHandler.sync(this);
                 switch (this.interpreter.adaptivePredict(this.tokenStream, 61, this.context) ) {
@@ -2686,7 +2686,7 @@ export class CNextParser extends antlr.Parser {
                 case 2:
                     {
                     this.state = 633;
-                    this.match(CNextParser.IDENTIFIER);
+                    this.match(CnxParser.IDENTIFIER);
                     }
                     break;
                 }
@@ -2696,7 +2696,7 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 636;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 break;
             case 4:
@@ -2708,12 +2708,12 @@ export class CNextParser extends antlr.Parser {
                 if (_la === 85) {
                     {
                     this.state = 637;
-                    this.match(CNextParser.MINUS);
+                    this.match(CnxParser.MINUS);
                     }
                 }
 
                 this.state = 640;
-                this.match(CNextParser.INTEGER_LITERAL);
+                this.match(CnxParser.INTEGER_LITERAL);
                 }
                 break;
             case 5:
@@ -2725,26 +2725,26 @@ export class CNextParser extends antlr.Parser {
                 if (_la === 85) {
                     {
                     this.state = 641;
-                    this.match(CNextParser.MINUS);
+                    this.match(CnxParser.MINUS);
                     }
                 }
 
                 this.state = 644;
-                this.match(CNextParser.HEX_LITERAL);
+                this.match(CnxParser.HEX_LITERAL);
                 }
                 break;
             case 6:
                 this.enterOuterAlt(localContext, 6);
                 {
                 this.state = 645;
-                this.match(CNextParser.BINARY_LITERAL);
+                this.match(CnxParser.BINARY_LITERAL);
                 }
                 break;
             case 7:
                 this.enterOuterAlt(localContext, 7);
                 {
                 this.state = 646;
-                this.match(CNextParser.CHAR_LITERAL);
+                this.match(CnxParser.CHAR_LITERAL);
                 }
                 break;
             }
@@ -2764,24 +2764,24 @@ export class CNextParser extends antlr.Parser {
     }
     public defaultCase(): DefaultCaseContext {
         let localContext = new DefaultCaseContext(this.context, this.state);
-        this.enterRule(localContext, 104, CNextParser.RULE_defaultCase);
+        this.enterRule(localContext, 104, CnxParser.RULE_defaultCase);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 649;
-            this.match(CNextParser.DEFAULT);
+            this.match(CnxParser.DEFAULT);
             this.state = 653;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
             if (_la === 98) {
                 {
                 this.state = 650;
-                this.match(CNextParser.LPAREN);
+                this.match(CnxParser.LPAREN);
                 this.state = 651;
-                this.match(CNextParser.INTEGER_LITERAL);
+                this.match(CnxParser.INTEGER_LITERAL);
                 this.state = 652;
-                this.match(CNextParser.RPAREN);
+                this.match(CnxParser.RPAREN);
                 }
             }
 
@@ -2804,7 +2804,7 @@ export class CNextParser extends antlr.Parser {
     }
     public expression(): ExpressionContext {
         let localContext = new ExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 106, CNextParser.RULE_expression);
+        this.enterRule(localContext, 106, CnxParser.RULE_expression);
         try {
             this.enterOuterAlt(localContext, 1);
             {
@@ -2827,7 +2827,7 @@ export class CNextParser extends antlr.Parser {
     }
     public ternaryExpression(): TernaryExpressionContext {
         let localContext = new TernaryExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 108, CNextParser.RULE_ternaryExpression);
+        this.enterRule(localContext, 108, CnxParser.RULE_ternaryExpression);
         try {
             this.state = 668;
             this.errorHandler.sync(this);
@@ -2836,17 +2836,17 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 659;
-                this.match(CNextParser.LPAREN);
+                this.match(CnxParser.LPAREN);
                 this.state = 660;
                 this.orExpression();
                 this.state = 661;
-                this.match(CNextParser.RPAREN);
+                this.match(CnxParser.RPAREN);
                 this.state = 662;
-                this.match(CNextParser.T__0);
+                this.match(CnxParser.T__0);
                 this.state = 663;
                 this.orExpression();
                 this.state = 664;
-                this.match(CNextParser.COLON);
+                this.match(CnxParser.COLON);
                 this.state = 665;
                 this.orExpression();
                 }
@@ -2875,7 +2875,7 @@ export class CNextParser extends antlr.Parser {
     }
     public orExpression(): OrExpressionContext {
         let localContext = new OrExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 110, CNextParser.RULE_orExpression);
+        this.enterRule(localContext, 110, CnxParser.RULE_orExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -2889,7 +2889,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 671;
-                this.match(CNextParser.OR);
+                this.match(CnxParser.OR);
                 this.state = 672;
                 this.andExpression();
                 }
@@ -2915,7 +2915,7 @@ export class CNextParser extends antlr.Parser {
     }
     public andExpression(): AndExpressionContext {
         let localContext = new AndExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 112, CNextParser.RULE_andExpression);
+        this.enterRule(localContext, 112, CnxParser.RULE_andExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -2929,7 +2929,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 679;
-                this.match(CNextParser.AND);
+                this.match(CnxParser.AND);
                 this.state = 680;
                 this.equalityExpression();
                 }
@@ -2955,7 +2955,7 @@ export class CNextParser extends antlr.Parser {
     }
     public equalityExpression(): EqualityExpressionContext {
         let localContext = new EqualityExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 114, CNextParser.RULE_equalityExpression);
+        this.enterRule(localContext, 114, CnxParser.RULE_equalityExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3002,7 +3002,7 @@ export class CNextParser extends antlr.Parser {
     }
     public relationalExpression(): RelationalExpressionContext {
         let localContext = new RelationalExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 116, CNextParser.RULE_relationalExpression);
+        this.enterRule(localContext, 116, CnxParser.RULE_relationalExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3049,7 +3049,7 @@ export class CNextParser extends antlr.Parser {
     }
     public bitwiseOrExpression(): BitwiseOrExpressionContext {
         let localContext = new BitwiseOrExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 118, CNextParser.RULE_bitwiseOrExpression);
+        this.enterRule(localContext, 118, CnxParser.RULE_bitwiseOrExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3063,7 +3063,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 703;
-                this.match(CNextParser.BITOR);
+                this.match(CnxParser.BITOR);
                 this.state = 704;
                 this.bitwiseXorExpression();
                 }
@@ -3089,7 +3089,7 @@ export class CNextParser extends antlr.Parser {
     }
     public bitwiseXorExpression(): BitwiseXorExpressionContext {
         let localContext = new BitwiseXorExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 120, CNextParser.RULE_bitwiseXorExpression);
+        this.enterRule(localContext, 120, CnxParser.RULE_bitwiseXorExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3103,7 +3103,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 711;
-                this.match(CNextParser.BITXOR);
+                this.match(CnxParser.BITXOR);
                 this.state = 712;
                 this.bitwiseAndExpression();
                 }
@@ -3129,7 +3129,7 @@ export class CNextParser extends antlr.Parser {
     }
     public bitwiseAndExpression(): BitwiseAndExpressionContext {
         let localContext = new BitwiseAndExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 122, CNextParser.RULE_bitwiseAndExpression);
+        this.enterRule(localContext, 122, CnxParser.RULE_bitwiseAndExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3143,7 +3143,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 719;
-                this.match(CNextParser.BITAND);
+                this.match(CnxParser.BITAND);
                 this.state = 720;
                 this.shiftExpression();
                 }
@@ -3169,7 +3169,7 @@ export class CNextParser extends antlr.Parser {
     }
     public shiftExpression(): ShiftExpressionContext {
         let localContext = new ShiftExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 124, CNextParser.RULE_shiftExpression);
+        this.enterRule(localContext, 124, CnxParser.RULE_shiftExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3216,7 +3216,7 @@ export class CNextParser extends antlr.Parser {
     }
     public additiveExpression(): AdditiveExpressionContext {
         let localContext = new AdditiveExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 126, CNextParser.RULE_additiveExpression);
+        this.enterRule(localContext, 126, CnxParser.RULE_additiveExpression);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3263,7 +3263,7 @@ export class CNextParser extends antlr.Parser {
     }
     public multiplicativeExpression(): MultiplicativeExpressionContext {
         let localContext = new MultiplicativeExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 128, CNextParser.RULE_multiplicativeExpression);
+        this.enterRule(localContext, 128, CnxParser.RULE_multiplicativeExpression);
         let _la: number;
         try {
             let alternative: number;
@@ -3313,79 +3313,79 @@ export class CNextParser extends antlr.Parser {
     }
     public unaryExpression(): UnaryExpressionContext {
         let localContext = new UnaryExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 130, CNextParser.RULE_unaryExpression);
+        this.enterRule(localContext, 130, CnxParser.RULE_unaryExpression);
         try {
             this.state = 759;
             this.errorHandler.sync(this);
             switch (this.tokenStream.LA(1)) {
-            case CNextParser.NOT:
+            case CnxParser.NOT:
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 750;
-                this.match(CNextParser.NOT);
+                this.match(CnxParser.NOT);
                 this.state = 751;
                 this.unaryExpression();
                 }
                 break;
-            case CNextParser.MINUS:
+            case CnxParser.MINUS:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 752;
-                this.match(CNextParser.MINUS);
+                this.match(CnxParser.MINUS);
                 this.state = 753;
                 this.unaryExpression();
                 }
                 break;
-            case CNextParser.BITNOT:
+            case CnxParser.BITNOT:
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 754;
-                this.match(CNextParser.BITNOT);
+                this.match(CnxParser.BITNOT);
                 this.state = 755;
                 this.unaryExpression();
                 }
                 break;
-            case CNextParser.BITAND:
+            case CnxParser.BITAND:
                 this.enterOuterAlt(localContext, 4);
                 {
                 this.state = 756;
-                this.match(CNextParser.BITAND);
+                this.match(CnxParser.BITAND);
                 this.state = 757;
                 this.unaryExpression();
                 }
                 break;
-            case CNextParser.THIS:
-            case CNextParser.GLOBAL:
-            case CNextParser.TRUE:
-            case CNextParser.FALSE:
-            case CNextParser.C_NULL:
-            case CNextParser.SIZEOF:
-            case CNextParser.SUFFIXED_FLOAT:
-            case CNextParser.SUFFIXED_HEX:
-            case CNextParser.SUFFIXED_BINARY:
-            case CNextParser.SUFFIXED_DECIMAL:
-            case CNextParser.U8:
-            case CNextParser.U16:
-            case CNextParser.U32:
-            case CNextParser.U64:
-            case CNextParser.I8:
-            case CNextParser.I16:
-            case CNextParser.I32:
-            case CNextParser.I64:
-            case CNextParser.F32:
-            case CNextParser.F64:
-            case CNextParser.BOOL:
-            case CNextParser.ISR_TYPE:
-            case CNextParser.LPAREN:
-            case CNextParser.LBRACE:
-            case CNextParser.LBRACKET:
-            case CNextParser.HEX_LITERAL:
-            case CNextParser.BINARY_LITERAL:
-            case CNextParser.FLOAT_LITERAL:
-            case CNextParser.INTEGER_LITERAL:
-            case CNextParser.STRING_LITERAL:
-            case CNextParser.CHAR_LITERAL:
-            case CNextParser.IDENTIFIER:
+            case CnxParser.THIS:
+            case CnxParser.GLOBAL:
+            case CnxParser.TRUE:
+            case CnxParser.FALSE:
+            case CnxParser.C_NULL:
+            case CnxParser.SIZEOF:
+            case CnxParser.SUFFIXED_FLOAT:
+            case CnxParser.SUFFIXED_HEX:
+            case CnxParser.SUFFIXED_BINARY:
+            case CnxParser.SUFFIXED_DECIMAL:
+            case CnxParser.U8:
+            case CnxParser.U16:
+            case CnxParser.U32:
+            case CnxParser.U64:
+            case CnxParser.I8:
+            case CnxParser.I16:
+            case CnxParser.I32:
+            case CnxParser.I64:
+            case CnxParser.F32:
+            case CnxParser.F64:
+            case CnxParser.BOOL:
+            case CnxParser.ISR_TYPE:
+            case CnxParser.LPAREN:
+            case CnxParser.LBRACE:
+            case CnxParser.LBRACKET:
+            case CnxParser.HEX_LITERAL:
+            case CnxParser.BINARY_LITERAL:
+            case CnxParser.FLOAT_LITERAL:
+            case CnxParser.INTEGER_LITERAL:
+            case CnxParser.STRING_LITERAL:
+            case CnxParser.CHAR_LITERAL:
+            case CnxParser.IDENTIFIER:
                 this.enterOuterAlt(localContext, 5);
                 {
                 this.state = 758;
@@ -3411,32 +3411,32 @@ export class CNextParser extends antlr.Parser {
     }
     public postfixExpression(): PostfixExpressionContext {
         let localContext = new PostfixExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 132, CNextParser.RULE_postfixExpression);
+        this.enterRule(localContext, 132, CnxParser.RULE_postfixExpression);
         try {
             let alternative: number;
             this.state = 772;
             this.errorHandler.sync(this);
             switch (this.tokenStream.LA(1)) {
-            case CNextParser.THIS:
-            case CNextParser.GLOBAL:
-            case CNextParser.TRUE:
-            case CNextParser.FALSE:
-            case CNextParser.C_NULL:
-            case CNextParser.SIZEOF:
-            case CNextParser.SUFFIXED_FLOAT:
-            case CNextParser.SUFFIXED_HEX:
-            case CNextParser.SUFFIXED_BINARY:
-            case CNextParser.SUFFIXED_DECIMAL:
-            case CNextParser.LPAREN:
-            case CNextParser.LBRACE:
-            case CNextParser.LBRACKET:
-            case CNextParser.HEX_LITERAL:
-            case CNextParser.BINARY_LITERAL:
-            case CNextParser.FLOAT_LITERAL:
-            case CNextParser.INTEGER_LITERAL:
-            case CNextParser.STRING_LITERAL:
-            case CNextParser.CHAR_LITERAL:
-            case CNextParser.IDENTIFIER:
+            case CnxParser.THIS:
+            case CnxParser.GLOBAL:
+            case CnxParser.TRUE:
+            case CnxParser.FALSE:
+            case CnxParser.C_NULL:
+            case CnxParser.SIZEOF:
+            case CnxParser.SUFFIXED_FLOAT:
+            case CnxParser.SUFFIXED_HEX:
+            case CnxParser.SUFFIXED_BINARY:
+            case CnxParser.SUFFIXED_DECIMAL:
+            case CnxParser.LPAREN:
+            case CnxParser.LBRACE:
+            case CnxParser.LBRACKET:
+            case CnxParser.HEX_LITERAL:
+            case CnxParser.BINARY_LITERAL:
+            case CnxParser.FLOAT_LITERAL:
+            case CnxParser.INTEGER_LITERAL:
+            case CnxParser.STRING_LITERAL:
+            case CnxParser.CHAR_LITERAL:
+            case CnxParser.IDENTIFIER:
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 761;
@@ -3459,26 +3459,26 @@ export class CNextParser extends antlr.Parser {
                 }
                 }
                 break;
-            case CNextParser.U8:
-            case CNextParser.U16:
-            case CNextParser.U32:
-            case CNextParser.U64:
-            case CNextParser.I8:
-            case CNextParser.I16:
-            case CNextParser.I32:
-            case CNextParser.I64:
-            case CNextParser.F32:
-            case CNextParser.F64:
-            case CNextParser.BOOL:
-            case CNextParser.ISR_TYPE:
+            case CnxParser.U8:
+            case CnxParser.U16:
+            case CnxParser.U32:
+            case CnxParser.U64:
+            case CnxParser.I8:
+            case CnxParser.I16:
+            case CnxParser.I32:
+            case CnxParser.I64:
+            case CnxParser.F32:
+            case CnxParser.F64:
+            case CnxParser.BOOL:
+            case CnxParser.ISR_TYPE:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 768;
                 this.primitiveType();
                 this.state = 769;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 770;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 break;
             default:
@@ -3500,7 +3500,7 @@ export class CNextParser extends antlr.Parser {
     }
     public postfixOp(): PostfixOpContext {
         let localContext = new PostfixOpContext(this.context, this.state);
-        this.enterRule(localContext, 134, CNextParser.RULE_postfixOp);
+        this.enterRule(localContext, 134, CnxParser.RULE_postfixOp);
         let _la: number;
         try {
             this.state = 791;
@@ -3510,42 +3510,42 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 774;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 775;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 break;
             case 2:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 776;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 777;
                 this.expression();
                 this.state = 778;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
                 break;
             case 3:
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 780;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 781;
                 this.expression();
                 this.state = 782;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 this.state = 783;
                 this.expression();
                 this.state = 784;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
                 break;
             case 4:
                 this.enterOuterAlt(localContext, 4);
                 {
                 this.state = 786;
-                this.match(CNextParser.LPAREN);
+                this.match(CnxParser.LPAREN);
                 this.state = 788;
                 this.errorHandler.sync(this);
                 _la = this.tokenStream.LA(1);
@@ -3557,7 +3557,7 @@ export class CNextParser extends antlr.Parser {
                 }
 
                 this.state = 790;
-                this.match(CNextParser.RPAREN);
+                this.match(CnxParser.RPAREN);
                 }
                 break;
             }
@@ -3577,7 +3577,7 @@ export class CNextParser extends antlr.Parser {
     }
     public primaryExpression(): PrimaryExpressionContext {
         let localContext = new PrimaryExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 136, CNextParser.RULE_primaryExpression);
+        this.enterRule(localContext, 136, CnxParser.RULE_primaryExpression);
         try {
             this.state = 805;
             this.errorHandler.sync(this);
@@ -3614,21 +3614,21 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 5);
                 {
                 this.state = 797;
-                this.match(CNextParser.THIS);
+                this.match(CnxParser.THIS);
                 }
                 break;
             case 6:
                 this.enterOuterAlt(localContext, 6);
                 {
                 this.state = 798;
-                this.match(CNextParser.GLOBAL);
+                this.match(CnxParser.GLOBAL);
                 }
                 break;
             case 7:
                 this.enterOuterAlt(localContext, 7);
                 {
                 this.state = 799;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 break;
             case 8:
@@ -3642,11 +3642,11 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 9);
                 {
                 this.state = 801;
-                this.match(CNextParser.LPAREN);
+                this.match(CnxParser.LPAREN);
                 this.state = 802;
                 this.expression();
                 this.state = 803;
-                this.match(CNextParser.RPAREN);
+                this.match(CnxParser.RPAREN);
                 }
                 break;
             }
@@ -3666,14 +3666,14 @@ export class CNextParser extends antlr.Parser {
     }
     public sizeofExpression(): SizeofExpressionContext {
         let localContext = new SizeofExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 138, CNextParser.RULE_sizeofExpression);
+        this.enterRule(localContext, 138, CnxParser.RULE_sizeofExpression);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 807;
-            this.match(CNextParser.SIZEOF);
+            this.match(CnxParser.SIZEOF);
             this.state = 808;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 811;
             this.errorHandler.sync(this);
             switch (this.interpreter.adaptivePredict(this.tokenStream, 83, this.context) ) {
@@ -3691,7 +3691,7 @@ export class CNextParser extends antlr.Parser {
                 break;
             }
             this.state = 813;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             }
         }
         catch (re) {
@@ -3709,16 +3709,16 @@ export class CNextParser extends antlr.Parser {
     }
     public castExpression(): CastExpressionContext {
         let localContext = new CastExpressionContext(this.context, this.state);
-        this.enterRule(localContext, 140, CNextParser.RULE_castExpression);
+        this.enterRule(localContext, 140, CnxParser.RULE_castExpression);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 815;
-            this.match(CNextParser.LPAREN);
+            this.match(CnxParser.LPAREN);
             this.state = 816;
             this.type_();
             this.state = 817;
-            this.match(CNextParser.RPAREN);
+            this.match(CnxParser.RPAREN);
             this.state = 818;
             this.unaryExpression();
             }
@@ -3738,16 +3738,16 @@ export class CNextParser extends antlr.Parser {
     }
     public structInitializer(): StructInitializerContext {
         let localContext = new StructInitializerContext(this.context, this.state);
-        this.enterRule(localContext, 142, CNextParser.RULE_structInitializer);
+        this.enterRule(localContext, 142, CnxParser.RULE_structInitializer);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 820;
-            this.match(CNextParser.LBRACE);
+            this.match(CnxParser.LBRACE);
             this.state = 821;
             this.fieldInitializerList();
             this.state = 822;
-            this.match(CNextParser.RBRACE);
+            this.match(CnxParser.RBRACE);
             }
         }
         catch (re) {
@@ -3765,7 +3765,7 @@ export class CNextParser extends antlr.Parser {
     }
     public fieldInitializerList(): FieldInitializerListContext {
         let localContext = new FieldInitializerListContext(this.context, this.state);
-        this.enterRule(localContext, 144, CNextParser.RULE_fieldInitializerList);
+        this.enterRule(localContext, 144, CnxParser.RULE_fieldInitializerList);
         let _la: number;
         try {
             let alternative: number;
@@ -3781,7 +3781,7 @@ export class CNextParser extends antlr.Parser {
                     {
                     {
                     this.state = 825;
-                    this.match(CNextParser.COMMA);
+                    this.match(CnxParser.COMMA);
                     this.state = 826;
                     this.fieldInitializer();
                     }
@@ -3797,7 +3797,7 @@ export class CNextParser extends antlr.Parser {
             if (_la === 105) {
                 {
                 this.state = 832;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 }
             }
 
@@ -3818,14 +3818,14 @@ export class CNextParser extends antlr.Parser {
     }
     public fieldInitializer(): FieldInitializerContext {
         let localContext = new FieldInitializerContext(this.context, this.state);
-        this.enterRule(localContext, 146, CNextParser.RULE_fieldInitializer);
+        this.enterRule(localContext, 146, CnxParser.RULE_fieldInitializer);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 835;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 836;
-            this.match(CNextParser.COLON);
+            this.match(CnxParser.COLON);
             this.state = 837;
             this.expression();
             }
@@ -3845,7 +3845,7 @@ export class CNextParser extends antlr.Parser {
     }
     public arrayInitializer(): ArrayInitializerContext {
         let localContext = new ArrayInitializerContext(this.context, this.state);
-        this.enterRule(localContext, 148, CNextParser.RULE_arrayInitializer);
+        this.enterRule(localContext, 148, CnxParser.RULE_arrayInitializer);
         let _la: number;
         try {
             let alternative: number;
@@ -3856,7 +3856,7 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 839;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 840;
                 this.arrayInitializerElement();
                 this.state = 845;
@@ -3867,7 +3867,7 @@ export class CNextParser extends antlr.Parser {
                         {
                         {
                         this.state = 841;
-                        this.match(CNextParser.COMMA);
+                        this.match(CnxParser.COMMA);
                         this.state = 842;
                         this.arrayInitializerElement();
                         }
@@ -3883,25 +3883,25 @@ export class CNextParser extends antlr.Parser {
                 if (_la === 105) {
                     {
                     this.state = 848;
-                    this.match(CNextParser.COMMA);
+                    this.match(CnxParser.COMMA);
                     }
                 }
 
                 this.state = 851;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
                 break;
             case 2:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 853;
-                this.match(CNextParser.LBRACKET);
+                this.match(CnxParser.LBRACKET);
                 this.state = 854;
                 this.expression();
                 this.state = 855;
-                this.match(CNextParser.STAR);
+                this.match(CnxParser.STAR);
                 this.state = 856;
-                this.match(CNextParser.RBRACKET);
+                this.match(CnxParser.RBRACKET);
                 }
                 break;
             }
@@ -3921,7 +3921,7 @@ export class CNextParser extends antlr.Parser {
     }
     public arrayInitializerElement(): ArrayInitializerElementContext {
         let localContext = new ArrayInitializerElementContext(this.context, this.state);
-        this.enterRule(localContext, 150, CNextParser.RULE_arrayInitializerElement);
+        this.enterRule(localContext, 150, CnxParser.RULE_arrayInitializerElement);
         try {
             this.state = 863;
             this.errorHandler.sync(this);
@@ -3964,7 +3964,7 @@ export class CNextParser extends antlr.Parser {
     }
     public argumentList(): ArgumentListContext {
         let localContext = new ArgumentListContext(this.context, this.state);
-        this.enterRule(localContext, 152, CNextParser.RULE_argumentList);
+        this.enterRule(localContext, 152, CnxParser.RULE_argumentList);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -3978,7 +3978,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 866;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 this.state = 867;
                 this.expression();
                 }
@@ -4004,7 +4004,7 @@ export class CNextParser extends antlr.Parser {
     }
     public type_(): TypeContext {
         let localContext = new TypeContext(this.context, this.state);
-        this.enterRule(localContext, 154, CNextParser.RULE_type);
+        this.enterRule(localContext, 154, CnxParser.RULE_type);
         try {
             this.state = 882;
             this.errorHandler.sync(this);
@@ -4069,7 +4069,7 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 9);
                 {
                 this.state = 881;
-                this.match(CNextParser.VOID);
+                this.match(CnxParser.VOID);
                 }
                 break;
             }
@@ -4089,16 +4089,16 @@ export class CNextParser extends antlr.Parser {
     }
     public scopedType(): ScopedTypeContext {
         let localContext = new ScopedTypeContext(this.context, this.state);
-        this.enterRule(localContext, 156, CNextParser.RULE_scopedType);
+        this.enterRule(localContext, 156, CnxParser.RULE_scopedType);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 884;
-            this.match(CNextParser.THIS);
+            this.match(CnxParser.THIS);
             this.state = 885;
-            this.match(CNextParser.DOT);
+            this.match(CnxParser.DOT);
             this.state = 886;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             }
         }
         catch (re) {
@@ -4116,16 +4116,16 @@ export class CNextParser extends antlr.Parser {
     }
     public globalType(): GlobalTypeContext {
         let localContext = new GlobalTypeContext(this.context, this.state);
-        this.enterRule(localContext, 158, CNextParser.RULE_globalType);
+        this.enterRule(localContext, 158, CnxParser.RULE_globalType);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 888;
-            this.match(CNextParser.GLOBAL);
+            this.match(CnxParser.GLOBAL);
             this.state = 889;
-            this.match(CNextParser.DOT);
+            this.match(CnxParser.DOT);
             this.state = 890;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             }
         }
         catch (re) {
@@ -4143,13 +4143,13 @@ export class CNextParser extends antlr.Parser {
     }
     public qualifiedType(): QualifiedTypeContext {
         let localContext = new QualifiedTypeContext(this.context, this.state);
-        this.enterRule(localContext, 160, CNextParser.RULE_qualifiedType);
+        this.enterRule(localContext, 160, CnxParser.RULE_qualifiedType);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 892;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 895;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -4157,9 +4157,9 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 893;
-                this.match(CNextParser.DOT);
+                this.match(CnxParser.DOT);
                 this.state = 894;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 }
                 this.state = 897;
@@ -4183,7 +4183,7 @@ export class CNextParser extends antlr.Parser {
     }
     public primitiveType(): PrimitiveTypeContext {
         let localContext = new PrimitiveTypeContext(this.context, this.state);
-        this.enterRule(localContext, 162, CNextParser.RULE_primitiveType);
+        this.enterRule(localContext, 162, CnxParser.RULE_primitiveType);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4214,12 +4214,12 @@ export class CNextParser extends antlr.Parser {
     }
     public userType(): UserTypeContext {
         let localContext = new UserTypeContext(this.context, this.state);
-        this.enterRule(localContext, 164, CNextParser.RULE_userType);
+        this.enterRule(localContext, 164, CnxParser.RULE_userType);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 901;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             }
         }
         catch (re) {
@@ -4237,18 +4237,18 @@ export class CNextParser extends antlr.Parser {
     }
     public templateType(): TemplateTypeContext {
         let localContext = new TemplateTypeContext(this.context, this.state);
-        this.enterRule(localContext, 166, CNextParser.RULE_templateType);
+        this.enterRule(localContext, 166, CnxParser.RULE_templateType);
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 903;
-            this.match(CNextParser.IDENTIFIER);
+            this.match(CnxParser.IDENTIFIER);
             this.state = 904;
-            this.match(CNextParser.LT);
+            this.match(CnxParser.LT);
             this.state = 905;
             this.templateArgumentList();
             this.state = 906;
-            this.match(CNextParser.GT);
+            this.match(CnxParser.GT);
             }
         }
         catch (re) {
@@ -4266,7 +4266,7 @@ export class CNextParser extends antlr.Parser {
     }
     public templateArgumentList(): TemplateArgumentListContext {
         let localContext = new TemplateArgumentListContext(this.context, this.state);
-        this.enterRule(localContext, 168, CNextParser.RULE_templateArgumentList);
+        this.enterRule(localContext, 168, CnxParser.RULE_templateArgumentList);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4280,7 +4280,7 @@ export class CNextParser extends antlr.Parser {
                 {
                 {
                 this.state = 909;
-                this.match(CNextParser.COMMA);
+                this.match(CnxParser.COMMA);
                 this.state = 910;
                 this.templateArgument();
                 }
@@ -4306,7 +4306,7 @@ export class CNextParser extends antlr.Parser {
     }
     public templateArgument(): TemplateArgumentContext {
         let localContext = new TemplateArgumentContext(this.context, this.state);
-        this.enterRule(localContext, 170, CNextParser.RULE_templateArgument);
+        this.enterRule(localContext, 170, CnxParser.RULE_templateArgument);
         try {
             this.state = 920;
             this.errorHandler.sync(this);
@@ -4329,14 +4329,14 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 3);
                 {
                 this.state = 918;
-                this.match(CNextParser.IDENTIFIER);
+                this.match(CnxParser.IDENTIFIER);
                 }
                 break;
             case 4:
                 this.enterOuterAlt(localContext, 4);
                 {
                 this.state = 919;
-                this.match(CNextParser.INTEGER_LITERAL);
+                this.match(CnxParser.INTEGER_LITERAL);
                 }
                 break;
             }
@@ -4356,7 +4356,7 @@ export class CNextParser extends antlr.Parser {
     }
     public stringType(): StringTypeContext {
         let localContext = new StringTypeContext(this.context, this.state);
-        this.enterRule(localContext, 172, CNextParser.RULE_stringType);
+        this.enterRule(localContext, 172, CnxParser.RULE_stringType);
         try {
             this.state = 927;
             this.errorHandler.sync(this);
@@ -4365,20 +4365,20 @@ export class CNextParser extends antlr.Parser {
                 this.enterOuterAlt(localContext, 1);
                 {
                 this.state = 922;
-                this.match(CNextParser.STRING);
+                this.match(CnxParser.STRING);
                 this.state = 923;
-                this.match(CNextParser.LT);
+                this.match(CnxParser.LT);
                 this.state = 924;
-                this.match(CNextParser.INTEGER_LITERAL);
+                this.match(CnxParser.INTEGER_LITERAL);
                 this.state = 925;
-                this.match(CNextParser.GT);
+                this.match(CnxParser.GT);
                 }
                 break;
             case 2:
                 this.enterOuterAlt(localContext, 2);
                 {
                 this.state = 926;
-                this.match(CNextParser.STRING);
+                this.match(CnxParser.STRING);
                 }
                 break;
             }
@@ -4398,7 +4398,7 @@ export class CNextParser extends antlr.Parser {
     }
     public arrayType(): ArrayTypeContext {
         let localContext = new ArrayTypeContext(this.context, this.state);
-        this.enterRule(localContext, 174, CNextParser.RULE_arrayType);
+        this.enterRule(localContext, 174, CnxParser.RULE_arrayType);
         let _la: number;
         try {
             this.state = 965;
@@ -4547,13 +4547,13 @@ export class CNextParser extends antlr.Parser {
     }
     public arrayTypeDimension(): ArrayTypeDimensionContext {
         let localContext = new ArrayTypeDimensionContext(this.context, this.state);
-        this.enterRule(localContext, 176, CNextParser.RULE_arrayTypeDimension);
+        this.enterRule(localContext, 176, CnxParser.RULE_arrayTypeDimension);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
             {
             this.state = 967;
-            this.match(CNextParser.LBRACKET);
+            this.match(CnxParser.LBRACKET);
             this.state = 969;
             this.errorHandler.sync(this);
             _la = this.tokenStream.LA(1);
@@ -4565,7 +4565,7 @@ export class CNextParser extends antlr.Parser {
             }
 
             this.state = 971;
-            this.match(CNextParser.RBRACKET);
+            this.match(CnxParser.RBRACKET);
             }
         }
         catch (re) {
@@ -4583,7 +4583,7 @@ export class CNextParser extends antlr.Parser {
     }
     public literal(): LiteralContext {
         let localContext = new LiteralContext(this.context, this.state);
-        this.enterRule(localContext, 178, CNextParser.RULE_literal);
+        this.enterRule(localContext, 178, CnxParser.RULE_literal);
         let _la: number;
         try {
             this.enterOuterAlt(localContext, 1);
@@ -4984,21 +4984,21 @@ export class CNextParser extends antlr.Parser {
 
     private static __ATN: antlr.ATN;
     public static get _ATN(): antlr.ATN {
-        if (!CNextParser.__ATN) {
-            CNextParser.__ATN = new antlr.ATNDeserializer().deserialize(CNextParser._serializedATN);
+        if (!CnxParser.__ATN) {
+            CnxParser.__ATN = new antlr.ATNDeserializer().deserialize(CnxParser._serializedATN);
         }
 
-        return CNextParser.__ATN;
+        return CnxParser.__ATN;
     }
 
 
-    private static readonly vocabulary = new antlr.Vocabulary(CNextParser.literalNames, CNextParser.symbolicNames, []);
+    private static readonly vocabulary = new antlr.Vocabulary(CnxParser.literalNames, CnxParser.symbolicNames, []);
 
     public override get vocabulary(): antlr.Vocabulary {
-        return CNextParser.vocabulary;
+        return CnxParser.vocabulary;
     }
 
-    private static readonly decisionsToDFA = CNextParser._ATN.decisionToState.map( (ds: antlr.DecisionState, index: number) => new antlr.DFA(ds, index) );
+    private static readonly decisionsToDFA = CnxParser._ATN.decisionToState.map( (ds: antlr.DecisionState, index: number) => new antlr.DFA(ds, index) );
 }
 
 export class ProgramContext extends antlr.ParserRuleContext {
@@ -5006,7 +5006,7 @@ export class ProgramContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public EOF(): antlr.TerminalNode {
-        return this.getToken(CNextParser.EOF, 0)!;
+        return this.getToken(CnxParser.EOF, 0)!;
     }
     public includeDirective(): IncludeDirectiveContext[];
     public includeDirective(i: number): IncludeDirectiveContext | null;
@@ -5036,19 +5036,19 @@ export class ProgramContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, DeclarationContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_program;
+        return CnxParser.RULE_program;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterProgram) {
              listener.enterProgram(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitProgram) {
              listener.exitProgram(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitProgram) {
             return visitor.visitProgram(this);
         } else {
@@ -5063,22 +5063,22 @@ export class IncludeDirectiveContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public INCLUDE_DIRECTIVE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.INCLUDE_DIRECTIVE, 0)!;
+        return this.getToken(CnxParser.INCLUDE_DIRECTIVE, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_includeDirective;
+        return CnxParser.RULE_includeDirective;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterIncludeDirective) {
              listener.enterIncludeDirective(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitIncludeDirective) {
              listener.exitIncludeDirective(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitIncludeDirective) {
             return visitor.visitIncludeDirective(this);
         } else {
@@ -5102,19 +5102,19 @@ export class PreprocessorDirectiveContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, PragmaDirectiveContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_preprocessorDirective;
+        return CnxParser.RULE_preprocessorDirective;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPreprocessorDirective) {
              listener.enterPreprocessorDirective(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPreprocessorDirective) {
              listener.exitPreprocessorDirective(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPreprocessorDirective) {
             return visitor.visitPreprocessorDirective(this);
         } else {
@@ -5129,28 +5129,28 @@ export class DefineDirectiveContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public DEFINE_FLAG(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DEFINE_FLAG, 0);
+        return this.getToken(CnxParser.DEFINE_FLAG, 0);
     }
     public DEFINE_WITH_VALUE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DEFINE_WITH_VALUE, 0);
+        return this.getToken(CnxParser.DEFINE_WITH_VALUE, 0);
     }
     public DEFINE_FUNCTION(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DEFINE_FUNCTION, 0);
+        return this.getToken(CnxParser.DEFINE_FUNCTION, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_defineDirective;
+        return CnxParser.RULE_defineDirective;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterDefineDirective) {
              listener.enterDefineDirective(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitDefineDirective) {
              listener.exitDefineDirective(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitDefineDirective) {
             return visitor.visitDefineDirective(this);
         } else {
@@ -5165,31 +5165,31 @@ export class ConditionalDirectiveContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IFDEF_DIRECTIVE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IFDEF_DIRECTIVE, 0);
+        return this.getToken(CnxParser.IFDEF_DIRECTIVE, 0);
     }
     public IFNDEF_DIRECTIVE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IFNDEF_DIRECTIVE, 0);
+        return this.getToken(CnxParser.IFNDEF_DIRECTIVE, 0);
     }
     public ELSE_DIRECTIVE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ELSE_DIRECTIVE, 0);
+        return this.getToken(CnxParser.ELSE_DIRECTIVE, 0);
     }
     public ENDIF_DIRECTIVE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ENDIF_DIRECTIVE, 0);
+        return this.getToken(CnxParser.ENDIF_DIRECTIVE, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_conditionalDirective;
+        return CnxParser.RULE_conditionalDirective;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterConditionalDirective) {
              listener.enterConditionalDirective(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitConditionalDirective) {
              listener.exitConditionalDirective(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitConditionalDirective) {
             return visitor.visitConditionalDirective(this);
         } else {
@@ -5204,22 +5204,22 @@ export class PragmaDirectiveContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public PRAGMA_DIRECTIVE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.PRAGMA_DIRECTIVE, 0)!;
+        return this.getToken(CnxParser.PRAGMA_DIRECTIVE, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_pragmaDirective;
+        return CnxParser.RULE_pragmaDirective;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPragmaDirective) {
              listener.enterPragmaDirective(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPragmaDirective) {
              listener.exitPragmaDirective(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPragmaDirective) {
             return visitor.visitPragmaDirective(this);
         } else {
@@ -5255,19 +5255,19 @@ export class DeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, VariableDeclarationContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_declaration;
+        return CnxParser.RULE_declaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterDeclaration) {
              listener.enterDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitDeclaration) {
              listener.exitDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitDeclaration) {
             return visitor.visitDeclaration(this);
         } else {
@@ -5282,16 +5282,16 @@ export class ScopeDeclarationContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public SCOPE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SCOPE, 0)!;
+        return this.getToken(CnxParser.SCOPE, 0)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public scopeMember(): ScopeMemberContext[];
     public scopeMember(i: number): ScopeMemberContext | null;
@@ -5303,19 +5303,19 @@ export class ScopeDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ScopeMemberContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_scopeDeclaration;
+        return CnxParser.RULE_scopeDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterScopeDeclaration) {
              listener.enterScopeDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitScopeDeclaration) {
              listener.exitScopeDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitScopeDeclaration) {
             return visitor.visitScopeDeclaration(this);
         } else {
@@ -5351,19 +5351,19 @@ export class ScopeMemberContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, StructDeclarationContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_scopeMember;
+        return CnxParser.RULE_scopeMember;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterScopeMember) {
              listener.enterScopeMember(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitScopeMember) {
              listener.exitScopeMember(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitScopeMember) {
             return visitor.visitScopeMember(this);
         } else {
@@ -5378,25 +5378,25 @@ export class VisibilityModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public PRIVATE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.PRIVATE, 0);
+        return this.getToken(CnxParser.PRIVATE, 0);
     }
     public PUBLIC(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.PUBLIC, 0);
+        return this.getToken(CnxParser.PUBLIC, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_visibilityModifier;
+        return CnxParser.RULE_visibilityModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterVisibilityModifier) {
              listener.enterVisibilityModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitVisibilityModifier) {
              listener.exitVisibilityModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitVisibilityModifier) {
             return visitor.visitVisibilityModifier(this);
         } else {
@@ -5411,22 +5411,22 @@ export class RegisterDeclarationContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public REGISTER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.REGISTER, 0)!;
+        return this.getToken(CnxParser.REGISTER, 0)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public AT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.AT, 0)!;
+        return this.getToken(CnxParser.AT, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public registerMember(): RegisterMemberContext[];
     public registerMember(i: number): RegisterMemberContext | null;
@@ -5438,19 +5438,19 @@ export class RegisterDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, RegisterMemberContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_registerDeclaration;
+        return CnxParser.RULE_registerDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterRegisterDeclaration) {
              listener.enterRegisterDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitRegisterDeclaration) {
              listener.exitRegisterDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitRegisterDeclaration) {
             return visitor.visitRegisterDeclaration(this);
         } else {
@@ -5465,10 +5465,10 @@ export class RegisterMemberContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public COLON(): antlr.TerminalNode {
-        return this.getToken(CNextParser.COLON, 0)!;
+        return this.getToken(CnxParser.COLON, 0)!;
     }
     public type(): TypeContext {
         return this.getRuleContext(0, TypeContext)!;
@@ -5477,28 +5477,28 @@ export class RegisterMemberContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, AccessModifierContext)!;
     }
     public AT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.AT, 0)!;
+        return this.getToken(CnxParser.AT, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public COMMA(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.COMMA, 0);
+        return this.getToken(CnxParser.COMMA, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_registerMember;
+        return CnxParser.RULE_registerMember;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterRegisterMember) {
              listener.enterRegisterMember(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitRegisterMember) {
              listener.exitRegisterMember(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitRegisterMember) {
             return visitor.visitRegisterMember(this);
         } else {
@@ -5513,34 +5513,34 @@ export class AccessModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public RW(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RW, 0);
+        return this.getToken(CnxParser.RW, 0);
     }
     public RO(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RO, 0);
+        return this.getToken(CnxParser.RO, 0);
     }
     public WO(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.WO, 0);
+        return this.getToken(CnxParser.WO, 0);
     }
     public W1C(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.W1C, 0);
+        return this.getToken(CnxParser.W1C, 0);
     }
     public W1S(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.W1S, 0);
+        return this.getToken(CnxParser.W1S, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_accessModifier;
+        return CnxParser.RULE_accessModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAccessModifier) {
              listener.enterAccessModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAccessModifier) {
              listener.exitAccessModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAccessModifier) {
             return visitor.visitAccessModifier(this);
         } else {
@@ -5555,16 +5555,16 @@ export class StructDeclarationContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public STRUCT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.STRUCT, 0)!;
+        return this.getToken(CnxParser.STRUCT, 0)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public structMember(): StructMemberContext[];
     public structMember(i: number): StructMemberContext | null;
@@ -5576,19 +5576,19 @@ export class StructDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, StructMemberContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_structDeclaration;
+        return CnxParser.RULE_structDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterStructDeclaration) {
              listener.enterStructDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitStructDeclaration) {
              listener.exitStructDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitStructDeclaration) {
             return visitor.visitStructDeclaration(this);
         } else {
@@ -5606,10 +5606,10 @@ export class StructMemberContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, TypeContext)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public SEMI(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SEMI, 0)!;
+        return this.getToken(CnxParser.SEMI, 0)!;
     }
     public overflowModifier(): OverflowModifierContext | null {
         return this.getRuleContext(0, OverflowModifierContext);
@@ -5624,19 +5624,19 @@ export class StructMemberContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ArrayDimensionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_structMember;
+        return CnxParser.RULE_structMember;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterStructMember) {
              listener.enterStructMember(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitStructMember) {
              listener.exitStructMember(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitStructMember) {
             return visitor.visitStructMember(this);
         } else {
@@ -5651,13 +5651,13 @@ export class EnumDeclarationContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public ENUM(): antlr.TerminalNode {
-        return this.getToken(CNextParser.ENUM, 0)!;
+        return this.getToken(CnxParser.ENUM, 0)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public enumMember(): EnumMemberContext[];
     public enumMember(i: number): EnumMemberContext | null;
@@ -5669,31 +5669,31 @@ export class EnumDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, EnumMemberContext);
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public COMMA(): antlr.TerminalNode[];
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_enumDeclaration;
+        return CnxParser.RULE_enumDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterEnumDeclaration) {
              listener.enterEnumDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitEnumDeclaration) {
              listener.exitEnumDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitEnumDeclaration) {
             return visitor.visitEnumDeclaration(this);
         } else {
@@ -5708,28 +5708,28 @@ export class EnumMemberContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ASSIGN, 0);
+        return this.getToken(CnxParser.ASSIGN, 0);
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_enumMember;
+        return CnxParser.RULE_enumMember;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterEnumMember) {
              listener.enterEnumMember(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitEnumMember) {
              listener.exitEnumMember(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitEnumMember) {
             return visitor.visitEnumMember(this);
         } else {
@@ -5747,10 +5747,10 @@ export class BitmapDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, BitmapTypeContext)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public bitmapMember(): BitmapMemberContext[];
     public bitmapMember(i: number): BitmapMemberContext | null;
@@ -5762,31 +5762,31 @@ export class BitmapDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, BitmapMemberContext);
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public COMMA(): antlr.TerminalNode[];
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_bitmapDeclaration;
+        return CnxParser.RULE_bitmapDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBitmapDeclaration) {
              listener.enterBitmapDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBitmapDeclaration) {
              listener.exitBitmapDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBitmapDeclaration) {
             return visitor.visitBitmapDeclaration(this);
         } else {
@@ -5801,31 +5801,31 @@ export class BitmapTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public BITMAP8(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITMAP8, 0);
+        return this.getToken(CnxParser.BITMAP8, 0);
     }
     public BITMAP16(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITMAP16, 0);
+        return this.getToken(CnxParser.BITMAP16, 0);
     }
     public BITMAP24(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITMAP24, 0);
+        return this.getToken(CnxParser.BITMAP24, 0);
     }
     public BITMAP32(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITMAP32, 0);
+        return this.getToken(CnxParser.BITMAP32, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_bitmapType;
+        return CnxParser.RULE_bitmapType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBitmapType) {
              listener.enterBitmapType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBitmapType) {
              listener.exitBitmapType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBitmapType) {
             return visitor.visitBitmapType(this);
         } else {
@@ -5840,31 +5840,31 @@ export class BitmapMemberContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LBRACKET(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LBRACKET, 0);
+        return this.getToken(CnxParser.LBRACKET, 0);
     }
     public INTEGER_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.INTEGER_LITERAL, 0);
+        return this.getToken(CnxParser.INTEGER_LITERAL, 0);
     }
     public RBRACKET(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RBRACKET, 0);
+        return this.getToken(CnxParser.RBRACKET, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_bitmapMember;
+        return CnxParser.RULE_bitmapMember;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBitmapMember) {
              listener.enterBitmapMember(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBitmapMember) {
              listener.exitBitmapMember(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBitmapMember) {
             return visitor.visitBitmapMember(this);
         } else {
@@ -5882,13 +5882,13 @@ export class FunctionDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, TypeContext)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public block(): BlockContext {
         return this.getRuleContext(0, BlockContext)!;
@@ -5897,19 +5897,19 @@ export class FunctionDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ParameterListContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_functionDeclaration;
+        return CnxParser.RULE_functionDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterFunctionDeclaration) {
              listener.enterFunctionDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitFunctionDeclaration) {
              listener.exitFunctionDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitFunctionDeclaration) {
             return visitor.visitFunctionDeclaration(this);
         } else {
@@ -5936,25 +5936,25 @@ export class ParameterListContext extends antlr.ParserRuleContext {
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_parameterList;
+        return CnxParser.RULE_parameterList;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterParameterList) {
              listener.enterParameterList(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitParameterList) {
              listener.exitParameterList(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitParameterList) {
             return visitor.visitParameterList(this);
         } else {
@@ -5972,7 +5972,7 @@ export class ParameterContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, TypeContext)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public constModifier(): ConstModifierContext | null {
         return this.getRuleContext(0, ConstModifierContext);
@@ -5990,19 +5990,19 @@ export class ParameterContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ArrayDimensionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_parameter;
+        return CnxParser.RULE_parameter;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterParameter) {
              listener.enterParameter(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitParameter) {
              listener.exitParameter(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitParameter) {
             return visitor.visitParameter(this);
         } else {
@@ -6017,22 +6017,22 @@ export class ConstModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public CONST(): antlr.TerminalNode {
-        return this.getToken(CNextParser.CONST, 0)!;
+        return this.getToken(CnxParser.CONST, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_constModifier;
+        return CnxParser.RULE_constModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterConstModifier) {
              listener.enterConstModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitConstModifier) {
              listener.exitConstModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitConstModifier) {
             return visitor.visitConstModifier(this);
         } else {
@@ -6047,22 +6047,22 @@ export class MutModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public MUT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.MUT, 0)!;
+        return this.getToken(CnxParser.MUT, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_mutModifier;
+        return CnxParser.RULE_mutModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterMutModifier) {
              listener.enterMutModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitMutModifier) {
              listener.exitMutModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitMutModifier) {
             return visitor.visitMutModifier(this);
         } else {
@@ -6077,22 +6077,22 @@ export class VolatileModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public VOLATILE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.VOLATILE, 0)!;
+        return this.getToken(CnxParser.VOLATILE, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_volatileModifier;
+        return CnxParser.RULE_volatileModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterVolatileModifier) {
              listener.enterVolatileModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitVolatileModifier) {
              listener.exitVolatileModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitVolatileModifier) {
             return visitor.visitVolatileModifier(this);
         } else {
@@ -6107,25 +6107,25 @@ export class OverflowModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public CLAMP(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.CLAMP, 0);
+        return this.getToken(CnxParser.CLAMP, 0);
     }
     public WRAP(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.WRAP, 0);
+        return this.getToken(CnxParser.WRAP, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_overflowModifier;
+        return CnxParser.RULE_overflowModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterOverflowModifier) {
              listener.enterOverflowModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitOverflowModifier) {
              listener.exitOverflowModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitOverflowModifier) {
             return visitor.visitOverflowModifier(this);
         } else {
@@ -6140,22 +6140,22 @@ export class AtomicModifierContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public ATOMIC(): antlr.TerminalNode {
-        return this.getToken(CNextParser.ATOMIC, 0)!;
+        return this.getToken(CnxParser.ATOMIC, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_atomicModifier;
+        return CnxParser.RULE_atomicModifier;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAtomicModifier) {
              listener.enterAtomicModifier(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAtomicModifier) {
              listener.exitAtomicModifier(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAtomicModifier) {
             return visitor.visitAtomicModifier(this);
         } else {
@@ -6170,28 +6170,28 @@ export class ArrayDimensionContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LBRACKET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACKET, 0)!;
+        return this.getToken(CnxParser.LBRACKET, 0)!;
     }
     public RBRACKET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACKET, 0)!;
+        return this.getToken(CnxParser.RBRACKET, 0)!;
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_arrayDimension;
+        return CnxParser.RULE_arrayDimension;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterArrayDimension) {
              listener.enterArrayDimension(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitArrayDimension) {
              listener.exitArrayDimension(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitArrayDimension) {
             return visitor.visitArrayDimension(this);
         } else {
@@ -6209,10 +6209,10 @@ export class VariableDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, TypeContext)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public SEMI(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SEMI, 0)!;
+        return this.getToken(CnxParser.SEMI, 0)!;
     }
     public atomicModifier(): AtomicModifierContext | null {
         return this.getRuleContext(0, AtomicModifierContext);
@@ -6239,34 +6239,34 @@ export class VariableDeclarationContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ArrayDimensionContext);
     }
     public ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ASSIGN, 0);
+        return this.getToken(CnxParser.ASSIGN, 0);
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public LPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LPAREN, 0);
+        return this.getToken(CnxParser.LPAREN, 0);
     }
     public constructorArgumentList(): ConstructorArgumentListContext | null {
         return this.getRuleContext(0, ConstructorArgumentListContext);
     }
     public RPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RPAREN, 0);
+        return this.getToken(CnxParser.RPAREN, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_variableDeclaration;
+        return CnxParser.RULE_variableDeclaration;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterVariableDeclaration) {
              listener.enterVariableDeclaration(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitVariableDeclaration) {
              listener.exitVariableDeclaration(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitVariableDeclaration) {
             return visitor.visitVariableDeclaration(this);
         } else {
@@ -6284,34 +6284,34 @@ export class ConstructorArgumentListContext extends antlr.ParserRuleContext {
     public IDENTIFIER(i: number): antlr.TerminalNode | null;
     public IDENTIFIER(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.IDENTIFIER);
+    		return this.getTokens(CnxParser.IDENTIFIER);
     	} else {
-    		return this.getToken(CNextParser.IDENTIFIER, i);
+    		return this.getToken(CnxParser.IDENTIFIER, i);
     	}
     }
     public COMMA(): antlr.TerminalNode[];
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_constructorArgumentList;
+        return CnxParser.RULE_constructorArgumentList;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterConstructorArgumentList) {
              listener.enterConstructorArgumentList(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitConstructorArgumentList) {
              listener.exitConstructorArgumentList(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitConstructorArgumentList) {
             return visitor.visitConstructorArgumentList(this);
         } else {
@@ -6326,10 +6326,10 @@ export class BlockContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public statement(): StatementContext[];
     public statement(i: number): StatementContext | null;
@@ -6341,19 +6341,19 @@ export class BlockContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, StatementContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_block;
+        return CnxParser.RULE_block;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBlock) {
              listener.enterBlock(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBlock) {
              listener.exitBlock(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBlock) {
             return visitor.visitBlock(this);
         } else {
@@ -6404,19 +6404,19 @@ export class StatementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, BlockContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_statement;
+        return CnxParser.RULE_statement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterStatement) {
              listener.enterStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitStatement) {
              listener.exitStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitStatement) {
             return visitor.visitStatement(this);
         } else {
@@ -6431,25 +6431,25 @@ export class CriticalStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public CRITICAL(): antlr.TerminalNode {
-        return this.getToken(CNextParser.CRITICAL, 0)!;
+        return this.getToken(CnxParser.CRITICAL, 0)!;
     }
     public block(): BlockContext {
         return this.getRuleContext(0, BlockContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_criticalStatement;
+        return CnxParser.RULE_criticalStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterCriticalStatement) {
              listener.enterCriticalStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitCriticalStatement) {
              listener.exitCriticalStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitCriticalStatement) {
             return visitor.visitCriticalStatement(this);
         } else {
@@ -6473,22 +6473,22 @@ export class AssignmentStatementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public SEMI(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SEMI, 0)!;
+        return this.getToken(CnxParser.SEMI, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_assignmentStatement;
+        return CnxParser.RULE_assignmentStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAssignmentStatement) {
              listener.enterAssignmentStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAssignmentStatement) {
              listener.exitAssignmentStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAssignmentStatement) {
             return visitor.visitAssignmentStatement(this);
         } else {
@@ -6503,52 +6503,52 @@ export class AssignmentOperatorContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ASSIGN, 0);
+        return this.getToken(CnxParser.ASSIGN, 0);
     }
     public PLUS_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.PLUS_ASSIGN, 0);
+        return this.getToken(CnxParser.PLUS_ASSIGN, 0);
     }
     public MINUS_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.MINUS_ASSIGN, 0);
+        return this.getToken(CnxParser.MINUS_ASSIGN, 0);
     }
     public STAR_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.STAR_ASSIGN, 0);
+        return this.getToken(CnxParser.STAR_ASSIGN, 0);
     }
     public SLASH_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.SLASH_ASSIGN, 0);
+        return this.getToken(CnxParser.SLASH_ASSIGN, 0);
     }
     public PERCENT_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.PERCENT_ASSIGN, 0);
+        return this.getToken(CnxParser.PERCENT_ASSIGN, 0);
     }
     public BITAND_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITAND_ASSIGN, 0);
+        return this.getToken(CnxParser.BITAND_ASSIGN, 0);
     }
     public BITOR_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITOR_ASSIGN, 0);
+        return this.getToken(CnxParser.BITOR_ASSIGN, 0);
     }
     public BITXOR_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITXOR_ASSIGN, 0);
+        return this.getToken(CnxParser.BITXOR_ASSIGN, 0);
     }
     public LSHIFT_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LSHIFT_ASSIGN, 0);
+        return this.getToken(CnxParser.LSHIFT_ASSIGN, 0);
     }
     public RSHIFT_ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RSHIFT_ASSIGN, 0);
+        return this.getToken(CnxParser.RSHIFT_ASSIGN, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_assignmentOperator;
+        return CnxParser.RULE_assignmentOperator;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAssignmentOperator) {
              listener.enterAssignmentOperator(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAssignmentOperator) {
              listener.exitAssignmentOperator(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAssignmentOperator) {
             return visitor.visitAssignmentOperator(this);
         } else {
@@ -6563,13 +6563,13 @@ export class AssignmentTargetContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public GLOBAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.GLOBAL, 0);
+        return this.getToken(CnxParser.GLOBAL, 0);
     }
     public DOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DOT, 0);
+        return this.getToken(CnxParser.DOT, 0);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public postfixTargetOp(): PostfixTargetOpContext[];
     public postfixTargetOp(i: number): PostfixTargetOpContext | null;
@@ -6581,22 +6581,22 @@ export class AssignmentTargetContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, PostfixTargetOpContext);
     }
     public THIS(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.THIS, 0);
+        return this.getToken(CnxParser.THIS, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_assignmentTarget;
+        return CnxParser.RULE_assignmentTarget;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAssignmentTarget) {
              listener.enterAssignmentTarget(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAssignmentTarget) {
              listener.exitAssignmentTarget(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAssignmentTarget) {
             return visitor.visitAssignmentTarget(this);
         } else {
@@ -6611,13 +6611,13 @@ export class PostfixTargetOpContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public DOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DOT, 0);
+        return this.getToken(CnxParser.DOT, 0);
     }
     public IDENTIFIER(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IDENTIFIER, 0);
+        return this.getToken(CnxParser.IDENTIFIER, 0);
     }
     public LBRACKET(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LBRACKET, 0);
+        return this.getToken(CnxParser.LBRACKET, 0);
     }
     public expression(): ExpressionContext[];
     public expression(i: number): ExpressionContext | null;
@@ -6629,25 +6629,25 @@ export class PostfixTargetOpContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ExpressionContext);
     }
     public RBRACKET(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RBRACKET, 0);
+        return this.getToken(CnxParser.RBRACKET, 0);
     }
     public COMMA(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.COMMA, 0);
+        return this.getToken(CnxParser.COMMA, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_postfixTargetOp;
+        return CnxParser.RULE_postfixTargetOp;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPostfixTargetOp) {
              listener.enterPostfixTargetOp(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPostfixTargetOp) {
              listener.exitPostfixTargetOp(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPostfixTargetOp) {
             return visitor.visitPostfixTargetOp(this);
         } else {
@@ -6665,22 +6665,22 @@ export class ExpressionStatementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public SEMI(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SEMI, 0)!;
+        return this.getToken(CnxParser.SEMI, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_expressionStatement;
+        return CnxParser.RULE_expressionStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterExpressionStatement) {
              listener.enterExpressionStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitExpressionStatement) {
              listener.exitExpressionStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitExpressionStatement) {
             return visitor.visitExpressionStatement(this);
         } else {
@@ -6695,16 +6695,16 @@ export class IfStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IF(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IF, 0)!;
+        return this.getToken(CnxParser.IF, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public statement(): StatementContext[];
     public statement(i: number): StatementContext | null;
@@ -6716,22 +6716,22 @@ export class IfStatementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, StatementContext);
     }
     public ELSE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ELSE, 0);
+        return this.getToken(CnxParser.ELSE, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_ifStatement;
+        return CnxParser.RULE_ifStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterIfStatement) {
              listener.enterIfStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitIfStatement) {
              listener.exitIfStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitIfStatement) {
             return visitor.visitIfStatement(this);
         } else {
@@ -6746,34 +6746,34 @@ export class WhileStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public WHILE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.WHILE, 0)!;
+        return this.getToken(CnxParser.WHILE, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public statement(): StatementContext {
         return this.getRuleContext(0, StatementContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_whileStatement;
+        return CnxParser.RULE_whileStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterWhileStatement) {
              listener.enterWhileStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitWhileStatement) {
              listener.exitWhileStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitWhileStatement) {
             return visitor.visitWhileStatement(this);
         } else {
@@ -6788,40 +6788,40 @@ export class DoWhileStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public DO(): antlr.TerminalNode {
-        return this.getToken(CNextParser.DO, 0)!;
+        return this.getToken(CnxParser.DO, 0)!;
     }
     public block(): BlockContext {
         return this.getRuleContext(0, BlockContext)!;
     }
     public WHILE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.WHILE, 0)!;
+        return this.getToken(CnxParser.WHILE, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public SEMI(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SEMI, 0)!;
+        return this.getToken(CnxParser.SEMI, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_doWhileStatement;
+        return CnxParser.RULE_doWhileStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterDoWhileStatement) {
              listener.enterDoWhileStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitDoWhileStatement) {
              listener.exitDoWhileStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitDoWhileStatement) {
             return visitor.visitDoWhileStatement(this);
         } else {
@@ -6836,22 +6836,22 @@ export class ForStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public FOR(): antlr.TerminalNode {
-        return this.getToken(CNextParser.FOR, 0)!;
+        return this.getToken(CnxParser.FOR, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public SEMI(): antlr.TerminalNode[];
     public SEMI(i: number): antlr.TerminalNode | null;
     public SEMI(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.SEMI);
+    		return this.getTokens(CnxParser.SEMI);
     	} else {
-    		return this.getToken(CNextParser.SEMI, i);
+    		return this.getToken(CnxParser.SEMI, i);
     	}
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public statement(): StatementContext {
         return this.getRuleContext(0, StatementContext)!;
@@ -6866,19 +6866,19 @@ export class ForStatementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ForUpdateContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_forStatement;
+        return CnxParser.RULE_forStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterForStatement) {
              listener.enterForStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitForStatement) {
              listener.exitForStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitForStatement) {
             return visitor.visitForStatement(this);
         } else {
@@ -6893,25 +6893,25 @@ export class ForeverStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public FOREVER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.FOREVER, 0)!;
+        return this.getToken(CnxParser.FOREVER, 0)!;
     }
     public block(): BlockContext {
         return this.getRuleContext(0, BlockContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_foreverStatement;
+        return CnxParser.RULE_foreverStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterForeverStatement) {
              listener.enterForeverStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitForeverStatement) {
              listener.exitForeverStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitForeverStatement) {
             return visitor.visitForeverStatement(this);
         } else {
@@ -6932,19 +6932,19 @@ export class ForInitContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ForAssignmentContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_forInit;
+        return CnxParser.RULE_forInit;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterForInit) {
              listener.enterForInit(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitForInit) {
              listener.exitForInit(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitForInit) {
             return visitor.visitForInit(this);
         } else {
@@ -6962,7 +6962,7 @@ export class ForVarDeclContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, TypeContext)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public atomicModifier(): AtomicModifierContext | null {
         return this.getRuleContext(0, AtomicModifierContext);
@@ -6986,25 +6986,25 @@ export class ForVarDeclContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ArrayDimensionContext);
     }
     public ASSIGN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ASSIGN, 0);
+        return this.getToken(CnxParser.ASSIGN, 0);
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_forVarDecl;
+        return CnxParser.RULE_forVarDecl;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterForVarDecl) {
              listener.enterForVarDecl(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitForVarDecl) {
              listener.exitForVarDecl(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitForVarDecl) {
             return visitor.visitForVarDecl(this);
         } else {
@@ -7028,19 +7028,19 @@ export class ForAssignmentContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_forAssignment;
+        return CnxParser.RULE_forAssignment;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterForAssignment) {
              listener.enterForAssignment(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitForAssignment) {
              listener.exitForAssignment(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitForAssignment) {
             return visitor.visitForAssignment(this);
         } else {
@@ -7064,19 +7064,19 @@ export class ForUpdateContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_forUpdate;
+        return CnxParser.RULE_forUpdate;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterForUpdate) {
              listener.enterForUpdate(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitForUpdate) {
              listener.exitForUpdate(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitForUpdate) {
             return visitor.visitForUpdate(this);
         } else {
@@ -7091,28 +7091,28 @@ export class ReturnStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public RETURN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RETURN, 0)!;
+        return this.getToken(CnxParser.RETURN, 0)!;
     }
     public SEMI(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SEMI, 0)!;
+        return this.getToken(CnxParser.SEMI, 0)!;
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_returnStatement;
+        return CnxParser.RULE_returnStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterReturnStatement) {
              listener.enterReturnStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitReturnStatement) {
              listener.exitReturnStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitReturnStatement) {
             return visitor.visitReturnStatement(this);
         } else {
@@ -7127,22 +7127,22 @@ export class SwitchStatementContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public SWITCH(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SWITCH, 0)!;
+        return this.getToken(CnxParser.SWITCH, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public switchCase(): SwitchCaseContext[];
     public switchCase(i: number): SwitchCaseContext | null;
@@ -7157,19 +7157,19 @@ export class SwitchStatementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, DefaultCaseContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_switchStatement;
+        return CnxParser.RULE_switchStatement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterSwitchStatement) {
              listener.enterSwitchStatement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitSwitchStatement) {
              listener.exitSwitchStatement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitSwitchStatement) {
             return visitor.visitSwitchStatement(this);
         } else {
@@ -7184,7 +7184,7 @@ export class SwitchCaseContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public CASE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.CASE, 0)!;
+        return this.getToken(CnxParser.CASE, 0)!;
     }
     public caseLabel(): CaseLabelContext[];
     public caseLabel(i: number): CaseLabelContext | null;
@@ -7202,25 +7202,25 @@ export class SwitchCaseContext extends antlr.ParserRuleContext {
     public OR(i: number): antlr.TerminalNode | null;
     public OR(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.OR);
+    		return this.getTokens(CnxParser.OR);
     	} else {
-    		return this.getToken(CNextParser.OR, i);
+    		return this.getToken(CnxParser.OR, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_switchCase;
+        return CnxParser.RULE_switchCase;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterSwitchCase) {
              listener.enterSwitchCase(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitSwitchCase) {
              listener.exitSwitchCase(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitSwitchCase) {
             return visitor.visitSwitchCase(this);
         } else {
@@ -7238,46 +7238,46 @@ export class CaseLabelContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, QualifiedTypeContext);
     }
     public DOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DOT, 0);
+        return this.getToken(CnxParser.DOT, 0);
     }
     public THIS(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.THIS, 0);
+        return this.getToken(CnxParser.THIS, 0);
     }
     public GLOBAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.GLOBAL, 0);
+        return this.getToken(CnxParser.GLOBAL, 0);
     }
     public IDENTIFIER(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IDENTIFIER, 0);
+        return this.getToken(CnxParser.IDENTIFIER, 0);
     }
     public INTEGER_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.INTEGER_LITERAL, 0);
+        return this.getToken(CnxParser.INTEGER_LITERAL, 0);
     }
     public MINUS(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.MINUS, 0);
+        return this.getToken(CnxParser.MINUS, 0);
     }
     public HEX_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.HEX_LITERAL, 0);
+        return this.getToken(CnxParser.HEX_LITERAL, 0);
     }
     public BINARY_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BINARY_LITERAL, 0);
+        return this.getToken(CnxParser.BINARY_LITERAL, 0);
     }
     public CHAR_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.CHAR_LITERAL, 0);
+        return this.getToken(CnxParser.CHAR_LITERAL, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_caseLabel;
+        return CnxParser.RULE_caseLabel;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterCaseLabel) {
              listener.enterCaseLabel(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitCaseLabel) {
              listener.exitCaseLabel(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitCaseLabel) {
             return visitor.visitCaseLabel(this);
         } else {
@@ -7292,34 +7292,34 @@ export class DefaultCaseContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public DEFAULT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.DEFAULT, 0)!;
+        return this.getToken(CnxParser.DEFAULT, 0)!;
     }
     public block(): BlockContext {
         return this.getRuleContext(0, BlockContext)!;
     }
     public LPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LPAREN, 0);
+        return this.getToken(CnxParser.LPAREN, 0);
     }
     public INTEGER_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.INTEGER_LITERAL, 0);
+        return this.getToken(CnxParser.INTEGER_LITERAL, 0);
     }
     public RPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RPAREN, 0);
+        return this.getToken(CnxParser.RPAREN, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_defaultCase;
+        return CnxParser.RULE_defaultCase;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterDefaultCase) {
              listener.enterDefaultCase(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitDefaultCase) {
              listener.exitDefaultCase(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitDefaultCase) {
             return visitor.visitDefaultCase(this);
         } else {
@@ -7337,19 +7337,19 @@ export class ExpressionContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, TernaryExpressionContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_expression;
+        return CnxParser.RULE_expression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterExpression) {
              listener.enterExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitExpression) {
              listener.exitExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitExpression) {
             return visitor.visitExpression(this);
         } else {
@@ -7364,7 +7364,7 @@ export class TernaryExpressionContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LPAREN, 0);
+        return this.getToken(CnxParser.LPAREN, 0);
     }
     public orExpression(): OrExpressionContext[];
     public orExpression(i: number): OrExpressionContext | null;
@@ -7376,25 +7376,25 @@ export class TernaryExpressionContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, OrExpressionContext);
     }
     public RPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RPAREN, 0);
+        return this.getToken(CnxParser.RPAREN, 0);
     }
     public COLON(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.COLON, 0);
+        return this.getToken(CnxParser.COLON, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_ternaryExpression;
+        return CnxParser.RULE_ternaryExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterTernaryExpression) {
              listener.enterTernaryExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitTernaryExpression) {
              listener.exitTernaryExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitTernaryExpression) {
             return visitor.visitTernaryExpression(this);
         } else {
@@ -7421,25 +7421,25 @@ export class OrExpressionContext extends antlr.ParserRuleContext {
     public OR(i: number): antlr.TerminalNode | null;
     public OR(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.OR);
+    		return this.getTokens(CnxParser.OR);
     	} else {
-    		return this.getToken(CNextParser.OR, i);
+    		return this.getToken(CnxParser.OR, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_orExpression;
+        return CnxParser.RULE_orExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterOrExpression) {
              listener.enterOrExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitOrExpression) {
              listener.exitOrExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitOrExpression) {
             return visitor.visitOrExpression(this);
         } else {
@@ -7466,25 +7466,25 @@ export class AndExpressionContext extends antlr.ParserRuleContext {
     public AND(i: number): antlr.TerminalNode | null;
     public AND(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.AND);
+    		return this.getTokens(CnxParser.AND);
     	} else {
-    		return this.getToken(CNextParser.AND, i);
+    		return this.getToken(CnxParser.AND, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_andExpression;
+        return CnxParser.RULE_andExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAndExpression) {
              listener.enterAndExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAndExpression) {
              listener.exitAndExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAndExpression) {
             return visitor.visitAndExpression(this);
         } else {
@@ -7511,34 +7511,34 @@ export class EqualityExpressionContext extends antlr.ParserRuleContext {
     public EQ(i: number): antlr.TerminalNode | null;
     public EQ(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.EQ);
+    		return this.getTokens(CnxParser.EQ);
     	} else {
-    		return this.getToken(CNextParser.EQ, i);
+    		return this.getToken(CnxParser.EQ, i);
     	}
     }
     public NEQ(): antlr.TerminalNode[];
     public NEQ(i: number): antlr.TerminalNode | null;
     public NEQ(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.NEQ);
+    		return this.getTokens(CnxParser.NEQ);
     	} else {
-    		return this.getToken(CNextParser.NEQ, i);
+    		return this.getToken(CnxParser.NEQ, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_equalityExpression;
+        return CnxParser.RULE_equalityExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterEqualityExpression) {
              listener.enterEqualityExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitEqualityExpression) {
              listener.exitEqualityExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitEqualityExpression) {
             return visitor.visitEqualityExpression(this);
         } else {
@@ -7565,52 +7565,52 @@ export class RelationalExpressionContext extends antlr.ParserRuleContext {
     public LT(i: number): antlr.TerminalNode | null;
     public LT(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.LT);
+    		return this.getTokens(CnxParser.LT);
     	} else {
-    		return this.getToken(CNextParser.LT, i);
+    		return this.getToken(CnxParser.LT, i);
     	}
     }
     public GT(): antlr.TerminalNode[];
     public GT(i: number): antlr.TerminalNode | null;
     public GT(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.GT);
+    		return this.getTokens(CnxParser.GT);
     	} else {
-    		return this.getToken(CNextParser.GT, i);
+    		return this.getToken(CnxParser.GT, i);
     	}
     }
     public LTE(): antlr.TerminalNode[];
     public LTE(i: number): antlr.TerminalNode | null;
     public LTE(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.LTE);
+    		return this.getTokens(CnxParser.LTE);
     	} else {
-    		return this.getToken(CNextParser.LTE, i);
+    		return this.getToken(CnxParser.LTE, i);
     	}
     }
     public GTE(): antlr.TerminalNode[];
     public GTE(i: number): antlr.TerminalNode | null;
     public GTE(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.GTE);
+    		return this.getTokens(CnxParser.GTE);
     	} else {
-    		return this.getToken(CNextParser.GTE, i);
+    		return this.getToken(CnxParser.GTE, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_relationalExpression;
+        return CnxParser.RULE_relationalExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterRelationalExpression) {
              listener.enterRelationalExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitRelationalExpression) {
              listener.exitRelationalExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitRelationalExpression) {
             return visitor.visitRelationalExpression(this);
         } else {
@@ -7637,25 +7637,25 @@ export class BitwiseOrExpressionContext extends antlr.ParserRuleContext {
     public BITOR(i: number): antlr.TerminalNode | null;
     public BITOR(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.BITOR);
+    		return this.getTokens(CnxParser.BITOR);
     	} else {
-    		return this.getToken(CNextParser.BITOR, i);
+    		return this.getToken(CnxParser.BITOR, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_bitwiseOrExpression;
+        return CnxParser.RULE_bitwiseOrExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBitwiseOrExpression) {
              listener.enterBitwiseOrExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBitwiseOrExpression) {
              listener.exitBitwiseOrExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBitwiseOrExpression) {
             return visitor.visitBitwiseOrExpression(this);
         } else {
@@ -7682,25 +7682,25 @@ export class BitwiseXorExpressionContext extends antlr.ParserRuleContext {
     public BITXOR(i: number): antlr.TerminalNode | null;
     public BITXOR(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.BITXOR);
+    		return this.getTokens(CnxParser.BITXOR);
     	} else {
-    		return this.getToken(CNextParser.BITXOR, i);
+    		return this.getToken(CnxParser.BITXOR, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_bitwiseXorExpression;
+        return CnxParser.RULE_bitwiseXorExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBitwiseXorExpression) {
              listener.enterBitwiseXorExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBitwiseXorExpression) {
              listener.exitBitwiseXorExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBitwiseXorExpression) {
             return visitor.visitBitwiseXorExpression(this);
         } else {
@@ -7727,25 +7727,25 @@ export class BitwiseAndExpressionContext extends antlr.ParserRuleContext {
     public BITAND(i: number): antlr.TerminalNode | null;
     public BITAND(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.BITAND);
+    		return this.getTokens(CnxParser.BITAND);
     	} else {
-    		return this.getToken(CNextParser.BITAND, i);
+    		return this.getToken(CnxParser.BITAND, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_bitwiseAndExpression;
+        return CnxParser.RULE_bitwiseAndExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterBitwiseAndExpression) {
              listener.enterBitwiseAndExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitBitwiseAndExpression) {
              listener.exitBitwiseAndExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitBitwiseAndExpression) {
             return visitor.visitBitwiseAndExpression(this);
         } else {
@@ -7772,34 +7772,34 @@ export class ShiftExpressionContext extends antlr.ParserRuleContext {
     public LSHIFT(i: number): antlr.TerminalNode | null;
     public LSHIFT(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.LSHIFT);
+    		return this.getTokens(CnxParser.LSHIFT);
     	} else {
-    		return this.getToken(CNextParser.LSHIFT, i);
+    		return this.getToken(CnxParser.LSHIFT, i);
     	}
     }
     public RSHIFT(): antlr.TerminalNode[];
     public RSHIFT(i: number): antlr.TerminalNode | null;
     public RSHIFT(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.RSHIFT);
+    		return this.getTokens(CnxParser.RSHIFT);
     	} else {
-    		return this.getToken(CNextParser.RSHIFT, i);
+    		return this.getToken(CnxParser.RSHIFT, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_shiftExpression;
+        return CnxParser.RULE_shiftExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterShiftExpression) {
              listener.enterShiftExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitShiftExpression) {
              listener.exitShiftExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitShiftExpression) {
             return visitor.visitShiftExpression(this);
         } else {
@@ -7826,34 +7826,34 @@ export class AdditiveExpressionContext extends antlr.ParserRuleContext {
     public PLUS(i: number): antlr.TerminalNode | null;
     public PLUS(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.PLUS);
+    		return this.getTokens(CnxParser.PLUS);
     	} else {
-    		return this.getToken(CNextParser.PLUS, i);
+    		return this.getToken(CnxParser.PLUS, i);
     	}
     }
     public MINUS(): antlr.TerminalNode[];
     public MINUS(i: number): antlr.TerminalNode | null;
     public MINUS(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.MINUS);
+    		return this.getTokens(CnxParser.MINUS);
     	} else {
-    		return this.getToken(CNextParser.MINUS, i);
+    		return this.getToken(CnxParser.MINUS, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_additiveExpression;
+        return CnxParser.RULE_additiveExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterAdditiveExpression) {
              listener.enterAdditiveExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitAdditiveExpression) {
              listener.exitAdditiveExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitAdditiveExpression) {
             return visitor.visitAdditiveExpression(this);
         } else {
@@ -7880,43 +7880,43 @@ export class MultiplicativeExpressionContext extends antlr.ParserRuleContext {
     public STAR(i: number): antlr.TerminalNode | null;
     public STAR(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.STAR);
+    		return this.getTokens(CnxParser.STAR);
     	} else {
-    		return this.getToken(CNextParser.STAR, i);
+    		return this.getToken(CnxParser.STAR, i);
     	}
     }
     public SLASH(): antlr.TerminalNode[];
     public SLASH(i: number): antlr.TerminalNode | null;
     public SLASH(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.SLASH);
+    		return this.getTokens(CnxParser.SLASH);
     	} else {
-    		return this.getToken(CNextParser.SLASH, i);
+    		return this.getToken(CnxParser.SLASH, i);
     	}
     }
     public PERCENT(): antlr.TerminalNode[];
     public PERCENT(i: number): antlr.TerminalNode | null;
     public PERCENT(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.PERCENT);
+    		return this.getTokens(CnxParser.PERCENT);
     	} else {
-    		return this.getToken(CNextParser.PERCENT, i);
+    		return this.getToken(CnxParser.PERCENT, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_multiplicativeExpression;
+        return CnxParser.RULE_multiplicativeExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterMultiplicativeExpression) {
              listener.enterMultiplicativeExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitMultiplicativeExpression) {
              listener.exitMultiplicativeExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitMultiplicativeExpression) {
             return visitor.visitMultiplicativeExpression(this);
         } else {
@@ -7931,37 +7931,37 @@ export class UnaryExpressionContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public NOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.NOT, 0);
+        return this.getToken(CnxParser.NOT, 0);
     }
     public unaryExpression(): UnaryExpressionContext | null {
         return this.getRuleContext(0, UnaryExpressionContext);
     }
     public MINUS(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.MINUS, 0);
+        return this.getToken(CnxParser.MINUS, 0);
     }
     public BITNOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITNOT, 0);
+        return this.getToken(CnxParser.BITNOT, 0);
     }
     public BITAND(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BITAND, 0);
+        return this.getToken(CnxParser.BITAND, 0);
     }
     public postfixExpression(): PostfixExpressionContext | null {
         return this.getRuleContext(0, PostfixExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_unaryExpression;
+        return CnxParser.RULE_unaryExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterUnaryExpression) {
              listener.enterUnaryExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitUnaryExpression) {
              listener.exitUnaryExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitUnaryExpression) {
             return visitor.visitUnaryExpression(this);
         } else {
@@ -7991,25 +7991,25 @@ export class PostfixExpressionContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, PrimitiveTypeContext);
     }
     public DOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DOT, 0);
+        return this.getToken(CnxParser.DOT, 0);
     }
     public IDENTIFIER(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IDENTIFIER, 0);
+        return this.getToken(CnxParser.IDENTIFIER, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_postfixExpression;
+        return CnxParser.RULE_postfixExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPostfixExpression) {
              listener.enterPostfixExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPostfixExpression) {
              listener.exitPostfixExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPostfixExpression) {
             return visitor.visitPostfixExpression(this);
         } else {
@@ -8024,13 +8024,13 @@ export class PostfixOpContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public DOT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.DOT, 0);
+        return this.getToken(CnxParser.DOT, 0);
     }
     public IDENTIFIER(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IDENTIFIER, 0);
+        return this.getToken(CnxParser.IDENTIFIER, 0);
     }
     public LBRACKET(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LBRACKET, 0);
+        return this.getToken(CnxParser.LBRACKET, 0);
     }
     public expression(): ExpressionContext[];
     public expression(i: number): ExpressionContext | null;
@@ -8042,34 +8042,34 @@ export class PostfixOpContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ExpressionContext);
     }
     public RBRACKET(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RBRACKET, 0);
+        return this.getToken(CnxParser.RBRACKET, 0);
     }
     public COMMA(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.COMMA, 0);
+        return this.getToken(CnxParser.COMMA, 0);
     }
     public LPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LPAREN, 0);
+        return this.getToken(CnxParser.LPAREN, 0);
     }
     public RPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RPAREN, 0);
+        return this.getToken(CnxParser.RPAREN, 0);
     }
     public argumentList(): ArgumentListContext | null {
         return this.getRuleContext(0, ArgumentListContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_postfixOp;
+        return CnxParser.RULE_postfixOp;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPostfixOp) {
              listener.enterPostfixOp(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPostfixOp) {
              listener.exitPostfixOp(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPostfixOp) {
             return visitor.visitPostfixOp(this);
         } else {
@@ -8096,40 +8096,40 @@ export class PrimaryExpressionContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ArrayInitializerContext);
     }
     public THIS(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.THIS, 0);
+        return this.getToken(CnxParser.THIS, 0);
     }
     public GLOBAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.GLOBAL, 0);
+        return this.getToken(CnxParser.GLOBAL, 0);
     }
     public IDENTIFIER(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IDENTIFIER, 0);
+        return this.getToken(CnxParser.IDENTIFIER, 0);
     }
     public literal(): LiteralContext | null {
         return this.getRuleContext(0, LiteralContext);
     }
     public LPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LPAREN, 0);
+        return this.getToken(CnxParser.LPAREN, 0);
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public RPAREN(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.RPAREN, 0);
+        return this.getToken(CnxParser.RPAREN, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_primaryExpression;
+        return CnxParser.RULE_primaryExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPrimaryExpression) {
              listener.enterPrimaryExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPrimaryExpression) {
              listener.exitPrimaryExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPrimaryExpression) {
             return visitor.visitPrimaryExpression(this);
         } else {
@@ -8144,13 +8144,13 @@ export class SizeofExpressionContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public SIZEOF(): antlr.TerminalNode {
-        return this.getToken(CNextParser.SIZEOF, 0)!;
+        return this.getToken(CnxParser.SIZEOF, 0)!;
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public type(): TypeContext | null {
         return this.getRuleContext(0, TypeContext);
@@ -8159,19 +8159,19 @@ export class SizeofExpressionContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_sizeofExpression;
+        return CnxParser.RULE_sizeofExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterSizeofExpression) {
              listener.enterSizeofExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitSizeofExpression) {
              listener.exitSizeofExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitSizeofExpression) {
             return visitor.visitSizeofExpression(this);
         } else {
@@ -8186,31 +8186,31 @@ export class CastExpressionContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LPAREN, 0)!;
+        return this.getToken(CnxParser.LPAREN, 0)!;
     }
     public type(): TypeContext {
         return this.getRuleContext(0, TypeContext)!;
     }
     public RPAREN(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RPAREN, 0)!;
+        return this.getToken(CnxParser.RPAREN, 0)!;
     }
     public unaryExpression(): UnaryExpressionContext {
         return this.getRuleContext(0, UnaryExpressionContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_castExpression;
+        return CnxParser.RULE_castExpression;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterCastExpression) {
              listener.enterCastExpression(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitCastExpression) {
              listener.exitCastExpression(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitCastExpression) {
             return visitor.visitCastExpression(this);
         } else {
@@ -8225,28 +8225,28 @@ export class StructInitializerContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACE, 0)!;
+        return this.getToken(CnxParser.LBRACE, 0)!;
     }
     public fieldInitializerList(): FieldInitializerListContext {
         return this.getRuleContext(0, FieldInitializerListContext)!;
     }
     public RBRACE(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACE, 0)!;
+        return this.getToken(CnxParser.RBRACE, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_structInitializer;
+        return CnxParser.RULE_structInitializer;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterStructInitializer) {
              listener.enterStructInitializer(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitStructInitializer) {
              listener.exitStructInitializer(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitStructInitializer) {
             return visitor.visitStructInitializer(this);
         } else {
@@ -8273,25 +8273,25 @@ export class FieldInitializerListContext extends antlr.ParserRuleContext {
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_fieldInitializerList;
+        return CnxParser.RULE_fieldInitializerList;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterFieldInitializerList) {
              listener.enterFieldInitializerList(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitFieldInitializerList) {
              listener.exitFieldInitializerList(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitFieldInitializerList) {
             return visitor.visitFieldInitializerList(this);
         } else {
@@ -8306,28 +8306,28 @@ export class FieldInitializerContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public COLON(): antlr.TerminalNode {
-        return this.getToken(CNextParser.COLON, 0)!;
+        return this.getToken(CnxParser.COLON, 0)!;
     }
     public expression(): ExpressionContext {
         return this.getRuleContext(0, ExpressionContext)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_fieldInitializer;
+        return CnxParser.RULE_fieldInitializer;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterFieldInitializer) {
              listener.enterFieldInitializer(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitFieldInitializer) {
              listener.exitFieldInitializer(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitFieldInitializer) {
             return visitor.visitFieldInitializer(this);
         } else {
@@ -8342,7 +8342,7 @@ export class ArrayInitializerContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LBRACKET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACKET, 0)!;
+        return this.getToken(CnxParser.LBRACKET, 0)!;
     }
     public arrayInitializerElement(): ArrayInitializerElementContext[];
     public arrayInitializerElement(i: number): ArrayInitializerElementContext | null;
@@ -8354,37 +8354,37 @@ export class ArrayInitializerContext extends antlr.ParserRuleContext {
         return this.getRuleContext(i, ArrayInitializerElementContext);
     }
     public RBRACKET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACKET, 0)!;
+        return this.getToken(CnxParser.RBRACKET, 0)!;
     }
     public COMMA(): antlr.TerminalNode[];
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public STAR(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.STAR, 0);
+        return this.getToken(CnxParser.STAR, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_arrayInitializer;
+        return CnxParser.RULE_arrayInitializer;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterArrayInitializer) {
              listener.enterArrayInitializer(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitArrayInitializer) {
              listener.exitArrayInitializer(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitArrayInitializer) {
             return visitor.visitArrayInitializer(this);
         } else {
@@ -8408,19 +8408,19 @@ export class ArrayInitializerElementContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ArrayInitializerContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_arrayInitializerElement;
+        return CnxParser.RULE_arrayInitializerElement;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterArrayInitializerElement) {
              listener.enterArrayInitializerElement(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitArrayInitializerElement) {
              listener.exitArrayInitializerElement(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitArrayInitializerElement) {
             return visitor.visitArrayInitializerElement(this);
         } else {
@@ -8447,25 +8447,25 @@ export class ArgumentListContext extends antlr.ParserRuleContext {
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_argumentList;
+        return CnxParser.RULE_argumentList;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterArgumentList) {
              listener.enterArgumentList(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitArgumentList) {
              listener.exitArgumentList(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitArgumentList) {
             return visitor.visitArgumentList(this);
         } else {
@@ -8504,22 +8504,22 @@ export class TypeContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, ArrayTypeContext);
     }
     public VOID(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.VOID, 0);
+        return this.getToken(CnxParser.VOID, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_type;
+        return CnxParser.RULE_type;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterType) {
              listener.enterType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitType) {
              listener.exitType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitType) {
             return visitor.visitType(this);
         } else {
@@ -8534,28 +8534,28 @@ export class ScopedTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public THIS(): antlr.TerminalNode {
-        return this.getToken(CNextParser.THIS, 0)!;
+        return this.getToken(CnxParser.THIS, 0)!;
     }
     public DOT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.DOT, 0)!;
+        return this.getToken(CnxParser.DOT, 0)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_scopedType;
+        return CnxParser.RULE_scopedType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterScopedType) {
              listener.enterScopedType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitScopedType) {
              listener.exitScopedType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitScopedType) {
             return visitor.visitScopedType(this);
         } else {
@@ -8570,28 +8570,28 @@ export class GlobalTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public GLOBAL(): antlr.TerminalNode {
-        return this.getToken(CNextParser.GLOBAL, 0)!;
+        return this.getToken(CnxParser.GLOBAL, 0)!;
     }
     public DOT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.DOT, 0)!;
+        return this.getToken(CnxParser.DOT, 0)!;
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_globalType;
+        return CnxParser.RULE_globalType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterGlobalType) {
              listener.enterGlobalType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitGlobalType) {
              listener.exitGlobalType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitGlobalType) {
             return visitor.visitGlobalType(this);
         } else {
@@ -8609,34 +8609,34 @@ export class QualifiedTypeContext extends antlr.ParserRuleContext {
     public IDENTIFIER(i: number): antlr.TerminalNode | null;
     public IDENTIFIER(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.IDENTIFIER);
+    		return this.getTokens(CnxParser.IDENTIFIER);
     	} else {
-    		return this.getToken(CNextParser.IDENTIFIER, i);
+    		return this.getToken(CnxParser.IDENTIFIER, i);
     	}
     }
     public DOT(): antlr.TerminalNode[];
     public DOT(i: number): antlr.TerminalNode | null;
     public DOT(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.DOT);
+    		return this.getTokens(CnxParser.DOT);
     	} else {
-    		return this.getToken(CNextParser.DOT, i);
+    		return this.getToken(CnxParser.DOT, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_qualifiedType;
+        return CnxParser.RULE_qualifiedType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterQualifiedType) {
              listener.enterQualifiedType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitQualifiedType) {
              listener.exitQualifiedType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitQualifiedType) {
             return visitor.visitQualifiedType(this);
         } else {
@@ -8651,55 +8651,55 @@ export class PrimitiveTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public U8(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.U8, 0);
+        return this.getToken(CnxParser.U8, 0);
     }
     public U16(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.U16, 0);
+        return this.getToken(CnxParser.U16, 0);
     }
     public U32(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.U32, 0);
+        return this.getToken(CnxParser.U32, 0);
     }
     public U64(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.U64, 0);
+        return this.getToken(CnxParser.U64, 0);
     }
     public I8(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.I8, 0);
+        return this.getToken(CnxParser.I8, 0);
     }
     public I16(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.I16, 0);
+        return this.getToken(CnxParser.I16, 0);
     }
     public I32(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.I32, 0);
+        return this.getToken(CnxParser.I32, 0);
     }
     public I64(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.I64, 0);
+        return this.getToken(CnxParser.I64, 0);
     }
     public F32(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.F32, 0);
+        return this.getToken(CnxParser.F32, 0);
     }
     public F64(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.F64, 0);
+        return this.getToken(CnxParser.F64, 0);
     }
     public BOOL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BOOL, 0);
+        return this.getToken(CnxParser.BOOL, 0);
     }
     public ISR_TYPE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.ISR_TYPE, 0);
+        return this.getToken(CnxParser.ISR_TYPE, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_primitiveType;
+        return CnxParser.RULE_primitiveType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterPrimitiveType) {
              listener.enterPrimitiveType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitPrimitiveType) {
              listener.exitPrimitiveType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitPrimitiveType) {
             return visitor.visitPrimitiveType(this);
         } else {
@@ -8714,22 +8714,22 @@ export class UserTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_userType;
+        return CnxParser.RULE_userType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterUserType) {
              listener.enterUserType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitUserType) {
              listener.exitUserType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitUserType) {
             return visitor.visitUserType(this);
         } else {
@@ -8744,31 +8744,31 @@ export class TemplateTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public IDENTIFIER(): antlr.TerminalNode {
-        return this.getToken(CNextParser.IDENTIFIER, 0)!;
+        return this.getToken(CnxParser.IDENTIFIER, 0)!;
     }
     public LT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LT, 0)!;
+        return this.getToken(CnxParser.LT, 0)!;
     }
     public templateArgumentList(): TemplateArgumentListContext {
         return this.getRuleContext(0, TemplateArgumentListContext)!;
     }
     public GT(): antlr.TerminalNode {
-        return this.getToken(CNextParser.GT, 0)!;
+        return this.getToken(CnxParser.GT, 0)!;
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_templateType;
+        return CnxParser.RULE_templateType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterTemplateType) {
              listener.enterTemplateType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitTemplateType) {
              listener.exitTemplateType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitTemplateType) {
             return visitor.visitTemplateType(this);
         } else {
@@ -8795,25 +8795,25 @@ export class TemplateArgumentListContext extends antlr.ParserRuleContext {
     public COMMA(i: number): antlr.TerminalNode | null;
     public COMMA(i?: number): antlr.TerminalNode | null | antlr.TerminalNode[] {
     	if (i === undefined) {
-    		return this.getTokens(CNextParser.COMMA);
+    		return this.getTokens(CnxParser.COMMA);
     	} else {
-    		return this.getToken(CNextParser.COMMA, i);
+    		return this.getToken(CnxParser.COMMA, i);
     	}
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_templateArgumentList;
+        return CnxParser.RULE_templateArgumentList;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterTemplateArgumentList) {
              listener.enterTemplateArgumentList(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitTemplateArgumentList) {
              listener.exitTemplateArgumentList(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitTemplateArgumentList) {
             return visitor.visitTemplateArgumentList(this);
         } else {
@@ -8834,25 +8834,25 @@ export class TemplateArgumentContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, PrimitiveTypeContext);
     }
     public IDENTIFIER(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.IDENTIFIER, 0);
+        return this.getToken(CnxParser.IDENTIFIER, 0);
     }
     public INTEGER_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.INTEGER_LITERAL, 0);
+        return this.getToken(CnxParser.INTEGER_LITERAL, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_templateArgument;
+        return CnxParser.RULE_templateArgument;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterTemplateArgument) {
              listener.enterTemplateArgument(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitTemplateArgument) {
              listener.exitTemplateArgument(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitTemplateArgument) {
             return visitor.visitTemplateArgument(this);
         } else {
@@ -8867,31 +8867,31 @@ export class StringTypeContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public STRING(): antlr.TerminalNode {
-        return this.getToken(CNextParser.STRING, 0)!;
+        return this.getToken(CnxParser.STRING, 0)!;
     }
     public LT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.LT, 0);
+        return this.getToken(CnxParser.LT, 0);
     }
     public INTEGER_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.INTEGER_LITERAL, 0);
+        return this.getToken(CnxParser.INTEGER_LITERAL, 0);
     }
     public GT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.GT, 0);
+        return this.getToken(CnxParser.GT, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_stringType;
+        return CnxParser.RULE_stringType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterStringType) {
              listener.enterStringType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitStringType) {
              listener.exitStringType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitStringType) {
             return visitor.visitStringType(this);
         } else {
@@ -8933,19 +8933,19 @@ export class ArrayTypeContext extends antlr.ParserRuleContext {
         return this.getRuleContext(0, GlobalTypeContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_arrayType;
+        return CnxParser.RULE_arrayType;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterArrayType) {
              listener.enterArrayType(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitArrayType) {
              listener.exitArrayType(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitArrayType) {
             return visitor.visitArrayType(this);
         } else {
@@ -8960,28 +8960,28 @@ export class ArrayTypeDimensionContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public LBRACKET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.LBRACKET, 0)!;
+        return this.getToken(CnxParser.LBRACKET, 0)!;
     }
     public RBRACKET(): antlr.TerminalNode {
-        return this.getToken(CNextParser.RBRACKET, 0)!;
+        return this.getToken(CnxParser.RBRACKET, 0)!;
     }
     public expression(): ExpressionContext | null {
         return this.getRuleContext(0, ExpressionContext);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_arrayTypeDimension;
+        return CnxParser.RULE_arrayTypeDimension;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterArrayTypeDimension) {
              listener.enterArrayTypeDimension(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitArrayTypeDimension) {
              listener.exitArrayTypeDimension(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitArrayTypeDimension) {
             return visitor.visitArrayTypeDimension(this);
         } else {
@@ -8996,58 +8996,58 @@ export class LiteralContext extends antlr.ParserRuleContext {
         super(parent, invokingState);
     }
     public SUFFIXED_DECIMAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.SUFFIXED_DECIMAL, 0);
+        return this.getToken(CnxParser.SUFFIXED_DECIMAL, 0);
     }
     public SUFFIXED_HEX(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.SUFFIXED_HEX, 0);
+        return this.getToken(CnxParser.SUFFIXED_HEX, 0);
     }
     public SUFFIXED_BINARY(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.SUFFIXED_BINARY, 0);
+        return this.getToken(CnxParser.SUFFIXED_BINARY, 0);
     }
     public SUFFIXED_FLOAT(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.SUFFIXED_FLOAT, 0);
+        return this.getToken(CnxParser.SUFFIXED_FLOAT, 0);
     }
     public INTEGER_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.INTEGER_LITERAL, 0);
+        return this.getToken(CnxParser.INTEGER_LITERAL, 0);
     }
     public HEX_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.HEX_LITERAL, 0);
+        return this.getToken(CnxParser.HEX_LITERAL, 0);
     }
     public BINARY_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.BINARY_LITERAL, 0);
+        return this.getToken(CnxParser.BINARY_LITERAL, 0);
     }
     public FLOAT_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.FLOAT_LITERAL, 0);
+        return this.getToken(CnxParser.FLOAT_LITERAL, 0);
     }
     public STRING_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.STRING_LITERAL, 0);
+        return this.getToken(CnxParser.STRING_LITERAL, 0);
     }
     public CHAR_LITERAL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.CHAR_LITERAL, 0);
+        return this.getToken(CnxParser.CHAR_LITERAL, 0);
     }
     public TRUE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.TRUE, 0);
+        return this.getToken(CnxParser.TRUE, 0);
     }
     public FALSE(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.FALSE, 0);
+        return this.getToken(CnxParser.FALSE, 0);
     }
     public C_NULL(): antlr.TerminalNode | null {
-        return this.getToken(CNextParser.C_NULL, 0);
+        return this.getToken(CnxParser.C_NULL, 0);
     }
     public override get ruleIndex(): number {
-        return CNextParser.RULE_literal;
+        return CnxParser.RULE_literal;
     }
-    public override enterRule(listener: CNextListener): void {
+    public override enterRule(listener: CnxListener): void {
         if(listener.enterLiteral) {
              listener.enterLiteral(this);
         }
     }
-    public override exitRule(listener: CNextListener): void {
+    public override exitRule(listener: CnxListener): void {
         if(listener.exitLiteral) {
              listener.exitLiteral(this);
         }
     }
-    public override accept<Result>(visitor: CNextVisitor<Result>): Result | null {
+    public override accept<Result>(visitor: CnxVisitor<Result>): Result | null {
         if (visitor.visitLiteral) {
             return visitor.visitLiteral(this);
         } else {

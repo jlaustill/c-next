@@ -6,8 +6,8 @@
 import TestSymbolTable from "../../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { describe, expect, it, beforeEach } from "vitest";
-import { CNextLexer } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import InitializationAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/InitializationAnalyzer";
 import ProgramLowering from "../../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
@@ -23,9 +23,9 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  */
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   return parser.program();
 }
 

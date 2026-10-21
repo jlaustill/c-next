@@ -17,8 +17,8 @@
  */
 
 import { ParseTreeWalker, TerminalNode } from "antlr4ng";
-import { CNextListener } from "./grammar/CNextListener";
-import * as Parser from "./grammar/CNextParser";
+import { CnxListener } from "./grammar/CnxListener";
+import * as Parser from "./grammar/CnxParser";
 import type ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
 import ReservedCnxName from "../../utils/ReservedCnxName";
@@ -129,7 +129,7 @@ function formatIdentifierSyntaxHelp(
  * repeating the classify/report logic, which keeps the thirteen near-identical
  * handlers from tripping duplication analysis.
  */
-class IdentifierSyntaxListener extends CNextListener {
+class IdentifierSyntaxListener extends CnxListener {
   readonly found: ITranspileError[] = [];
 
   override enterScopeDeclaration = (

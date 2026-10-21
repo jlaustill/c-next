@@ -1,6 +1,6 @@
 import type { CommonTokenStream } from "antlr4ng";
 
-import type * as Parser from "../grammar/CNextParser";
+import type * as Parser from "../grammar/CnxParser";
 import type ISourceSyntax from "../../../types/ISourceSyntax";
 
 /**

@@ -8,8 +8,8 @@
 import TargetDirectives from "./TargetDirectives";
 import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 
-import { CNextLexer } from "./grammar/CNextLexer";
-import { CNextParser } from "./grammar/CNextParser";
+import { CnxLexer } from "./grammar/CnxLexer";
+import { CnxParser } from "./grammar/CnxParser";
 import CommentScanner from "./CommentScanner";
 import ProgramLowering from "./ProgramLowering";
 import IdentifierForm from "./IdentifierForm";
@@ -78,8 +78,8 @@ const NESTED_SCOPE_HELP =
  * body reports that construct's own rule and is correctly not matched.
  */
 const NESTED_SCOPE_RULES: ReadonlySet<number> = new Set([
-  CNextParser.RULE_scopeDeclaration,
-  CNextParser.RULE_scopeMember,
+  CnxParser.RULE_scopeDeclaration,
+  CnxParser.RULE_scopeMember,
 ]);
 
 /**
@@ -105,7 +105,7 @@ class CNextSourceParser {
     offendingSymbol: Token | null,
   ): boolean {
     if (!(recognizer instanceof Parser)) return false;
-    if (offendingSymbol?.type !== CNextParser.SCOPE) return false;
+    if (offendingSymbol?.type !== CnxParser.SCOPE) return false;
     return NESTED_SCOPE_RULES.has(recognizer.context?.ruleIndex ?? -1);
   }
 
@@ -140,8 +140,8 @@ class CNextSourceParser {
     const rule = recognizer.context?.ruleIndex ?? -1;
     if (NESTED_SCOPE_RULES.has(rule)) return true;
     return (
-      rule === CNextParser.RULE_program &&
-      offendingSymbol?.type === CNextParser.RBRACE
+      rule === CnxParser.RULE_program &&
+      offendingSymbol?.type === CnxParser.RBRACE
     );
   }
 
@@ -152,9 +152,9 @@ class CNextSourceParser {
    */
   static parse(source: string): IParsedFile {
     const charStream = CharStream.fromString(source);
-    const lexer = new CNextLexer(charStream);
+    const lexer = new CnxLexer(charStream);
     const tokenStream = new CommonTokenStream(lexer);
-    const parser = new CNextParser(tokenStream);
+    const parser = new CnxParser(tokenStream);
 
     const errors: ITranspileError[] = [];
     let nestedScopeReported = false;

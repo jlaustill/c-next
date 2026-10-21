@@ -12,7 +12,7 @@
  */
 import { TerminalNode } from "antlr4ng";
 import type { ParserRuleContext, ParseTree, Token } from "antlr4ng";
-import * as Parser from "./grammar/CNextParser";
+import * as Parser from "./grammar/CnxParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ChainRoot from "./ChainRoot";
 import SourceSpelling from "./SourceSpelling";

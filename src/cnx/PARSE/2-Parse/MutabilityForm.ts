@@ -6,13 +6,13 @@
  * fix is to remove `atomic` (#2155 review 8).
  */
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "./grammar/CNextListener";
-import * as Parser from "./grammar/CNextParser";
+import { CnxListener } from "./grammar/CnxListener";
+import * as Parser from "./grammar/CnxParser";
 import ParserUtils from "../../utils/ParserUtils";
 import CodedErrorText from "../../utils/CodedErrorText";
 import type ITranspileError from "../../types/ITranspileError";
 
-class MutabilityFormListener extends CNextListener {
+class MutabilityFormListener extends CnxListener {
   private readonly found: ITranspileError[] = [];
 
   public errors(): ITranspileError[] {

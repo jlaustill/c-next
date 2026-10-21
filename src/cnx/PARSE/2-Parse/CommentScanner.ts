@@ -1,6 +1,6 @@
 import { CommonTokenStream, Token } from "antlr4ng";
 
-import { CNextLexer } from "./grammar/CNextLexer";
+import { CnxLexer } from "./grammar/CnxLexer";
 import ECommentType from "../../types/ECommentType";
 import IComment from "../../types/IComment";
 
@@ -85,15 +85,15 @@ class CommentScanner {
     let content: string;
 
     switch (token.type) {
-      case CNextLexer.DOC_COMMENT:
+      case CnxLexer.DOC_COMMENT:
         type = ECommentType.Doc;
         content = text.slice(3).trim(); // Remove ///
         break;
-      case CNextLexer.LINE_COMMENT:
+      case CnxLexer.LINE_COMMENT:
         type = ECommentType.Line;
         content = text.slice(2); // Remove //
         break;
-      case CNextLexer.BLOCK_COMMENT:
+      case CnxLexer.BLOCK_COMMENT:
         type = ECommentType.Block;
         content = text.slice(2, -2); // Remove /* and */
         break;

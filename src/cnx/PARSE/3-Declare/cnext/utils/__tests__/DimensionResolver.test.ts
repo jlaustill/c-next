@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../../2-Parse/CNextSourceParser";
-import * as Parser from "../../../../2-Parse/grammar/CNextParser";
+import * as Parser from "../../../../2-Parse/grammar/CnxParser";
 import SyntaxLowering from "../../../../2-Parse/SyntaxLowering";
 import DimensionResolver from "../DimensionResolver";
 import UNRESOLVED_DIMENSION from "../../../../../types/UNRESOLVED_DIMENSION";

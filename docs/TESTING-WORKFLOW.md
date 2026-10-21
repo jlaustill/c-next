@@ -245,7 +245,7 @@ touch BUG-DISCOVERED-[feature].md
 **Grammar Bugs:**
 ```bash
 # Edit grammar
-vim grammar/CNext.g4
+vim grammar/Cnx.g4
 
 # Rebuild parser
 npm run antlr
@@ -335,7 +335,7 @@ touch tests/[feature]/README.md
 
 - **Bug Report:** `/BUG-DISCOVERED-[feature].md`
 - **Coverage:** `/docs/coverage.md` (Section X.Y)
-- **Grammar:** `grammar/CNext.g4` lines X-Y
+- **Grammar:** `grammar/Cnx.g4` lines X-Y
 - **Code:** `src/codegen/FileName.ts` lines X-Y
 ```
 
@@ -439,7 +439,7 @@ Coverage:
 - [Feature] coverage: ~[%]
 
 Files:
-- Modified: grammar/CNext.g4 (lines X-Y)
+- Modified: grammar/Cnx.g4 (lines X-Y)
 - Modified: src/codegen/FileName.ts (explanation)
 - Modified: docs/coverage.md (sections + stats)
 - Added: tests/[feature]/ (N tests + 3 expected + README)
@@ -580,7 +580,7 @@ vim tests/[feature]/basic.test.cnx     # Write tests
 npm test                               # Run tests
 
 # Phase 3: Bug Resolution
-vim grammar/CNext.g4                   # Fix grammar
+vim grammar/Cnx.g4                   # Fix grammar
 vim BUG-DISCOVERED-[feature].md       # Document bugs
 
 # Phase 4: Documentation

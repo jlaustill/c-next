@@ -1,10 +1,10 @@
-// Generated from grammar/CNext.g4 by ANTLR 4.13.1
+// Generated from grammar/Cnx.g4 by ANTLR 4.13.1
 
 import * as antlr from "antlr4ng";
 import { Token } from "antlr4ng";
 
 
-export class CNextLexer extends antlr.Lexer {
+export class CnxLexer extends antlr.Lexer {
     public static readonly T__0 = 1;
     public static readonly INCLUDE_DIRECTIVE = 2;
     public static readonly DEFINE_FUNCTION = 3;
@@ -200,20 +200,20 @@ export class CNextLexer extends antlr.Lexer {
 
     public constructor(input: antlr.CharStream) {
         super(input);
-        this.interpreter = new antlr.LexerATNSimulator(this, CNextLexer._ATN, CNextLexer.decisionsToDFA, new antlr.PredictionContextCache());
+        this.interpreter = new antlr.LexerATNSimulator(this, CnxLexer._ATN, CnxLexer.decisionsToDFA, new antlr.PredictionContextCache());
     }
 
-    public get grammarFileName(): string { return "CNext.g4"; }
+    public get grammarFileName(): string { return "Cnx.g4"; }
 
-    public get literalNames(): (string | null)[] { return CNextLexer.literalNames; }
-    public get symbolicNames(): (string | null)[] { return CNextLexer.symbolicNames; }
-    public get ruleNames(): string[] { return CNextLexer.ruleNames; }
+    public get literalNames(): (string | null)[] { return CnxLexer.literalNames; }
+    public get symbolicNames(): (string | null)[] { return CnxLexer.symbolicNames; }
+    public get ruleNames(): string[] { return CnxLexer.ruleNames; }
 
-    public get serializedATN(): number[] { return CNextLexer._serializedATN; }
+    public get serializedATN(): number[] { return CnxLexer._serializedATN; }
 
-    public get channelNames(): string[] { return CNextLexer.channelNames; }
+    public get channelNames(): string[] { return CnxLexer.channelNames; }
 
-    public get modeNames(): string[] { return CNextLexer.modeNames; }
+    public get modeNames(): string[] { return CnxLexer.modeNames; }
 
     public static readonly _serializedATN: number[] = [
         4,0,119,1161,6,-1,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,
@@ -657,19 +657,19 @@ export class CNextLexer extends antlr.Lexer {
 
     private static __ATN: antlr.ATN;
     public static get _ATN(): antlr.ATN {
-        if (!CNextLexer.__ATN) {
-            CNextLexer.__ATN = new antlr.ATNDeserializer().deserialize(CNextLexer._serializedATN);
+        if (!CnxLexer.__ATN) {
+            CnxLexer.__ATN = new antlr.ATNDeserializer().deserialize(CnxLexer._serializedATN);
         }
 
-        return CNextLexer.__ATN;
+        return CnxLexer.__ATN;
     }
 
 
-    private static readonly vocabulary = new antlr.Vocabulary(CNextLexer.literalNames, CNextLexer.symbolicNames, []);
+    private static readonly vocabulary = new antlr.Vocabulary(CnxLexer.literalNames, CnxLexer.symbolicNames, []);
 
     public override get vocabulary(): antlr.Vocabulary {
-        return CNextLexer.vocabulary;
+        return CnxLexer.vocabulary;
     }
 
-    private static readonly decisionsToDFA = CNextLexer._ATN.decisionToState.map( (ds: antlr.DecisionState, index: number) => new antlr.DFA(ds, index) );
+    private static readonly decisionsToDFA = CnxLexer._ATN.decisionToState.map( (ds: antlr.DecisionState, index: number) => new antlr.DFA(ds, index) );
 }

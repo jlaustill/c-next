@@ -393,7 +393,7 @@ Each collector is small, focused, stateless, and independently testable:
 ```typescript
 // symbol_resolution/cnext/collectors/StructCollector.ts
 
-import * as Parser from "../../antlr_parser/grammar/CNextParser";
+import * as Parser from "../../antlr_parser/grammar/CnxParser";
 import { IStructSymbol, IStructFieldSymbol } from "../types";
 
 class StructCollector {
@@ -461,7 +461,7 @@ export default StructCollector;
 ```typescript
 // symbol_resolution/cnext/index.ts
 
-import * as Parser from "../antlr_parser/grammar/CNextParser";
+import * as Parser from "../antlr_parser/grammar/CnxParser";
 import StructCollector from "./collectors/StructCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import BitmapCollector from "./collectors/BitmapCollector";

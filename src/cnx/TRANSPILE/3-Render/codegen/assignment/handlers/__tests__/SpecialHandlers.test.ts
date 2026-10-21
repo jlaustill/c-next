@@ -172,7 +172,7 @@ describe("SpecialHandlers", () => {
     // handler that joins `currentScopePath.name` asks for `Inner__count` and misses.
     //
     // Not reachable from .cnx: `scopeMember` admits no `scopeDeclaration`
-    // (grammar/CNext.g4:81-89), so no fixture can build depth two. It is
+    // (grammar/Cnx.g4:81-89), so no fixture can build depth two. It is
     // reachable here because `SymbolRegistry.getOrCreateScope` takes a dotted
     // path, which makes this the only level the encoder can be proven at.
     //

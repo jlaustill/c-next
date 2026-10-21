@@ -328,7 +328,7 @@ describe("ConflictDetector", () => {
     // cannot see the difference because they use depth-one scopes, where a
     // scope's name and its qualified name are the same string.
     //
-    // Nested scopes are unreachable from .cnx source (grammar/CNext.g4:81-89),
+    // Nested scopes are unreachable from .cnx source (grammar/Cnx.g4:81-89),
     // so this has to be built through the scope factory. That is the point: the
     // property is real in the symbol model before the grammar admits it.
     it("should NOT detect conflict for members of distinct scopes sharing a leaf name", () => {

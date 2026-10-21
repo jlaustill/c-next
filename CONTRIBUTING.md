@@ -468,7 +468,7 @@ git status
 ```bash
 # Stage ONLY related files
 git add src/codegen/CodeGenerator.ts
-git add grammar/CNext.g4
+git add grammar/Cnx.g4
 git add tests/my-feature/
 git add docs/decisions/adr-050-critical-sections.md
 git add docs/learn-cnext-in-y-minutes.md

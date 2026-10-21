@@ -14,7 +14,7 @@
 import { ParseTree, Token } from "antlr4ng";
 
 import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
-import { CNextLexer } from "../../src/cnx/PARSE/2-Parse/grammar/CNextLexer";
+import { CnxLexer } from "../../src/cnx/PARSE/2-Parse/grammar/CnxLexer";
 
 import Cst from "./cst";
 import ICommentAnchor from "./types/ICommentAnchor";
@@ -34,9 +34,9 @@ interface IPrettierSyntaxError extends Error {
  * recoverable here without their appearing in the parse tree.
  */
 const COMMENT_TOKEN_TYPES = new Set<number>([
-  CNextLexer.DOC_COMMENT,
-  CNextLexer.LINE_COMMENT,
-  CNextLexer.BLOCK_COMMENT,
+  CnxLexer.DOC_COMMENT,
+  CnxLexer.LINE_COMMENT,
+  CnxLexer.BLOCK_COMMENT,
 ]);
 
 /** Build the error Prettier expects, pointing at the first parse failure. */
@@ -66,8 +66,8 @@ function toCommentNode(
   return {
     type: "Comment",
     value: token.text ?? "",
-    block: token.type === CNextLexer.BLOCK_COMMENT,
-    documentation: token.type === CNextLexer.DOC_COMMENT,
+    block: token.type === CnxLexer.BLOCK_COMMENT,
+    documentation: token.type === CnxLexer.DOC_COMMENT,
     start: token.start,
     end: token.stop,
     line: token.line,

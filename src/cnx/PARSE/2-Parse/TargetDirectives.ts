@@ -6,7 +6,7 @@
  * pragma text -- not the run-target resolution, not the test harness -- so a
  * pragma cannot be understood two ways.
  */
-import type * as Parser from "./grammar/CNextParser";
+import type * as Parser from "./grammar/CnxParser";
 import type ITargetDirective from "../../types/ITargetDirective";
 
 class TargetDirectives {

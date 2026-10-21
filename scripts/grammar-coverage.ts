@@ -19,8 +19,8 @@ import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
 import IGrammarCoverageReport from "../src/cnx/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "../src/cnx/PARSE/2-Parse/types/GrammarCoverageReportBuilder";
 import GrammarCoverageListener from "../src/cnx/PARSE/2-Parse/GrammarCoverageListener";
-import { CNextLexer } from "../src/cnx/PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../src/cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../src/cnx/PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../src/cnx/PARSE/2-Parse/grammar/CnxParser";
 import chalk from "chalk";
 import FileScanner from "./utils/FileScanner";
 
@@ -52,8 +52,8 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
       const { tree } = CNextSourceParser.parse(source);
 
       const coverageListener = new GrammarCoverageListener(
-        CNextParser.ruleNames,
-        CNextLexer.ruleNames,
+        CnxParser.ruleNames,
+        CnxLexer.ruleNames,
       );
       ParseTreeWalker.DEFAULT.walk(coverageListener, tree);
       const report = coverageListener.getReport();
@@ -72,8 +72,8 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
   }
 
   return GrammarCoverageReportBuilder.build({
-    parserRuleNames: CNextParser.ruleNames as string[],
-    lexerRuleNames: CNextLexer.ruleNames as string[],
+    parserRuleNames: CnxParser.ruleNames as string[],
+    lexerRuleNames: CnxLexer.ruleNames as string[],
     parserRuleVisits: parserVisits,
     lexerRuleVisits: lexerVisits,
   });

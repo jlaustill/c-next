@@ -191,7 +191,7 @@ untouched.
 
 ## Implementation
 
-### Grammar (CNext.g4)
+### Grammar (Cnx.g4)
 
 ```antlr
 preprocessorDirective

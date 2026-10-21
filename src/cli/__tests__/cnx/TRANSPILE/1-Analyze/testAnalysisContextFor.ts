@@ -1,7 +1,7 @@
 import ProgramLowering from "../../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import type IProgramSyntax from "../../../../../cnx/types/syntax/IProgramSyntax";
 import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
-import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import CNextResolver from "../../../../../cnx/PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";

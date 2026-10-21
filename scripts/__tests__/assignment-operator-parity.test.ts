@@ -2,7 +2,7 @@
  * Issue #1588: the grammar and ASSIGNMENT_OPERATOR_MAP are two halves of one
  * fact, and nothing tied them together.
  *
- * Adding an assignment operator is an edit to `grammar/CNext.g4`,
+ * Adding an assignment operator is an edit to `grammar/Cnx.g4`,
  * `src/cnx/types/syntax/ASSIGNMENT_OPERATORS.ts` and, for a compound one,
  * `src/cnx/types/syntax/COMPOUND_BINARY_OPERATORS.ts`. The map is derived from
  * that table, whose type requires an entry for every compound operator in the
@@ -32,10 +32,10 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The quoted alternatives of the grammar's `assignmentOperator` rule. */
 function grammarOperators(): string[] {
-  const grammar = readFileSync(join(repoRoot, "grammar", "CNext.g4"), "utf8");
+  const grammar = readFileSync(join(repoRoot, "grammar", "Cnx.g4"), "utf8");
   const rule = /^assignmentOperator\s*$\r?\n(.*?)^\s*;\s*$/ms.exec(grammar);
   if (rule === null) {
-    throw new Error("grammar/CNext.g4 has no assignmentOperator rule");
+    throw new Error("grammar/Cnx.g4 has no assignmentOperator rule");
   }
   return Array.from(rule[1].matchAll(/'([^']+)'/g))
     .map((match) => match[1])

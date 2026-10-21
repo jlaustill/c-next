@@ -2,7 +2,7 @@
  * A declaration of a parsed test program, as 1.2 lowers it (#1991), narrowed
  * to the kind the test reads.
  */
-import type { ProgramContext } from "../../../2-Parse/grammar/CNextParser";
+import type { ProgramContext } from "../../../2-Parse/grammar/CnxParser";
 import ProgramLowering from "../../../2-Parse/ProgramLowering";
 import type TDeclarationSyntax from "../../../../types/syntax/TDeclarationSyntax";
 

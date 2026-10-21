@@ -312,9 +312,9 @@ type lands. This is a deliberate deferral, not an unknown.
 No source-level construct can delete a statement from a function body, so structural reachability
 over a parsed function body is well-defined. Verified against the grammar and the test suite:
 
-- `grammar/CNext.g4` — `program: (includeDirective | preprocessorDirective)* declaration* EOF`.
+- `grammar/Cnx.g4` — `program: (includeDirective | preprocessorDirective)* declaration* EOF`.
   Directives are legal only at the top of a compilation unit, **before** any declaration.
-- `grammar/CNext.g4` — the `statement` rule has no directive alternative at all, so `#ifdef`
+- `grammar/Cnx.g4` — the `statement` rule has no directive alternative at all, so `#ifdef`
   cannot appear inside a block.
 - `tests/preprocessor/nested-ifdef.expected.error` — interleaving `#ifdef` between declarations is
   a **parse error today** ("extraneous input '#ifdef DEBUG'"), not a supported construct.
@@ -357,5 +357,5 @@ ADR-067's _Related ADRs_ now lists ADR-069.
 - Issue #1107 (unused variables — Phase 2)
 - `docs/misra-compliance.md` (Rules 2.1 and 2.2, both "Not Enforced")
 - `docs/error-codes.md` (E0706 reserved for this ADR)
-- `grammar/CNext.g4` and `tests/preprocessor/nested-ifdef.expected.error` (evidence for Resolved Question 4)
+- `grammar/Cnx.g4` and `tests/preprocessor/nested-ifdef.expected.error` (evidence for Resolved Question 4)
 - The phase ordering above (reachability before liveness) is a correctness contract, not a preference — see `### Architecture (proposed)`

@@ -319,7 +319,7 @@ _Using C-Next in your project? Open an issue to get listed!_
 
 ```
 c-next/
-├── grammar/CNext.g4                    # ANTLR4 grammar definition
+├── grammar/Cnx.g4                    # ANTLR4 grammar definition
 ├── src/
 │   ├── index.ts                        # CLI entry point
 │   ├── transpiler/
@@ -378,7 +378,7 @@ npm run build              # Transpiler and Prettier plugin
 **Formatting `.cnx` files:** `prettier-plugin/` teaches Prettier the C-Next language, and
 `.prettierrc` loads it for `*.cnx`, so `npm run prettier:fix` formats C-Next sources
 alongside everything else. The plugin prints ANTLR's parse tree directly, dispatching on the
-rule indices generated from `grammar/CNext.g4` — so adding a grammar rule without a layout
+rule indices generated from `grammar/Cnx.g4` — so adding a grammar rule without a layout
 for it fails CI rather than going unnoticed. `npm run format:fidelity` checks the formatter
 against every fixture in `tests/`: the transpiler must produce byte-identical output from
 the formatted source, every comment must survive verbatim, and formatting must be

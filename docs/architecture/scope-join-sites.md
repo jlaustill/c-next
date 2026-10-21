@@ -7,7 +7,7 @@ reads as a scope, or a nearby `isScope` guard proves it is one.
 
 **A row is not by itself a defect.** The population that WAS one -- a
 scope's leaf name standing in for a complete path, correct only while
-`scopeMember` admits no `scopeDeclaration` (`grammar/CNext.g4`) -- has been
+`scopeMember` admits no `scopeDeclaration` (`grammar/Cnx.g4`) -- has been
 converted to `ScopeUtils.qualifyInScope`, which takes the whole
 enclosing PATH. Every row below carries the judgement that was made
 about it, so no reader has to re-derive which is which:

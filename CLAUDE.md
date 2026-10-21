@@ -740,7 +740,7 @@ generator (#1489 deleted the one that duplicated this).
   The exception is a test of a `src/cnx/` module that reaches `src/cli/` or `src/lib/`. It lives at
   `src/cli/__tests__/cnx/<the module's path under cnx/>`, because nothing in `cnx/`, tests included,
   imports the host (#1992; `transpiler-imports-no-host`)
-- Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser.js"`
+- Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CnxParser.js"`
 - Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
 - **IAssignmentContext changes**: Update `createMockContext` in ALL handler test files when adding fields

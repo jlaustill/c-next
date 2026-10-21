@@ -939,7 +939,7 @@ class TranspileState {
    *
    * Every codegen caller passes a leaf, and that is correct for every program
    * C-Next can express: `scopeMember` admits no `scopeDeclaration`
-   * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. ADR-016 makes
+   * (grammar/Cnx.g4:81-89), so a scope's leaf IS its whole path. ADR-016 makes
    * that permanent, so no future grammar change retires the gap.
    *
    * #1304: what remains is that a leaf passed where a path is expected used to
