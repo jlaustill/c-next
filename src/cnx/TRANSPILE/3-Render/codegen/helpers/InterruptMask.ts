@@ -22,7 +22,7 @@ class InterruptMask {
    * platform has).
    */
   static readonly NO_ARM_ERROR =
-    '#error "C-Next: the IRQ wrappers have no arm for this compiler, so a critical section has no lowering (ADR-050)"';
+    '#error "cnx: the IRQ wrappers have no arm for this compiler, so a critical section has no lowering (ADR-050)"';
 
   /**
    * The `__cnx_` IRQ wrappers (ADR-050, Issue #778), one arm per compiler

@@ -37,6 +37,7 @@ import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import IncludePath from "../../utils/IncludePath";
 import ConfigFileNames from "./ConfigFileNames";
+import CrossCompilerVariable from "./CrossCompilerVariable";
 
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
@@ -92,7 +93,8 @@ class Discover {
    * The run's discovery errors: E0509, each at its header's marker (#1542),
    * E0518 for an input whose C-Next extension is not lowercase (#1833), and
    * E0918 for each config under an old name a project-root walk passed
-   * (#2165).
+   * (#2165), and E0924 for an environment that sets the cross compiler's old
+   * name (#2166).
    */
   private readonly errors: ITranspileError[] = [];
 
@@ -196,6 +198,13 @@ class Discover {
     // not because the run's first file happens to sit beside it; the anchor
     // reads only the root, since it is reused across runs.
     discovery._tiersFor(anchor.path);
+    const renamedVariable = CrossCompilerVariable.errorFor(
+      process.env,
+      root === null ? settings.input : root.path,
+    );
+    if (renamedVariable !== null) {
+      discovery.errors.push(renamedVariable);
+    }
     const files =
       input.kind === "source" && root !== null
         ? discovery._fromSource(root, input.includeDirs ?? [])
@@ -408,7 +417,7 @@ class Discover {
           ? PlatformIOIni.read(this.anchor.projectRoot, this.fs, process.env)
           : null,
         configuredCompiler:
-          process.env.CNEXT_CROSS_COMPILER || this.anchor.compiler,
+          CrossCompilerVariable.compiler(process.env) ?? this.anchor.compiler,
       },
       writeOutputToDisk: files.writeOutputToDisk,
       outputs,

@@ -30,14 +30,10 @@ function whenRun(answer: (command: string) => string): void {
 
 describe("ToolchainDetector", () => {
   const originalPath = process.env.PATH;
-  const originalOverride = process.env.CNEXT_CROSS_COMPILER;
 
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.PATH = "/usr/bin";
-    // detect() tries CNEXT_CROSS_COMPILER first; a developer's export must not
-    // decide which paths these cases see.
-    delete process.env.CNEXT_CROSS_COMPILER;
     whenRun(() => {
       throw new Error("not run");
     });
@@ -46,9 +42,6 @@ describe("ToolchainDetector", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     process.env.PATH = originalPath;
-    if (originalOverride !== undefined) {
-      process.env.CNEXT_CROSS_COMPILER = originalOverride;
-    }
   });
 
   describe("PATH search", () => {

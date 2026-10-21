@@ -88,7 +88,7 @@ interface ISourceGraph {
   readonly anchor: IAnchorFacts & {
     readonly platformio: IPlatformIOProject | null;
     /**
-     * #1713: the compiler the project names -- `CNEXT_CROSS_COMPILER`, else
+     * #1713: the compiler the project names -- `CNX_CROSS_COMPILER`, else
      * the compile database's -- which reads the headers when it builds for
      * the target (#1542 ruling 10); null when it names none
      */
