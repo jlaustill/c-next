@@ -2,22 +2,37 @@
 // test-adr: 044
 // Issues #1735 and #2018: a static-storage initializer needs a value known at
 // compile time (C99 6.7.8p4). A variable or a call has none, at file scope
-// and in a scope alike.
+// and in a scope alike, whatever the value's type: an enum or a struct too.
 //
 // NEGATIVE CONTROL: K reads a read-only binding, which has one, and must stay
 // silent.
 
+enum EColor {
+    RED,
+    GREEN
+}
+struct Pt {
+    u32 x;
+    u32 y;
+}
+
 mut u32 g <- 4;
 u32 K <- 4;
+mut EColor gColor <- EColor.RED;
+mut Pt gPoint <- { x: 1, y: 2 };
 
 bool f() {
     g <- 5;
+    gColor <- EColor.GREEN;
+    gPoint.x <- 3;
     return true;
 }
 
 u32 FromVariable <- g;
 bool FromCall <- f();
 u32 FromConst <- K + 1;
+EColor FromEnum <- gColor;
+Pt FromStruct <- gPoint;
 
 scope S {
     mut bool flag <- true;

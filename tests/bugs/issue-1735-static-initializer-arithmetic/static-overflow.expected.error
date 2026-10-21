@@ -1,8 +1,10 @@
-11:8 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+12:8 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
        help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
-12:12 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+13:12 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
        help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
-13:15 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+14:15 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
        help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
-17:19 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+16:8 error[E0910]: Static initializer overflows u8 at compile time: the value cast to u8 does not fit it (ADR-024, ADR-044)
+       help: Write a value the type holds, or cast to a type wide enough for it
+19:19 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
        help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type

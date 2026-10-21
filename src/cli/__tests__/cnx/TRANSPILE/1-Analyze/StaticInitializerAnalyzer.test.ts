@@ -33,7 +33,7 @@ const spelled = (source: string): (string | null)[] => {
       PrivateConstSpelling.ofValue(
         context.program,
         StaticInitializers.settle(value, context.program, context.sourceFile),
-        value.typeName,
+        value.typeName ?? "",
       )?.text ?? null,
   );
 };
@@ -137,5 +137,64 @@ describe("StaticInitializers", () => {
           )?.name ?? null,
       ),
     ).toEqual(["CH", null]);
+  });
+  it("rejects an enum or a struct value that reads a variable, not one that names a const", () => {
+    expect(
+      codes(
+        [
+          "enum EColor { RED, GREEN }",
+          "struct Pt { u32 x; u32 y; }",
+          "mut EColor g <- EColor.RED;",
+          "mut Pt gp <- {x: 1, y: 2};",
+          "EColor K <- EColor.GREEN;",
+          "EColor h <- g;",
+          "Pt hp <- gp;",
+          "EColor k2 <- K;",
+        ].join("\n"),
+      ),
+    ).toEqual(["6:E0909", "7:E0909"]);
+  });
+
+  it("names the cast when a cast's value does not fit", () => {
+    const { syntax, context, positions } = setUp("u8 X <- (u8)300;");
+    const [error] = new StaticInitializerAnalyzer(context).analyze(
+      syntax,
+      positions,
+    );
+    expect(error?.code).toBe("E0910");
+    expect(error?.message).toContain("the value cast to u8 does not fit it");
+  });
+
+  it("reads a scope's const through the scope, as the fold does", () => {
+    const { syntax, context, positions } = setUp(
+      [
+        "scope S {",
+        "    public u8 CH <- 'A';",
+        "    public u32 LIMIT <- 10;",
+        "}",
+        "u8 QCH <- S.CH;",
+        "u32 QL <- S.LIMIT + 1;",
+      ].join("\n"),
+    );
+    const [qch, ql] = StaticInitializers.values(syntax, positions.positions);
+    const { program, sourceFile } = context;
+    expect(
+      StaticInitializers.namedConst(qch!.value, program, sourceFile)
+        ?.fullyQualifiedCName,
+    ).toBe("S__CH");
+    expect(
+      StaticInitializers.readsVariable(ql!.value, program, sourceFile),
+    ).toBe(true);
+    expect(StaticInitializers.bareNames(ql!.value)).toEqual([]);
+  });
+
+  it("writes a header name mixed with a const as C evaluates it", () => {
+    const { syntax, context, positions } = setUp(
+      ["u32 A <- 4;", "u32 S <- A.type_bit_length + A;"].join("\n"),
+    );
+    const [value] = StaticInitializers.values(syntax, positions.positions);
+    expect(
+      StaticInitializers.cText(value!, context.program, context.sourceFile),
+    ).toBe("36");
   });
 });

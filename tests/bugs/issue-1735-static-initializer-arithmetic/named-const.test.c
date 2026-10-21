@@ -10,8 +10,13 @@
 // Issue #1735: a file-scope initializer that names a const C-Next has no
 // value for, and C does -- a char literal, a header macro -- is written as
 // that const is where it is used: the literal or the macro, never the const
-// object, which is not a C constant expression.
+// object, which is not a C constant expression. A const a scope declares
+// (`S.CH`), in this file or across the include, is the same.
+//
+// A value that mixes a header's name with a C-Next const is C's to evaluate,
+// as a dimension is: the const is written as its value, never read.
 #include "static-limit.h"
+#include "static-provider.h"
 
 #include <stdint.h>
 
@@ -25,12 +30,70 @@ const uint32_t FROM_MACRO = STATIC_LIMIT;
 /* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 const uint32_t fromMacro = (STATIC_LIMIT);
 
+/* Scope: S */
+const uint8_t S__CH = 'B';
+const uint32_t S__LIMIT = STATIC_LIMIT;
+const uint32_t S__COUNT = 3U;
+const EColor S__COLOR = EColor__GREEN;
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint8_t scoped = (uint8_t)'B';
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint32_t scopedMacro = (STATIC_LIMIT);
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint32_t scopedSum = 4U;
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint8_t provided = (uint8_t)'C';
+
+const uint32_t A = 4U;
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint32_t mixed = STATIC_LIMIT + 4;
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint32_t sized = (((uint32_t)sizeof(P))) + 4;
+
+const EColor K = EColor__GREEN;
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const EColor color = EColor__GREEN;
+
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const EColor scopedColor = EColor__GREEN;
+
 int main(void) {
     if (first != 65) {
         return 1U;
     }
     if (fromMacro != 10) {
         return 2U;
+    }
+    if (scoped != 66) {
+        return 3U;
+    }
+    if (scopedMacro != 10) {
+        return 4U;
+    }
+    if (scopedSum != 4) {
+        return 5U;
+    }
+    if (provided != 67) {
+        return 6U;
+    }
+    if (mixed != 14) {
+        return 7U;
+    }
+    if (sized != ((uint32_t)sizeof(P)) + 4) {
+        return 8U;
+    }
+    if (color != EColor__GREEN) {
+        return 9U;
+    }
+    if (scopedColor != EColor__GREEN) {
+        return 10U;
     }
     return 0U;
 }

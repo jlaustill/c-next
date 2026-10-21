@@ -6,6 +6,18 @@ import LiteralUtils from "../../../../../utils/LiteralUtils";
 
 class BinaryExprUtils {
   /**
+   * The line ADR-001's `=` as equality fires on in a comparison, or undefined
+   * when it holds none: the one test the written and the folded comparison
+   * share (#1735 review)
+   */
+  static equalityAdrLine(
+    operators: ReadonlyArray<string>,
+    line: number,
+  ): number | undefined {
+    return operators.includes("=") ? line : undefined;
+  }
+
+  /**
    * Issue #235: Try to parse a string as a numeric constant, when its value
    * is exact (#1760 review: `LiteralUtils.isExactInteger`).
    */

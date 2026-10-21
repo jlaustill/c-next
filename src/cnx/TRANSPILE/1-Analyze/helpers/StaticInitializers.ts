@@ -7,7 +7,9 @@
  * call. Each is a value fixed at compile time (ADR-044, #1175), `mut` or not.
  * One of a C-Next number or bool type that is not written as a literal is
  * folded here, at the type its position holds it at: the one answer 2.1
- * rejects (E0909, E0910) and 2.2 spells.
+ * rejects (E0909, E0910) and 2.2 spells. One of any other type (an enum, a
+ * struct) has no typed fold, but is asked the same question untyped, so one
+ * that reads a variable or calls a function is rejected too (#2018).
  */
 import type IProgram from "../../../types/IProgram";
 import type TValueBinding from "../../../types/TValueBinding";
@@ -20,6 +22,8 @@ import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../../types/syntax/TExpression";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
+import ConstExprPrinter from "../../../utils/ConstExprPrinter";
+import ConstantEvaluator from "../../../utils/ConstantEvaluator";
 import ConstantFold from "../../../utils/ConstantFold";
 import LengthProperty from "../../../utils/LengthProperty";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
@@ -28,6 +32,14 @@ import type IStaticValue from "../types/IStaticValue";
 import ValuePositions from "./ValuePositions";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
+type TReason = Extract<TSettledConst, { kind: "notConstant" }>["reason"];
+
+/** What a value of no number or bool type has no value for C by */
+const UNTYPED_WITHOUT_VALUE: ReadonlySet<TReason> = new Set<TReason>([
+  "variable",
+  "parameter",
+  "call",
+]);
 
 class StaticInitializers {
   /** Each value to fold in the file's static-storage initializers */
@@ -41,25 +53,69 @@ class StaticInitializers {
       )
       .flatMap((declaration) =>
         StaticInitializers.leaves(declaration.initializer!).flatMap((value) => {
-          const typeName = StaticInitializers.typeAt(positions, value);
-          return typeName === null || StaticInitializers.isLiteral(value)
+          return StaticInitializers.isLiteral(value)
             ? []
-            : [{ declaration, value, typeName }];
+            : [
+                {
+                  declaration,
+                  value,
+                  typeName: StaticInitializers.typeAt(positions, value),
+                },
+              ];
         }),
       );
   }
 
-  /** The value, held at its type, by the fold every pass shares */
+  /**
+   * The value, held at its type, by the fold every pass shares. One of no
+   * number or bool type is only asked whether it has a value: null when it
+   * does, why not when it does not.
+   */
   static settle(
     value: IStaticValue,
     program: IProgram,
     sourceFile: string,
   ): TSettledConst | null {
-    return ConstantFold.primitiveValue(
+    const lowered = ConstExprLowering.lower(value.value);
+    const env = ConstantFold.environment(program, sourceFile);
+    if (value.typeName !== null) {
+      return ConstantFold.primitiveValue(lowered, env, value.typeName);
+    }
+    const result = ConstantEvaluator.evaluate(lowered, env);
+    return result.kind === "value" ? null : result;
+  }
+
+  /**
+   * Whether the value has none C can be given, which 2.1 reports (E0909):
+   * one of a number or bool type that C-Next cannot fold and C cannot
+   * evaluate; one of any other type that reads a variable or calls a function
+   */
+  static lacksValue(value: IStaticValue, settled: TSettledConst): boolean {
+    if (settled.kind !== "notConstant") return false;
+    return value.typeName === null
+      ? UNTYPED_WITHOUT_VALUE.has(settled.reason)
+      : !StaticInitializers.cHasValue(settled);
+  }
+
+  /**
+   * A value C evaluates that reads a C-Next const, written as dimensions are
+   * (`ConstantFold.settled`): each C-Next name as its value, each header name
+   * as C spells it -- since C cannot read the const object (#1735 review)
+   */
+  static cText(
+    value: IStaticValue,
+    program: IProgram,
+    sourceFile: string,
+  ): string {
+    return ConstExprPrinter.toC(
       ConstExprLowering.lower(value.value),
       ConstantFold.environment(program, sourceFile),
-      value.typeName,
     );
+  }
+
+  /** Whether the value is a cast, whose operand is what does not fit */
+  static isCast(value: IStaticValue): boolean {
+    return ConstExprLowering.lower(value.value).kind === "cast";
   }
 
   /**
@@ -88,13 +144,10 @@ class StaticInitializers {
     return StaticInitializers.names(ConstExprLowering.lower(value)).flatMap(
       (name) => {
         if (LengthProperty.isLength(name.path.at(-1) ?? "")) return [];
-        const binding = program.bindValue(
-          sourceFile,
-          name.root,
-          name.path[0] ?? "",
-          name.at,
-        );
-        return binding === null ? [] : [{ binding, at: name.at }];
+        const target = program.constantTargetOf(sourceFile, name);
+        return target === null
+          ? []
+          : [{ binding: target.binding, at: name.at }];
       },
     );
   }
@@ -122,14 +175,18 @@ class StaticInitializers {
     sourceFile: string,
   ): IVariableSymbol | null {
     const lowered = ConstExprLowering.lower(value);
-    if (lowered.kind !== "name" || lowered.path.length !== 1) return null;
-    const binding = program.bindValue(
-      sourceFile,
-      lowered.root,
-      lowered.path[0],
-      lowered.at,
+    if (lowered.kind !== "name") return null;
+    const target = program.constantTargetOf(sourceFile, lowered);
+    return target?.binding.kind === "variable" && target.rest.length === 0
+      ? target.binding.symbol
+      : null;
+  }
+
+  /** Each bare name the value reads (`N`, not `this.N` or `S.N`) */
+  static bareNames(value: TExpression): TConstName[] {
+    return StaticInitializers.names(ConstExprLowering.lower(value)).filter(
+      (name) => name.root === null && name.path.length === 1,
     );
-    return binding?.kind === "variable" ? binding.symbol : null;
   }
 
   private static names(expr: TConstExpr): TConstName[] {

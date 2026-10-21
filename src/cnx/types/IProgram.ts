@@ -2,6 +2,7 @@ import type IFunctionSymbol from "./symbols/IFunctionSymbol";
 import type IFoldedConstant from "./IFoldedConstant";
 import type TConstExpr from "./TConstExpr";
 import type TConstResult from "./TConstResult";
+import type IConstTarget from "./IConstTarget";
 import type TSettledConst from "./TSettledConst";
 import type TEnumMemberValue from "./TEnumMemberValue";
 import type ISourcePosition from "../utils/types/ISourcePosition";
@@ -260,6 +261,16 @@ interface IProgram {
     sourceFile: string,
     name: Extract<TConstExpr, { kind: "name" }>,
   ): TConstResult;
+
+  /**
+   * The binding a name in a constant expression reads where it is written, by
+   * the walk `constantValueOf` folds: `Scope.N` reads the member, `this.N`
+   * and `N` what they bind (#1735 review)
+   */
+  constantTargetOf(
+    sourceFile: string,
+    name: Extract<TConstExpr, { kind: "name" }>,
+  ): IConstTarget | null;
 
   /**
    * A C-Next type name as C spells it at `at` in `sourceFile` (ADR-057), for a

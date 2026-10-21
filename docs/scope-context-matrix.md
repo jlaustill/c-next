@@ -400,18 +400,15 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | ok        | warn   | warn       | n/a         | n/a        |
+| global variable    | ok        | ok     | warn       | n/a         | n/a        |
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
-| scope member       | ok        | warn   | warn       | n/a         | n/a        |
+| scope member       | ok        | ok     | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-4 linked fixtures with no derivable context:
+1 linked fixture with no derivable context:
 
 - `bugs/issue-1669-enum-member-values/value-overflow.test.cnx`
-- `bugs/issue-1735-static-initializer-arithmetic/cross-file.test.cnx`
-- `bugs/issue-1735-static-initializer-arithmetic/named-const.test.cnx`
-- `bugs/issue-1735-static-initializer-arithmetic/static-arithmetic.test.cnx`
 
 ## ADR-045
 

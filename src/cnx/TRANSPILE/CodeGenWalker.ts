@@ -364,32 +364,30 @@ class CodeGenWalker {
   }
 
   /**
-   * #1735: the rules a folded value applied, recorded where they fired, as
-   * writing it would have: ADR-001's `=` as equality, and ADR-057's bare name
-   * bound to a scope member
+   * #1735: the rules a folded value applied, recorded where they fired, by
+   * the decisions writing it would have asked: ADR-044's value fixed at
+   * compile time, where it holds arithmetic; ADR-001's `=` as equality; and
+   * ADR-057's resolution of each bare name
    */
   private recordFoldedRules(expr: TExpression): void {
     for (const node of ExpressionNodes.direct(expr)) {
-      if (
-        node.kind === "binary" &&
-        node.level === "equality" &&
-        node.operators.includes("=")
-      ) {
-        AdrProvenance.record("001", node.span.line);
+      if (node.kind !== "binary") continue;
+      if (node.level === "additive" || node.level === "multiplicative") {
+        AdrProvenance.record("044", node.span.line);
       }
+      const equality =
+        node.level === "equality"
+          ? BinaryExprUtils.equalityAdrLine(node.operators, node.span.line)
+          : undefined;
+      if (equality !== undefined) AdrProvenance.record("001", equality);
     }
-    const typing = this.host.state.typingContext();
-    for (const { binding, at } of StaticInitializers.bindings(
-      expr,
-      typing.program,
-      typing.sourceFile,
-    )) {
-      if (
-        (binding.kind === "variable" || binding.kind === "function") &&
-        binding.symbol.scopePath !== ""
-      ) {
-        AdrProvenance.record("057", at.line);
-      }
+    for (const name of StaticInitializers.bareNames(expr)) {
+      TypeValidator.resolveBareIdentifier(
+        name.path[0],
+        name.at,
+        (typeName: string) => this.host.isKnownStruct(typeName),
+        this.host.state,
+      );
     }
   }
 
@@ -716,7 +714,7 @@ class CodeGenWalker {
           defaultOperator: "=",
           operators,
           mapOperator: BinaryExprUtils.mapEqualityOperator,
-          adrLine: operators.includes("=") ? expr.span.line : undefined,
+          adrLine: BinaryExprUtils.equalityAdrLine(operators, expr.span.line),
           strcmp: isStrcmp ? { isNotEqual: operators[0] === "!=" } : null,
           renderOperands,
         };

@@ -3,7 +3,8 @@
 // Issue #1735 / ADR-044 "Values fixed at compile time": a static-storage
 // initializer is fixed at compile time, so arithmetic that would clamp or wrap
 // there is rejected rather than saturated. D + 10 adds at u8, where 260 does
-// not fit, at file scope, in a mut, in an array element and in a scope.
+// not fit, at file scope, in a mut, in an array element and in a scope. A
+// cast whose value does not fit its type is rejected too (ADR-024).
 //
 // NEGATIVE CONTROL: W adds at u16, where 260 fits, and must stay silent.
 
@@ -12,6 +13,7 @@ u8 E <- D + 10;
 mut u8 M <- D + 10;
 u8[2] R <- [D, D + 10];
 u16 W <- (u16)D + 10;
+u8 X <- (u8)300;
 
 scope S {
     public u8 Q <- D + 6;

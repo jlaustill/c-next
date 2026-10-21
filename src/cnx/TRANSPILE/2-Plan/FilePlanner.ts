@@ -927,10 +927,11 @@ class FilePlanner {
   } {
     const values = new Map<TExpression, IPlannedStaticValue>();
     const notes = new Set<TDeclarationSyntax>();
+    invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const typing = this.state.typingContext();
     for (const value of StaticInitializers.values(
       program,
-      valuePositions?.positions ?? new Map(),
+      valuePositions.positions,
     )) {
       const planned = FilePlanner.staticValueOf(
         value,
@@ -963,15 +964,33 @@ class FilePlanner {
     sourceFile: string,
   ): IPlannedStaticValue | null {
     const settled = StaticInitializers.settle(value, program, sourceFile);
+    // A value of no number or bool type folds only as the const it names (an
+    // enum const, as its member)
     const named =
-      settled !== null && StaticInitializers.cHasValue(settled)
+      value.typeName === null ||
+      (settled !== null && StaticInitializers.cHasValue(settled))
         ? StaticInitializers.namedConst(value.value, program, sourceFile)
         : null;
+    if (named === null && value.typeName === null) return null;
+    if (
+      named === null &&
+      settled?.kind === "foreign" &&
+      StaticInitializers.readsVariable(value.value, program, sourceFile)
+    ) {
+      return {
+        spelling: {
+          text: StaticInitializers.cText(value, program, sourceFile),
+          typeName: value.typeName,
+          verbatim: true,
+        },
+        narrowing: null,
+      };
+    }
     if (named === null) {
       const spelling = PrivateConstSpelling.ofValue(
         program,
         settled,
-        value.typeName,
+        value.typeName!,
       );
       return spelling === null ? null : { spelling, narrowing: null };
     }

@@ -3,13 +3,46 @@
 // Issue #1735: a file-scope initializer that names a const C-Next has no
 // value for, and C does -- a char literal, a header macro -- is written as
 // that const is where it is used: the literal or the macro, never the const
-// object, which is not a C constant expression.
+// object, which is not a C constant expression. A const a scope declares
+// (`S.CH`), in this file or across the include, is the same.
+//
+// A value that mixes a header's name with a C-Next const is C's to evaluate,
+// as a dimension is: the const is written as its value, never read.
 #include "static-limit.h"
+#include "static-provider.cnx"
+
+enum EColor {
+    RED,
+    GREEN
+}
+struct P {
+    u32 x;
+    u8 y;
+}
 
 u8 CH <- 'A';
 u8 first <- CH;
 u32 FROM_MACRO <- STATIC_LIMIT;
 u32 fromMacro <- FROM_MACRO;
+
+scope S {
+    public u8 CH <- 'B';
+    public u32 LIMIT <- STATIC_LIMIT;
+    public u32 COUNT <- 3;
+    public EColor COLOR <- EColor.GREEN;
+}
+u8 scoped <- S.CH;
+u32 scopedMacro <- S.LIMIT;
+u32 scopedSum <- S.COUNT + 1;
+u8 provided <- Provider.CH;
+
+u32 A <- 4;
+u32 mixed <- STATIC_LIMIT + A;
+u32 sized <- P.memory_byte_length + A;
+
+EColor K <- EColor.GREEN;
+EColor color <- K;
+EColor scopedColor <- S.COLOR;
 
 u32 main() {
     if (first != 65) {
@@ -17,6 +50,30 @@ u32 main() {
     }
     if (fromMacro != 10) {
         return 2;
+    }
+    if (scoped != 66) {
+        return 3;
+    }
+    if (scopedMacro != 10) {
+        return 4;
+    }
+    if (scopedSum != 4) {
+        return 5;
+    }
+    if (provided != 67) {
+        return 6;
+    }
+    if (mixed != 14) {
+        return 7;
+    }
+    if (sized != P.memory_byte_length + 4) {
+        return 8;
+    }
+    if (color != EColor.GREEN) {
+        return 9;
+    }
+    if (scopedColor != EColor.GREEN) {
+        return 10;
     }
     return 0;
 }

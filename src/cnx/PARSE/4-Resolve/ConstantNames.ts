@@ -34,6 +34,7 @@ import type TConstResult from "../../types/TConstResult";
 import ELEMENT_STEP from "../../types/ELEMENT_STEP";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
+import type IConstTarget from "../../types/IConstTarget";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import ConstantFold from "../../utils/ConstantFold";
 import type TSettledConst from "../../types/TSettledConst";
@@ -73,12 +74,41 @@ class ConstantNames {
       facts,
     };
     const head = name.path[0];
-    const rest = name.path.slice(1);
     if (head === undefined) return ConstantNames.without("unknown", walk);
+    const target = ConstantNames.target(name, facts);
+    return target === null
+      ? ConstantNames.ofTypeHead(name.root, head, name.path.slice(1), walk)
+      : ConstantNames.ofBound(target.binding, target.rest, walk);
+  }
+
+  /**
+   * What the name reads, by the binder's answer for its head: through a scope
+   * to the member variable it names (`Scope.N`), or null when the head binds
+   * no value (a type's name). The walk `valueOf` folds, and the one a pass
+   * asks which binding a name reads (#1735 review).
+   */
+  static target(
+    name: TConstName,
+    facts: IConstantNameFacts,
+  ): IConstTarget | null {
+    const head = name.path[0];
+    if (head === undefined) return null;
     const binding = facts.bind(name.root, head, name.at);
-    return binding === null
-      ? ConstantNames.ofTypeHead(name.root, head, rest, walk)
-      : ConstantNames.ofBound(binding, rest, walk);
+    if (binding === null) return null;
+    const rest = name.path.slice(1);
+    const member = rest[0];
+    if (binding.kind === "scope" && member !== undefined) {
+      const symbol = facts.visibleSymbol(
+        ScopeUtils.getTranspiledCName({
+          name: member,
+          scopePath: binding.scopePath,
+        }),
+      );
+      if (symbol?.kind === "variable") {
+        return { binding: { kind: "variable", symbol }, rest: rest.slice(1) };
+      }
+    }
+    return { binding, rest };
   }
 
   /**
@@ -507,9 +537,7 @@ class ConstantNames {
     if (member === undefined) return ConstantNames.without("scope", walk);
     const cName = ScopeUtils.getTranspiledCName({ name: member, scopePath });
     const symbol = walk.facts.visibleSymbol(cName);
-    if (symbol?.kind === "variable") {
-      return ConstantNames.ofVariable(symbol, more, walk);
-    }
+    // A member variable is `target`'s, which reads it as its own binding
     if (symbol?.kind === "enum" && ConstantNames.namesMember(symbol, more)) {
       return walk.facts.enumMember(cName, more[0], walk.spelling, walk.at);
     }

@@ -31,15 +31,21 @@ class StaticInitializerAnalyzer {
         column: value.value.span.column,
       };
       if (settled?.kind === "overflow") {
+        const cast = StaticInitializers.isCast(value);
         errors.push({
           code: "E0910",
           ...at,
-          message: `Static initializer overflows ${settled.typeName} at compile time: the arithmetic would clamp or wrap (ADR-044)`,
-          helpText: ConstantDiagnostics.OVERFLOW_HELP,
+          message: cast
+            ? `Static initializer overflows ${settled.typeName} at compile time: the value cast to ${settled.typeName} does not fit it (ADR-024, ADR-044)`
+            : `Static initializer overflows ${settled.typeName} at compile time: the arithmetic would clamp or wrap (ADR-044)`,
+          helpText: cast
+            ? "Write a value the type holds, or cast to a type wide enough for it"
+            : ConstantDiagnostics.OVERFLOW_HELP,
         });
       } else if (
-        settled?.kind === "notConstant" &&
-        !StaticInitializers.cHasValue(settled)
+        settled !== null &&
+        settled.kind === "notConstant" &&
+        StaticInitializers.lacksValue(value, settled)
       ) {
         const why = ConstantDiagnostics.why(settled);
         if (why === null) continue;

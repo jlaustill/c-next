@@ -303,7 +303,6 @@ function runAnalyzers(
         "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
       run: () => new ConstantDimensionAnalyzer(context).analyze(parsed.program),
     },
-
     {
       label: "float modulo (% with f32/f64)",
       run: () => new FloatModuloAnalyzer(context).analyze(parsed.program),
