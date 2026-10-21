@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import ExpressionUnwrapper from "../ExpressionUnwrapper";
 import CNextSourceParser from "../CNextSourceParser";
-import * as Parser from "../grammar/CNextParser";
+import * as Parser from "../grammar/CnxParser";
 
 /**
  * Helper to parse a simple expression and get its ExpressionContext

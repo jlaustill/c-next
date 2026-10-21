@@ -141,7 +141,7 @@ These functions return pointers that C-Next cannot handle safely:
 
 ## Implementation
 
-### Grammar (CNext.g4)
+### Grammar (Cnx.g4)
 
 ```antlr
 C_NULL : 'NULL';     // Distinct from lowercase 'null'

@@ -22,7 +22,7 @@ Implement `string<N>` bounded string type with compile-time safety guarantees:
 
 ### Grammar Changes
 
-**File:** `grammar/CNext.g4`
+**File:** `grammar/Cnx.g4`
 
 1. Add `stringType` rule after `type` rule (~line 427):
 

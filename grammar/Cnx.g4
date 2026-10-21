@@ -1,5 +1,5 @@
 /*
- * C-Next Grammar
+ * cnx grammar
  * A safer C for embedded systems development
  *
  * Key differences from C:
@@ -13,7 +13,7 @@
  * - register bindings for hardware
  */
 
-grammar CNext;
+grammar Cnx;
 
 // ============================================================================
 // Parser Rules
@@ -31,7 +31,7 @@ includeDirective
     ;
 
 // Preprocessor directives (ADR-037)
-// C-Next takes a safety-first approach:
+// cnx takes a safety-first approach:
 // - #define FLAG (no value) - allowed for conditional compilation
 // - #define FLAG value - ERROR, must use const
 // - #define NAME(args) - ERROR, function macros forbidden
@@ -436,7 +436,7 @@ primaryExpression
     | '(' expression ')'
     ;
 
-// ADR-023: C-Next has no sizeof; a size is ADR-058's .byte_length. The C spelling
+// ADR-023: cnx has no sizeof; a size is ADR-058's .byte_length. The C spelling
 // is parsed so that it is rejected with a code (E0603) rather than a parse error.
 sizeofExpression
     : 'sizeof' '(' (type | expression) ')'
@@ -451,7 +451,7 @@ castExpression
 // A struct literal takes its type from where it stands (ADR-014).
 //
 // #1322: an `IDENTIFIER '{' ... '}'` alternative stood here for a written type,
-// `Point { x: 10 }`. It was never valid C-Next: every position that consumes a
+// `Point { x: 10 }`. It was never valid cnx: every position that consumes a
 // value already declares a type, so writing it again was rejected as redundant
 // in all of them. The one place it parsed was a bare expression statement,
 // where it built a compound literal and discarded it -- dead code the grammar
@@ -532,7 +532,7 @@ userType
     ;
 
 // Issue #291: C++ template instantiation syntax
-// Allows C-Next to parse C++ template types like FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16>
+// Allows cnx to parse C++ template types like FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16>
 // Template arguments are passed through unchanged to C++ output
 templateType
     : IDENTIFIER '<' templateArgumentList '>'
@@ -561,7 +561,7 @@ stringType
     | 'string'                             // Unsized: for const inference
     ;
 
-// C-Next style array type: dimensions in type position
+// cnx-style array type: dimensions in type position
 // Supports: u8[8], u8[4][4], u8[] (unbounded), string<32>[5]
 // Also supports scoped/qualified types: this.Type[4], Scope.Type[4], global.Type[4]
 arrayType

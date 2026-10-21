@@ -13,7 +13,7 @@
  * no reader of the catalog may have to evaluate code to learn a target.
  */
 import CNextSourceParser from "./CNextSourceParser";
-import type * as Parser from "./grammar/CNextParser";
+import type * as Parser from "./grammar/CnxParser";
 import ExpressionUnwrapper from "./ExpressionUnwrapper";
 import type ITargetCatalogEntry from "../../types/ITargetCatalogEntry";
 import type ITargetCatalogSource from "../../types/ITargetCatalogSource";

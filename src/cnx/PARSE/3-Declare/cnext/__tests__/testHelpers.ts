@@ -4,11 +4,8 @@
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../2-Parse/grammar/CNextLexer";
-import {
-  CNextParser,
-  ProgramContext,
-} from "../../../2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../../../2-Parse/grammar/CnxLexer";
+import { CnxParser, ProgramContext } from "../../../2-Parse/grammar/CnxParser";
 
 /**
  * Parse a C-Next code string into a ProgramContext.
@@ -16,9 +13,9 @@ import {
  */
 function parse(code: string): ProgramContext {
   const charStream = CharStream.fromString(code);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
 
   const errors: string[] = [];
   parser.removeErrorListeners();

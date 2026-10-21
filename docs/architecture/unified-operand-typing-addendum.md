@@ -149,7 +149,7 @@ override enterTernaryExpression = (ctx) => {
 - **An arm that is itself mixed.** `(c > 0) ? (a + s) : a` is reported once, at the inner `+`.
 - **A mixed ternary inside a composite.** `a + ((c > 0) ? a : s)` is reported once, at the ternary. HEAD descends through the arms at the `+` level (`:149-156`), sees the mixed leaves `{a, s}`, and gets null there.
 
-**Nesting.** The grammar allows a parenthesized ternary inside an arm; nesting is refused by a semantic check (`grammar/CNext.g4:350-354`). Each ternary node is still checked once.
+**Nesting.** The grammar allows a parenthesized ternary inside an arm; nesting is refused by a semantic check (`grammar/Cnx.g4:350-354`). Each ternary node is still checked once.
 
 **Evidence.** **[ran]** `r3/t1.cnx` on head4 with `CNX_R3=1`:
 
@@ -659,7 +659,7 @@ There is one snapshot set per mode.
 | B7 (3 missed test:cli tests; F5 duplicates #1147)                                                                                                                                    | Included; #1147 is cited.                                                                                                                                                                              |
 | Target-side F7 (row D)                                                                                                                                                               | A relocated-tree artifact (**[ran]**, §A1). Dropped.                                                                                                                                                   |
 | Target-side F11 (disputed)                                                                                                                                                           | Dropped. The scripts still get a target (§A6.1).                                                                                                                                                       |
-| `cortex-m0+` cannot be named by pragma (`grammar/CNext.g4:638-640`)                                                                                                                  | Filed. A fix is a grammar change, which needs the ADR process.                                                                                                                                         |
+| `cortex-m0+` cannot be named by pragma (`grammar/Cnx.g4:638-640`)                                                                                                                    | Filed. A fix is a grammar change, which needs the ADR process.                                                                                                                                         |
 | ESP32 and PlatformIO `native` have no row                                                                                                                                            | Open question 5.                                                                                                                                                                                       |
 | Multi-env PlatformIO projects                                                                                                                                                        | `default_envs` plus the template's `--target` (§A5.3).                                                                                                                                                 |
 | Project-root finding is duplicated                                                                                                                                                   | T1.                                                                                                                                                                                                    |
@@ -682,7 +682,7 @@ There is one snapshot set per mode.
    - it says an unknown pragma name is an error (`:543`);
    - its `E0802` example (`:548`) collides with the registry's E0802 (`error-codes.md:217`);
    - it lists `atmega328p` and `arduino-uno` (`:491`, `:493`), which the table does not have.
-7. `#pragma target cortex-m0+` is a parse error (`grammar/CNext.g4:638-640`).
+7. `#pragma target cortex-m0+` is a parse error (`grammar/Cnx.g4:638-640`).
 8. `cortex-m0+` claims LDREX, which ARMv6-M does not have (`TARGET_CAPABILITIES.ts:27`, ADR-049:486). `-c` fails with "Cannot select: intrinsic %llvm.arm.ldrex", and the CMSIS stub hides it.
 9. Source mode never collects a header that is reached only through an included `.cnx`, which gives a false E0427. Related to #1435.
 10. C bit-field members are not collected. C++ `using` aliases are recorded with a null target, and static class members are not collected (both under §10 R8).

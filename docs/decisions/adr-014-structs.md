@@ -380,7 +380,7 @@ these cells were `off`, recorded as unable to exist.
 
 ### Grammar Changes
 
-Add to `CNext.g4`:
+Add to `Cnx.g4`:
 
 ```antlr
 structDeclaration

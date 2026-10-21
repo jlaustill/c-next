@@ -13,7 +13,7 @@
  * the two node shapes stay two named questions rather than one guess.
  */
 
-import * as Parser from "./grammar/CNextParser";
+import * as Parser from "./grammar/CnxParser";
 import TChainRoot from "../../types/TChainRoot";
 
 class ChainRoot {

@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 import ExpressionShape from "../ExpressionShape";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CnxParser";
 
 function parseExpression(exprSource: string): Parser.ExpressionContext {
   // Wrap in a variable declaration in main() to get a complete program

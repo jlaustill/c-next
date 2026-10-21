@@ -5,8 +5,8 @@
 import SyntaxLowering from "../../../../cnx/PARSE/2-Parse/SyntaxLowering";
 import { describe, it, expect } from "vitest";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import OperandTyper from "../../../../cnx/utils/OperandTyper";
 import QualifiedCName from "../../../../cnx/utils/QualifiedCName";
@@ -66,7 +66,7 @@ function initializerOf(
   });
   let found: Parser.ExpressionContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterVariableDeclaration = (
         ctx: Parser.VariableDeclarationContext,
       ): void => {
@@ -819,7 +819,7 @@ describe("OperandTyper.chainOf", () => {
     });
     let found: Parser.AssignmentTargetContext | null = null;
     ParseTreeWalker.DEFAULT.walk(
-      new (class extends CNextListener {
+      new (class extends CnxListener {
         override enterAssignmentTarget = (
           ctx: Parser.AssignmentTargetContext,
         ): void => {

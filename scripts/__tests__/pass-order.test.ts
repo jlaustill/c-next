@@ -165,11 +165,11 @@ describe("pass-order rules (#1443)", () => {
 
   it("lets 1.1 read 1.2's lexer, and only the lexer (#1745)", () => {
     expect(rules[0].to.pathNot).toBe(
-      "^src/cnx/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+      "^src/cnx/PARSE/2-Parse/grammar/CnxLexer\\.ts$",
     );
     const first = sample(places[0]);
-    const lexer = "src/cnx/PARSE/2-Parse/grammar/CNextLexer.ts";
-    const parser = "src/cnx/PARSE/2-Parse/grammar/CNextParser.ts";
+    const lexer = "src/cnx/PARSE/2-Parse/grammar/CnxLexer.ts";
+    const parser = "src/cnx/PARSE/2-Parse/grammar/CnxParser.ts";
     const imports = new Map<string, readonly string[]>([
       [first, [lexer, parser]],
       [lexer, []],

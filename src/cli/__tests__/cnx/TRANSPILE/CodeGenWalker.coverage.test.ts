@@ -19,7 +19,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";

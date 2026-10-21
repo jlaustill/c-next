@@ -1,7 +1,7 @@
 import { basename } from "node:path";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
-import type * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import type * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";

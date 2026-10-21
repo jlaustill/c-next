@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../CNextSourceParser";
-import * as Parser from "../grammar/CNextParser";
+import * as Parser from "../grammar/CnxParser";
 import StatementLowering from "../StatementLowering";
 import SyntaxLowering from "../SyntaxLowering";
 import ConstExprLowering from "../../../utils/ConstExprLowering";

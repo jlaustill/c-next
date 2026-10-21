@@ -16,7 +16,7 @@
  * eliminate code duplication.
  */
 
-import * as Parser from "./grammar/CNextParser";
+import * as Parser from "./grammar/CnxParser";
 
 /**
  * Utility class for navigating expression tree hierarchy

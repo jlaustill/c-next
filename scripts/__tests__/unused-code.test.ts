@@ -10,7 +10,7 @@ import UnusedCode from "../unused-code/UnusedCode";
 
 /** The real shape: three distinct `-o` roots across four antlr scripts. */
 const SCRIPTS: Record<string, string> = {
-  antlr: "antlr4ng -o src/cnx/PARSE/2-Parse grammar/CNext.g4",
+  antlr: "antlr4ng -o src/cnx/PARSE/2-Parse grammar/Cnx.g4",
   "antlr:c": "antlr4ng -o src/cnx/PARSE/2-Parse/c grammar/C.g4",
   "antlr:cpp:lexer":
     "antlr4ng -o src/cnx/PARSE/2-Parse/cpp grammar/CPP14Lexer.g4",
@@ -78,7 +78,7 @@ describe("UnusedCode.isGenerated (#1556)", () => {
   const root = UnusedCode.generatedRoots(SCRIPTS);
 
   it.each([
-    ["src/cnx/PARSE/2-Parse/grammar/CNextParser.ts", true],
+    ["src/cnx/PARSE/2-Parse/grammar/CnxParser.ts", true],
     ["src/cnx/PARSE/2-Parse/c/grammar/CLexer.ts", true],
     ["src/cnx/PARSE/2-Parse/cpp/grammar/CPP14Parser.ts", true],
   ])("treats %s as generated", (file, expected) => {

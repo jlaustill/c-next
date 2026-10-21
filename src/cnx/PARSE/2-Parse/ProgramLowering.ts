@@ -1,6 +1,6 @@
 import ParserUtils from "../../utils/ParserUtils";
 import type { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
-import * as Parser from "./grammar/CNextParser";
+import * as Parser from "./grammar/CnxParser";
 import type CommentScanner from "./CommentScanner";
 import SyntaxLowering from "./SyntaxLowering";
 import StatementLowering from "./StatementLowering";

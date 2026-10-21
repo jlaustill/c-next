@@ -4,8 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../../../PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../../../PARSE/2-Parse/grammar/CnxParser";
 import NullCheckAnalyzer from "../NullCheckAnalyzer";
 import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 
@@ -14,9 +14,9 @@ import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
  */
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   return parser.program();
 }
 

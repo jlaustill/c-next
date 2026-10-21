@@ -1,5 +1,5 @@
 import { type ParserRuleContext, type ParseTree, TerminalNode } from "antlr4ng";
-import * as Parser from "./grammar/CNextParser";
+import * as Parser from "./grammar/CnxParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
 import ChainRoot from "./ChainRoot";
@@ -131,7 +131,7 @@ class StatementLowering {
       if (node instanceof TerminalNode) {
         spells ||=
           isPastDeclarator &&
-          node.symbol.type === Parser.CNextParser.IDENTIFIER &&
+          node.symbol.type === Parser.CnxParser.IDENTIFIER &&
           node.getText() === name &&
           previous !== "." &&
           !StatementLowering.isFieldKey(node);

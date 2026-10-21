@@ -12,15 +12,15 @@
  */
 
 import type { CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "./grammar/CNextLexer";
+import { CnxLexer } from "./grammar/CnxLexer";
 import type ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
 import LiteralUtils from "../../utils/LiteralUtils";
 
 /** The decimal literal tokens, suffixed or not; hex and binary have a prefix */
 const DECIMAL_TOKENS: ReadonlySet<number> = new Set([
-  CNextLexer.INTEGER_LITERAL,
-  CNextLexer.SUFFIXED_DECIMAL,
+  CnxLexer.INTEGER_LITERAL,
+  CnxLexer.SUFFIXED_DECIMAL,
 ]);
 
 class LiteralForm {

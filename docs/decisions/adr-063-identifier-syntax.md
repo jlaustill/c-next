@@ -116,7 +116,7 @@ Two independent rules. **Part 1** makes the qualified-name join injective; **par
 Stated against the existing lexer rule, which is unchanged:
 
 ```
-IDENTIFIER : [a-zA-Z_] [a-zA-Z0-9_]*      // grammar/CNext.g4, unchanged
+IDENTIFIER : [a-zA-Z_] [a-zA-Z0-9_]*      // grammar/Cnx.g4, unchanged
 
 constraints:
   1. must not contain "__"

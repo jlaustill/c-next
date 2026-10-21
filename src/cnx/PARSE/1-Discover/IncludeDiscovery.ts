@@ -2,7 +2,7 @@ import { dirname, resolve, join, isAbsolute } from "node:path";
 
 import { CharStream } from "antlr4ng";
 
-import { CNextLexer } from "../2-Parse/grammar/CNextLexer";
+import { CnxLexer } from "../2-Parse/grammar/CnxLexer";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import invariant from "../../utils/invariant";
 import FileDiscovery from "./FileDiscovery";
@@ -488,14 +488,14 @@ class IncludeDiscovery {
   static directivesWithPositionsOf(
     source: string,
   ): Array<{ text: string; line: number; column: number }> {
-    const lexer = new CNextLexer(CharStream.fromString(source));
+    const lexer = new CnxLexer(CharStream.fromString(source));
     // 1.2 Parse reports a lexical error once, with its position. Here it
     // would only print ANTLR's console default a second time.
     lexer.removeErrorListeners();
 
     return lexer
       .getAllTokens()
-      .filter((token) => token.type === CNextLexer.INCLUDE_DIRECTIVE)
+      .filter((token) => token.type === CnxLexer.INCLUDE_DIRECTIVE)
       .map((token) => {
         // A token the lexer produced always carries its text. The type allows
         // none, and an empty default would drop the directive without a trace.

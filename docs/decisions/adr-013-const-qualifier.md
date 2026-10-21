@@ -14,7 +14,7 @@ C-Next's mission is to provide "a safer C for embedded systems." The `const` qua
 C-Next's grammar already supports `const` syntax:
 
 ```antlr
-// grammar/CNext.g4 lines 152-158, 167-169
+// grammar/Cnx.g4 lines 152-158, 167-169
 parameter: constModifier? type IDENTIFIER arrayDimension?;
 constModifier: 'const';
 variableDeclaration: constModifier? type IDENTIFIER arrayDimension? ('<-' expression)? ';';

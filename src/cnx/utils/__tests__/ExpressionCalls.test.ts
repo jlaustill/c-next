@@ -4,11 +4,11 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
+import { CnxLexer } from "../../PARSE/2-Parse/grammar/CnxLexer";
 import {
-  CNextParser,
+  CnxParser,
   ExpressionContext,
-} from "../../PARSE/2-Parse/grammar/CNextParser";
+} from "../../PARSE/2-Parse/grammar/CnxParser";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ExpressionCalls from "../ExpressionCalls";
 
@@ -19,9 +19,9 @@ import ExpressionCalls from "../ExpressionCalls";
 function extractExpression(exprText: string): ExpressionContext | null {
   const code = `void main() { u32 x <- ${exprText}; }`;
   const charStream = CharStream.fromString(code);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   const tree = parser.program();
 
   const funcDecl = tree.declaration(0)?.functionDeclaration();

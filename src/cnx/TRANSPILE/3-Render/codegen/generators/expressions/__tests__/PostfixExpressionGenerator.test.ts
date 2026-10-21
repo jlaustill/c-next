@@ -27,7 +27,7 @@ import type IOrchestrator from "../../IOrchestrator";
 import type ICodeGenSymbols from "../../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
-import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
+import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CnxParser";
 import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../types/__testUtils__/codeGenSymbolsHelpers";

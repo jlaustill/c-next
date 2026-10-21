@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from "vitest";
 import { Token } from "antlr4ng";
 import CommentExtractor from "../CommentExtractor";
 import CommentScanner from "../../../PARSE/2-Parse/CommentScanner";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
+import { CnxLexer } from "../../../PARSE/2-Parse/grammar/CnxLexer";
 import ECommentType from "../../../types/ECommentType";
 
 // Mock token factory
@@ -65,7 +65,7 @@ describe("CommentExtractor", () => {
     it("should extract line comments", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.LINE_COMMENT,
+          type: CnxLexer.LINE_COMMENT,
           text: "// hello world",
           line: 1,
           column: 0,
@@ -86,7 +86,7 @@ describe("CommentExtractor", () => {
     it("should extract block comments", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.BLOCK_COMMENT,
+          type: CnxLexer.BLOCK_COMMENT,
           text: "/* block comment */",
           line: 1,
           column: 0,
@@ -106,7 +106,7 @@ describe("CommentExtractor", () => {
     it("should extract doc comments", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.DOC_COMMENT,
+          type: CnxLexer.DOC_COMMENT,
           text: "/// Documentation",
           line: 1,
           column: 0,
@@ -126,7 +126,7 @@ describe("CommentExtractor", () => {
     it("should cache results on subsequent calls", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.LINE_COMMENT,
+          type: CnxLexer.LINE_COMMENT,
           text: "// test",
           line: 1,
           column: 0,
@@ -146,14 +146,14 @@ describe("CommentExtractor", () => {
     it("should skip non-comment tokens", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.WS, // Whitespace
+          type: CnxLexer.WS, // Whitespace
           text: "   ",
           line: 1,
           column: 0,
           tokenIndex: 0,
         }),
         createToken({
-          type: CNextLexer.LINE_COMMENT,
+          type: CnxLexer.LINE_COMMENT,
           text: "// actual comment",
           line: 1,
           column: 3,
@@ -172,7 +172,7 @@ describe("CommentExtractor", () => {
     it("should skip tokens not on hidden channel", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.LINE_COMMENT,
+          type: CnxLexer.LINE_COMMENT,
           text: "// visible",
           line: 1,
           column: 0,
@@ -197,14 +197,14 @@ describe("CommentExtractor", () => {
     it("should get comments before a token", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.DOC_COMMENT,
+          type: CnxLexer.DOC_COMMENT,
           text: "/// Function docs",
           line: 1,
           column: 0,
           tokenIndex: 0,
         }),
         createToken({
-          type: CNextLexer.IDENTIFIER,
+          type: CnxLexer.IDENTIFIER,
           text: "function",
           line: 2,
           column: 0,
@@ -224,7 +224,7 @@ describe("CommentExtractor", () => {
     it("should return empty array when no comments before", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.IDENTIFIER,
+          type: CnxLexer.IDENTIFIER,
           text: "x",
           line: 1,
           column: 0,
@@ -245,14 +245,14 @@ describe("CommentExtractor", () => {
     it("should filter out non-comment hidden tokens (whitespace)", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.WS,
+          type: CnxLexer.WS,
           text: "   ",
           line: 1,
           column: 0,
           tokenIndex: 0,
         }),
         createToken({
-          type: CNextLexer.IDENTIFIER,
+          type: CnxLexer.IDENTIFIER,
           text: "x",
           line: 1,
           column: 3,
@@ -279,7 +279,7 @@ describe("CommentExtractor", () => {
       it("should detect nested /* in block comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.BLOCK_COMMENT,
+            type: CnxLexer.BLOCK_COMMENT,
             text: "/* outer /* nested */",
             line: 1,
             column: 0,
@@ -301,7 +301,7 @@ describe("CommentExtractor", () => {
       it("should detect nested // in block comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.BLOCK_COMMENT,
+            type: CnxLexer.BLOCK_COMMENT,
             text: "/* test // nested */",
             line: 1,
             column: 0,
@@ -323,7 +323,7 @@ describe("CommentExtractor", () => {
       it("should allow :// (URI pattern) in comments", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.LINE_COMMENT,
+            type: CnxLexer.LINE_COMMENT,
             text: "// See https://example.com",
             line: 1,
             column: 0,
@@ -343,7 +343,7 @@ describe("CommentExtractor", () => {
       it("should detect nested /* in line comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.LINE_COMMENT,
+            type: CnxLexer.LINE_COMMENT,
             text: "// TODO /* fix this */",
             line: 1,
             column: 0,
@@ -364,7 +364,7 @@ describe("CommentExtractor", () => {
       it("should detect nested /* in doc comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.DOC_COMMENT,
+            type: CnxLexer.DOC_COMMENT,
             text: "/// /* documentation */",
             line: 1,
             column: 0,
@@ -387,7 +387,7 @@ describe("CommentExtractor", () => {
       it("should detect line ending with backslash in line comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.LINE_COMMENT,
+            type: CnxLexer.LINE_COMMENT,
             text: "// continued \\",
             line: 1,
             column: 0,
@@ -409,7 +409,7 @@ describe("CommentExtractor", () => {
       it("should detect line ending with backslash in doc comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.DOC_COMMENT,
+            type: CnxLexer.DOC_COMMENT,
             text: "/// docs \\",
             line: 1,
             column: 0,
@@ -430,7 +430,7 @@ describe("CommentExtractor", () => {
       it("should not flag block comments for Rule 3.2", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.BLOCK_COMMENT,
+            type: CnxLexer.BLOCK_COMMENT,
             text: "/* ends with backslash \\ */",
             line: 1,
             column: 0,
@@ -451,7 +451,7 @@ describe("CommentExtractor", () => {
       it("should allow backslash in middle of line comment", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.LINE_COMMENT,
+            type: CnxLexer.LINE_COMMENT,
             text: "// path\\to\\file is fine",
             line: 1,
             column: 0,
@@ -473,7 +473,7 @@ describe("CommentExtractor", () => {
       it("should report multiple violations", () => {
         const tokens = [
           createToken({
-            type: CNextLexer.LINE_COMMENT,
+            type: CnxLexer.LINE_COMMENT,
             text: "// /* nested */ \\",
             line: 1,
             column: 0,
@@ -501,7 +501,7 @@ describe("CommentExtractor", () => {
     it("should handle empty token text", () => {
       const tokens = [
         {
-          type: CNextLexer.LINE_COMMENT,
+          type: CnxLexer.LINE_COMMENT,
           text: null,
           line: 1,
           column: 0,
@@ -520,21 +520,21 @@ describe("CommentExtractor", () => {
     it("should handle multiple comments", () => {
       const tokens = [
         createToken({
-          type: CNextLexer.DOC_COMMENT,
+          type: CnxLexer.DOC_COMMENT,
           text: "/// Line 1",
           line: 1,
           column: 0,
           tokenIndex: 0,
         }),
         createToken({
-          type: CNextLexer.DOC_COMMENT,
+          type: CnxLexer.DOC_COMMENT,
           text: "/// Line 2",
           line: 2,
           column: 0,
           tokenIndex: 1,
         }),
         createToken({
-          type: CNextLexer.LINE_COMMENT,
+          type: CnxLexer.LINE_COMMENT,
           text: "// Regular",
           line: 3,
           column: 0,

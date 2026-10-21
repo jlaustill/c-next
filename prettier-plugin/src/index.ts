@@ -8,7 +8,7 @@
  *   { "plugins": ["./prettier-plugin/dist/index.js"] }
  *
  * The plugin prints ANTLR's parse tree directly (#1364). There is no bespoke
- * AST: node types and the rule index are generated from `grammar/CNext.g4`, so
+ * AST: node types and the rule index are generated from `grammar/Cnx.g4`, so
  * a grammar change cannot silently leave the formatter behind.
  */
 

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import * as Parser from "../../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import Transpiler from "../../../../../Transpiler";
 import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
