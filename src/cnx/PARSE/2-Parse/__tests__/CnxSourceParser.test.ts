@@ -1,17 +1,17 @@
 /**
- * Unit tests for CNextSourceParser.
+ * Unit tests for CnxSourceParser.
  * Tests C-Next source parsing with error collection.
  */
 
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 
-describe("CNextSourceParser", () => {
+describe("CnxSourceParser", () => {
   describe("parse", () => {
     it("parses valid C-Next source and returns tree with no errors", () => {
       const source = `u32 x <- 5;`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(0);
       expect(result.tree).toBeDefined();
@@ -22,7 +22,7 @@ describe("CNextSourceParser", () => {
     it("collects syntax errors with line and column info", () => {
       const source = `u32 x <- ;`; // Missing value
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors.length).toBeGreaterThan(0);
       expect(result.parseErrors[0].line).toBe(1);
@@ -34,7 +34,7 @@ describe("CNextSourceParser", () => {
     it("returns tree even when there are parse errors", () => {
       const source = `u32 x <- ;`; // Invalid syntax
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       // Tree is still returned (partial parse)
       expect(result.tree).toBeDefined();
@@ -48,7 +48,7 @@ describe("CNextSourceParser", () => {
         void foo() { }
       `;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(0);
       expect(result.declarationCount).toBe(3);
@@ -57,7 +57,7 @@ describe("CNextSourceParser", () => {
     it("handles empty source", () => {
       const source = ``;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(0);
       expect(result.declarationCount).toBe(0);
@@ -67,7 +67,7 @@ describe("CNextSourceParser", () => {
       // Backtick is not a valid C-Next character - should trigger lexer error
       const source = "u32 x <- `invalid`;";
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors.length).toBeGreaterThan(0);
       expect(result.parseErrors[0].severity).toBe("error");
@@ -77,8 +77,8 @@ describe("CNextSourceParser", () => {
       // Even severely malformed input should return a result, not throw
       const source = "{{{{[[[[";
 
-      expect(() => CNextSourceParser.parse(source)).not.toThrow();
-      const result = CNextSourceParser.parse(source);
+      expect(() => CnxSourceParser.parse(source)).not.toThrow();
+      const result = CnxSourceParser.parse(source);
       expect(result.tree).toBeDefined();
     });
   });
@@ -102,7 +102,7 @@ describe("CNextSourceParser", () => {
     }
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(1);
       expect(result.parseErrors[0].message).toBe(
@@ -128,7 +128,7 @@ scope B {
     u8 y <- 2;
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors[0].message).toContain("error[E0430]");
       expect(result.parseErrors[0].helpText).toMatch(
@@ -145,7 +145,7 @@ scope B {
     private scope Inner { u8 w <- 2; }
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors[0].message).toContain("error[E0430]");
       expect(result.parseErrors[0].line).toBe(2);
@@ -158,7 +158,7 @@ scope B {
     scope Inner { u8 w <- 2; }
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(1);
     });
@@ -173,7 +173,7 @@ scope C {
     scope D { u8 y <- 2; }
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(2);
       expect(result.parseErrors[1].message).toContain("error[E0430]");
@@ -193,7 +193,7 @@ scope C {
     ])(
       "does not claim a nested scope for a scope keyword in %s",
       (_, source) => {
-        const result = CNextSourceParser.parse(source);
+        const result = CnxSourceParser.parse(source);
 
         expect(result.parseErrors.length).toBeGreaterThan(0);
         for (const error of result.parseErrors) {
@@ -215,7 +215,7 @@ scope C {
     public u8 read() { return this.plainValue; }
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(0);
     });
@@ -236,7 +236,7 @@ void main() {
     u8 y <- ;
 }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors).toHaveLength(2);
       expect(result.parseErrors[0].message).toContain("error[E0430]");
@@ -249,7 +249,7 @@ void main() {
       const source = `scope A { u8 x <- 1; }
 void main() { u8 y <- ; }`;
 
-      const result = CNextSourceParser.parse(source);
+      const result = CnxSourceParser.parse(source);
 
       expect(result.parseErrors.length).toBeGreaterThan(0);
       expect(result.parseErrors[0].message).not.toContain("E0430");

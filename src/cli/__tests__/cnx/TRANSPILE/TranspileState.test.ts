@@ -12,8 +12,8 @@ import TranspileState from "../../../../cnx/TRANSPILE/TranspileState";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../../../cnx/utils/ScopeUtils";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
-import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
-import parse from "../../../../cnx/PARSE/3-Declare/cnext/__tests__/testHelpers";
+import CnxResolver from "../../../../cnx/PARSE/3-Declare/cnx/index";
+import parse from "../../../../cnx/PARSE/3-Declare/cnx/__tests__/testHelpers";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -186,7 +186,7 @@ describe("TranspileState", () => {
       // run-wide symbol table, which holds all three for every file -- so a
       // bare name in `sibling.cnx` qualified to a type its generated C cannot
       // see, while 1.4 had settled the header's copy the same wrong way.
-      const declares = CNextResolver.resolve(
+      const declares = CnxResolver.resolve(
         ProgramLowering.program(
           parse(
             `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
@@ -196,12 +196,12 @@ describe("TranspileState", () => {
         "declares.cnx",
         registry,
       );
-      const includer = CNextResolver.resolve(
+      const includer = CnxResolver.resolve(
         ProgramLowering.program(parse(`u32 x <- 1;`), null),
         "includer.cnx",
         registry,
       );
-      const sibling = CNextResolver.resolve(
+      const sibling = CnxResolver.resolve(
         ProgramLowering.program(parse(`u32 y <- 1;`), null),
         "sibling.cnx",
         registry,

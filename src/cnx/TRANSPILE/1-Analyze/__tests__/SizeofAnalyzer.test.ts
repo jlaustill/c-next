@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import SizeofAnalyzer from "../SizeofAnalyzer";
 
 /**
@@ -8,7 +8,7 @@ import SizeofAnalyzer from "../SizeofAnalyzer";
  * `.type_byte_length`. Every `sizeof` is E0603, wherever it is written.
  */
 const errors = (source: string) => {
-  return new SizeofAnalyzer().analyze(CNextSourceParser.parse(source).program);
+  return new SizeofAnalyzer().analyze(CnxSourceParser.parse(source).program);
 };
 
 describe("SizeofAnalyzer (E0603)", () => {

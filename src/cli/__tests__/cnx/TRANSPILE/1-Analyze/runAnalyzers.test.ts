@@ -3,7 +3,7 @@
  * Tests that all analyzers run in sequence with early returns on errors
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import runAnalyzers from "../../../../../cnx/TRANSPILE/1-Analyze/runAnalyzers";
 import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
@@ -32,14 +32,14 @@ const NO_INCLUDES: IIncludeContext = {
  * Helper to parse C-Next code and return the AST plus its comments.
  *
  * #1445: this used to build its own `CharStream`/lexer/`CommonTokenStream`/
- * parser -- a second spelling of `CNextSourceParser.parse` that had to be kept
+ * parser -- a second spelling of `CnxSourceParser.parse` that had to be kept
  * in step with it by hand, and which left ANTLR's DEFAULT error listeners
  * installed, so an unparsable fixture printed to the console instead of being
  * collected. It calls the real parser now, and takes `comments` off 1.2's
  * artifact because that is what `runAnalyzers` asks for.
  */
 function parseWithComments(source: string) {
-  const parsed = CNextSourceParser.parse(source);
+  const parsed = CnxSourceParser.parse(source);
   return {
     parsed,
     /**

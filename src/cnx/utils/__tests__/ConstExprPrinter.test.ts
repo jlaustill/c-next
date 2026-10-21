@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import ConstExprPrinter from "../ConstExprPrinter";
 import type TConstExpr from "../../types/TConstExpr";
 import type IConstantEnvironment from "../types/IConstantEnvironment";
-import CNEXT_TO_C_TYPE_MAP from "../constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../constants/TypeMappings";
 import QualifiedCName from "../QualifiedCName";
 
 const AT = { line: 1, column: 0 };
@@ -43,7 +43,7 @@ const ENV: IConstantEnvironment = {
   // is the rule (ConstantNames.test.ts)
   isTypeName: () => true,
   cTypeName: (t) =>
-    CNEXT_TO_C_TYPE_MAP[t] ?? QualifiedCName.fromParts(t.split(".")),
+    CNX_TO_C_TYPE_MAP[t] ?? QualifiedCName.fromParts(t.split(".")),
 };
 
 describe("ConstExprPrinter (#1175)", () => {

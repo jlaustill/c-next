@@ -8,7 +8,7 @@ import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../cnx/utils/TTypeUtils";
 import type IFunctionSymbol from "../../../../../cnx/types/symbols/IFunctionSymbol";
-import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 

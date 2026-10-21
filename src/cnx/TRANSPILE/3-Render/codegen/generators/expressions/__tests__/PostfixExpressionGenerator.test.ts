@@ -146,7 +146,7 @@ function createMockOrchestrator(overrides?: {
     isKnownStruct: overrides?.isKnownStruct ?? vi.fn(() => false),
     isFloatType: vi.fn(),
     isIntegerType: vi.fn(),
-    isCNextFunction: vi.fn(),
+    isCnxFunction: vi.fn(),
     getTypeName: vi.fn(),
     tryEvaluateConstant: overrides?.tryEvaluateConstant ?? vi.fn(),
     getZeroInitializer: vi.fn(),
@@ -1772,7 +1772,7 @@ describe("PostfixExpressionGenerator", () => {
         const orchestrator = Object.assign(
           createMockOrchestrator({ generatePrimaryExpr: () => "h" }),
           {
-            isCNextFunction: vi.fn((name: string) => name === "peek"),
+            isCnxFunction: vi.fn((name: string) => name === "peek"),
             isKnownStruct: vi.fn(() => true),
           },
         );

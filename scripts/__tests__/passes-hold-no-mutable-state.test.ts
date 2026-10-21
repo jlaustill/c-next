@@ -111,7 +111,7 @@ const INSTRUMENTATION_HOLDERS = [
  * `:` or `=`. An earlier hand-rolled probe for this card got that wrong twice --
  * it required a two-space indent, so it missed all six four-space `__ATN`
  * declarations and reported zero, and when widened it piped through a bare
- * `[:=]` match that fired on the `:` inside `<K extends TSymbolKindCNext>` and
+ * `[:=]` match that fired on the `:` inside `<K extends TSymbolKindCnx>` and
  * reported nineteen. Neither number was real. The anchoring is the fix.
  */
 const MUTABLE_STATIC =
@@ -337,9 +337,9 @@ describe("the passes hold no mutable state (#1452 box 4)", () => {
     expect(MUTABLE_STATIC.test("  static resolve(tree: Tree): void {")).toBe(
       false,
     );
-    expect(
-      MUTABLE_STATIC.test("  static of<K extends TSymbolKindCNext>("),
-    ).toBe(false);
+    expect(MUTABLE_STATIC.test("  static of<K extends TSymbolKindCnx>(")).toBe(
+      false,
+    );
     expect(MUTABLE_STATIC.test("  public static get _ATN(): antlr.ATN {")).toBe(
       false,
     );

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 
 /** #1728, #1991: E0912 is 1.2's, reported with the file's parse errors */
 const e0912 = (source: string) =>
-  CNextSourceParser.parse(source).formErrors.filter((e) =>
+  CnxSourceParser.parse(source).formErrors.filter((e) =>
     e.message.startsWith("error[E0912]"),
   );
 

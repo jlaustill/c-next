@@ -6,14 +6,14 @@
  * grammar, and it is what silently rotted when #572 moved the parser: it went on
  * referencing eight rules that no longer exist.
  *
- * Now it delegates to `CNextSourceParser`, the transpiler's single parse entry
+ * Now it delegates to `CnxSourceParser`, the transpiler's single parse entry
  * point, hands Prettier the parse tree unchanged, and anchors each comment to
  * the token it belongs to.
  */
 
 import { ParseTree, Token } from "antlr4ng";
 
-import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import { CnxLexer } from "../../src/cnx/PARSE/2-Parse/grammar/CnxLexer";
 
 import Cst from "./cst";
@@ -190,7 +190,7 @@ function attachToTerminals(
  * it alone rather than emit a guess.
  */
 function parse(source: string): TCstRoot {
-  const { tree, tokenStream, parseErrors } = CNextSourceParser.parse(source);
+  const { tree, tokenStream, parseErrors } = CnxSourceParser.parse(source);
 
   if (parseErrors.length > 0) {
     const first = parseErrors[0];

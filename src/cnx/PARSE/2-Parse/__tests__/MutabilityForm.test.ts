@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 
 /**
  * ADR-071: every binding is read-only unless declared `mut`, so a written
  * `const` says nothing and is E0898, which 1.2 reports.
  */
 const errors = (source: string) =>
-  CNextSourceParser.parse(source)
+  CnxSourceParser.parse(source)
     .formErrors.filter((e) => e.message.includes("E0898"))
     .map((e) => ({ line: e.line, column: e.column, message: e.message }));
 

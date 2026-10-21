@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import IncludeResolver from "../../../../../cnx/PARSE/1-Discover/IncludeResolver";
 import MockFileSystem from "../../../MockFileSystem";
 import IncludeDirectiveAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer";
@@ -35,7 +35,7 @@ const analyze = (
     "/project/src",
   ).resolve(source);
   return new IncludeDirectiveAnalyzer().analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
     discovered,
   );
 };
@@ -207,7 +207,7 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
     // An answer missing here means 1.1 and 1.2 disagree on which lines are
     // directives (#1745). Re-deriving it would hide that behind a second
     // decision, which is what #1672 removed.
-    const { program } = CNextSourceParser.parse(
+    const { program } = CnxSourceParser.parse(
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
@@ -220,7 +220,7 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
   });
 
   it("never classifies a directive discovery did not classify (#1444)", () => {
-    const { program } = CNextSourceParser.parse(
+    const { program } = CnxSourceParser.parse(
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
@@ -243,7 +243,7 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
   const reported = (directive: string, kind: EFileType): string[] =>
     new IncludeDirectiveAnalyzer()
       .analyze(
-        CNextSourceParser.parse(`${directive}\n\nu8 main() {\n    return 0;\n}`)
+        CnxSourceParser.parse(`${directive}\n\nu8 main() {\n    return 0;\n}`)
           .program,
         answer(directive, kind),
       )

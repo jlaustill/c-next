@@ -43,7 +43,7 @@ class ScopeCollector {
    * @param syntax The scope declaration, as 1.2 lowered it
    * @param sourceFile Source file path
    * @param isScopeType ADR-057: predicate answering whether a *qualified* name
-   *                    is a type declared in a scope. Supplied by CNextResolver
+   *                    is a type declared in a scope. Supplied by CnxResolver
    *                    from a pre-pass so the answer is complete before any
    *                    member's types are resolved.
    * @returns The scope symbol and all member symbols
@@ -82,7 +82,7 @@ class ScopeCollector {
     // Set membership is keyed on the rendered `file:line`, so re-collecting the
     // same textual block is a no-op rather than a duplicate entry.
     //
-    // #1301 removed the only thing that presented a duplicate: `CNextResolver.resolve`
+    // #1301 removed the only thing that presented a duplicate: `CnxResolver.resolve`
     // ran twice per file while Transpiler stages 3 and 5 each declared every file,
     // and now runs once. A scope REOPENED across files does NOT present one either --
     // each declaring block contributes a DISTINCT `file:line`. So this dedup is now
@@ -115,7 +115,7 @@ class ScopeCollector {
     const memberSymbols: TSymbol[] = [];
 
     // #1334: `scope.members` is a shared mutable array on the cached scope, and
-    // `CNextResolver.resolve` USED TO run more than once per file, so every member
+    // `CnxResolver.resolve` USED TO run more than once per file, so every member
     // was re-pushed on each pass -- measured, a four-block scope grew to
     // [Point, Mode, fromC, runAll, Point, Mode, fromC]. #1301 removed that pass.
     //

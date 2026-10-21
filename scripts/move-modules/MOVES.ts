@@ -65,6 +65,10 @@ const TRANSPILER_ROOT =
   "beside them. `src/cnx/` holds the three layers and the shared roots they " +
   "name, and the filesystem shows the boundary.";
 
+const NAMED_FOR_CNX =
+  "#2171 (#2163): the language is cnx, so a module, directory or class that " +
+  "names the language says `cnx` / `Cnx` by TypeScript's case rules.";
+
 const DISCOVERS =
   "#1444 box 3: 1.1 Discover authors which files exist, their kind, the " +
   "include graph and every resolved path (§1), and this module computes part " +
@@ -2318,6 +2322,61 @@ const MOVES: readonly IMove[] = [
     from: "src/cli/__tests__/cnx/PARSE/1-Discover/preprocessor/Preprocessor.test.ts",
     to: "src/cli/__tests__/cnx/PARSE/2-Parse/preprocessor/Preprocessor.test.ts",
     because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/3-Declare/cnext",
+    to: "src/cnx/PARSE/3-Declare/cnx",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/PARSE/3-Declare/cnx/__tests__/CNextResolver.integration.test.ts",
+    to: "src/cnx/PARSE/3-Declare/cnx/__tests__/CnxResolver.integration.test.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cli/__tests__/MiscasedCNextExtension.test.ts",
+    to: "src/cli/__tests__/MiscasedCnxExtension.test.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/CNextMarkerDetector.ts",
+    to: "src/cnx/PARSE/1-Discover/CnxMarkerDetector.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/CNextMarkerDetector.test.ts",
+    to: "src/cnx/PARSE/1-Discover/__tests__/CnxMarkerDetector.test.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/types/ICNextMarker.ts",
+    to: "src/cnx/PARSE/1-Discover/types/ICnxMarker.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/PARSE/2-Parse/CNextSourceParser.ts",
+    to: "src/cnx/PARSE/2-Parse/CnxSourceParser.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/PARSE/2-Parse/__tests__/CNextSourceParser.test.ts",
+    to: "src/cnx/PARSE/2-Parse/__tests__/CnxSourceParser.test.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/types/symbol-kinds/TSymbolKindCNext.ts",
+    to: "src/cnx/types/symbol-kinds/TSymbolKindCnx.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/utils/CNextSourcePath.ts",
+    to: "src/cnx/utils/CnxSourcePath.ts",
+    because: NAMED_FOR_CNX,
+  },
+  {
+    from: "src/cnx/utils/__tests__/CNextSourcePath.test.ts",
+    to: "src/cnx/utils/__tests__/CnxSourcePath.test.ts",
+    because: NAMED_FOR_CNX,
   },
 ];
 

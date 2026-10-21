@@ -8,8 +8,8 @@
  */
 import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { beforeEach, describe, expect, it } from "vitest";
-import parse from "../../3-Declare/cnext/__tests__/testHelpers";
-import CNextResolver from "../../3-Declare/cnext/index";
+import parse from "../../3-Declare/cnx/__tests__/testHelpers";
+import CnxResolver from "../../3-Declare/cnx/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import DeferredTypes from "../DeferredTypes";
 import SymbolGuards from "../../../types/symbols/SymbolGuards";
@@ -30,7 +30,7 @@ describe("DeferredTypes.settle", () => {
     // assertion and be wrong: `global.Point` inside `scope Spanned` must
     // stay `Point`, and that case is byte-identical here.
     const code = `scope Spanned { public Point origin() { return this.stored; } }`;
-    const declared = CNextResolver.resolve(
+    const declared = CnxResolver.resolve(
       ProgramLowering.program(parse(code), null),
       "test.cnx",
       registry,

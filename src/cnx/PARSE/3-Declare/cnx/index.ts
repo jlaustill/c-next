@@ -1,5 +1,5 @@
 /**
- * CNextResolver - Orchestrates symbol collection from C-Next parse trees.
+ * CnxResolver - Orchestrates symbol collection from C-Next parse trees.
  * Uses two-pass collection to handle forward references (bitmaps before registers).
  *
  * Produces TType-based symbols with proper IScopeSymbol references.
@@ -22,7 +22,7 @@ import VariableCollector from "./collectors/VariableCollector";
 import RegisterCollector from "./collectors/RegisterCollector";
 import ScopeCollector from "./collectors/ScopeCollector";
 import TYPE_FORMING_KINDS from "../TYPE_FORMING_KINDS";
-import TSymbolKindCNext from "../../../types/symbol-kinds/TSymbolKindCNext";
+import TSymbolKindCnx from "../../../types/symbol-kinds/TSymbolKindCnx";
 
 /** A declaration a scope may hold */
 type TScopeMemberSyntax = Extract<
@@ -32,7 +32,7 @@ type TScopeMemberSyntax = Extract<
 
 /** The symbol kind each lowered member declares; "missing" declares none */
 const MEMBER_SYMBOL_KIND: Readonly<
-  Record<TScopeMemberSyntax["kind"], TSymbolKindCNext | null>
+  Record<TScopeMemberSyntax["kind"], TSymbolKindCnx | null>
 > = {
   enum: "enum",
   struct: "struct",
@@ -44,7 +44,7 @@ const MEMBER_SYMBOL_KIND: Readonly<
   missing: null,
 };
 
-class CNextResolver {
+class CnxResolver {
   /**
    * Resolve all symbols from a C-Next program, as 1.2 lowered it.
    *
@@ -83,11 +83,7 @@ class CNextResolver {
     // closure. Collecting into one shared set made "declared here" and "visible
     // here" the same object, so neither could be read back afterwards.
     const declaredScopeTypes = new Set<string>();
-    CNextResolver.collectScopeTypesPass0b(
-      registry,
-      program,
-      declaredScopeTypes,
-    );
+    CnxResolver.collectScopeTypesPass0b(registry, program, declaredScopeTypes);
 
     // What this file can SEE: its own declarations plus its includes'. Same set
     // as before the split, built in the other order -- union is commutative, so
@@ -104,7 +100,7 @@ class CNextResolver {
     // Pass 1: Collect all bitmaps, including those in scopes. Whether a
     // register member's type IS a bitmap is not decided here: the bitmap may be
     // another file's, which only 1.4 Resolve can see (#1514).
-    CNextResolver.collectBitmapsPass1(
+    CnxResolver.collectBitmapsPass1(
       registry,
       program,
       sourceFile,
@@ -113,7 +109,7 @@ class CNextResolver {
     );
 
     // Pass 2: Collect everything else
-    CNextResolver.collectAllPass2(
+    CnxResolver.collectAllPass2(
       registry,
       program,
       sourceFile,
@@ -208,7 +204,7 @@ class CNextResolver {
         registry.getOrCreateScope(scopeDecl.name),
       );
       for (const member of scopeDecl.members) {
-        const typeName = CNextResolver.typeFormingName(member.declaration);
+        const typeName = CnxResolver.typeFormingName(member.declaration);
         if (typeName !== null) {
           scopeTypes.add(ScopeUtils.qualifyInScope(typeName, scopePath));
         }
@@ -246,7 +242,7 @@ class CNextResolver {
 
       // Bitmaps and structs inside scopes (collected early)
       if (syntax.kind === "scope") {
-        CNextResolver.collectScopedBitmapsAndStructs(
+        CnxResolver.collectScopedBitmapsAndStructs(
           registry,
           syntax,
           sourceFile,
@@ -318,7 +314,7 @@ class CNextResolver {
   ): void {
     // `_collectDeclaration` has no bitmap branch: pass 1 owns bitmaps
     for (const { declaration: syntax } of program.declarations) {
-      CNextResolver._collectDeclaration(
+      CnxResolver._collectDeclaration(
         registry,
         syntax,
         sourceFile,
@@ -346,7 +342,7 @@ class CNextResolver {
 
     // Scopes (ScopeCollector handles nested members)
     if (syntax.kind === "scope") {
-      CNextResolver._collectScopeDeclaration(
+      CnxResolver._collectScopeDeclaration(
         registry,
         syntax,
         sourceFile,
@@ -453,4 +449,4 @@ class CNextResolver {
   }
 }
 
-export default CNextResolver;
+export default CnxResolver;

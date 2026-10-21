@@ -1,10 +1,10 @@
 import { dirname, resolve } from "node:path";
 
-import CNextMarkerDetector from "./CNextMarkerDetector";
+import CnxMarkerDetector from "./CnxMarkerDetector";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeRewriter from "../../utils/IncludeRewriter";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 import IncludePath from "../../utils/IncludePath";
 import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../../types/THeaderExtension";
@@ -351,7 +351,7 @@ class IncludeResolver {
       }
       const headerPath =
         reachable ??
-        CNextSourcePath.withExtension(includeInfo.path, headerExtension);
+        CnxSourcePath.withExtension(includeInfo.path, headerExtension);
       spelling.headerIncludeDirectives.set(
         absolutePath,
         IncludeDirectiveText.join({
@@ -369,7 +369,7 @@ class IncludeResolver {
       } else if (reachable === null && besideWriter) {
         spelling.writerRelativeIncludes.set(
           absolutePath,
-          CNextSourcePath.withExtension(absolutePath, headerExtension),
+          CnxSourcePath.withExtension(absolutePath, headerExtension),
         );
       }
     }
@@ -581,7 +581,7 @@ class IncludeResolver {
 
     // #1435: the marker is the only thing that identifies a generated header
     // now, so it is asked of the one detector rather than spelled again here.
-    if (CNextMarkerDetector.isCNextGenerated(content)) {
+    if (CnxMarkerDetector.isCNextGenerated(content)) {
       onDebug?.(`Skipping cnx generated header: ${file.path}`);
       return null;
     }

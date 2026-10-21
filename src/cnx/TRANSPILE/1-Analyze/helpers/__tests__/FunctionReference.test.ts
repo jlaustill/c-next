@@ -1,8 +1,8 @@
 import ProgramLowering from "../../../../PARSE/2-Parse/ProgramLowering";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
-import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
+import CnxResolver from "../../../../PARSE/3-Declare/cnx/index";
+import CnxSourceParser from "../../../../PARSE/2-Parse/CnxSourceParser";
 import TranspileState from "../../../TranspileState";
 import Program from "../../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../PARSE/3-Declare/SymbolRegistry";
@@ -21,10 +21,10 @@ import testAnalysisContext from "../../__tests__/testAnalysisContext";
  * a global -- sharing a name make the order observable at all.
  */
 const build = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
+  const { tree } = CnxSourceParser.parse(source);
   state.program = Program.build(
     [
-      CNextResolver.resolve(
+      CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "a.cnx",
         registry,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import NestedTernaryAnalyzer from "../NestedTernaryAnalyzer";
 
 /**
@@ -20,7 +20,7 @@ import NestedTernaryAnalyzer from "../NestedTernaryAnalyzer";
  */
 const errors = (source: string) => {
   return new NestedTernaryAnalyzer().analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
   );
 };
 

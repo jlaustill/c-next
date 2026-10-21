@@ -1,11 +1,11 @@
 import { dirname, join, resolve } from "node:path";
 import IncludeDiscovery from "./IncludeDiscovery";
-import CNextMarkerDetector from "./CNextMarkerDetector";
+import CnxMarkerDetector from "./CnxMarkerDetector";
 import IFileSystem from "../../types/IFileSystem";
 import CodedErrorText from "../../utils/CodedErrorText";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 import type ITranspileError from "../../types/ITranspileError";
-import type ICNextMarker from "./types/ICNextMarker";
+import type ICnxMarker from "./types/ICnxMarker";
 
 /**
  * Result of scanning a C/C++ entry point for C-Next sources.
@@ -142,11 +142,11 @@ class CppEntryPointScanner {
     }
 
     // Check if this is a C-Next generated header
-    const marker = CNextMarkerDetector.findMarker(headerContent);
+    const marker = CnxMarkerDetector.findMarker(headerContent);
     if (marker) {
       // A banner that records its source
       this._handleCNextMarker(marker, absolutePath);
-    } else if (CNextMarkerDetector.isCNextGenerated(headerContent)) {
+    } else if (CnxMarkerDetector.isCNextGenerated(headerContent)) {
       // A banner with no recorded source - treat as leaf node
       // (we know it's C-Next generated but can't determine the source)
       this.visited.add(absolutePath);
@@ -163,7 +163,7 @@ class CppEntryPointScanner {
    * then searching the include paths. This supports both default behavior (header
    * next to source) and --header-out (header in separate directory).
    */
-  private _handleCNextMarker(marker: ICNextMarker, headerPath: string): void {
+  private _handleCNextMarker(marker: ICnxMarker, headerPath: string): void {
     const { sourcePath } = marker;
     const headerDir = dirname(headerPath);
     let absoluteSourcePath = resolve(join(headerDir, sourcePath));
@@ -198,7 +198,7 @@ class CppEntryPointScanner {
       return;
     }
 
-    const rejection = CNextSourcePath.rejection(
+    const rejection = CnxSourcePath.rejection(
       sourcePath,
       "rename the source and regenerate this header.",
     );

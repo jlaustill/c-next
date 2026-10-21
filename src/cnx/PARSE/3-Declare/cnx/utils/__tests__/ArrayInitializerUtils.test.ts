@@ -4,13 +4,13 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../2-Parse/CnxSourceParser";
 import ArrayInitializerUtils from "../ArrayInitializerUtils";
 
 describe("ArrayInitializerUtils", () => {
   function initializerOf(source: string, index = 0) {
     const declaration =
-      CNextSourceParser.parse(source).program.declarations[index].declaration;
+      CnxSourceParser.parse(source).program.declarations[index].declaration;
     if (
       declaration.kind !== "variableDeclaration" ||
       !declaration.initializer

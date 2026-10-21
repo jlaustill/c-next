@@ -66,7 +66,7 @@ class CallArgumentPassing {
       signatureName,
       input.symbolTable,
     );
-    if (!orchestrator.isCNextFunction(signatureName)) {
+    if (!orchestrator.isCnxFunction(signatureName)) {
       return { param: resolved.param, mode: "c" };
     }
     // #1639: the callee's signature is written from this same answer

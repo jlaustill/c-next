@@ -15,12 +15,12 @@
 
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
+import TSymbolKindCnx from "../../../../types/symbol-kinds/TSymbolKindCnx";
 import TVisibility from "../../../../types/TVisibility";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
-interface IBaseOverrides<K extends TSymbolKindCNext> {
+interface IBaseOverrides<K extends TSymbolKindCnx> {
   readonly kind: K;
   readonly name: string;
   readonly scopePath?: string;
@@ -43,7 +43,7 @@ class TestSymbolUtils {
    * `.fullyQualifiedCName` agree, and a test that cares about scoping passes a
    * scope path and gets the qualified form for free.
    */
-  static base<K extends TSymbolKindCNext>(
+  static base<K extends TSymbolKindCnx>(
     overrides: IBaseOverrides<K>,
   ): {
     kind: K;

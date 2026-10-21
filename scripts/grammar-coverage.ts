@@ -15,7 +15,7 @@ import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ParseTreeWalker } from "antlr4ng";
-import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import IGrammarCoverageReport from "../src/cnx/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "../src/cnx/PARSE/2-Parse/types/GrammarCoverageReportBuilder";
 import GrammarCoverageListener from "../src/cnx/PARSE/2-Parse/GrammarCoverageListener";
@@ -49,7 +49,7 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
   for (const file of testFiles) {
     try {
       const source = readFileSync(file, "utf-8");
-      const { tree } = CNextSourceParser.parse(source);
+      const { tree } = CnxSourceParser.parse(source);
 
       const coverageListener = new GrammarCoverageListener(
         CnxParser.ruleNames,

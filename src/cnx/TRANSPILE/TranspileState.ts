@@ -459,7 +459,7 @@ class TranspileState {
   // SYMBOL DATA (read-only after initialization)
   // ===========================================================================
 
-  /** ADR-055: Pre-collected symbol info from CNextResolver + TSymbolInfoAdapter */
+  /** ADR-055: Pre-collected symbol info from CnxResolver + TSymbolInfoAdapter */
   symbols: ICodeGenSymbols | null = null;
 
   /** External symbol table for cross-language interop (C headers).

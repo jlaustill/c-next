@@ -30,7 +30,7 @@ import MutSite from "./helpers/MutSite";
 import CPointerParameter from "../../utils/CPointerParameter";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import type IOperandType from "../../types/IOperandType";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TExpression from "../../types/syntax/TExpression";
@@ -226,7 +226,7 @@ class CPointerArgumentAnalyzer {
       return null;
     }
     if (typed.stringCapacity !== null) return "char";
-    return CNEXT_TO_C_TYPE_MAP[typed.typeName] ?? typed.typeName;
+    return CNX_TO_C_TYPE_MAP[typed.typeName] ?? typed.typeName;
   }
 }
 

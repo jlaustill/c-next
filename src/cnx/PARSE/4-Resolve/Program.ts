@@ -71,7 +71,7 @@ import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type IProgramInputs from "./types/IProgramInputs";
 import type ISettledFiles from "./types/ISettledFiles";
 import type IVisibilityInput from "./types/IVisibilityInput";
-import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TSymbolInfoAdapter from "../3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
 import VisibleSymbols from "./VisibleSymbols";
 import ConstantNames from "./ConstantNames";

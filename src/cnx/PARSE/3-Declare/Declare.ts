@@ -5,7 +5,7 @@
 import type IParsedSources from "../2-Parse/types/IParsedSources";
 import type ITranspileError from "../../types/ITranspileError";
 import CaughtError from "../../utils/CaughtError";
-import CNextResolver from "./cnext/index";
+import CnxResolver from "./cnx/index";
 import HeaderDeclarationRecord from "./HeaderDeclarationRecord";
 import HeaderDeclarations from "./HeaderDeclarations";
 import SymbolRegistry from "./SymbolRegistry";
@@ -34,11 +34,7 @@ class Declare {
       try {
         declared.push({
           file,
-          fileSymbols: CNextResolver.resolve(
-            syntax.program,
-            file.path,
-            registry,
-          ),
+          fileSymbols: CnxResolver.resolve(syntax.program, file.path, registry),
           syntax,
         });
       } catch (err) {

@@ -99,10 +99,10 @@ const PARSE_TREE_TYPES = [
   // the re-export.
   "^src/cnx/PARSE/2-Parse/types/IParsedFile\\.ts$",
   // #1957: the 1.2 parser that RETURNS a tree. A module calling it holds the
-  // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
+  // tree as a value -- `CnxSourceParser.parse(src).tree` -- while naming no
   // grammar type, so without this it was counted by neither rule. #1991:
   // `HeaderParser` left the list when it began returning lowered syntax.
-  "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
+  "^src/cnx/PARSE/2-Parse/CnxSourceParser\\.ts$",
 ];
 
 /**
@@ -138,7 +138,7 @@ module.exports = {
       severity: "error",
       from: {
         path: [
-          "^src/cnx/PARSE/3-Declare/cnext/collectors/",
+          "^src/cnx/PARSE/3-Declare/cnx/collectors/",
           "^src/cnx/PARSE/2-Parse/",
           "^src/cnx/PARSE/1-Discover/",
         ],
@@ -538,7 +538,7 @@ module.exports = {
         "what 1.3 needs, and so on down the chain. Source text enters at 1.1, " +
         "and only 1.2 and `TreePasses` hand it to a parser, so no pass -- 1.3 included " +
         "-- can take text and parse it again. The old routes " +
-        "(`CNextResolver.resolveSource`, `HeaderDeclarations.resolveC`, " +
+        "(`CnxResolver.resolveSource`, `HeaderDeclarations.resolveC`, " +
         "`declare(text, ...)`) are deleted; this keeps them from coming back.",
       severity: "error",
       from: {
@@ -553,7 +553,7 @@ module.exports = {
       },
       to: {
         path: [
-          "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
+          "^src/cnx/PARSE/2-Parse/CnxSourceParser\\.ts$",
           "^src/cnx/PARSE/2-Parse/HeaderParser\\.ts$",
           "^src/cnx/PARSE/2-Parse/SourceSyntax\\.ts$",
         ],

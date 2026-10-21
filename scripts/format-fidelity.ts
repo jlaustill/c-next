@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import * as prettier from "prettier";
 
-import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import Transpiler from "../src/cli/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
@@ -87,7 +87,7 @@ function exemptedFixtures(target: string): Set<string> {
 
 /** Every comment in a source, in order, as written. */
 function commentsOf(source: string): string[] {
-  const { tokenStream } = CNextSourceParser.parse(source);
+  const { tokenStream } = CnxSourceParser.parse(source);
   tokenStream.fill();
   return tokenStream
     .getTokens()
@@ -100,7 +100,7 @@ function parseRejects(dir: string): Set<string> {
   const rejected = new Set<string>();
   for (const file of FileScanner.findFiles(dir, ".cnx")) {
     try {
-      const { parseErrors } = CNextSourceParser.parse(
+      const { parseErrors } = CnxSourceParser.parse(
         readFileSync(file, "utf-8"),
       );
       if (parseErrors.length > 0) rejected.add(relative(rootDir, file));

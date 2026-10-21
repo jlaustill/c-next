@@ -3,7 +3,7 @@
  * These helpers extract expressions from statements for modification analysis.
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import * as Parser from "../../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import Transpiler from "../../../../../Transpiler";
 import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
@@ -12,7 +12,7 @@ import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSyste
  * Helper to parse C-Next source and get the first statement from main().
  */
 function parseFirstStatement(source: string): Parser.StatementContext {
-  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CnxSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }

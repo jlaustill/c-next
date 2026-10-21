@@ -2,16 +2,16 @@ import { basename } from "node:path";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import type * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
-import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
+import CnxResolver from "../../../../cnx/PARSE/3-Declare/cnx/index";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../TargetCatalogFile";
 import RunTarget from "../../../../cnx/PARSE/2-Parse/RunTarget";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
-import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
-import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import { expect } from "vitest";
 import type IProgramSyntax from "../../../../cnx/types/syntax/IProgramSyntax";
 import type IAnalyzedFile from "../../../../cnx/types/IAnalyzedFile";
@@ -41,7 +41,7 @@ import type IProgram from "../../../../cnx/types/IProgram";
  * and `CodeGenWalker.coverage.test` each carried a verbatim copy of this, and
  * neither gave the program a target, so the first C call the typer met threw.
  *
- * The lowered program is the one `CNextSourceParser.parse` produced, as in
+ * The lowered program is the one `CnxSourceParser.parse` produced, as in
  * production: 1.2 lowers once, so this helper lowers nothing itself.
  *
  * #1428: the program also carries the run's mode, which codegen reads from it
@@ -92,7 +92,7 @@ class ProgramGeneration {
     const sourcePath = options.sourcePath ?? "test.cnx";
     const state = generator["planner"].transpileState;
 
-    const declared = CNextResolver.resolve(
+    const declared = CnxResolver.resolve(
       ProgramLowering.program(tree, null),
       sourcePath,
       registry,
@@ -195,10 +195,10 @@ class ProgramGeneration {
 
   /** 2.2's plan for one whole C-Next source, its symbols registered as 1.3 would */
   static planSource(source: string): IFilePlan {
-    const parsed = CNextSourceParser.parse(source);
+    const parsed = CnxSourceParser.parse(source);
     expect(parsed.parseErrors).toEqual([]);
     const registry = new SymbolRegistry();
-    const declared = CNextResolver.resolve(
+    const declared = CnxResolver.resolve(
       ProgramLowering.program(parsed.tree, null),
       "test.cnx",
       registry,

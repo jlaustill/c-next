@@ -1,8 +1,8 @@
 import ProgramLowering from "../../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import type IProgramSyntax from "../../../../../cnx/types/syntax/IProgramSyntax";
-import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
-import CNextResolver from "../../../../../cnx/PARSE/3-Declare/cnext/index";
+import CnxResolver from "../../../../../cnx/PARSE/3-Declare/cnx/index";
 import SymbolRegistry from "../../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import Program from "../../../../../cnx/PARSE/4-Resolve/Program";
@@ -70,11 +70,11 @@ function testAnalysisContextFor(
     ...Object.entries(options.helpers ?? {}),
     [TEST_SOURCE, source] as const,
   ].map(([path, text]) => {
-    const parsed = CNextSourceParser.parse(text);
+    const parsed = CnxSourceParser.parse(text);
     return {
       path,
       parsed,
-      declared: CNextResolver.resolve(
+      declared: CnxResolver.resolve(
         ProgramLowering.program(parsed.tree, null),
         path,
         registry,

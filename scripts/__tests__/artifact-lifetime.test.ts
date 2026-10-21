@@ -321,7 +321,7 @@ function callResultReaches(type: Type): boolean {
  * module got it (#1957).
  *
  * `parse-tree-confined-to-parser` reads imports, so a module that gets a tree
- * as a RETURN VALUE -- `CNextSourceParser.parse(src).tree` -- names no parse
+ * as a RETURN VALUE -- `CnxSourceParser.parse(src).tree` -- names no parse
  * type and passes it. This asks the type checker about every expression
  * instead. A call is also walked by reachability, so a call handing back a
  * bundle that carries a tree (`IParsedFile`) is found before anyone reads it.

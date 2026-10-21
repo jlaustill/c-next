@@ -88,7 +88,7 @@ describe("UnusedCode.isGenerated (#1556)", () => {
   it.each([
     // authored code INSIDE the generated root -- the case a bare prefix test
     // would wrongly exempt
-    ["src/cnx/PARSE/2-Parse/CNextSourceParser.ts", false],
+    ["src/cnx/PARSE/2-Parse/CnxSourceParser.ts", false],
     // a grammar directory OUTSIDE the root -- the case a bare "/grammar/" test
     // would wrongly exempt
     ["src/elsewhere/grammar/Handwritten.ts", false],

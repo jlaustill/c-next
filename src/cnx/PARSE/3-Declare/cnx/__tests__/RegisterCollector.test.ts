@@ -187,7 +187,7 @@ describe("RegisterCollector", () => {
       const regCtx = FirstDeclaration.register(tree);
       // Bitmap would be collected as Motor__MotorFlags in a scope
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
-      // Production ALWAYS supplies this predicate -- CNextResolver builds it
+      // Production ALWAYS supplies this predicate -- CnxResolver builds it
       // from pass 0b -- so passing it is what makes this test model production.
       // The collector does not qualify names itself; it reads what the one
       // TypeNameLadder resolved. The version of this test that omitted the

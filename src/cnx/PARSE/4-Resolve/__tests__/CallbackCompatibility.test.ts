@@ -8,8 +8,8 @@
  */
 import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../2-Parse/CNextSourceParser";
-import CNextResolver from "../../3-Declare/cnext/index";
+import CnxSourceParser from "../../2-Parse/CnxSourceParser";
+import CnxResolver from "../../3-Declare/cnx/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import SymbolTable from "../../3-Declare/SymbolTable";
 import CallbackCompatibility from "../CallbackCompatibility";
@@ -23,8 +23,8 @@ function callbacksIn(
 ): ReadonlyMap<string, string> {
   const registry = new SymbolRegistry();
   const files = sources.map((source, index) =>
-    CNextResolver.resolve(
-      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
+    CnxResolver.resolve(
+      ProgramLowering.program(CnxSourceParser.parse(source).tree, null),
       `file${index}.cnx`,
       registry,
     ),

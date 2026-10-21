@@ -16,7 +16,7 @@ import IRegisterSymbol from "../../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
-import TestSymbolUtils from "../../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../../PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../../types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../../types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../types/__testUtils__/testMembers";

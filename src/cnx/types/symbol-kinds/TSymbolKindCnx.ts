@@ -1,7 +1,7 @@
 /**
  * Symbol kinds for C-Next language constructs.
  */
-type TSymbolKindCNext =
+type TSymbolKindCnx =
   | "function"
   | "variable"
   | "struct"
@@ -14,4 +14,4 @@ type TSymbolKindCNext =
   | "register_member"
   | "scope";
 
-export default TSymbolKindCNext;
+export default TSymbolKindCnx;

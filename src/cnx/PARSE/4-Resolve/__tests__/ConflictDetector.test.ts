@@ -18,7 +18,7 @@ import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
-import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 const registry = new SymbolRegistry();

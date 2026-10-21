@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 
-import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import FixtureContext from "./FixtureContext";
 import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";
@@ -77,7 +77,7 @@ function contextsAt(
 ): TMatrixContext[] {
   if (positions.length === 0) return [];
 
-  const { tree } = CNextSourceParser.parse(source);
+  const { tree } = CnxSourceParser.parse(source);
   const contexts: TMatrixContext[] = [];
   for (const { line, column } of positions) {
     const context = FixtureContext.at(tree, line, column);

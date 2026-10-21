@@ -94,7 +94,7 @@ class SymbolLookupHelper {
    * Check if a function is a C-Next function (uses pass-by-reference semantics).
    * Returns true if the function is found in symbol table as C-Next.
    */
-  static isCNextFunction(
+  static isCnxFunction(
     symbolTable: ISymbolTable | null | undefined,
     name: string,
   ): boolean {
@@ -116,7 +116,7 @@ class SymbolLookupHelper {
     name: string,
   ): boolean {
     if (knownFunctions?.has(name)) return true;
-    return SymbolLookupHelper.isCNextFunction(symbolTable, name);
+    return SymbolLookupHelper.isCnxFunction(symbolTable, name);
   }
 
   /**

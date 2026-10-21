@@ -57,7 +57,7 @@ class HeaderSymbolAdapter {
     const isGlobal = ScopeUtils.isGlobalScopePath(func.scopePath);
 
     // ADR-057: type names arrive already scope-qualified from the symbol
-    // layer (CNextResolver pre-pass), so no qualification is needed here.
+    // layer (CnxResolver pre-pass), so no qualification is needed here.
     const parameters: IParameterSymbol[] = func.parameters.map((p) => {
       const type = TypeResolver.getTypeName(p.type);
       // #1290: the C name 1.4 settled, which the `.c` signature reads too

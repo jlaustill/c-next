@@ -1,6 +1,6 @@
 import { resolve, extname, basename } from "node:path";
 import IFileSystem from "../../types/IFileSystem";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 import CodedErrorText from "../../utils/CodedErrorText";
 
 /**
@@ -52,11 +52,11 @@ class InputExpansion {
     const fileName = basename(path);
 
     // Accept cnx source files
-    if (CNextSourcePath.isSource(path)) {
+    if (CnxSourcePath.isSource(path)) {
       return;
     }
 
-    const rejection = CNextSourcePath.rejection(fileName, "rename the file.");
+    const rejection = CnxSourcePath.rejection(fileName, "rename the file.");
     if (rejection !== null) {
       throw new Error(CodedErrorText.of(rejection.code, rejection.message));
     }

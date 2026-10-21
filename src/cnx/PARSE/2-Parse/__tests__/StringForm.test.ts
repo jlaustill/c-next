@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 
 /**
  * ADR-045's string declaration forms, which 1.2 reports (#1322, #1991): E0862
@@ -8,7 +8,7 @@ import CNextSourceParser from "../CNextSourceParser";
  * takes only a literal). Whether an initializer fits is 2.1's.
  */
 const errors = (source: string) =>
-  CNextSourceParser.parse(source)
+  CnxSourceParser.parse(source)
     .formErrors.filter((e) => /^error\[E086[23]\]/.test(e.message))
     .map((e) => ({
       code: /E086[23]/.exec(e.message)![0],

@@ -236,8 +236,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Check if a function is defined in C-Next.
    * Part of IOrchestrator interface.
    */
-  isCNextFunction(name: string): boolean {
-    return this.planQueries.isCNextFunction(name);
+  isCnxFunction(name: string): boolean {
+    return this.planQueries.isCnxFunction(name);
   }
 
   // === Expression Analysis ===

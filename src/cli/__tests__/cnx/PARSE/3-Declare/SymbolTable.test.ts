@@ -14,7 +14,7 @@ import TargetResolver from "../../../../TargetResolver";
 import TTypeUtils from "../../../../../cnx/utils/TTypeUtils";
 import TCSymbol from "../../../../../cnx/types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../../../cnx/types/symbols/cpp/TCppSymbol";
-import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TVisibility from "../../../../../cnx/types/TVisibility";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import NodeFileSystem from "../../../../../cnx/PARSE/1-Discover/NodeFileSystem";

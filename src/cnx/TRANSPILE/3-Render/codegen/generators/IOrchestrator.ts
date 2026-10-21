@@ -63,7 +63,7 @@ interface IOrchestrator extends IPlanQueries {
   isIntegerType(typeName: string): boolean;
 
   /** Check if a function is defined in C-Next (vs C headers) */
-  isCNextFunction(name: string): boolean;
+  isCnxFunction(name: string): boolean;
 
   /**
    * Brace that zero-initializes a whole aggregate -- `{}` in C++, `{0}` in C.
