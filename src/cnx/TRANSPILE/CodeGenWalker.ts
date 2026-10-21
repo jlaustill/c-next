@@ -345,7 +345,25 @@ class CodeGenWalker {
   }
 
   private renderExpression(expr: TExpression): string {
+    const folded = this.filePlan.staticValues.get(expr);
+    if (folded !== undefined) {
+      const written = PrivateConstValue.written(
+        this.host.getState(),
+        this.planner.transpileState,
+        folded.spelling,
+        folded.narrowing,
+      );
+      this.host.applyEffects(written.effects);
+      return written.code;
+    }
     return this.invokeGenerator(generateTernaryExpr, this.planTernary(expr));
+  }
+
+  /** #1735: why a static-storage initializer that read a name is written as its value */
+  private staticValueNote(declaration: TDeclarationSyntax): string {
+    return this.filePlan.staticValueNotes.has(declaration)
+      ? ComplianceAnnotations.render(ComplianceAnnotations.STATIC_VALUE) + "\n"
+      : "";
   }
 
   /**
@@ -1754,10 +1772,12 @@ class CodeGenWalker {
       case "variableDeclaration":
       case "constructorDeclaration":
         return (
+          this.staticValueNote(declaration) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(declaration),
             this.host.state,
-          ) + "\n"
+          ) +
+          "\n"
         );
       case "missing":
         return "";
@@ -1976,6 +1996,7 @@ class CodeGenWalker {
           FilePlanner.stringCapacityOf(decl.type),
         ),
       renderInitializer: () => this.renderScopeInitializer(decl, isArray),
+      note: this.staticValueNote(decl),
     };
   }
 

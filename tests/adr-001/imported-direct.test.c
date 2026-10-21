@@ -7,7 +7,6 @@
 
 // test-execution
 // test-adr: 001
-// test-target-xfail: atmega328p c #1765 "initializer element is not constant"
 // ADR-001: `<-` assigns and `=` compares, exercised in all four structural
 // contexts at include depth 1 (one hop).
 //
@@ -49,10 +48,12 @@ const uint8_t LOCAL_FIVE = 5U;
 const uint8_t LOCAL_ALSO_FIVE = 5U;
 
 // global-variable context.
-const bool gEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const bool gEqual = true;
 
 /* Scope: Cfg */
-const bool Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const bool Cfg__mEqual = true;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;

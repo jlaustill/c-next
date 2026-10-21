@@ -4142,8 +4142,10 @@ describe("CodeGenWalker", () => {
   describe("Unary operators", () => {
     it("should generate logical NOT", () => {
       const source = `
-        bool flag <- true;
-        bool result <- !flag;
+        void test() {
+          bool flag <- true;
+          bool result <- !flag;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4165,8 +4167,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate bitwise NOT", () => {
       const source = `
-        wrap u8 mask <- 0x0F;
-        wrap u8 inverted <- ~mask;
+        void test() {
+          wrap u8 mask <- 0x0F;
+          wrap u8 inverted <- ~mask;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4188,8 +4192,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate unary minus", () => {
       const source = `
-        i32 pos <- 10;
-        i32 neg <- -pos;
+        void test() {
+          i32 pos <- 10;
+          i32 neg <- -pos;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4213,9 +4219,11 @@ describe("CodeGenWalker", () => {
   describe("Bitwise operators", () => {
     it("should generate bitwise AND", () => {
       const source = `
-        wrap u8 a <- 0x0F;
-        wrap u8 b <- 0xF0;
-        wrap u8 result <- a & b;
+        void test() {
+          wrap u8 a <- 0x0F;
+          wrap u8 b <- 0xF0;
+          wrap u8 result <- a & b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4237,9 +4245,11 @@ describe("CodeGenWalker", () => {
 
     it("should generate bitwise OR", () => {
       const source = `
-        wrap u8 a <- 0x0F;
-        wrap u8 b <- 0xF0;
-        wrap u8 result <- a | b;
+        void test() {
+          wrap u8 a <- 0x0F;
+          wrap u8 b <- 0xF0;
+          wrap u8 result <- a | b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4261,9 +4271,11 @@ describe("CodeGenWalker", () => {
 
     it("should generate bitwise XOR", () => {
       const source = `
-        wrap u8 a <- 0x55;
-        wrap u8 b <- 0xAA;
-        wrap u8 result <- a ^ b;
+        void test() {
+          wrap u8 a <- 0x55;
+          wrap u8 b <- 0xAA;
+          wrap u8 result <- a ^ b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4285,8 +4297,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate left shift", () => {
       const source = `
-        wrap u8 a <- 1;
-        wrap u8 result <- a << 4;
+        void test() {
+          wrap u8 a <- 1;
+          wrap u8 result <- a << 4;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4308,8 +4322,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate right shift", () => {
       const source = `
-        wrap u8 a <- 0x80;
-        wrap u8 result <- a >> 4;
+        void test() {
+          wrap u8 a <- 0x80;
+          wrap u8 result <- a >> 4;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4333,9 +4349,11 @@ describe("CodeGenWalker", () => {
   describe("Logical operators", () => {
     it("should generate logical AND", () => {
       const source = `
-        bool a <- true;
-        bool b <- false;
-        bool result <- a && b;
+        void test() {
+          bool a <- true;
+          bool b <- false;
+          bool result <- a && b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4357,9 +4375,11 @@ describe("CodeGenWalker", () => {
 
     it("should generate logical OR", () => {
       const source = `
-        bool a <- true;
-        bool b <- false;
-        bool result <- a || b;
+        void test() {
+          bool a <- true;
+          bool b <- false;
+          bool result <- a || b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4383,9 +4403,11 @@ describe("CodeGenWalker", () => {
   describe("Comparison operators", () => {
     it("should generate less than or equal", () => {
       const source = `
-        u32 a <- 5;
-        u32 b <- 10;
-        bool result <- a <= b;
+        void test() {
+          u32 a <- 5;
+          u32 b <- 10;
+          bool result <- a <= b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4407,9 +4429,11 @@ describe("CodeGenWalker", () => {
 
     it("should generate greater than or equal", () => {
       const source = `
-        u32 a <- 5;
-        u32 b <- 10;
-        bool result <- a >= b;
+        void test() {
+          u32 a <- 5;
+          u32 b <- 10;
+          bool result <- a >= b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4431,9 +4455,11 @@ describe("CodeGenWalker", () => {
 
     it("should generate not equal", () => {
       const source = `
-        u32 a <- 5;
-        u32 b <- 10;
-        bool result <- a != b;
+        void test() {
+          u32 a <- 5;
+          u32 b <- 10;
+          bool result <- a != b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4512,8 +4538,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate float to int cast with clamping", () => {
       const source = `
-        f32 floatVal <- 100.5;
-        i32 intVal <- (i32)floatVal;
+        void test() {
+          f32 floatVal <- 100.5;
+          i32 intVal <- (i32)floatVal;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4926,9 +4954,11 @@ describe("CodeGenWalker", () => {
   describe("Modulo operator", () => {
     it("should generate modulo operation", () => {
       const source = `
-        wrap u32 a <- 17;
-        wrap u32 b <- 5;
-        wrap u32 result <- a % b;
+        void test() {
+          wrap u32 a <- 17;
+          wrap u32 b <- 5;
+          wrap u32 result <- a % b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4952,9 +4982,11 @@ describe("CodeGenWalker", () => {
   describe("Division operator", () => {
     it("should generate division operation", () => {
       const source = `
-        wrap u32 a <- 20;
-        wrap u32 b <- 4;
-        wrap u32 result <- a / b;
+        void test() {
+          wrap u32 a <- 20;
+          wrap u32 b <- 4;
+          wrap u32 result <- a / b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5182,10 +5214,12 @@ describe("CodeGenWalker", () => {
   describe("Parenthesized expression", () => {
     it("should preserve parentheses in complex expression", () => {
       const source = `
-        wrap u32 a <- 2;
-        wrap u32 b <- 3;
-        wrap u32 c <- 4;
-        wrap u32 result <- (a + b) * c;
+        void test() {
+          wrap u32 a <- 2;
+          wrap u32 b <- 3;
+          wrap u32 c <- 4;
+          wrap u32 result <- (a + b) * c;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5508,9 +5542,11 @@ describe("CodeGenWalker", () => {
   describe("Ternary expression", () => {
     it("should generate ternary with comparison condition", () => {
       const source = `
-        u32 a <- 5;
-        u32 b <- 10;
-        u32 max <- (a > b) ? a : b;
+        void test() {
+          u32 a <- 5;
+          u32 b <- 10;
+          u32 max <- (a > b) ? a : b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5883,10 +5919,12 @@ describe("CodeGenWalker", () => {
   describe("Mixed arithmetic operations", () => {
     it("should handle mixed add and subtract", () => {
       const source = `
-        wrap u32 a <- 10;
-        wrap u32 b <- 5;
-        wrap u32 c <- 3;
-        wrap u32 result <- a + b - c;
+        void test() {
+          wrap u32 a <- 10;
+          wrap u32 b <- 5;
+          wrap u32 c <- 3;
+          wrap u32 result <- a + b - c;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5910,11 +5948,13 @@ describe("CodeGenWalker", () => {
   describe("Complex nested expression", () => {
     it("should handle deeply nested expression", () => {
       const source = `
-        wrap u32 a <- 2;
-        wrap u32 b <- 3;
-        wrap u32 c <- 4;
-        wrap u32 d <- 5;
-        wrap u32 result <- ((a + b) * c) - d;
+        void test() {
+          wrap u32 a <- 2;
+          wrap u32 b <- 3;
+          wrap u32 c <- 4;
+          wrap u32 d <- 5;
+          wrap u32 result <- ((a + b) * c) - d;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5938,9 +5978,11 @@ describe("CodeGenWalker", () => {
   describe("Float operations", () => {
     it("should generate float addition", () => {
       const source = `
-        f32 a <- 1.5;
-        f32 b <- 2.5;
-        f32 sum <- a + b;
+        void test() {
+          f32 a <- 1.5;
+          f32 b <- 2.5;
+          f32 sum <- a + b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5962,9 +6004,11 @@ describe("CodeGenWalker", () => {
 
     it("should generate float comparison", () => {
       const source = `
-        f32 a <- 1.5;
-        f32 b <- 2.5;
-        bool less <- a < b;
+        void test() {
+          f32 a <- 1.5;
+          f32 b <- 2.5;
+          bool less <- a < b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -6326,9 +6370,11 @@ describe("CodeGenWalker", () => {
   describe("Comparison chaining prevention", () => {
     it("should generate single comparison", () => {
       const source = `
-        u32 a <- 5;
-        u32 b <- 10;
-        bool result <- a < b;
+        void test() {
+          u32 a <- 5;
+          u32 b <- 10;
+          bool result <- a < b;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -6482,9 +6528,11 @@ describe("CodeGenWalker", () => {
   describe("Signed integer operations", () => {
     it("should generate signed arithmetic", () => {
       const source = `
-        i32 a <- -10;
-        i32 b <- 20;
-        i32 diff <- b - a;
+        void test() {
+          i32 a <- -10;
+          i32 b <- 20;
+          i32 diff <- b - a;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -6669,8 +6717,10 @@ describe("CodeGenWalker", () => {
   describe("Prefix operations in expressions", () => {
     it("should handle prefix negation in assignment", () => {
       const source = `
-        i32 a <- 5;
-        i32 b <- -a;
+        void test() {
+          i32 a <- 5;
+          i32 b <- -a;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.

@@ -14,10 +14,11 @@ import ComplianceAnnotations from "../ComplianceAnnotations";
 
 /**
  * `/* MISRA C:2012 Rule 8.4: what (why). *\/`, or the language's own rule:
- * `/* C11 6.2.1p7, C++ [basic.scope.pdecl]: what (why). *\/`
+ * `/* C11 6.2.1p7, C++ [basic.scope.pdecl]: what (why). *\/`, or C's alone
+ * where only C has the rule: `/* C11 6.7.9p4: what (why). *\/`
  */
 const HOUSE_FORM =
-  /^\/\* (?:MISRA C:2012 Rule \d+(?:\.\d+)*|C11 \d+(?:\.\d+)*p\d+, C\+\+ \[[a-z.]+\]): .+ \(.+\)\. \*\/$/;
+  /^\/\* (?:MISRA C:2012 Rule \d+(?:\.\d+)*|C11 \d+(?:\.\d+)*p\d+(?:, C\+\+ \[[a-z.]+\])?): .+ \(.+\)\. \*\/$/;
 
 describe("ComplianceAnnotations", () => {
   describe("every annotation the transpiler can emit", () => {
@@ -56,6 +57,7 @@ describe("ComplianceAnnotations", () => {
     expect(rules.sort()).toEqual([
       "C11 6.2.1p4, C++ [basic.scope.hiding]",
       "C11 6.2.1p7, C++ [basic.scope.pdecl]",
+      "C11 6.7.9p4",
       "MISRA C:2012 Rule 14.3",
       "MISRA C:2012 Rule 19.1",
       "MISRA C:2012 Rule 21.15",

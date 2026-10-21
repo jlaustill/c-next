@@ -1,0 +1,36 @@
+// test-error
+// test-adr: 044
+// Issues #1735 and #2018: a static-storage initializer needs a value known at
+// compile time (C99 6.7.8p4). A variable or a call has none, at file scope
+// and in a scope alike.
+//
+// NEGATIVE CONTROL: K reads a read-only binding, which has one, and must stay
+// silent.
+
+mut u32 g <- 4;
+u32 K <- 4;
+
+bool f() {
+    g <- 5;
+    return true;
+}
+
+u32 FromVariable <- g;
+bool FromCall <- f();
+u32 FromConst <- K + 1;
+
+scope S {
+    mut bool flag <- true;
+    u32 C <- g;
+    bool B <- f();
+    bool F <- this.flag;
+
+    public u32 get() {
+        this.flag <- false;
+        return C;
+    }
+}
+
+u32 main() {
+    return 0;
+}

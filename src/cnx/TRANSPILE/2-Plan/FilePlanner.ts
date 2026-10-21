@@ -22,6 +22,11 @@ import EmissionPlan from "./EmissionPlan";
 import DeclarationPlan from "./DeclarationPlan";
 import TypeSites from "./TypeSites";
 import WrittenParts from "./WrittenParts";
+import type IProgram from "../../types/IProgram";
+import type IUnwrittenSyntax from "./types/IUnwrittenSyntax";
+import type IPlannedStaticValue from "./types/IPlannedStaticValue";
+import type IStaticValue from "../1-Analyze/types/IStaticValue";
+import StaticInitializers from "../1-Analyze/helpers/StaticInitializers";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import CastRequirement from "./CastRequirement";
@@ -465,12 +470,12 @@ class FilePlanner {
    */
   private planTypeSites(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): ReadonlyMap<TTypeSyntax, IPlannedType> {
-    const unwritten = this.unwrittenTypes(program);
+    const unwrittenTypes = this.unwrittenTypes(program);
     const planned = new Map<TTypeSyntax, IPlannedType>();
-    for (const { type, scope } of TypeSites.of(program, inlinedConsts)) {
-      if (unwritten.has(type)) continue;
+    for (const { type, scope } of TypeSites.of(program, unwritten)) {
+      if (unwrittenTypes.has(type)) continue;
       planned.set(type, this.planType(type, this.state.scopePathOf(scope)));
     }
     return planned;
@@ -482,12 +487,12 @@ class FilePlanner {
    */
   private planComparisons(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): ReadonlyMap<TExpression, boolean> {
     const planned = new Map<TExpression, boolean>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (expression.kind === "binary" && expression.level === "equality") {
         planned.set(
@@ -506,7 +511,7 @@ class FilePlanner {
    */
   private planCasts(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): ReadonlyMap<
     TExpressionOf<"cast">,
     Pick<IPlannedCast, "operandType" | "clampForm">
@@ -518,7 +523,7 @@ class FilePlanner {
     >();
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (expression.kind !== "cast") continue;
       const operand = OperandTyper.typeOf(expression.operand, typing);
@@ -547,7 +552,7 @@ class FilePlanner {
    */
   private planFloatBits(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     cTypes: Set<string>,
   ): {
     readonly reads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
@@ -572,7 +577,7 @@ class FilePlanner {
     const reads = new Map<TPostfixOpSyntax, IPlannedFloatBits>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (expression.kind !== "postfix" || targets.has(expression)) continue;
       const head = ExpressionShape.headOf(expression);
@@ -591,12 +596,12 @@ class FilePlanner {
 
   private static planNegativeMinimums(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): ReadonlyMap<TExpressionOf<"unary">, TNegativeMinimum> {
     const planned = new Map<TExpressionOf<"unary">, TNegativeMinimum>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (expression.kind !== "unary" || expression.operator !== "-") continue;
       if (expression.operand.kind !== "literal") continue;
@@ -617,7 +622,7 @@ class FilePlanner {
    */
   private planSafeDivisions(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
   ): ReadonlyMap<TExpression, string> {
@@ -626,7 +631,7 @@ class FilePlanner {
     const planned = new Map<TExpression, string>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       const call = SafeDivision.callOf(expression);
       if (call === null) continue;
@@ -658,7 +663,7 @@ class FilePlanner {
    */
   private planStructInitializers(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
     wholeArrayValues: ReadonlySet<TExpression>,
   ): ReadonlyMap<TExpressionOf<"structInitializer">, TStructInitializerForm> {
@@ -692,7 +697,7 @@ class FilePlanner {
         visit(child, childPlain || wholeArrayValues.has(child), inFunction);
       }
     };
-    for (const { part } of WrittenParts.of(program, inlinedConsts)) {
+    for (const { part } of WrittenParts.of(program, unwritten)) {
       if (part.kind !== "expression" || part.constant) continue;
       visit(
         part.expression,
@@ -824,10 +829,10 @@ class FilePlanner {
    */
   private planLengths(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     requirements: PlannedRequirements,
   ): void {
-    for (const { rule } of this.lengthReads(program, inlinedConsts)) {
+    for (const { rule } of this.lengthReads(program, unwritten)) {
       if (rule.kind === "string") requirements.require("string");
       const helper = LengthProperty.helperOf(rule);
       if (helper !== null) requirements.lengthHelper(helper);
@@ -837,7 +842,7 @@ class FilePlanner {
   /** Every length 2.3 writes, with the rule it is written by: the typer's step names the property */
   private *lengthReads(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): Generator<{ step: IChainStep; name: ILengthName; rule: TLengthRule }> {
     const typing = this.state.typingContext();
     const isStruct = LengthSubject.structTest(
@@ -846,7 +851,7 @@ class FilePlanner {
     );
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (expression.kind !== "postfix") continue;
       for (const step of OperandTyper.chainOf(expression, typing).steps) {
@@ -861,11 +866,11 @@ class FilePlanner {
   /** Every expression 2.3 writes, except inside a dimension or enum value, which 1.4 spells */
   private static writtenExpressions(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): TExpression[] {
-    return WrittenParts.of(program, inlinedConsts).flatMap(({ part }) =>
+    return WrittenParts.of(program, unwritten).flatMap(({ part }) =>
       part.kind === "expression" && !part.constant
-        ? ExpressionNodes.direct(part.expression)
+        ? WrittenParts.nodes(part.expression, unwritten)
         : [],
     );
   }
@@ -906,6 +911,78 @@ class FilePlanner {
       this.planInlinedScopeConsts(scope, cTypes, inlined);
     }
     return inlined;
+  }
+
+  /**
+   * #1735: each value in a static-storage initializer that 2.3 writes as its
+   * folded value, and the declarations a name was folded in, which carry the
+   * annotation that says why
+   */
+  private planStaticValues(
+    program: IProgramSyntax,
+    valuePositions: IValuePositions | null,
+  ): {
+    readonly values: ReadonlyMap<TExpression, IPlannedStaticValue>;
+    readonly notes: ReadonlySet<TDeclarationSyntax>;
+  } {
+    const values = new Map<TExpression, IPlannedStaticValue>();
+    const notes = new Set<TDeclarationSyntax>();
+    const typing = this.state.typingContext();
+    for (const value of StaticInitializers.values(
+      program,
+      valuePositions?.positions ?? new Map(),
+    )) {
+      const planned = FilePlanner.staticValueOf(
+        value,
+        typing.program,
+        typing.sourceFile,
+      );
+      if (planned === null) continue;
+      values.set(value.value, planned);
+      if (
+        StaticInitializers.readsVariable(
+          value.value,
+          typing.program,
+          typing.sourceFile,
+        )
+      ) {
+        notes.add(value.declaration);
+      }
+    }
+    return { values, notes };
+  }
+
+  /**
+   * The value's folded spelling. A const C-Next has no value for and C does
+   * -- a char literal, a header macro -- named alone is spelled as that
+   * const is where it is used, so C is given the literal or the macro (#1739)
+   */
+  private static staticValueOf(
+    value: IStaticValue,
+    program: IProgram,
+    sourceFile: string,
+  ): IPlannedStaticValue | null {
+    const settled = StaticInitializers.settle(value, program, sourceFile);
+    const named =
+      settled !== null && StaticInitializers.cHasValue(settled)
+        ? StaticInitializers.namedConst(value.value, program, sourceFile)
+        : null;
+    if (named === null) {
+      const spelling = PrivateConstSpelling.ofValue(
+        program,
+        settled,
+        value.typeName,
+      );
+      return spelling === null ? null : { spelling, narrowing: null };
+    }
+    const cName = named.fullyQualifiedCName;
+    const spelling = PrivateConstSpelling.spelling(program, cName);
+    return spelling === null
+      ? null
+      : {
+          spelling,
+          narrowing: PrivateConstSpelling.narrowingOf(program, cName),
+        };
   }
 
   private planInlinedScopeConsts(
@@ -962,7 +1039,16 @@ class FilePlanner {
       decidedCTypes,
     );
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
-    const types = this.planTypeSites(program, inlinedConsts);
+    const statics = this.planStaticValues(program, valuePositions);
+    const unwritten: IUnwrittenSyntax = {
+      declarations: inlinedConsts,
+      values: new Set(
+        [...statics.values.keys()].flatMap((value) =>
+          ExpressionNodes.direct(value),
+        ),
+      ),
+    };
+    const types = this.planTypeSites(program, unwritten);
     // Each planned type is written once 2.3 is done, so its include is decided here
     for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -970,19 +1056,19 @@ class FilePlanner {
         requirements.require(requiredInclude);
       }
     }
-    const comparisons = this.planComparisons(program, inlinedConsts);
+    const comparisons = this.planComparisons(program, unwritten);
     // ADR-045: a string comparison is written as strcmp, from <string.h>
     if ([...comparisons.values()].includes(true)) {
       requirements.require("string");
     }
-    this.planLengths(program, inlinedConsts, requirements);
+    this.planLengths(program, unwritten, requirements);
     const safeDivisions = this.planSafeDivisions(
       program,
-      inlinedConsts,
+      unwritten,
       decidedCTypes,
       requirements,
     );
-    const casts = this.planCasts(program, inlinedConsts);
+    const casts = this.planCasts(program, unwritten);
     for (const [expression, cast] of casts) {
       // ADR-024: a saturating cast compares against <limits.h>'s macros
       if (cast.clampForm !== null) {
@@ -994,14 +1080,14 @@ class FilePlanner {
     }
     const negativeMinimums = FilePlanner.planNegativeMinimums(
       program,
-      inlinedConsts,
+      unwritten,
     );
     // MISRA 10.3: a minimum is written as its <limits.h> macro
     if (negativeMinimums.size > 0) {
       requirements.require("limits");
     }
-    const complementCasts = this.planComplementCasts(program, inlinedConsts);
-    const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
+    const complementCasts = this.planComplementCasts(program, unwritten);
+    const floatBits = this.planFloatBits(program, unwritten, decidedCTypes);
     const bitmapFieldWrites = this.planBitmapFieldWrites(program);
     // ADR-007: each union copy is checked by the float static assert
     const floatBitWrites = [...floatBits.writes.values()].filter(
@@ -1019,13 +1105,13 @@ class FilePlanner {
     );
     const expectedTypes = this.planExpectedTypes(
       program,
-      inlinedConsts,
+      unwritten,
       valuePositions,
       types,
       foreignRegisterValues,
     );
     const narrowings = this.planNarrowings(expectedTypes, decidedCTypes, [
-      ...FilePlanner.writtenExpressions(program, inlinedConsts),
+      ...FilePlanner.writtenExpressions(program, unwritten),
       ...foreignRegisterValues.flatMap((value) =>
         ExpressionNodes.direct(value),
       ),
@@ -1042,7 +1128,7 @@ class FilePlanner {
     const fillSizes = this.planFillSizes(valuePositions);
     const structInitializers = this.planStructInitializers(
       program,
-      inlinedConsts,
+      unwritten,
       expectedTypes,
       new Set([
         ...[...wholeArrayWrites.keys()].map((site) => site.value),
@@ -1058,7 +1144,7 @@ class FilePlanner {
     );
     const clamps = this.planClamps(
       program,
-      inlinedConsts,
+      unwritten,
       foreignRegisterValues,
       decidedCTypes,
     );
@@ -1080,7 +1166,7 @@ class FilePlanner {
       compoundCasts,
       decidedCTypes,
     );
-    this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
+    this.planLengthCTypes(program, unwritten, decidedCTypes);
     const includeDirectives = program.includes.map((include) =>
       this.transformIncludeDirective(include.written),
     );
@@ -1091,6 +1177,8 @@ class FilePlanner {
       selfInclude,
       includeDirectives,
       inlinedConsts,
+      staticValues: statics.values,
+      staticValueNotes: statics.notes,
       types,
       comparisons,
       casts,
@@ -1100,17 +1188,11 @@ class FilePlanner {
       floatBitWrites: floatBits.writes,
       bitmapFieldWrites,
       atomicForms,
-      cTypes: this.planCTypes(
-        program,
-        inlinedConsts,
-        types,
-        bitmapFieldWrites,
-        [
-          ...decidedCTypes,
-          ...negativeMinimums.values(),
-          ...complementCasts.values(),
-        ],
-      ),
+      cTypes: this.planCTypes(program, unwritten, types, bitmapFieldWrites, [
+        ...decidedCTypes,
+        ...negativeMinimums.values(),
+        ...complementCasts.values(),
+      ]),
       safeDivisions,
       clampChains: clamps.chains,
       compoundClamps: clamps.compound,
@@ -1411,17 +1493,14 @@ class FilePlanner {
 
   private planExpectedTypes(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     valuePositions: IValuePositions | null,
     types: ReadonlyMap<TTypeSyntax, IPlannedType>,
     foreignRegisterValues: readonly TExpression[],
   ): ReadonlyMap<TExpression, IPlannedExpectedType> {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const typeScopes = new Map(
-      TypeSites.of(program, inlinedConsts).map((site) => [
-        site.type,
-        site.scope,
-      ]),
+      TypeSites.of(program, unwritten).map((site) => [site.type, site.scope]),
     );
     const scopeMembers = FilePlanner.scopeVariables(program.declarations);
     const forInits = new Set<IVariableDeclarationSyntax>(
@@ -1630,13 +1709,10 @@ class FilePlanner {
    */
   private planLengthCTypes(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     cTypes: Set<string>,
   ): void {
-    for (const { step, name, rule } of this.lengthReads(
-      program,
-      inlinedConsts,
-    )) {
+    for (const { step, name, rule } of this.lengthReads(program, unwritten)) {
       const unfolded =
         rule.kind === "logical" &&
         name.unit !== "element_count" &&
@@ -1741,7 +1817,7 @@ class FilePlanner {
    */
   private planClamps(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     foreignRegisterValues: readonly TExpression[],
     cTypes: Set<string>,
   ): {
@@ -1760,7 +1836,7 @@ class FilePlanner {
 
     const chains = new Map<TExpression, IPlannedClamp | null>();
     for (const expr of [
-      ...FilePlanner.writtenExpressions(program, inlinedConsts),
+      ...FilePlanner.writtenExpressions(program, unwritten),
       ...foreignRegisterValues.flatMap((value) =>
         ExpressionNodes.direct(value),
       ),
@@ -2250,12 +2326,12 @@ class FilePlanner {
    */
   private planComplementCasts(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): ReadonlyMap<TExpressionOf<"unary">, string> {
     const casts = new Map<TExpressionOf<"unary">, string>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (expression.kind !== "unary" || expression.operator !== "~") continue;
       const operandType = this.directTypeOf(expression.operand);
@@ -2275,7 +2351,7 @@ class FilePlanner {
    */
   private planCTypes(
     program: IProgramSyntax,
-    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
     types: ReadonlyMap<TTypeSyntax, IPlannedType>,
     bitmapFieldWrites: ReadonlyMap<
       IAssignmentSyntax,
@@ -2287,7 +2363,7 @@ class FilePlanner {
     for (const plan of types.values()) cTypes.add(this.cTypeOf(plan));
     for (const expression of FilePlanner.writtenExpressions(
       program,
-      inlinedConsts,
+      unwritten,
     )) {
       if (
         expression.kind === "literal" &&

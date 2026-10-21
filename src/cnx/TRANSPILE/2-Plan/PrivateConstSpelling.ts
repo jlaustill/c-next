@@ -1,6 +1,8 @@
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import type IProgram from "../../types/IProgram";
+import type TSettledConst from "../../types/TSettledConst";
+import type IConstSpelling from "./types/IConstSpelling";
 import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ConstLiteral from "../../utils/ConstLiteral";
 import ConstantFold from "../../utils/ConstantFold";
@@ -8,7 +10,11 @@ import ScopeUtils from "../../utils/ScopeUtils";
 
 /** The most negative i64, which no C literal reaches, and how C spells it */
 const I64_MIN = "-9223372036854775808";
-const I64_MIN_SPELLING = "(-9223372036854775807LL - 1)";
+const I64_MIN_SPELLED: IConstSpelling = {
+  text: "(-9223372036854775807LL - 1)",
+  typeName: null,
+  verbatim: true,
+};
 
 /**
  * #1739: what a private scope const is written as where it is used, or null
@@ -65,10 +71,7 @@ class PrivateConstSpelling {
    * The literal a const is written as and the type it is held at, or null
    * when it has none; `verbatim` is C's own spelling, written as it stands
    */
-  static spelling(
-    program: IProgram,
-    cName: string,
-  ): { text: string; typeName: string | null; verbatim: boolean } | null {
+  static spelling(program: IProgram, cName: string): IConstSpelling | null {
     const symbol = program.symbolByCName(cName);
     if (
       symbol?.kind !== "variable" ||
@@ -80,9 +83,7 @@ class PrivateConstSpelling {
       return null;
     }
     const settled = program.settledConstOf(cName);
-    if (settled?.kind === "value" && settled.digits === I64_MIN) {
-      return { text: I64_MIN_SPELLING, typeName: null, verbatim: true };
-    }
+    if (PrivateConstSpelling.isI64Min(settled)) return I64_MIN_SPELLED;
     const text = ConstLiteral.textOf(program, symbol);
     if (text === null) return null;
     return {
@@ -90,6 +91,24 @@ class PrivateConstSpelling {
       typeName: ConstantFold.typeNameOf(symbol.type),
       verbatim: false,
     };
+  }
+
+  /**
+   * #1735: a value in a static-storage initializer, which has no declaration
+   * of its own, spelled as a const's value is: a C constant expression
+   */
+  static ofValue(
+    program: IProgram,
+    settled: TSettledConst | null,
+    typeName: string,
+  ): IConstSpelling | null {
+    if (PrivateConstSpelling.isI64Min(settled)) return I64_MIN_SPELLED;
+    const text = ConstLiteral.textOfValue(program, settled);
+    return text === null ? null : { text, typeName, verbatim: false };
+  }
+
+  private static isI64Min(settled: TSettledConst | null): boolean {
+    return settled?.kind === "value" && settled.digits === I64_MIN;
   }
 
   /** Issue #282: a private scope const, which is never emitted when it has a value */

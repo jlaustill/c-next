@@ -1,5 +1,7 @@
 import PrivateConstSpelling from "../../2-Plan/PrivateConstSpelling";
 import type TranspileState from "../../TranspileState";
+import type IConstSpelling from "../../2-Plan/types/IConstSpelling";
+import type TPlannedNarrowing from "../../2-Plan/types/TPlannedNarrowing";
 import type IGeneratorOutput from "./generators/IGeneratorOutput";
 import type IGeneratorState from "./generators/IGeneratorState";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
@@ -37,6 +39,21 @@ class PrivateConstValue {
     const program = transpileState.typingContext().program;
     const spelling = PrivateConstSpelling.spelling(program, cName);
     if (spelling === null) return null;
+    return PrivateConstValue.written(
+      generatorState,
+      transpileState,
+      spelling,
+      PrivateConstSpelling.narrowingOf(program, cName),
+    );
+  }
+
+  /** A spelled value written through `generateLiteral`, as a literal of its type */
+  static written(
+    generatorState: IGeneratorState,
+    transpileState: TranspileState,
+    spelling: IConstSpelling,
+    narrowing: TPlannedNarrowing | null,
+  ): IGeneratorOutput {
     if (spelling.verbatim) return { code: spelling.text, effects: [] };
     // A literal has no sign: a negative value is the negated literal, in
     // parentheses so `-X` does not read as a decrement
@@ -45,7 +62,7 @@ class PrivateConstValue {
       negative ? spelling.text.slice(1) : spelling.text,
       { ...generatorState, expectedType: spelling.typeName },
       transpileState,
-      PrivateConstSpelling.narrowingOf(program, cName),
+      narrowing,
     );
     return negative ? { ...output, code: `(-${output.code})` } : output;
   }

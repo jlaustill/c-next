@@ -677,10 +677,14 @@ Until #1303 this ADR declared no matrix at all, which per
 anywhere — and the defect #1303 fixed was precisely a cell nothing was watching:
 the declared behavior was dropped the moment a symbol crossed a file boundary.
 
-**No cell is `off`.** All four contexts are reachable: the lowering fires in a
-file-scope initializer (`u8 sum <- base + 10` emits `cnx_clamp_add_u8`) as
-readily as in a function body, so `global variable` is uncovered rather than
-impossible. Declaring `off` anywhere here would be the quiet-report claim this
+**No cell is `off`.** All four contexts are reachable: the rule fires in a
+file-scope initializer as readily as in a function body, so `global variable`
+is uncovered rather than impossible. There it fires as a rejection, not a
+helper call (#1735): a file-scope or scope variable's initializer is a value
+fixed at compile time, so `u8 sum <- base + 10` with `base` at 250 is E0910,
+and one that fits is written as its folded value. It used to emit
+`cnx_clamp_add_u8`, a call C does not take in a static initializer (C99
+6.7.8p4). Declaring `off` anywhere here would be the quiet-report claim this
 project treats as dishonest.
 
 Three cells are occupied and `error`. The other nine are **untested**, not

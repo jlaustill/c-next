@@ -1,0 +1,3 @@
+// Helper for cross-file.test.cnx: the consts it reads across the include.
+u32 BASE <- 7;
+u8 SMALL <- 5;

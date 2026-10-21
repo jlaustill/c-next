@@ -16,7 +16,7 @@
 // relies on #1624's open type row; its fix decides what this pair becomes.
 //
 // NEGATIVE CONTROL: `E.X`, which names nothing.
-const int32_t N = (int32_t)E__X;
+const int32_t N = 1;
 
 int main(void) {
     if ((uint32_t)E__X != 1) {

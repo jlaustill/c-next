@@ -17,7 +17,7 @@
 extern const uint32_t N = 10U;
 
 /* Scope: S */
-const uint32_t S__N = 7U % 4U;
+const uint32_t S__N = 3U;
 
 uint8_t S__pick(void) {
     const uint8_t arr[4] = {5U, 6U, 7U, 8U};

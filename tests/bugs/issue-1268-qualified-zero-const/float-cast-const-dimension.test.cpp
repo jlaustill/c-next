@@ -6,7 +6,6 @@
 #include "float-cast-const-dimension.test.hpp"
 
 #include <stdint.h>
-#include <limits.h>
 
 // test-execution
 // test-adr: 024
@@ -16,9 +15,9 @@
 // in its initializer, '2.5' is a floating-point value".
 //
 // CONTROL: M, from `(u32)3.99`, is 3 -- the cast truncates, it does not round.
-extern const uint32_t N = ((2.5) >= ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (2.5) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((2.5)));
+extern const uint32_t N = 2U;
 
-extern const uint32_t M = ((3.99) >= ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (3.99) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((3.99)));
+extern const uint32_t M = 3U;
 
 extern const uint8_t two[2] = {};
 

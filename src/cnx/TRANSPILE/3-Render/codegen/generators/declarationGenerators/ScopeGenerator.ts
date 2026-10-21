@@ -178,7 +178,7 @@ function renderRegularVariable(
   const constPrefix = plan.isConst ? "const " : "";
 
   // Build declaration with all dimensions
-  let decl = `${staticPrefix}${volatilePrefix}${constPrefix}${type} ${plan.fullName}`;
+  let decl = `${plan.note}${staticPrefix}${volatilePrefix}${constPrefix}${type} ${plan.fullName}`;
   decl += plan.renderArrayTypeDimensions();
 
   if (plan.renderCStyleDimensions) {

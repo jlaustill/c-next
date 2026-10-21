@@ -48,7 +48,7 @@ static inline uint32_t cnx_value_char_count_signed(int64_t value) {
 
 const uint32_t counter = 300U;
 
-const uint32_t globalBits = 32;
+const uint32_t globalBits = 32U;
 
 /* Scope: Meter */
 

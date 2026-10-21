@@ -1,0 +1,22 @@
+// test-execution
+// test-adr: 044
+// Issue #1735: a file-scope initializer that names a const C-Next has no
+// value for, and C does -- a char literal, a header macro -- is written as
+// that const is where it is used: the literal or the macro, never the const
+// object, which is not a C constant expression.
+#include "static-limit.h"
+
+u8 CH <- 'A';
+u8 first <- CH;
+u32 FROM_MACRO <- STATIC_LIMIT;
+u32 fromMacro <- FROM_MACRO;
+
+u32 main() {
+    if (first != 65) {
+        return 1;
+    }
+    if (fromMacro != 10) {
+        return 2;
+    }
+    return 0;
+}

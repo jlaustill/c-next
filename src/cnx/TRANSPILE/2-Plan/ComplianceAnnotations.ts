@@ -71,6 +71,16 @@ class ComplianceAnnotations {
   };
 
   /**
+   * #1735, #1765: a value in a file-scope or scope variable's initializer
+   * that reads a name, written as the value C-Next folded it to.
+   */
+  static readonly STATIC_VALUE: IComplianceAnnotation = {
+    citation: "C11 6.7.9p4",
+    what: "static-storage initializer written as its folded value",
+    why: "C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one",
+  };
+
+  /**
    * A slice copy unrolled to per-element writes.
    *
    * Only cited when an equivalent `memcpy` would genuinely violate the rule --
@@ -181,6 +191,7 @@ class ComplianceAnnotations {
       ComplianceAnnotations.FOREVER_LOOP,
       ComplianceAnnotations.INIT_PROTOTYPE,
       ComplianceAnnotations.STRING_SELF_COPY,
+      ComplianceAnnotations.STATIC_VALUE,
       ComplianceAnnotations.sliceUnroll("uint8_t", "uint32_t"),
       ComplianceAnnotations.floatBitsUnion("float", "uint32_t"),
       ComplianceAnnotations.movedName("hidesFileScope", "g", "f__g"),

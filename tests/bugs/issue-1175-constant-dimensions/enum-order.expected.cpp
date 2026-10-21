@@ -16,7 +16,7 @@
 // relies on #1624's open type row; its fix decides what this pair becomes.
 //
 // NEGATIVE CONTROL: `E.X`, which names nothing.
-extern const int32_t N = static_cast<int32_t>(E__X);
+extern const int32_t N = 1;
 
 int main(void) {
     if (static_cast<uint32_t>(E__X) != 1) {

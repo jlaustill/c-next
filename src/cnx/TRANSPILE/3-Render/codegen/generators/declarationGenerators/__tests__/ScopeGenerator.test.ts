@@ -98,6 +98,7 @@ function regular(
     renderCStyleDimensions: null,
     renderStringCapacityDimension: () => "",
     renderInitializer: () => " = 0",
+    note: "",
     ...overrides,
   };
 }
@@ -304,6 +305,7 @@ describe("ScopeGenerator", () => {
                 renderCStyleDimensions: () => "[2]",
                 renderStringCapacityDimension: () => "[33]",
                 renderInitializer: () => " = {0}",
+                note: "",
               }),
             }),
           ],
@@ -404,6 +406,7 @@ describe("ScopeGenerator", () => {
                 renderType: () => "Handle",
                 renderArrayTypeDimensions: () => "[4]",
                 renderInitializer: () => " = {0}",
+                note: "",
               }),
             }),
           ],
