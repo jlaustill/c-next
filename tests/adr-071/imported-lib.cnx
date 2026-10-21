@@ -9,8 +9,8 @@ string<16> LIBS <- "";
 mut string<16> LIBS_M <- "";
 u8[4] LIBA;
 mut u8[4] LIBA_M;
-Dev LIBH <- dev_open();
-mut Dev LIBH_M <- dev_open();
+Dev LIBH;
+mut Dev LIBH_M;
 
 scope Lib {
     public u32 V <- 0;

@@ -1,14 +1,14 @@
-25:20 error[E0909]: Static initializer must be known at compile time: 'g' is a variable
+31:20 error[E0909]: Static initializer must be known at compile time: 'g' is a variable
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
-26:17 error[E0909]: Static initializer must be known at compile time: 'f()' is a function call
+32:17 error[E0909]: Static initializer must be known at compile time: 'f()' is a function call
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
-28:19 error[E0909]: Static initializer must be known at compile time: 'gColor' is a variable
+34:19 error[E0909]: Static initializer must be known at compile time: 'gColor' is a variable
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
-29:17 error[E0909]: Static initializer must be known at compile time: 'gPoint' is a variable
+35:17 error[E0909]: Static initializer must be known at compile time: 'gPoint' is a variable
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
-33:13 error[E0909]: Static initializer must be known at compile time: 'g' is a variable
+39:13 error[E0909]: Static initializer must be known at compile time: 'g' is a variable
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
-34:14 error[E0909]: Static initializer must be known at compile time: 'f()' is a function call
+40:14 error[E0909]: Static initializer must be known at compile time: 'f()' is a function call
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
-35:14 error[E0909]: Static initializer must be known at compile time: 'this.flag' is a variable
+41:14 error[E0909]: Static initializer must be known at compile time: 'this.flag' is a variable
        help: A file-scope or scope variable is initialized before the program runs, so C requires a constant expression (C99 6.7.8p4): literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
