@@ -19,6 +19,7 @@ import type IPlannedClamp from "./IPlannedClamp";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
 import type IPlannedWholeArrayWrite from "./IPlannedWholeArrayWrite";
 import type IPlannedExpectedType from "./IPlannedExpectedType";
+import type IPlannedStaticValue from "./IPlannedStaticValue";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
 import type TStructInitializerForm from "./TStructInitializerForm";
@@ -42,6 +43,10 @@ interface IFilePlan {
 
   /** Which private scope consts are inlined, not declared (#282) */
   readonly inlinedConsts: ReadonlySet<TDeclarationSyntax>;
+  /** #1735: each static-storage value written as its folded value, as it is spelled */
+  readonly staticValues: ReadonlyMap<TExpression, IPlannedStaticValue>;
+  /** #1735: the declarations a name was folded in, annotated where they are written */
+  readonly staticValueNotes: ReadonlySet<TDeclarationSyntax>;
 
   /** The plan for each type the file writes */
   readonly types: ReadonlyMap<TTypeSyntax, IPlannedType>;

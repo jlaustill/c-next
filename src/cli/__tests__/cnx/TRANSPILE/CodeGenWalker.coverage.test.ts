@@ -1102,8 +1102,10 @@ describe("CodeGenWalker Coverage Tests", () => {
   describe("Type narrowing checks", () => {
     it("should handle type conversion in assignment", () => {
       const source = `
-        u32 big <- 1000;
-        u8 small <- big[0, 8];
+        void test() {
+          u32 big <- 1000;
+          u8 small <- big[0, 8];
+        }
       `;
       const { code } = setupGenerator(source, { cppMode: false });
       expect(code).toContain("small");

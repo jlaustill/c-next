@@ -18,7 +18,7 @@ extern const uint32_t N = 4U;
 
 extern const uint8_t garr[4] = {};
 
-extern const uint32_t FILE_K = 4;
+extern const uint32_t FILE_K = 4U;
 
 uint8_t other[4] = {};
 

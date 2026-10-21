@@ -51,6 +51,7 @@ import RedeclarationAnalyzer from "./RedeclarationAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
+import StaticInitializerAnalyzer from "./StaticInitializerAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
@@ -505,6 +506,17 @@ function runAnalyzers(
     {
       label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
       run: () => new BitAccessAnalyzer(context).analyze(parsed.program),
+    },
+    {
+      // #1735: after every rule that owns a cause a value can have no value
+      // for -- a shift (E0805), a division (E0800), a dimension's own (E0909)
+      // -- so a program is told that cause, once
+      label: "static-storage initializers (ADR-044, E0909/E0910)",
+      run: () =>
+        new StaticInitializerAnalyzer(context).analyze(
+          parsed.program,
+          positions(),
+        ),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

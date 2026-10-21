@@ -1,11 +1,15 @@
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TExpression from "../../types/syntax/TExpression";
-import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
-import ExpressionNodes from "../../utils/ExpressionNodes";
 import WrittenParts from "./WrittenParts";
 import type ITypeSite from "./types/ITypeSite";
+import type IUnwrittenSyntax from "./types/IUnwrittenSyntax";
+
+const NOTHING_UNWRITTEN: IUnwrittenSyntax = {
+  declarations: new Set(),
+  values: new Set(),
+};
 
 /**
  * Every type 2.3 writes in one file, with the scope it is written in: what
@@ -14,21 +18,26 @@ import type ITypeSite from "./types/ITypeSite";
  * dimension or enum value, which 1.4 spells.
  */
 class TypeSites {
-  /** `unwritten`: declarations 2.2 decided 2.3 writes nothing of, e.g. an inlined private const (#282) */
+  /** `unwritten`: what 2.2 decided 2.3 writes none of the syntax of */
   static of(
     program: IProgramSyntax,
-    unwritten: ReadonlySet<TDeclarationSyntax> = new Set(),
+    unwritten: IUnwrittenSyntax = NOTHING_UNWRITTEN,
   ): readonly ITypeSite[] {
     return WrittenParts.of(program, unwritten).flatMap(({ part, scope }) =>
-      TypeSites.inPart(part).map((type) => ({ type, scope })),
+      TypeSites.inPart(part, unwritten).map((type) => ({ type, scope })),
     );
   }
 
-  private static inPart(part: TSyntaxPart): TTypeSyntax[] {
+  private static inPart(
+    part: TSyntaxPart,
+    unwritten: IUnwrittenSyntax,
+  ): TTypeSyntax[] {
     if (part.kind === "type") return [part.type];
     return part.constant
       ? []
-      : ExpressionNodes.direct(part.expression).flatMap(TypeSites.namedBy);
+      : WrittenParts.nodes(part.expression, unwritten).flatMap(
+          TypeSites.namedBy,
+        );
   }
 
   /** The type a `cast` names */

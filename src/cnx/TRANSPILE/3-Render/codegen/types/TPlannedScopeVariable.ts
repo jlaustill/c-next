@@ -46,6 +46,8 @@ type TPlannedScopeVariable =
       readonly renderCStyleDimensions: (() => string) | null;
       readonly renderStringCapacityDimension: () => string;
       readonly renderInitializer: () => string;
+      /** #1735: the compliance annotation written above it, or "" */
+      readonly note: string;
     };
 
 export default TPlannedScopeVariable;

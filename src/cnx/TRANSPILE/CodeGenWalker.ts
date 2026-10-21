@@ -1,5 +1,6 @@
 import InterruptMask from "./3-Render/codegen/helpers/InterruptMask";
 import type IPlannedArgument from "./2-Plan/types/IPlannedArgument";
+import type IPlannedStaticValue from "./2-Plan/types/IPlannedStaticValue";
 import LengthProperty from "../utils/LengthProperty";
 import GeneratedBanner from "../utils/GeneratedBanner";
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
@@ -40,6 +41,7 @@ import type TStringValueForm from "../types/TStringValueForm";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
+import StaticInitializers from "./1-Analyze/helpers/StaticInitializers";
 import type TChainRoot from "../types/TChainRoot";
 import type TValueBinding from "../types/TValueBinding";
 import IComment from "../types/IComment";
@@ -173,6 +175,7 @@ import WrittenCTypes from "./3-Render/codegen/helpers/WrittenCTypes";
 import invariant from "../utils/invariant";
 import StringUtils from "../utils/StringUtils";
 import AdrProvenance from "../instrumentation/AdrProvenance";
+import ExpressionNodes from "../utils/ExpressionNodes";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
@@ -346,7 +349,60 @@ class CodeGenWalker {
   }
 
   private renderExpression(expr: TExpression): string {
+    const folded = this.filePlan.staticValues.get(expr);
+    if (folded !== undefined) {
+      const written = PrivateConstValue.written(
+        this.host.getState(),
+        this.planner.transpileState,
+        folded.spelling,
+        folded.narrowing,
+      );
+      this.host.applyEffects(written.effects);
+      this.recordFoldedRules(expr, folded);
+      return written.code;
+    }
     return this.invokeGenerator(generateTernaryExpr, this.planTernary(expr));
+  }
+
+  /**
+   * #1735: the rules a folded value applied, recorded where they fired, by
+   * the decisions writing it would have asked: ADR-044's clamp, where 2.2
+   * planned a helper for the chain; ADR-001's `=` as equality; and
+   * ADR-057's resolution of each bare name
+   */
+  private recordFoldedRules(
+    expr: TExpression,
+    folded: IPlannedStaticValue,
+  ): void {
+    for (const line of folded.clampLines) AdrProvenance.record("044", line);
+    for (const node of ExpressionNodes.direct(expr)) {
+      if (node.kind !== "binary") continue;
+      const equality =
+        node.level === "equality"
+          ? BinaryExprUtils.equalityAdrLine(node.operators, node.span.line)
+          : undefined;
+      if (equality !== undefined) AdrProvenance.record("001", equality);
+    }
+    for (const name of StaticInitializers.bareNames(expr)) {
+      TypeValidator.resolveBareIdentifier(
+        name.path[0],
+        name.at,
+        (typeName: string) => this.host.isKnownStruct(typeName),
+        this.host.state,
+      );
+    }
+  }
+
+  /**
+   * #1735: why a static-storage initializer that read a name is written as
+   * its value. C's rule alone: C++ initializes such a variable dynamically,
+   * so there the naive form broke no rule to cite
+   */
+  private staticValueNote(declaration: TDeclarationSyntax): string {
+    return this.filePlan.staticValueNotes.has(declaration) &&
+      !this.host.state.cppMode
+      ? ComplianceAnnotations.render(ComplianceAnnotations.STATIC_VALUE) + "\n"
+      : "";
   }
 
   /**
@@ -665,7 +721,7 @@ class CodeGenWalker {
           defaultOperator: "=",
           operators,
           mapOperator: BinaryExprUtils.mapEqualityOperator,
-          adrLine: operators.includes("=") ? expr.span.line : undefined,
+          adrLine: BinaryExprUtils.equalityAdrLine(operators, expr.span.line),
           strcmp: isStrcmp ? { isNotEqual: operators[0] === "!=" } : null,
           renderOperands,
         };
@@ -1755,10 +1811,12 @@ class CodeGenWalker {
       case "variableDeclaration":
       case "constructorDeclaration":
         return (
+          this.staticValueNote(declaration) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(declaration),
             this.host.state,
-          ) + "\n"
+          ) +
+          "\n"
         );
       case "missing":
         return "";
@@ -1977,6 +2035,7 @@ class CodeGenWalker {
           FilePlanner.stringCapacityOf(decl.type),
         ),
       renderInitializer: () => this.renderScopeInitializer(decl, isArray),
+      note: this.staticValueNote(decl),
     };
   }
 

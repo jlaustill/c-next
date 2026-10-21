@@ -18,7 +18,7 @@ const uint32_t N = 4U;
 
 const uint8_t garr[4] = {0};
 
-const uint32_t FILE_K = 4;
+const uint32_t FILE_K = 4U;
 
 uint8_t other[4] = {0};
 

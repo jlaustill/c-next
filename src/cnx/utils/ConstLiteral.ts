@@ -67,12 +67,43 @@ class ConstLiteral {
     symbol: IVariableSymbol,
     settled: TSettledConst | null,
   ): TConstLiteral | null {
+    if (settled?.kind === "value") {
+      return {
+        kind: "integer",
+        digits: settled.digits,
+        text: ConstLiteral.integerText(symbol, settled.digits),
+      };
+    }
+    return (
+      ConstLiteral.valueLiteral(program, settled) ??
+      ConstLiteral.unsettledLiteral(symbol, settled)
+    );
+  }
+
+  /**
+   * #1735: how C writes a settled value that has no declaration of its own,
+   * such as one value in a static-storage initializer: an integer is its
+   * digits. Null when it has no value C can take.
+   */
+  static textOfValue(
+    program: IProgram,
+    settled: TSettledConst | null,
+  ): string | null {
+    const literal = ConstLiteral.valueLiteral(program, settled);
+    return literal === null ? null : ConstLiteral.spell(literal);
+  }
+
+  /** The literal a value is, or null when it has none */
+  private static valueLiteral(
+    program: IProgram,
+    settled: TSettledConst | null,
+  ): TConstLiteral | null {
     switch (settled?.kind) {
       case "value":
         return {
           kind: "integer",
           digits: settled.digits,
-          text: ConstLiteral.integerText(symbol, settled.digits),
+          text: settled.digits,
         };
       case "float": {
         const text = ConstLiteral.floatText(settled);
@@ -85,7 +116,7 @@ class ConstLiteral {
         return cName === null ? null : { kind: "member", cName };
       }
       default:
-        return ConstLiteral.unsettledLiteral(symbol, settled);
+        return null;
     }
   }
 

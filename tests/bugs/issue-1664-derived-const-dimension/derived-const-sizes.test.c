@@ -9,7 +9,6 @@
 
 // test-execution
 // test-no-warnings
-// test-target-xfail: atmega328p c #1765 "initializer element is not constant"
 // A const derived from another const sizes an array like a literal one does.
 // 1.3 and 1.4 folded integer literals only, and render re-folded the rest
 // itself. So `u8[B] table` was `table[4]` in the .c and `table[B]` in the .h,
@@ -19,14 +18,16 @@
 // arithmetic in a file-scope const initializer is #1735.
 const uint32_t A = 4U;
 
-const uint32_t B = A;
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint32_t B = 4U;
 
 const uint8_t table[4] = {0};
 
 const Packet packet = {0};
 
 /* Scope: Buffer */
-const uint32_t Buffer__C = B;
+/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
+const uint32_t Buffer__C = 4U;
 const uint8_t Buffer__bytes[4] = {0};
 
 // NEGATIVE CONTROL: a literal const sized arrays before this change too

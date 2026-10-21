@@ -1,7 +1,10 @@
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
 import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import MainSignature from "../../utils/MainSignature";
+import type IUnwrittenSyntax from "./types/IUnwrittenSyntax";
 import type IWrittenPart from "./types/IWrittenPart";
 
 /**
@@ -9,10 +12,10 @@ import type IWrittenPart from "./types/IWrittenPart";
  * is written in: what 2.2 decides before 2.3 renders any of the file (#1991).
  */
 class WrittenParts {
-  /** `unwritten`: declarations 2.2 decided 2.3 writes nothing of, e.g. an inlined private const (#282) */
+  /** Every part but the declarations 2.2 decided 2.3 writes nothing of */
   static of(
     program: IProgramSyntax,
-    unwritten: ReadonlySet<TDeclarationSyntax>,
+    unwritten: IUnwrittenSyntax,
   ): readonly IWrittenPart[] {
     return program.declarations.flatMap(({ declaration }) =>
       declaration.kind === "scope"
@@ -20,12 +23,25 @@ class WrittenParts {
             .filter(
               (member) =>
                 !WrittenParts.headerText(member.declaration) &&
-                !unwritten.has(member.declaration),
+                !unwritten.declarations.has(member.declaration),
             )
             .flatMap((member) =>
               WrittenParts.inDeclaration(member.declaration, declaration.name),
             )
         : WrittenParts.inDeclaration(declaration, null),
+    );
+  }
+
+  /**
+   * `expr` and every expression nested in it that 2.3 writes: none of a value
+   * it writes as its folded value (#1735)
+   */
+  static nodes(
+    expr: TExpression,
+    unwritten: IUnwrittenSyntax,
+  ): readonly TExpression[] {
+    return ExpressionNodes.direct(expr).filter(
+      (node) => !unwritten.values.has(node),
     );
   }
 

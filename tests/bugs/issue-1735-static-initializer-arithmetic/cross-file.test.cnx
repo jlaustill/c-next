@@ -1,0 +1,34 @@
+// test-execution
+// test-adr: 044
+// Issues #1735 and #1218: a static-storage initializer that reads a const from
+// an included file is its folded value, as one that reads a const in its own
+// file is. The include's header declares the const extern, which C cannot
+// read in a constant expression.
+#include "static-provider.cnx"
+
+u32 copied <- BASE;
+u32 sum <- BASE + 1;
+u8[2] smalls <- [SMALL, SMALL * 2];
+
+scope Holder {
+    public u32 doubled <- BASE * 2;
+}
+
+u32 main() {
+    if (copied != 7) {
+        return 1;
+    }
+    if (sum != 8) {
+        return 2;
+    }
+    if (smalls[0] != 5) {
+        return 3;
+    }
+    if (smalls[1] != 10) {
+        return 4;
+    }
+    if (Holder.doubled != 14) {
+        return 5;
+    }
+    return 0;
+}

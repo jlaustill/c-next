@@ -28,7 +28,6 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // test-execution
 // test-adr: 001
-// test-target-xfail: atmega328p c #1765 "initializer element is not constant"
 // ADR-001: `<-` assigns and `=` compares. Exercised in all four structural
 // contexts of the scope-context matrix, at include depth 0 (same file).
 //
@@ -42,10 +41,10 @@ extern const uint8_t ALSO_FIVE = 5U;
 
 // global-variable context: the comparison is decided inside a file-scope
 // variable declaration.
-extern const bool gEqual = FIVE == ALSO_FIVE;
+extern const bool gEqual = true;
 
 /* Scope: Cfg */
-const bool Cfg__mEqual = FIVE == ALSO_FIVE;
+const bool Cfg__mEqual = true;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;

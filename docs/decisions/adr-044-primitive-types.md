@@ -648,10 +648,10 @@ chances for them to disagree.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                                              | Asserted by                                                                                                                                 |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0910 | A value fixed at compile time -- an array's size, an enum member's value -- is arithmetic that would clamp or wrap at its operands' width ("Values fixed at compile time") | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx` |
-| E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                               | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                  |
+| Code  | Reported when                                                                                                                                                                                                                                                                 | Asserted by                                                                                                                                                                                                                 |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0910 | A value fixed at compile time -- an array's size, an enum member's value, a file-scope or scope variable's initializer (#1735) -- is arithmetic that would clamp or wrap at its operands' width, or a cast of a value its type does not hold ("Values fixed at compile time") | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`, `tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow.test.cnx` |
+| E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                                                                                                                                  | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                                                                                                  |
 
 ## Scope-Context Matrix
 
@@ -677,10 +677,14 @@ Until #1303 this ADR declared no matrix at all, which per
 anywhere — and the defect #1303 fixed was precisely a cell nothing was watching:
 the declared behavior was dropped the moment a symbol crossed a file boundary.
 
-**No cell is `off`.** All four contexts are reachable: the lowering fires in a
-file-scope initializer (`u8 sum <- base + 10` emits `cnx_clamp_add_u8`) as
-readily as in a function body, so `global variable` is uncovered rather than
-impossible. Declaring `off` anywhere here would be the quiet-report claim this
+**No cell is `off`.** All four contexts are reachable: the rule fires in a
+file-scope initializer as readily as in a function body, so `global variable`
+is uncovered rather than impossible. There it fires as a rejection, not a
+helper call (#1735): a file-scope or scope variable's initializer is a value
+fixed at compile time, so `u8 sum <- base + 10` with `base` at 250 is E0910,
+and one that fits is written as its folded value. It used to emit
+`cnx_clamp_add_u8`, a call C does not take in a static initializer (C11
+6.7.9p4). Declaring `off` anywhere here would be the quiet-report claim this
 project treats as dishonest.
 
 Three cells are occupied and `error`. The other nine are **untested**, not

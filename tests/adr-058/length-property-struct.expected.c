@@ -17,11 +17,11 @@
 // ADR-058's ### Struct Examples block, as written there
 const SensorReading reading = {0};
 
-const uint32_t bits = 88;
+const uint32_t bits = 88U;
 
-const uint32_t bytes = 11;
+const uint32_t bytes = 11U;
 
-const uint32_t fields = 4;
+const uint32_t fields = 4U;
 
 const SensorReading readings[100] = {0};
 

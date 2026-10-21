@@ -7,7 +7,6 @@
 
 // test-execution
 // test-adr: 001
-// test-target-xfail: atmega328p c #1765 "initializer element is not constant"
 // ADR-001: `<-` assigns and `=` compares, exercised in all four structural
 // contexts at include depth 1 (one hop).
 //
@@ -49,10 +48,10 @@ extern const uint8_t LOCAL_FIVE = 5U;
 extern const uint8_t LOCAL_ALSO_FIVE = 5U;
 
 // global-variable context.
-extern const bool gEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+extern const bool gEqual = true;
 
 /* Scope: Cfg */
-const bool Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+const bool Cfg__mEqual = true;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;

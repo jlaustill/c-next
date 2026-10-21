@@ -1,0 +1,26 @@
+// test-execution
+// test-adr: 044
+// Issue #1735: arithmetic in a static-storage initializer is a value fixed at
+// compile time (ADR-044). C requires a constant expression there, so the
+// initializer is its folded value, never a clamp helper call.
+
+u32 A <- 4;
+u32 B <- A * 2;
+mut u32 C <- A + 1;
+
+scope Buffer {
+    public u32 F <- B + 1;
+}
+
+u32 main() {
+    if (B != 8) {
+        return 1;
+    }
+    if (C != 5) {
+        return 2;
+    }
+    if (Buffer.F != 9) {
+        return 3;
+    }
+    return 0;
+}

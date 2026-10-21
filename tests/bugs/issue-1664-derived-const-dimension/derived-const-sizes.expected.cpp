@@ -9,7 +9,6 @@
 
 // test-execution
 // test-no-warnings
-// test-target-xfail: atmega328p c #1765 "initializer element is not constant"
 // A const derived from another const sizes an array like a literal one does.
 // 1.3 and 1.4 folded integer literals only, and render re-folded the rest
 // itself. So `u8[B] table` was `table[4]` in the .c and `table[B]` in the .h,
@@ -19,14 +18,14 @@
 // arithmetic in a file-scope const initializer is #1735.
 extern const uint32_t A = 4U;
 
-extern const uint32_t B = A;
+extern const uint32_t B = 4U;
 
 extern const uint8_t table[4] = {};
 
 extern const Packet packet = {};
 
 /* Scope: Buffer */
-const uint32_t Buffer__C = B;
+const uint32_t Buffer__C = 4U;
 const uint8_t Buffer__bytes[4] = {};
 
 // NEGATIVE CONTROL: a literal const sized arrays before this change too

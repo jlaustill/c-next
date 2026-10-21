@@ -1,0 +1,16 @@
+35:20 error[E0909]: Static initializer must be known at compile time: 'g' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+36:17 error[E0909]: Static initializer must be known at compile time: 'f()' is a function call
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+38:19 error[E0909]: Static initializer must be known at compile time: 'gColor' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+39:17 error[E0909]: Static initializer must be known at compile time: 'gPoint' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+40:17 error[E0909]: Static initializer must be known at compile time: 'STATIC_UNREAD' is not declared in cnx, so only an included C or C++ header can define it, and C-Next cannot read its value to check the arithmetic does not clamp or wrap (ADR-044)
+       help: Declare the value in C-Next, or #define it as an integer literal C-Next can read
+44:13 error[E0909]: Static initializer must be known at compile time: 'g' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+45:14 error[E0909]: Static initializer must be known at compile time: 'f()' is a function call
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+46:14 error[E0909]: Static initializer must be known at compile time: 'this.flag' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts

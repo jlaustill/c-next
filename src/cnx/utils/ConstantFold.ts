@@ -16,6 +16,7 @@
  * where it is written, so the environment needs only the file.
  */
 import ConstantEvaluator from "./ConstantEvaluator";
+import invariant from "./invariant";
 import ConstExprPrinter from "./ConstExprPrinter";
 import TypeCheckUtils from "./TypeCheckUtils";
 import TTypeUtils from "./TTypeUtils";
@@ -52,6 +53,44 @@ class ConstantFold {
         program.cTypeNameAt(sourceFile, typeName, at),
       isTypeName: (typeName, at) =>
         program.isTypeNameAt(sourceFile, typeName, at),
+    };
+  }
+
+  /**
+   * `environment`, except that a macro from an included C header whose C
+   * replacement C-Next can read (`HeaderMacros`: plain integer arithmetic)
+   * answers that value at the target's `int` width (#1283 review). Folding
+   * alone leaves it to C (`foreign`), which is right for a spelling C writes
+   * -- a dimension stays `N_HANDLERS` (#1127) -- but not where C-Next must
+   * know the value: an element count, or whether a static initializer's
+   * arithmetic would clamp or wrap (#1735 review 2).
+   */
+  static readingHeaderMacros(
+    program: IProgram,
+    sourceFile: string,
+  ): IConstantEnvironment {
+    const folded = ConstantFold.environment(program, sourceFile);
+    const target = program.target();
+    invariant(
+      target.kind === "resolved",
+      "Stage 3b halts a run whose target did not resolve",
+    );
+    const intBits = target.description.int_bits;
+    return {
+      ...folded,
+      valueOf: (name) => {
+        const bound = folded.valueOf(name);
+        if (bound.kind !== "foreign" || name.root !== null) return bound;
+        if (name.path.length !== 1) return bound;
+        const macro = program.headerMacro(sourceFile, name.path[0]);
+        const value =
+          macro?.kind === "integer"
+            ? (macro.valueByIntBits.get(intBits) ?? null)
+            : null;
+        return value === null
+          ? bound
+          : { kind: "value", value: BigInt(value), typeName: null };
+      },
     };
   }
 
@@ -113,15 +152,6 @@ class ConstantFold {
     env: IConstantEnvironment,
     type: TType,
   ): TSettledConst | null {
-    const typeName = ConstantFold.typeNameOf(type);
-    if (typeName !== null && TypeCheckUtils.isFloat(typeName)) {
-      return ConstantFold.floatConst(
-        expr,
-        env,
-        typeName === "f32" ? "f32" : "f64",
-      );
-    }
-    if (typeName === "bool") return ConstantFold.boolConst(expr, env);
     if (type.kind === "enum" || type.kind === "struct") {
       const result = ConstantEvaluator.evaluate(expr, env);
       return result.kind === "value"
@@ -132,7 +162,31 @@ class ConstantFold {
           }
         : null;
     }
-    if (typeName === null || !TypeCheckUtils.isInteger(typeName)) return null;
+    const typeName = ConstantFold.typeNameOf(type);
+    return typeName === null
+      ? null
+      : ConstantFold.primitiveValue(expr, env, typeName);
+  }
+
+  /**
+   * #1735: a value of a C-Next primitive type, held at that type -- a
+   * const's initializer and each value in a static-storage initializer
+   * alike. Null for a type that is not a number or a bool.
+   */
+  static primitiveValue(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+    typeName: string,
+  ): TSettledConst | null {
+    if (TypeCheckUtils.isFloat(typeName)) {
+      return ConstantFold.floatConst(
+        expr,
+        env,
+        typeName === "f32" ? "f32" : "f64",
+      );
+    }
+    if (typeName === "bool") return ConstantFold.boolConst(expr, env);
+    if (!TypeCheckUtils.isInteger(typeName)) return null;
     const result = ConstantEvaluator.evaluate(expr, env, typeName);
     if (result.kind !== "value") return result;
     const range = TypeCheckUtils.integerRange(typeName)!;
@@ -146,11 +200,11 @@ class ConstantFold {
   private static boolConst(
     expr: TConstExpr,
     env: IConstantEnvironment,
-  ): TSettledConst | null {
+  ): TSettledConst {
     const result = ConstantEvaluator.evaluate(expr, env, "bool");
     return result.kind === "value"
       ? { kind: "bool", value: result.value !== 0n }
-      : null;
+      : result;
   }
 
   private static floatConst(

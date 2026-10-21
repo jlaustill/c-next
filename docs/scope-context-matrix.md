@@ -401,9 +401,9 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | ok        | warn   | warn       | n/a         | n/a        |
+| global variable    | ok        | ok     | warn       | n/a         | n/a        |
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
-| scope member       | warn      | warn   | warn       | n/a         | n/a        |
+| scope member       | ok        | ok     | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 

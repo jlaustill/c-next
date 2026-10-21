@@ -1232,6 +1232,7 @@ scope Gauge {
         "codeGenSymbolsFor",
         "conflicts",
         "constantOf",
+        "constantTargetOf",
         "constantValueOf",
         "cppMode",
         "declarationOf",

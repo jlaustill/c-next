@@ -17,7 +17,7 @@
 // rejected it), and a u64 const keeps its value past 2^53.
 //
 // NEGATIVE CONTROL: `small`, whose literals fit i32 anyway.
-const uint32_t BIG = 3000000000U + 1U;
+const uint32_t BIG = 3000000001U;
 
 uint8_t b[3] = {0};
 
