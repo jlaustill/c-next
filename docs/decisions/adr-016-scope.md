@@ -775,7 +775,7 @@ and `this.N` is too). The same settled value sizes an array and stands where
 the const is named, so `const u32 M <- N * 2;` is 20 at both places.
 
 A use can stand in a static initializer (`bool flag <- EN;` at scope level),
-where C99 6.7.8p4 takes only a constant expression and a `const` object is not
+where C11 6.7.9p4 takes only a constant expression and a `const` object is not
 one. So a private const is written, wherever it is named, as a literal of its
 declared type that holds its settled value:
 

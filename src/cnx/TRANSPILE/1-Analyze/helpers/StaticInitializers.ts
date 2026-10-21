@@ -24,6 +24,7 @@ import type TExpression from "../../../types/syntax/TExpression";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
 import ConstExprPrinter from "../../../utils/ConstExprPrinter";
 import ConstantEvaluator from "../../../utils/ConstantEvaluator";
+import type IConstantEnvironment from "../../../utils/types/IConstantEnvironment";
 import ConstantFold from "../../../utils/ConstantFold";
 import LengthProperty from "../../../utils/LengthProperty";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
@@ -32,6 +33,8 @@ import type IStaticValue from "../types/IStaticValue";
 import ValuePositions from "./ValuePositions";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
+
+const WRAPPING_OPERATORS: ReadonlySet<string> = new Set(["+", "-", "*", "<<"]);
 type TReason = Extract<TSettledConst, { kind: "notConstant" }>["reason"];
 
 /** What a value of no number or bool type has no value for C by */
@@ -69,17 +72,49 @@ class StaticInitializers {
   /**
    * The value, held at its type, by the fold every pass shares. One of no
    * number or bool type is only asked whether it has a value: null when it
-   * does, why not when it does not.
+   * does, why not when it does not. A header macro is left to C, as it is
+   * written (#1127).
    */
   static settle(
     value: IStaticValue,
     program: IProgram,
     sourceFile: string,
   ): TSettledConst | null {
+    return StaticInitializers.settleIn(
+      value,
+      ConstantFold.environment(program, sourceFile),
+    );
+  }
+
+  /**
+   * `settle`, reading each header macro C-Next can: what 2.1 checks, so a
+   * macro's arithmetic clamps or wraps no more silently than a const's
+   * (#1735 review 2). C is still given the macro.
+   */
+  static check(
+    value: IStaticValue,
+    program: IProgram,
+    sourceFile: string,
+  ): TSettledConst | null {
+    return StaticInitializers.settleIn(
+      value,
+      ConstantFold.readingHeaderMacros(program, sourceFile),
+    );
+  }
+
+  private static settleIn(
+    value: IStaticValue,
+    env: IConstantEnvironment,
+  ): TSettledConst | null {
     const lowered = ConstExprLowering.lower(value.value);
-    const env = ConstantFold.environment(program, sourceFile);
     if (value.typeName !== null) {
-      return ConstantFold.primitiveValue(lowered, env, value.typeName);
+      const settled = ConstantFold.primitiveValue(lowered, env, value.typeName);
+      // A float fold past its type's range is infinite, which C has no
+      // constant for (#1735 review 2)
+      return settled?.kind === "float" &&
+        !Number.isFinite(Number(settled.digits))
+        ? { kind: "overflow", typeName: settled.typeName }
+        : settled;
     }
     const result = ConstantEvaluator.evaluate(lowered, env);
     return result.kind === "value" ? null : result;
@@ -113,9 +148,39 @@ class StaticInitializers {
     );
   }
 
-  /** Whether the value is a cast, whose operand is what does not fit */
-  static isCast(value: IStaticValue): boolean {
-    return ConstExprLowering.lower(value.value).kind === "cast";
+  /**
+   * Whether the value does arithmetic that can clamp or wrap: what C-Next
+   * must see every operand of to check (#1735 review 2)
+   */
+  static wraps(value: IStaticValue): boolean {
+    const wraps = (expr: TConstExpr): boolean => {
+      switch (expr.kind) {
+        case "binary":
+          return (
+            WRAPPING_OPERATORS.has(expr.op) ||
+            wraps(expr.left) ||
+            wraps(expr.right)
+          );
+        case "unary":
+          return expr.op === "-" || wraps(expr.operand);
+        case "cast":
+          return wraps(expr.operand);
+        case "ternary":
+          return (
+            wraps(expr.condition) ||
+            wraps(expr.whenTrue) ||
+            wraps(expr.whenFalse)
+          );
+        default:
+          return false;
+      }
+    };
+    return wraps(ConstExprLowering.lower(value.value));
+  }
+
+  /** The value's outermost form, which says what does not fit */
+  static formOf(value: IStaticValue): TConstExpr["kind"] {
+    return ConstExprLowering.lower(value.value).kind;
   }
 
   /**

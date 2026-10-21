@@ -15,17 +15,13 @@
 
 #include <stdint.h>
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t copied = 7U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t sum = 8U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint8_t smalls[2] = {5U, 10U};
 
 /* Scope: Holder */
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 const uint32_t Holder__doubled = 14U;
 
 int main(void) {

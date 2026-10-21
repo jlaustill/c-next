@@ -73,12 +73,13 @@ describe("2.2 plans a struct literal argument from its initializer's form", () =
     return forms;
   }
 
-  it("takes a compound literal's address, never a file-scope designated initializer's (#1530)", () => {
+  // A call in a file-scope initializer is E0909 since #1735, so a struct
+  // literal argument is only ever written in a function
+  it("takes a compound literal's address (#1530)", () => {
     const forms = argumentForms(
       [
         "struct P { u8 x; }",
         "u8 take(P p) { return p.x; }",
-        "u8 g <- take({ x: 1 });",
         "void f() {",
         "  u8 r <- take({ x: 2 });",
         "}",
@@ -86,7 +87,6 @@ describe("2.2 plans a struct literal argument from its initializer's form", () =
     );
 
     expect(Object.fromEntries(forms)).toEqual({
-      "1": "rvalue",
       "2": "literal-address",
     });
   });

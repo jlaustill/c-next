@@ -22,12 +22,10 @@
 
 extern const uint8_t CH = static_cast<uint8_t>('A');
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint8_t first = static_cast<uint8_t>('A');
 
 extern const uint32_t FROM_MACRO = STATIC_LIMIT;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t fromMacro = (STATIC_LIMIT);
 
 /* Scope: S */
@@ -36,32 +34,24 @@ const uint32_t S__LIMIT = STATIC_LIMIT;
 const uint32_t S__COUNT = 3U;
 const EColor S__COLOR = EColor__GREEN;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint8_t scoped = static_cast<uint8_t>('B');
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t scopedMacro = (STATIC_LIMIT);
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t scopedSum = 4U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint8_t provided = static_cast<uint8_t>('C');
 
 extern const uint32_t A = 4U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t mixed = STATIC_LIMIT + 4;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t sized = (((uint32_t)sizeof(P))) + 4;
 
 extern const EColor K = EColor__GREEN;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const EColor color = EColor__GREEN;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const EColor scopedColor = EColor__GREEN;
 
 int main(void) {

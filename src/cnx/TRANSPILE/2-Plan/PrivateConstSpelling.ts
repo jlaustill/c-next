@@ -28,7 +28,7 @@ const I64_MIN_SPELLED: IConstSpelling = {
  * `this.N + 1` reached C as written.
  *
  * A use is a C constant expression, because a use can stand in a static
- * initializer, where C99 6.7.8p4 takes nothing else (a `const` object is not
+ * initializer, where C11 6.7.9p4 takes nothing else (a `const` object is not
  * one): an integer is spelled as a literal of its type, a float as its value
  * held at its type, a bool as `true`/`false` and an enum as its member. Each
  * is rendered by `generateLiteral`, so it is spelled as a literal of its

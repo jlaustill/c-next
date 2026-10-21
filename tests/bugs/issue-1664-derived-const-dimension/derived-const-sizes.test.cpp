@@ -18,7 +18,6 @@
 // arithmetic in a file-scope const initializer is #1735.
 extern const uint32_t A = 4U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t B = 4U;
 
 extern const uint8_t table[4] = {};
@@ -26,7 +25,6 @@ extern const uint8_t table[4] = {};
 extern const Packet packet = {};
 
 /* Scope: Buffer */
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 const uint32_t Buffer__C = 4U;
 const uint8_t Buffer__bytes[4] = {};
 

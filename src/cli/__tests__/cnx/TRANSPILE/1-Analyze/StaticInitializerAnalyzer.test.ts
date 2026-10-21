@@ -54,6 +54,12 @@ describe("StaticInitializerAnalyzer", () => {
     ).toEqual(["2:E0910", "3:E0910", "5:E0910"]);
   });
 
+  it("rejects a float fold past its finite range, and not one that fits", () => {
+    expect(
+      codes("f32 F <- 3.0e38;\nf32 FO <- F * 10.0;\nf32 FW <- F * 0.5;"),
+    ).toEqual(["2:E0910"]);
+  });
+
   it("stays silent where the arithmetic fits", () => {
     expect(codes("u8 D <- 250;\nu16 W <- (u16)D + 10;")).toEqual([]);
   });

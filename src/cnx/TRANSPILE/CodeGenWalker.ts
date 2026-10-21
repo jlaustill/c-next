@@ -1,5 +1,6 @@
 import InterruptMask from "./3-Render/codegen/helpers/InterruptMask";
 import type IPlannedArgument from "./2-Plan/types/IPlannedArgument";
+import type IPlannedStaticValue from "./2-Plan/types/IPlannedStaticValue";
 import LengthProperty from "../utils/LengthProperty";
 import GeneratedBanner from "../utils/GeneratedBanner";
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
@@ -357,7 +358,7 @@ class CodeGenWalker {
         folded.narrowing,
       );
       this.host.applyEffects(written.effects);
-      this.recordFoldedRules(expr);
+      this.recordFoldedRules(expr, folded);
       return written.code;
     }
     return this.invokeGenerator(generateTernaryExpr, this.planTernary(expr));
@@ -365,16 +366,17 @@ class CodeGenWalker {
 
   /**
    * #1735: the rules a folded value applied, recorded where they fired, by
-   * the decisions writing it would have asked: ADR-044's value fixed at
-   * compile time, where it holds arithmetic; ADR-001's `=` as equality; and
+   * the decisions writing it would have asked: ADR-044's clamp, where 2.2
+   * planned a helper for the chain; ADR-001's `=` as equality; and
    * ADR-057's resolution of each bare name
    */
-  private recordFoldedRules(expr: TExpression): void {
+  private recordFoldedRules(
+    expr: TExpression,
+    folded: IPlannedStaticValue,
+  ): void {
+    for (const line of folded.clampLines) AdrProvenance.record("044", line);
     for (const node of ExpressionNodes.direct(expr)) {
       if (node.kind !== "binary") continue;
-      if (node.level === "additive" || node.level === "multiplicative") {
-        AdrProvenance.record("044", node.span.line);
-      }
       const equality =
         node.level === "equality"
           ? BinaryExprUtils.equalityAdrLine(node.operators, node.span.line)
@@ -391,9 +393,14 @@ class CodeGenWalker {
     }
   }
 
-  /** #1735: why a static-storage initializer that read a name is written as its value */
+  /**
+   * #1735: why a static-storage initializer that read a name is written as
+   * its value. C's rule alone: C++ initializes such a variable dynamically,
+   * so there the naive form broke no rule to cite
+   */
   private staticValueNote(declaration: TDeclarationSyntax): string {
-    return this.filePlan.staticValueNotes.has(declaration)
+    return this.filePlan.staticValueNotes.has(declaration) &&
+      !this.host.state.cppMode
       ? ComplianceAnnotations.render(ComplianceAnnotations.STATIC_VALUE) + "\n"
       : "";
   }

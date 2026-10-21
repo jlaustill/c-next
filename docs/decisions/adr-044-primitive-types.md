@@ -683,8 +683,8 @@ is uncovered rather than impossible. There it fires as a rejection, not a
 helper call (#1735): a file-scope or scope variable's initializer is a value
 fixed at compile time, so `u8 sum <- base + 10` with `base` at 250 is E0910,
 and one that fits is written as its folded value. It used to emit
-`cnx_clamp_add_u8`, a call C does not take in a static initializer (C99
-6.7.8p4). Declaring `off` anywhere here would be the quiet-report claim this
+`cnx_clamp_add_u8`, a call C does not take in a static initializer (C11
+6.7.9p4). Declaring `off` anywhere here would be the quiet-report claim this
 project treats as dishonest.
 
 Three cells are occupied and `error`. The other nine are **untested**, not

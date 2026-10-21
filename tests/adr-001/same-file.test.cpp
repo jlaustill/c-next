@@ -41,11 +41,9 @@ extern const uint8_t ALSO_FIVE = 5U;
 
 // global-variable context: the comparison is decided inside a file-scope
 // variable declaration.
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const bool gEqual = true;
 
 /* Scope: Cfg */
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 const bool Cfg__mEqual = true;
 
 uint32_t Cfg__check(void) {

@@ -1,11 +1,15 @@
 // test-error
 // test-adr: 044
 // Issues #1735 and #2018: a static-storage initializer needs a value known at
-// compile time (C99 6.7.8p4). A variable or a call has none, at file scope
-// and in a scope alike, whatever the value's type: an enum or a struct too.
+// compile time (ADR-044), in C++ as in C. A variable or a call has none, at
+// file scope and in a scope alike, whatever the value's type: an enum or a
+// struct too. Arithmetic over a header macro C-Next cannot read has none it
+// can check, so whether it clamps or wraps is not known.
 //
 // NEGATIVE CONTROL: K reads a read-only binding, which has one, and must stay
 // silent.
+
+#include "static-limit.h"
 
 enum EColor {
     RED,
@@ -33,6 +37,7 @@ bool FromCall <- f();
 u32 FromConst <- K + 1;
 EColor FromEnum <- gColor;
 Pt FromStruct <- gPoint;
+u8 FromUnread <- (u8)STATIC_UNREAD + 4;
 
 scope S {
     mut bool flag <- true;

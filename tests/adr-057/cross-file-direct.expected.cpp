@@ -33,7 +33,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Gauge */
 static uint32_t Gauge__total = 0U;
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 static uint32_t Gauge__primed = 3U;
 
 uint32_t Gauge__bump(void) {

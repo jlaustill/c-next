@@ -14,14 +14,11 @@
 // initializer is its folded value, never a clamp helper call.
 extern const uint32_t A = 4U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 extern const uint32_t B = 8U;
 
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 uint32_t C = 5U;
 
 /* Scope: Buffer */
-/* C11 6.7.9p4: static-storage initializer written as its folded value (C requires a constant expression there, and neither a read of a variable, even a `const` one, nor an ADR-044 clamp helper call is one). */
 const uint32_t Buffer__F = 9U;
 
 int main(void) {

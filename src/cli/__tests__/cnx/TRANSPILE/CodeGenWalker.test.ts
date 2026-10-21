@@ -4513,8 +4513,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate bit extraction for narrowing", () => {
       const source = `
-        u32 big <- 1000;
-        u8 small <- big[0, 8];
+        void test() {
+          u32 big <- 1000;
+          u8 small <- big[0, 8];
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5246,7 +5248,9 @@ describe("CodeGenWalker", () => {
         u32 add(u32 a, u32 b) {
           return a + b;
         }
-        u32 result <- add(10, 20);
+        void test() {
+          u32 result <- add(10, 20);
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5570,8 +5574,10 @@ describe("CodeGenWalker", () => {
   describe("Bit indexing read", () => {
     it("should generate bit read with single index", () => {
       const source = `
-        u8 flags <- 0xFF;
-        bool bit0 <- flags[0, 1] = 1;
+        void test() {
+          u8 flags <- 0xFF;
+          bool bit0 <- flags[0, 1] = 1;
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -5595,8 +5601,10 @@ describe("CodeGenWalker", () => {
 
     it("should generate multi-bit read", () => {
       const source = `
-        u8 data <- 0xAB;
-        u8 nibble <- data[4, 4];
+        void test() {
+          u8 data <- 0xAB;
+          u8 nibble <- data[4, 4];
+        }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.

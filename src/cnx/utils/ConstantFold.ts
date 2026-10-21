@@ -16,6 +16,7 @@
  * where it is written, so the environment needs only the file.
  */
 import ConstantEvaluator from "./ConstantEvaluator";
+import invariant from "./invariant";
 import ConstExprPrinter from "./ConstExprPrinter";
 import TypeCheckUtils from "./TypeCheckUtils";
 import TTypeUtils from "./TTypeUtils";
@@ -52,6 +53,44 @@ class ConstantFold {
         program.cTypeNameAt(sourceFile, typeName, at),
       isTypeName: (typeName, at) =>
         program.isTypeNameAt(sourceFile, typeName, at),
+    };
+  }
+
+  /**
+   * `environment`, except that a macro from an included C header whose C
+   * replacement C-Next can read (`HeaderMacros`: plain integer arithmetic)
+   * answers that value at the target's `int` width (#1283 review). Folding
+   * alone leaves it to C (`foreign`), which is right for a spelling C writes
+   * -- a dimension stays `N_HANDLERS` (#1127) -- but not where C-Next must
+   * know the value: an element count, or whether a static initializer's
+   * arithmetic would clamp or wrap (#1735 review 2).
+   */
+  static readingHeaderMacros(
+    program: IProgram,
+    sourceFile: string,
+  ): IConstantEnvironment {
+    const folded = ConstantFold.environment(program, sourceFile);
+    const target = program.target();
+    invariant(
+      target.kind === "resolved",
+      "Stage 3b halts a run whose target did not resolve",
+    );
+    const intBits = target.description.int_bits;
+    return {
+      ...folded,
+      valueOf: (name) => {
+        const bound = folded.valueOf(name);
+        if (bound.kind !== "foreign" || name.root !== null) return bound;
+        if (name.path.length !== 1) return bound;
+        const macro = program.headerMacro(sourceFile, name.path[0]);
+        const value =
+          macro?.kind === "integer"
+            ? (macro.valueByIntBits.get(intBits) ?? null)
+            : null;
+        return value === null
+          ? bound
+          : { kind: "value", value: BigInt(value), typeName: null };
+      },
     };
   }
 

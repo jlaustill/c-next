@@ -939,7 +939,16 @@ class FilePlanner {
         typing.sourceFile,
       );
       if (planned === null) continue;
-      values.set(value.value, planned);
+      values.set(value.value, {
+        ...planned,
+        clampLines: ExpressionNodes.direct(value.value).flatMap((node) =>
+          node.kind === "binary" &&
+          (node.level === "additive" || node.level === "multiplicative") &&
+          this.clampChain(node) !== null
+            ? [node.span.line]
+            : [],
+        ),
+      });
       if (
         StaticInitializers.readsVariable(
           value.value,
@@ -962,7 +971,7 @@ class FilePlanner {
     value: IStaticValue,
     program: IProgram,
     sourceFile: string,
-  ): IPlannedStaticValue | null {
+  ): Omit<IPlannedStaticValue, "clampLines"> | null {
     const settled = StaticInitializers.settle(value, program, sourceFile);
     // A value of no number or bool type folds only as the const it names (an
     // enum const, as its member)
@@ -991,6 +1000,14 @@ class FilePlanner {
         program,
         settled,
         value.typeName!,
+      );
+      // 2.1 stopped every value C-Next settled to nothing C can be given
+      // (E0909, E0910); what is left is C's to evaluate as written
+      invariant(
+        spelling !== null ||
+          settled === null ||
+          StaticInitializers.cHasValue(settled),
+        "2.1 rejects a static value with no spelling C takes",
       );
       return spelling === null ? null : { spelling, narrowing: null };
     }
@@ -1539,17 +1556,25 @@ class FilePlanner {
       const element = type.kind === "array" ? type.element : type;
       return element.kind === "string" && !scopeMembers.has(declaration);
     };
+    const inlined = new Set<IVariableDeclarationSyntax>(
+      [...unwritten.declarations].flatMap((declaration) =>
+        declaration.kind === "variableDeclaration" ? [declaration] : [],
+      ),
+    );
     const spellDeclared = (
       declaration: IVariableDeclarationSyntax,
     ): string | null => {
+      // An inlined const's initializer is never written, so nothing in it is
+      // written against its type
+      if (inlined.has(declaration)) return null;
       const type = declaration.type;
       if (copiesString(declaration)) return null;
       const planned = types.get(type);
-      if (scopeMembers.has(declaration)) {
-        if (planned === undefined) return null;
-        // A primitive is its C-Next name, as outside a scope: MISRA 10.3's
-        // casts are decided over C-Next types
-        return planned.primitiveName ?? this.cTypeOf(planned);
+      // A scope's string is the char array it is declared as, not copied in
+      // by the string helpers, so it is written against its C type
+      const element = type.kind === "array" ? type.element : type;
+      if (scopeMembers.has(declaration) && element.kind === "string") {
+        return planned === undefined ? null : this.cTypeOf(planned);
       }
       if (forInits.has(declaration)) {
         if (planned === undefined) return null;
