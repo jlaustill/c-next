@@ -1,6 +1,6 @@
 import CompositeType from "./CompositeType";
 import CExpression from "./CExpression";
-import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 import type IBitWidth from "../types/IBitWidth";
 import type IOperandType from "../types/IOperandType";
 
@@ -48,7 +48,7 @@ class BitUtils {
    */
   static storageOf(value: IOperandType | null): string | undefined {
     const type = CompositeType.integerOf([value]);
-    if (type !== null) return CNEXT_TO_C_TYPE_MAP[type];
+    if (type !== null) return CNX_TO_C_TYPE_MAP[type];
     const isInteger =
       value?.category === "signed" || value?.category === "unsigned";
     return isInteger ? (value.cType ?? undefined) : undefined;

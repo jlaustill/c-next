@@ -14,7 +14,7 @@ import CResolver from "../../PARSE/3-Declare/c/index";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import type IFileSymbols from "../../types/IFileSymbols";
 import invariant from "../../utils/invariant";
-import CNextResolver from "../../PARSE/3-Declare/cnext/index";
+import CnxResolver from "../../PARSE/3-Declare/cnx/index";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
 import type ITranspileError from "../../types/ITranspileError";
 
@@ -31,7 +31,7 @@ class TreePasses {
   ): { symbols: IFileSymbols; parseErrors: readonly ITranspileError[] } {
     const parsed = SourceSyntax.of(file.source);
     return {
-      symbols: CNextResolver.resolve(parsed.program, file.path, registry),
+      symbols: CnxResolver.resolve(parsed.program, file.path, registry),
       parseErrors: parsed.parseErrors,
     };
   }

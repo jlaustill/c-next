@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import DeclarationModifierAnalyzer from "../DeclarationModifierAnalyzer";
 
 /**
@@ -12,7 +12,7 @@ import DeclarationModifierAnalyzer from "../DeclarationModifierAnalyzer";
  */
 const errors = (source: string) => {
   return new DeclarationModifierAnalyzer().analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
   );
 };
 

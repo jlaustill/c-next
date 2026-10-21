@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import StatementNodes from "../StatementNodes";
 
 const kinds = (source: string): string[] =>
-  CNextSourceParser.parse(source).program.declarations.flatMap((member) =>
+  CnxSourceParser.parse(source).program.declarations.flatMap((member) =>
     StatementNodes.in(member.declaration).map((s) => s.kind),
   );
 
 describe("StatementNodes", () => {
   it("lists every assignment site, a for loop's init and update included", () => {
-    const sites = CNextSourceParser.parse(
+    const sites = CnxSourceParser.parse(
       `void f() { mut u8 a <- 0; for (a <- 1; a < 3; a +<- 1) { a -<- 0; } }`,
     ).program.declarations.flatMap((member) =>
       StatementNodes.assignments(member.declaration).map((s) => s.operator),
@@ -48,7 +48,7 @@ describe("StatementNodes", () => {
   });
 
   it("lists every case label, a nested switch's and a scope member's too", () => {
-    const labels = CNextSourceParser.parse(
+    const labels = CnxSourceParser.parse(
       `scope S { public void f(u8 a) { switch (a) { case 1 || 2 { if (a = 1) { switch (a) { case 3 { a <- 0; } default { } } } } default { } } } }`,
     ).program.declarations.flatMap((member) =>
       StatementNodes.caseLabels(member.declaration).map((label) =>

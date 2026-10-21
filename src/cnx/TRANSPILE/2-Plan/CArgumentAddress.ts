@@ -5,7 +5,7 @@ import type TCArgumentForm from "./types/TCArgumentForm";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
 import CallExprUtils from "./CallExprUtils";
 import CPointerParameter from "../../utils/CPointerParameter";
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 
 type TTypeQueries = Pick<
   IPlanQueries,
@@ -91,7 +91,7 @@ class CArgumentAddress {
     ) {
       return (
         declaredScalar &&
-        CNEXT_TO_C_TYPE_MAP[argType] === CPointerParameter.pointee(paramType)
+        CNX_TO_C_TYPE_MAP[argType] === CPointerParameter.pointee(paramType)
       );
     }
     if (argType in C_TYPE_WIDTH) return false;

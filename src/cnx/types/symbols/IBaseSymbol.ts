@@ -1,4 +1,4 @@
-import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../symbol-kinds/TSymbolKindCnx";
 import type ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TVisibility from "../TVisibility";
 import type ISourceSpan from "../ISourceSpan";
@@ -9,7 +9,7 @@ import type ISourceSpan from "../ISourceSpan";
  */
 interface IBaseSymbol {
   /** Symbol kind - discriminator for type narrowing */
-  readonly kind: TSymbolKindCNext;
+  readonly kind: TSymbolKindCnx;
 
   /** Symbol name -- the leaf, as the source spells it inside its scope */
   readonly name: string;

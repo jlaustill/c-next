@@ -3,7 +3,7 @@
  * the header that name is written (#1542), so a fault about the source --
  * E0509, a source that is not there -- is reported at the marker.
  */
-interface ICNextMarker {
+interface ICnxMarker {
   /** The source as the marker spells it (e.g. "led.cnx") */
   readonly sourcePath: string;
   /** 1-based line of the recorded name */
@@ -12,4 +12,4 @@ interface ICNextMarker {
   readonly column: number;
 }
 
-export default ICNextMarker;
+export default ICnxMarker;

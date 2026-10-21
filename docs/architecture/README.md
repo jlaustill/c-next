@@ -316,7 +316,7 @@ pass holds, so a dependency rule is a backstop rather than the primary guard.
 The backstop now exists (#1317), and since #1932 it is enforced. Two rules in
 `.dependency-cruiser.cjs` share one definition of what counts as holding a tree: importing
 a generated context, the `antlr4ng` runtime, a carrier of 1.2's artifact, or a 1.2 parser
-that returns a tree (`CNextSourceParser`, `HeaderParser`), since a caller holds what it
+that returns a tree (`CnxSourceParser`, `HeaderParser`), since a caller holds what it
 returns without naming its type (#1957).
 
 - `parse-tree-sites` (`info`) is the inventory: every module outside the parser that holds

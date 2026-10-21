@@ -14,8 +14,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CnxLexer } from "../../../PARSE/2-Parse/grammar/CnxLexer";
 import { CnxParser } from "../../../PARSE/2-Parse/grammar/CnxParser";
-import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
-import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import CnxResolver from "../../../PARSE/3-Declare/cnx/index";
+import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TranspileState from "../../TranspileState";
 import UndeclaredTypeAnalyzer from "../UndeclaredTypeAnalyzer";
@@ -37,7 +37,7 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(
+    CnxResolver.resolve(
       ProgramLowering.program(tree, null),
       "test.cnx",
       registry,
@@ -217,7 +217,7 @@ describe("UndeclaredTypeAnalyzer", () => {
       // status quo -- so the analyzer declines rather than guesses.
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
       state.symbols = TSymbolInfoAdapter.convert(
-        CNextResolver.resolve(
+        CnxResolver.resolve(
           ProgramLowering.program(tree, null),
           "test.cnx",
           registry,

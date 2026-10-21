@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import DeclarationParts from "../DeclarationParts";
 import ExpressionNodes from "../ExpressionNodes";
 
 /** The identifiers ExpressionNodes reaches in the file's first declaration */
 const names = (source: string): string[] => {
-  const parsed = CNextSourceParser.parse(source);
+  const parsed = CnxSourceParser.parse(source);
   expect(parsed.parseErrors).toEqual([]);
   return DeclarationParts.of(parsed.program.declarations[0].declaration)
     .flatMap(ExpressionNodes.of)

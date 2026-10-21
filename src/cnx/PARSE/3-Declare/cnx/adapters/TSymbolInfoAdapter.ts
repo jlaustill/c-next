@@ -2,7 +2,7 @@
  * TSymbolInfoAdapter - Converts TSymbol[] to ISymbolInfo for CodeGenerator.
  *
  * ADR-055 Phase 5: This adapter enables CodeGenerator to use pre-collected
- * symbols from CNextResolver instead of creating its own SymbolCollector.
+ * symbols from CnxResolver instead of creating its own SymbolCollector.
  *
  * The conversion extracts and restructures the rich discriminated union types
  * into the flat map format that CodeGenerator expects via ISymbolInfo.
@@ -10,7 +10,7 @@
 
 import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
-import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import TSymbol from "../../../../types/symbols/TSymbol";
 import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
@@ -45,7 +45,7 @@ class TSymbolInfoAdapter {
   /**
    * Convert TSymbol[] to ISymbolInfo for CodeGenerator consumption.
    *
-   * @param symbols Array of discriminated union symbols from CNextResolver
+   * @param symbols Array of discriminated union symbols from CnxResolver
    * @returns ISymbolInfo compatible with CodeGenerator
    */
   static convert(symbols: readonly TSymbol[]): ICodeGenSymbols {
@@ -384,7 +384,7 @@ class TSymbolInfoAdapter {
   }
 
   private static cnextTypeToCType(typeName: string): string {
-    return CNEXT_TO_C_TYPE_MAP[typeName] || typeName;
+    return CNX_TO_C_TYPE_MAP[typeName] || typeName;
   }
 }
 

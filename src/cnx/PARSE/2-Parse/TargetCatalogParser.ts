@@ -12,7 +12,7 @@
  * `(true)`, `32u8`, a reference to another constant -- is reported, because
  * no reader of the catalog may have to evaluate code to learn a target.
  */
-import CNextSourceParser from "./CNextSourceParser";
+import CnxSourceParser from "./CnxSourceParser";
 import type * as Parser from "./grammar/CnxParser";
 import ExpressionUnwrapper from "./ExpressionUnwrapper";
 import type ITargetCatalogEntry from "../../types/ITargetCatalogEntry";
@@ -21,7 +21,7 @@ import type TTargetFieldValue from "../../types/TTargetFieldValue";
 
 class TargetCatalogParser {
   static parse(text: string): ITargetCatalogSource {
-    const parsed = CNextSourceParser.parse(text);
+    const parsed = CnxSourceParser.parse(text);
     const errors = parsed.parseErrors.map(
       (error) => `line ${error.line}: ${error.message}`,
     );

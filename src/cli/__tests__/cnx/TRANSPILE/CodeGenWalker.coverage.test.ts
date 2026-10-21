@@ -18,13 +18,13 @@ import ProgramGeneration from "./ProgramGeneration";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
-import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
-import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
+import CnxResolver from "../../../../cnx/PARSE/3-Declare/cnx/index";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
-import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import CallbackTypedefFormatter from "../../../../cnx/TRANSPILE/3-Render/codegen/helpers/CallbackTypedefFormatter";
 import ESourceLanguage from "../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../cnx/types/__testUtils__/testSourceSpan";
@@ -41,11 +41,7 @@ function setupGenerator(
   host: CodeGenerator;
   code: string;
 } {
-  const {
-    tree,
-    parseErrors: errors,
-    program,
-  } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors, program } = CnxSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }
@@ -56,7 +52,7 @@ function setupGenerator(
   const tSymbols = [
     ...Program.build(
       [
-        CNextResolver.resolve(
+        CnxResolver.resolve(
           ProgramLowering.program(tree, null),
           "test.cnx",
           registry,
@@ -635,7 +631,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 10, y: 20};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
@@ -644,7 +640,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -693,7 +689,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 1, y: 2};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
@@ -701,7 +697,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -741,7 +737,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 5, y: 10};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("CppPoint");
@@ -749,7 +745,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1163,7 +1159,7 @@ describe("CodeGenWalker Coverage Tests", () => {
             pokeBoth onBoth;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
         symbolTable.markOpaqueType("Dev");
@@ -1172,7 +1168,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         const tSymbols = [
           ...Program.build(
             [
-              CNextResolver.resolve(
+              CnxResolver.resolve(
                 ProgramLowering.program(tree, null),
                 "test.cnx",
                 registry,
@@ -1312,13 +1308,13 @@ describe("CodeGenWalker Coverage Tests", () => {
         sourceFile: string;
       }>,
     ): string {
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1521,13 +1517,13 @@ describe("CodeGenWalker Coverage Tests", () => {
           Outer o <- {dummy: 1};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1579,13 +1575,13 @@ describe("CodeGenWalker Coverage Tests", () => {
           Data d <- {value: 42};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,

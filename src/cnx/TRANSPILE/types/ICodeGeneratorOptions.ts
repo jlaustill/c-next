@@ -16,7 +16,7 @@ interface ICodeGeneratorOptions {
   /** ADR-044: When true, generate panic helpers instead of clamp helpers */
   debugMode: boolean;
   /**
-   * ADR-055: Pre-collected symbol info from CNextResolver + TSymbolInfoAdapter.
+   * ADR-055: Pre-collected symbol info from CnxResolver + TSymbolInfoAdapter.
    * Required (#1428, ruling 22): codegen never collects symbols itself.
    *
    * There is no `cppMode` here. The run's mode is 1.1's answer, read from

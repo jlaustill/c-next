@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import TypeSites from "../TypeSites";
 
 /** Each planned type as `scope:text`, `-` for file level */
 const sites = (source: string): string[] => {
-  const parsed = CNextSourceParser.parse(source);
+  const parsed = CnxSourceParser.parse(source);
   expect(parsed.parseErrors).toEqual([]);
   return TypeSites.of(parsed.program).map(
     ({ type, scope }) => `${scope ?? "-"}:${type.text}`,

@@ -19,7 +19,7 @@ import EFileType from "../PARSE/1-Discover/types/EFileType";
 import type THeaderExtension from "../types/THeaderExtension";
 import IncludeDirectiveText from "./IncludeDirectiveText";
 import invariant from "./invariant";
-import CNextSourcePath from "./CNextSourcePath";
+import CnxSourcePath from "./CnxSourcePath";
 
 class IncludeRewriter {
   /**
@@ -108,7 +108,7 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    return rewrites.get(spec) ?? CNextSourcePath.withExtension(spec, ext);
+    return rewrites.get(spec) ?? CnxSourcePath.withExtension(spec, ext);
   }
 }
 

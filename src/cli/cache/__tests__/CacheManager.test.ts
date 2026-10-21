@@ -26,7 +26,7 @@ import SymbolTable from "../../../cnx/PARSE/3-Declare/SymbolTable";
 import MockFileSystem from "../../__tests__/MockFileSystem";
 import TTypeUtils from "../../../cnx/utils/TTypeUtils";
 import type IFunctionSymbol from "../../../cnx/types/symbols/IFunctionSymbol";
-import TestSymbolUtils from "../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../cnx/PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../cnx/types/__testUtils__/testSourceSpan";
 import NodeFileSystem from "../../../cnx/PARSE/1-Discover/NodeFileSystem";
 import HeaderDeclarationRecord from "../../../cnx/PARSE/3-Declare/HeaderDeclarationRecord";

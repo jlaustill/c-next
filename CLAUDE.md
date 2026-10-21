@@ -598,7 +598,7 @@ and knip names that member.
 | `ISymbol`        | Legacy flat interface          | Removed (Phase 7) |
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
-**Use**: `CNextResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
+**Use**: `CnxResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
@@ -658,7 +658,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   (#1724). It reads the run-wide table no longer, and answers "missing" for every C/C++
   header type, since a scope type is a C-Next one. Ask the per-file sets about a C-Next name
   and the run-wide table about a foreign one
-- **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(program, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
+- **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CnxResolver.resolve(program, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **What an analyzer may read is `IAnalysisContext`, plus the 1.2 syntax it walks.** #1456
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
@@ -741,7 +741,7 @@ generator (#1489 deleted the one that duplicated this).
   `src/cli/__tests__/cnx/<the module's path under cnx/>`, because nothing in `cnx/`, tests included,
   imports the host (#1992; `transpiler-imports-no-host`)
 - Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CnxParser.js"`
-- Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
+- Direct parsing: `CnxSourceParser.parse(source)` when you just need AST
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
 - **IAssignmentContext changes**: Update `createMockContext` in ALL handler test files when adding fields
 - **Vitest ESM mocks**: Use `vi.mock()` at top with class pattern; create `*.mocked.test.ts` for mock isolation
@@ -1024,9 +1024,9 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 - **ADR-057 type qualification**: Check the _qualified_ name against the scope types the file can see (`TranspileState.isScopeType`), not the bare name against `scopeMembers`. This prevents non-type scope members (functions/variables) from capturing a same-named global type at a type position.
 - **Qualify only the bare `userType()` branch.** `this.T`, `global.T` and `Scope.T` state their answer in the syntax and keep their own branches. This is not a style point: once a type name is resolved to a string, `global.Mode` and a bare `Mode` are byte-identical, so anything that qualifies _after_ resolution silently rewrites `global.` references. A post-pass over resolved names cannot be made correct — qualify while the parse tree is still available.
 - **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
-  - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those against the scope types that file can see — its own and its include closure's (`IProgram.isScopeTypeVisibleFrom`, #1724). Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
+  - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CnxResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those against the scope types that file can see — its own and its include closure's (`IProgram.isScopeTypeVisibleFrom`, #1724). Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
   - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site. Its predicate is the symbols layer's: `TranspileState.isScopeType` asks `IProgram.isScopeTypeVisibleFrom` about the file being generated, so the `.h` and the `.c` qualify from one answer (#1724).
-- **`CNextResolver` Pass 0b** collects the qualified names of scope-declared types (`TYPE_FORMING_KINDS`: enums, structs, bitmaps, and functions, which ADR-029 makes callback types) _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a scope variable named `B` would capture global type `B`) and is still being built while collectors read it.
+- **`CnxResolver` Pass 0b** collects the qualified names of scope-declared types (`TYPE_FORMING_KINDS`: enums, structs, bitmaps, and functions, which ADR-029 makes callback types) _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a scope variable named `B` would capture global type `B`) and is still being built while collectors read it.
 - **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/cnx/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts` — and `OperandTyper`, with `program.isScopeTypeVisibleFrom` for the file being typed, when an operand names an enum type. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 

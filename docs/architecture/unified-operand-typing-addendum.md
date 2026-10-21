@@ -248,7 +248,7 @@ This replaces the per-file codegen decision (`CodeGenWalker.resolveTargetCapabil
 
 **1.3.** `IFileSymbols.declaredTarget: {name, line, column} | null`.
 
-- `CNextResolver.resolve` records it through `TargetResolver.fromPragma` (`:36-49`), which now also returns the position.
+- `CnxResolver.resolve` records it through `TargetResolver.fromPragma` (`:36-49`), which now also returns the position.
 - `Transpiler.ts:154`, `:874-877` and `:1500` are deleted.
 - No artifact-lifetime edit is needed: the `:294` pin covers parse-node holders only.
 
@@ -401,11 +401,11 @@ The help text is "name one with `#pragma target <name>`, `--target <name>`, or `
 
 Provenance returns an empty map for a failed transpile, by design (`AdrProvenanceLines.ts:27-31`). Without a target, a fixture that reaches a header would therefore lose its matrix occupancy without any error.
 
-| Fixture                                                                                       | Runs                                                                                                                           |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `// test-no-target` (this wins over a pragma)                                                 | Once, with **no** `--target`. The effective target is the `Target:` line; if there is none, the host toolchain.                |
-| `#pragma target X`, read by `TargetResolver.fromPragma(CNextSourceParser.parse(source).tree)` | `[X]`, pinned. An unknown X is a harness error.                                                                                |
-| anything else                                                                                 | `MATRIX = ["host", "cortex-m7", "avr"]`, narrowed by `--targets a,b`. `--targets` never narrows a pinned or no-target fixture. |
+| Fixture                                                                                     | Runs                                                                                                                           |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `// test-no-target` (this wins over a pragma)                                               | Once, with **no** `--target`. The effective target is the `Target:` line; if there is none, the host toolchain.                |
+| `#pragma target X`, read by `TargetResolver.fromPragma(CnxSourceParser.parse(source).tree)` | `[X]`, pinned. An unknown X is a harness error.                                                                                |
+| anything else                                                                               | `MATRIX = ["host", "cortex-m7", "avr"]`, narrowed by `--targets a,b`. `--targets` never narrows a pinned or no-target fixture. |
 
 - The pragma is read with the same reader the transpiler uses, not a second regex.
 - A unit test asserts that each MATRIX name is a table key and that the three models are pairwise distinct.

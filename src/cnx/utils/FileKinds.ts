@@ -1,6 +1,6 @@
 import { extname } from "node:path";
 import EFileType from "../PARSE/1-Discover/types/EFileType";
-import CNextSourcePath from "./CNextSourcePath";
+import CnxSourcePath from "./CnxSourcePath";
 
 const EXTENSION_MAP: Record<string, EFileType> = {
   ".h": EFileType.CHeader,
@@ -22,8 +22,8 @@ const EXTENSION_MAP: Record<string, EFileType> = {
  */
 class FileKinds {
   static of(filePath: string): EFileType {
-    if (CNextSourcePath.isSource(filePath)) return EFileType.CNext;
-    if (CNextSourcePath.isRejected(filePath)) return EFileType.RejectedCNext;
+    if (CnxSourcePath.isSource(filePath)) return EFileType.CNext;
+    if (CnxSourcePath.isRejected(filePath)) return EFileType.RejectedCNext;
     return EXTENSION_MAP[extname(filePath).toLowerCase()] ?? EFileType.Unknown;
   }
 }

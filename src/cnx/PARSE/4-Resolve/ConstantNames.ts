@@ -16,7 +16,7 @@
  * facts. That is what makes `u8[N]` one size in the .c and the .h.
  */
 import QualifiedCName from "../../utils/QualifiedCName";
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
@@ -124,7 +124,7 @@ class ConstantNames {
     at: ISourcePosition,
     facts: IConstantNameFacts,
   ): string {
-    const primitive = CNEXT_TO_C_TYPE_MAP[typeName];
+    const primitive = CNX_TO_C_TYPE_MAP[typeName];
     if (primitive !== undefined) return primitive;
     const scopePath = facts.scopePathAt(at);
     const parts = typeName.split(".");
@@ -374,7 +374,7 @@ class ConstantNames {
       case "string":
         return `${LengthProperty.stringBufferChars(type.capacity)}U`;
       case "primitive": {
-        const cType = CNEXT_TO_C_TYPE_MAP[type.primitive];
+        const cType = CNX_TO_C_TYPE_MAP[type.primitive];
         return cType === undefined ? null : `sizeof(${cType})`;
       }
       case "struct":

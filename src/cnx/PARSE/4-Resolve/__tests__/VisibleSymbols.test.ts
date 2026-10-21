@@ -9,21 +9,21 @@ import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, expect, it } from "vitest";
 import VisibleSymbols from "../VisibleSymbols";
 import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
-import TSymbolInfoAdapter from "../../3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TSymbolInfoAdapter from "../../3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
-import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import TestMembers from "../../../types/__testUtils__/testMembers";
-import CNextSourceParser from "../../2-Parse/CNextSourceParser";
-import CNextResolver from "../../3-Declare/cnext/index";
+import CnxSourceParser from "../../2-Parse/CnxSourceParser";
+import CnxResolver from "../../3-Declare/cnx/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 
 /** What a file declares, as 1.3 converts it */
 const declared = (source: string, path: string) =>
   TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(
-      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
+    CnxResolver.resolve(
+      ProgramLowering.program(CnxSourceParser.parse(source).tree, null),
       path,
       new SymbolRegistry(),
     ).symbols,

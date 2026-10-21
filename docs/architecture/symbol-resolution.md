@@ -21,7 +21,7 @@
 | 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete | -                                                      |
 | 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete | -                                                      |
 | 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete | -                                                      |
-| 3     | Create Orchestrator (`CNextResolver`)                         | ✅ Complete | -                                                      |
+| 3     | Create Orchestrator (`CnxResolver`)                           | ✅ Complete | -                                                      |
 | 4     | Add CacheKeyGenerator                                         | ✅ Complete | -                                                      |
 | 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | ✅ Complete | [#803](https://github.com/jlaustill/c-next/issues/803) |
 | 6     | Repeat for C++/C (`CResolver`, `CppResolver`)                 | ✅ Complete | [#804](https://github.com/jlaustill/c-next/issues/804) |
@@ -209,7 +209,7 @@ src/symbol_resolution/
 ├── types/                      # Shared types (TSymbol, ISourceSpan, etc.)
 │
 ├── cnext/                      # C-Next language
-│   ├── index.ts                # CNextResolver (orchestrator)
+│   ├── index.ts                # CnxResolver (orchestrator)
 │   ├── collectors/
 │   │   ├── ScopeCollector.ts       # ~50-80 lines each
 │   │   ├── StructCollector.ts
@@ -469,7 +469,7 @@ import ScopeCollector from "./collectors/ScopeCollector";
 import RegisterCollector from "./collectors/RegisterCollector";
 // ... other collectors
 
-class CNextResolver {
+class CnxResolver {
   private structCollector = new StructCollector();
   private enumCollector = new EnumCollector();
   private bitmapCollector = new BitmapCollector();
@@ -525,7 +525,7 @@ class CNextResolver {
   }
 }
 
-export default CNextResolver;
+export default CnxResolver;
 ```
 
 ### 9. CodeGenerator Queries SymbolTable
@@ -578,7 +578,7 @@ class CodeGenerator {
 
 ### Phase 3: Create Orchestrator
 
-1. Create `src/symbol_resolution/cnext/index.ts` (CNextResolver)
+1. Create `src/symbol_resolution/cnext/index.ts` (CnxResolver)
 2. Wire up all collectors
 3. Add integration tests
 4. Orchestrator returns `TSymbol[]`
@@ -591,7 +591,7 @@ class CodeGenerator {
 
 ### Phase 5: Migrate Consumers (One at a Time)
 
-1. Update `Pipeline.ts` to use new `CNextResolver`
+1. Update `Pipeline.ts` to use new `CnxResolver`
 2. Update `SymbolTable` to store `TSymbol[]` internally
 3. Add adapter methods for backwards compatibility if needed
 4. Update `CodeGenerator.ts` to query `SymbolTable` instead of having its own collector
@@ -694,10 +694,10 @@ describe("StructCollector", () => {
 ### Integration Tests (Orchestrator)
 
 ```typescript
-// symbol_resolution/cnext/__tests__/CNextResolver.integration.test.ts
+// symbol_resolution/cnext/__tests__/CnxResolver.integration.test.ts
 
-describe("CNextResolver", () => {
-  const resolver = new CNextResolver();
+describe("CnxResolver", () => {
+  const resolver = new CnxResolver();
 
   it("should resolve all symbol types from a complete file", () => {
     const tree = parse(`

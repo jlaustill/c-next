@@ -33,7 +33,7 @@
  *
  * **Only 1.3 Declare creates.** Measured across 120 fixtures with a stack-frame
  * probe: 2.1 Analyze, 2.2 Plan and 2.3 Render produced ZERO creations, and the
- * probe fires from `CNextResolver`, so the zero is a real zero rather than a
+ * probe fires from `CnxResolver`, so the zero is a real zero rather than a
  * broken instrument. Their `getOrCreateScope` calls are all
  * `ScopeUtils.pathOf(getOrCreateScope(name))` -- a name-to-path lookup where
  * the create arm is never taken. That is why the later passes reach this

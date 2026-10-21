@@ -87,9 +87,9 @@ the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#199
 
 ### Symbol Resolution Architecture (ADR-055)
 
-**Use the composable collectors** in `src/cnx/PARSE/3-Declare/cnext/`:
+**Use the composable collectors** in `src/cnx/PARSE/3-Declare/cnx/`:
 
-- `CNextResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
+- `CnxResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 - `TSymbolInfoAdapter.convert(tSymbols)` → `ICodeGenSymbols` (for codegen)
 
 **Do NOT use** the deleted legacy collectors:

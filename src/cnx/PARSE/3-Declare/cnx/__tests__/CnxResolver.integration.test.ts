@@ -1,7 +1,7 @@
 import ProgramLowering from "../../../2-Parse/ProgramLowering";
 import { beforeEach, describe, expect, it } from "vitest";
 import parse from "./testHelpers";
-import CNextResolver from "../index";
+import CnxResolver from "../index";
 import Program from "../../../4-Resolve/Program";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../SymbolRegistry";
@@ -15,8 +15,8 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-describe("CNextResolver Integration", () => {
-  // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry, so
+describe("CnxResolver Integration", () => {
+  // CLAUDE.md, "Test isolation": CnxResolver writes to the SymbolRegistry, so
   // without this every test in this file inherits the scopes the previous one
   // registered.
 
@@ -29,7 +29,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -49,7 +49,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -65,7 +65,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -81,7 +81,7 @@ describe("CNextResolver Integration", () => {
         u32 counter <- 0;
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -98,7 +98,7 @@ describe("CNextResolver Integration", () => {
         Sensor probe(pin);
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -120,7 +120,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -139,7 +139,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -166,7 +166,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -216,7 +216,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -253,7 +253,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -286,7 +286,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -349,7 +349,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -409,7 +409,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -446,7 +446,7 @@ describe("CNextResolver Integration", () => {
     it("returns empty array for empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -462,7 +462,7 @@ describe("CNextResolver Integration", () => {
     const settled = (tree: ReturnType<typeof parse>) =>
       Program.build(
         [
-          CNextResolver.resolve(
+          CnxResolver.resolve(
             ProgramLowering.program(tree, null),
             "test.cnx",
             registry,
@@ -548,7 +548,7 @@ describe("CNextResolver Integration", () => {
         bool arr[4];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -563,7 +563,7 @@ describe("CNextResolver Integration", () => {
         bool arr[DEVICE_COUNT];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -587,7 +587,7 @@ describe("CNextResolver Integration", () => {
         bool arr[SIZE * 2];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(tree, null),
         "test.cnx",
         registry,
@@ -613,7 +613,7 @@ describe("CNextResolver Integration", () => {
           public void tick() { }
         }
       `;
-      const declared = CNextResolver.resolve(
+      const declared = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -641,7 +641,7 @@ describe("CNextResolver Integration", () => {
           }
         }
       `;
-      const declared = CNextResolver.resolve(
+      const declared = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -669,7 +669,7 @@ describe("CNextResolver Integration", () => {
           public Point origin() { return this.stored; }
         }
       `;
-      const declared = CNextResolver.resolve(
+      const declared = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -689,7 +689,7 @@ describe("CNextResolver Integration", () => {
 
   describe("ADR-057 scope type qualification (#1130)", () => {
     const typeOf = (
-      declared: ReturnType<typeof CNextResolver.resolve>,
+      declared: ReturnType<typeof CnxResolver.resolve>,
       name: string,
     ) => declared.symbols.find((sym) => sym.name === name);
 
@@ -700,7 +700,7 @@ describe("CNextResolver Integration", () => {
           public B pick(B value) { return value; }
         }
       `;
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -722,7 +722,7 @@ describe("CNextResolver Integration", () => {
           public enum B { c, d }
         }
       `;
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -742,7 +742,7 @@ describe("CNextResolver Integration", () => {
           public struct S { u8 x; B kind; }
         }
       `;
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -766,7 +766,7 @@ describe("CNextResolver Integration", () => {
           public struct W { global.Mode mode; u8 v; }
         }
       `;
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -794,7 +794,7 @@ describe("CNextResolver Integration", () => {
       // program-wide set, which has no `A__Config` either. The rule under test
       // is unchanged: a scope member that is not a type must not capture a
       // same-named global one.
-      const declared = CNextResolver.resolve(
+      const declared = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -818,7 +818,7 @@ describe("CNextResolver Integration", () => {
         struct Point { i32 x; }
         void move(Point p) { }
       `;
-      const symbols = CNextResolver.resolve(
+      const symbols = CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "test.cnx",
         registry,
@@ -863,7 +863,7 @@ describe("CNextResolver Integration", () => {
 
       // Re-parsed each time, as stage 5 does -- distinct trees, distinct symbol
       // objects. An identity-based guard would not catch the duplication.
-      CNextResolver.resolve(
+      CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "motor.cnx",
         registry,
@@ -875,7 +875,7 @@ describe("CNextResolver Integration", () => {
       expect(afterFirst.functions).toEqual(["Motor__start", "Motor__stop"]);
       expect(afterFirst.members).toEqual(["start", "stop"]);
 
-      CNextResolver.resolve(
+      CnxResolver.resolve(
         ProgramLowering.program(parse(code), null),
         "motor.cnx",
         registry,
@@ -888,7 +888,7 @@ describe("CNextResolver Integration", () => {
     // (#1333) -- suppressing registration for an already-seen scope would pass
     // the assertion above and break this.
     it("still merges a scope genuinely spanned across two different files", () => {
-      CNextResolver.resolve(
+      CnxResolver.resolve(
         ProgramLowering.program(
           parse(`scope Motor { void start() { } }`),
           null,
@@ -896,7 +896,7 @@ describe("CNextResolver Integration", () => {
         "a.cnx",
         registry,
       );
-      CNextResolver.resolve(
+      CnxResolver.resolve(
         ProgramLowering.program(parse(`scope Motor { void stop() { } }`), null),
         "b.cnx",
         registry,

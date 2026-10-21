@@ -1,10 +1,10 @@
 import type ISourceSpan from "../../../../types/ISourceSpan";
-import type TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../../../../types/symbol-kinds/TSymbolKindCnx";
 import type TVisibility from "../../../../types/TVisibility";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
-interface IMemberSymbolInput<K extends TSymbolKindCNext> {
+interface IMemberSymbolInput<K extends TSymbolKindCnx> {
   readonly kind: K;
 
   /** The member's own name, as the source spells it. */
@@ -50,7 +50,7 @@ interface IMemberSymbolInput<K extends TSymbolKindCNext> {
  *   no generated file. See `IBaseSymbol.fullyQualifiedCName`.
  */
 class MemberSymbolBase {
-  static of<K extends TSymbolKindCNext>(
+  static of<K extends TSymbolKindCnx>(
     input: IMemberSymbolInput<K>,
   ): {
     kind: K;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import DefineDirectiveAnalyzer from "../DefineDirectiveAnalyzer";
 
 /**
@@ -15,7 +15,7 @@ import DefineDirectiveAnalyzer from "../DefineDirectiveAnalyzer";
  */
 const errors = (source: string) => {
   return new DefineDirectiveAnalyzer().analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
   );
 };
 

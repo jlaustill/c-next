@@ -3,7 +3,7 @@
  * the type the value is read as and the temp it is materialized into. 2.2
  * decides it once per slice (#1991) and 2.3 writes it.
  */
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import LiteralUtils from "../../utils/LiteralUtils";
 import invariant from "../../utils/invariant";
 import type TTypeInfo from "../../types/TTypeInfo";
@@ -123,13 +123,13 @@ function resolveSliceSource(
   }
 
   return {
-    cType: CNEXT_TO_C_TYPE_MAP[sourceType],
+    cType: CNX_TO_C_TYPE_MAP[sourceType],
     bytes: Number.parseInt(sourceType.slice(1), 10) / 8,
     // Signed sources are reinterpreted to their same-width unsigned type so
     // every shift on the materialized temp satisfies MISRA Rule 10.1.
     unsignedCType: isSigned
-      ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
-      : CNEXT_TO_C_TYPE_MAP[sourceType],
+      ? CNX_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
+      : CNX_TO_C_TYPE_MAP[sourceType],
     isComposite: directType === null,
   };
 }

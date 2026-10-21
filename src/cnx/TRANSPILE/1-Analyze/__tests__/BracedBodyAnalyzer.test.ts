@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import BracedBodyAnalyzer from "../BracedBodyAnalyzer";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 
 const errorsOf = (body: string) => {
-  const { program } = CNextSourceParser.parse(
+  const { program } = CnxSourceParser.parse(
     `scope S {\n    u32 run(bool c) {\n    u32 x <- 0;\n${body}\n    return x;\n    }\n}`,
   );
   return new BracedBodyAnalyzer().analyze(program);

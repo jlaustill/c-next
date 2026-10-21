@@ -11,7 +11,7 @@ import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import type TTypeInfo from "../../../../../types/TTypeInfo";
-import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import invariant from "../../../../../utils/invariant";
 import type TranspileState from "../../../../TranspileState";
 import SliceSource from "../../../../2-Plan/SliceSource";
@@ -90,13 +90,13 @@ function resolveSliceElement(
   const bytes = SliceSource.elementBytes(typeInfo);
 
   if (bytes > 0 && SliceSource.UNSIGNED_INT_RE.test(baseType)) {
-    const cType = CNEXT_TO_C_TYPE_MAP[baseType];
+    const cType = CNX_TO_C_TYPE_MAP[baseType];
     return { bytes, cType, wrap: (chunk) => `(${cType})${chunk}` };
   }
 
   if (bytes > 0 && SliceSource.SIGNED_INT_RE.test(baseType)) {
-    const cType = CNEXT_TO_C_TYPE_MAP[baseType];
-    const uType = CNEXT_TO_C_TYPE_MAP[`u${baseType.slice(1)}`];
+    const cType = CNX_TO_C_TYPE_MAP[baseType];
+    const uType = CNX_TO_C_TYPE_MAP[`u${baseType.slice(1)}`];
     return { bytes, cType, wrap: (chunk) => `(${cType})(${uType})${chunk}` };
   }
 

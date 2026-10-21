@@ -34,7 +34,7 @@ import ReadOnceFileSystem from "./ReadOnceFileSystem";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 import IncludePath from "../../utils/IncludePath";
 import ConfigFileNames from "./ConfigFileNames";
 import CrossCompilerVariable from "./CrossCompilerVariable";
@@ -472,7 +472,7 @@ class Discover {
             // entry pulled the file in
             selfInclude: files.writeOutputToDisk
               ? IncludePath.relative(dirname(source), header)
-              : CNextSourcePath.withExtension(
+              : CnxSourcePath.withExtension(
                   basename(file.path),
                   extensions.header,
                 ),
@@ -597,7 +597,7 @@ class Discover {
    * of them.
    */
   private _rejectedInput(path: string): TDiscoveredFiles {
-    const rejection = CNextSourcePath.rejection(
+    const rejection = CnxSourcePath.rejection(
       basename(path),
       "rename the file.",
     );
@@ -646,7 +646,7 @@ class Discover {
     entry: IInMemorySource,
     callerIncludeDirs: readonly string[],
   ): TDiscoveredFiles {
-    if (CNextSourcePath.isRejected(entry.path)) {
+    if (CnxSourcePath.isRejected(entry.path)) {
       return this._rejectedInput(entry.path);
     }
     const root: IDiscoveredFile = {

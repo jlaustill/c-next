@@ -1,7 +1,7 @@
 /**
  * #1833 box 3: whether a path is cnx source, whether its extension is
  * rejected (E0518, or E0519 for the retired `.cnext`, #2167), and what its
- * stem is, is answered by `src/cnx/utils/CNextSourcePath.ts` alone. A module that matches
+ * stem is, is answered by `src/cnx/utils/CnxSourcePath.ts` alone. A module that matches
  * the extension itself -- a `/\.cnx$/` regex, `endsWith(".cnx")`, a list of
  * `".cnx"` and `".cnext"` -- can disagree with it, which is how `Colors.CNX`
  * was transpiled by discovery and then named as if it were not C-Next.
@@ -19,7 +19,7 @@ import SourceScan from "./SourceScan";
 // A regex literal's `\.cnx` in any case, or a quoted string that is exactly
 // the extension. Prose in backticks in a message (`.cnx`) is not a match.
 const EXTENSION_MATCH = /\\\.cn(?:x|ext)\b|["']\.cn(?:x|ext)["']/gi;
-const OWNER = "src/cnx/utils/CNextSourcePath.ts";
+const OWNER = "src/cnx/utils/CnxSourcePath.ts";
 
 /**
  * Lines that spell the extension without asking whether a path has it, each
@@ -63,7 +63,7 @@ function lineAt(file: string, offset: number): string {
 describe("one rule says what C-Next source is (#1833)", () => {
   const hits = SourceScan.scan(EXTENSION_MATCH);
 
-  it("no module but CNextSourcePath matches a C-Next extension", () => {
+  it("no module but CnxSourcePath matches a C-Next extension", () => {
     const outside = hits
       .filter((hit) => hit.file !== OWNER)
       .filter(
@@ -96,7 +96,7 @@ describe("one rule says what C-Next source is (#1833)", () => {
     ).toBe(true);
   });
 
-  it("no module but CNextSourcePath cuts a stem with extname", () => {
+  it("no module but CnxSourcePath cuts a stem with extname", () => {
     const outside = SourceScan.scan(/\bextname\(/g)
       .filter((hit) => hit.file !== OWNER)
       .filter(

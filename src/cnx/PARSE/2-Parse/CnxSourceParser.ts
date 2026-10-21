@@ -1,5 +1,5 @@
 /**
- * CNextSourceParser
+ * CnxSourceParser
  * Handles parsing of C-Next source code with error collection.
  *
  * Extracted from Pipeline.ts to reduce duplication and improve testability.
@@ -92,7 +92,7 @@ const NESTED_SCOPE_RULES: ReadonlySet<number> = new Set([
  * artifact therefore meant editing both, which is the duplicate-path
  * anti-pattern CLAUDE.md forbids. There is now one shape and no conversion.
  */
-class CNextSourceParser {
+class CnxSourceParser {
   /**
    * Whether this syntax error is a nested scope declaration.
    *
@@ -167,7 +167,7 @@ class CNextSourceParser {
         charPositionInLine: number,
         msg: string,
       ): void {
-        if (CNextSourceParser.isNestedScope(recognizer, offendingSymbol)) {
+        if (CnxSourceParser.isNestedScope(recognizer, offendingSymbol)) {
           nestedScopeReported = true;
           errors.push({
             line,
@@ -186,7 +186,7 @@ class CNextSourceParser {
         // is reported by the branch above rather than swallowed here.
         if (
           nestedScopeReported &&
-          CNextSourceParser.isNestedScopeRecoveryNoise(
+          CnxSourceParser.isNestedScopeRecoveryNoise(
             recognizer,
             offendingSymbol,
           )
@@ -263,4 +263,4 @@ class CNextSourceParser {
   }
 }
 
-export default CNextSourceParser;
+export default CnxSourceParser;

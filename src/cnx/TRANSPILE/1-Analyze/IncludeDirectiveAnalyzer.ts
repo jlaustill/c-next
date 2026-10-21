@@ -42,7 +42,7 @@ import EFileType from "../../PARSE/1-Discover/types/EFileType";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 
 /**
  * Files that carry definitions; including one duplicates every symbol in it.
@@ -120,7 +120,7 @@ class IncludeDirectiveChecks {
     kind: EFileType,
   ): boolean {
     if (kind !== EFileType.RejectedCNext) return false;
-    const rejection = CNextSourcePath.rejection(
+    const rejection = CnxSourcePath.rejection(
       spec.path,
       "rename the file and this include.",
     );

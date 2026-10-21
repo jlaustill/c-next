@@ -4,8 +4,8 @@
  */
 import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../2-Parse/CNextSourceParser";
-import CNextResolver from "../../3-Declare/cnext/index";
+import CnxSourceParser from "../../2-Parse/CnxSourceParser";
+import CnxResolver from "../../3-Declare/cnx/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import Program from "../Program";
 import type ILexicalFrame from "../../../types/ILexicalFrame";
@@ -40,8 +40,8 @@ function constantAt(
 function build(files: Record<string, string>) {
   const registry = new SymbolRegistry();
   const declared = Object.entries(files).map(([path, source]) =>
-    CNextResolver.resolve(
-      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
+    CnxResolver.resolve(
+      ProgramLowering.program(CnxSourceParser.parse(source).tree, null),
       path,
       registry,
     ),

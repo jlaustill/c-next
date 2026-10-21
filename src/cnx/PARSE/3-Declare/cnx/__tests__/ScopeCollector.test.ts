@@ -65,7 +65,7 @@ describe("ScopeCollector", () => {
     });
 
     it("does not duplicate a site when the same block is collected twice", () => {
-      // CNextResolver.resolve runs more than once per file on some paths.
+      // CnxResolver.resolve runs more than once per file on some paths.
       collectBlock(`scope Span {\n  u32 a;\n}`, "span4-a.cnx");
       const again = collectBlock(`scope Span {\n  u32 a;\n}`, "span4-a.cnx");
 
@@ -354,7 +354,7 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
-      // Production always threads this predicate down from CNextResolver's
+      // Production always threads this predicate down from CnxResolver's
       // pass 0b; supplying it is what makes the test model production. Nothing
       // below the ladder re-qualifies a resolved name (#1472).
       const isScopeType = (qualifiedName: string): boolean =>

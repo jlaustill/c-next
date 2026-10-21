@@ -5,7 +5,7 @@ import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type IAtomicAccess from "../types/IAtomicAccess";
 import type ITypingContext from "../types/ITypingContext";
 import BitmapFieldStep from "./BitmapFieldStep";
-import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import OperandTyper from "./OperandTyper";
@@ -77,7 +77,7 @@ class AtomicOwner {
     if (bitmap !== null) {
       const backing = bitmapBackingType.get(bitmap);
       const accessed = UNSIGNED.find(
-        (name) => CNEXT_TO_C_TYPE_MAP[name] === backing,
+        (name) => CNX_TO_C_TYPE_MAP[name] === backing,
       );
       invariant(
         accessed !== undefined && backing !== undefined,
@@ -93,7 +93,7 @@ class AtomicOwner {
       return { typeName: null, cType: t.enumTypeName, bits: null };
     }
     const named =
-      t.typeName === null ? undefined : CNEXT_TO_C_TYPE_MAP[t.typeName];
+      t.typeName === null ? undefined : CNX_TO_C_TYPE_MAP[t.typeName];
     if (t.typeName !== null && named !== undefined) {
       return {
         typeName: t.typeName,

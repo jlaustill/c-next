@@ -1,4 +1,4 @@
-import type ICNextMarker from "./types/ICNextMarker";
+import type ICnxMarker from "./types/ICnxMarker";
 import GeneratedBanner from "../../utils/GeneratedBanner";
 
 /**
@@ -9,7 +9,7 @@ import GeneratedBanner from "../../utils/GeneratedBanner";
  * a header the transpiler generated -- since #1435 the marker is that
  * header's only identity, not its basename.
  */
-class CNextMarkerDetector {
+class CnxMarkerDetector {
   /**
    * The banner text before the cnx rename (#2168). Still recognized, so a
    * header generated before the rename is found and regenerated with the new
@@ -20,17 +20,17 @@ class CNextMarkerDetector {
   /** Every banner text recognized as a marker, the current one first */
   private static readonly MARKER_TEXTS = [
     GeneratedBanner.TEXT,
-    CNextMarkerDetector.LEGACY_BANNER_TEXT,
+    CnxMarkerDetector.LEGACY_BANNER_TEXT,
   ];
 
   /** One regex per marker text, matching its banner line */
-  private static readonly MARKER_REGEXES = CNextMarkerDetector.MARKER_TEXTS.map(
+  private static readonly MARKER_REGEXES = CnxMarkerDetector.MARKER_TEXTS.map(
     (text) => GeneratedBanner.marker(text),
   );
 
   /** One regex per marker text, each extracting the recorded source path */
   private static readonly SOURCE_PATH_REGEXES =
-    CNextMarkerDetector.MARKER_TEXTS.map((text) =>
+    CnxMarkerDetector.MARKER_TEXTS.map((text) =>
       GeneratedBanner.sourcePathMarker(text),
     );
 
@@ -38,7 +38,7 @@ class CNextMarkerDetector {
    * Check if content contains any C-Next generation marker.
    */
   static isCNextGenerated(content: string): boolean {
-    return CNextMarkerDetector.MARKER_REGEXES.some((regex) =>
+    return CnxMarkerDetector.MARKER_REGEXES.some((regex) =>
       regex.test(content),
     );
   }
@@ -50,20 +50,17 @@ class CNextMarkerDetector {
    * @returns The recorded source path (e.g., "led.cnx") and the line and
    *   column it is written at, or null if no marker names a source
    */
-  static findMarker(content: string): ICNextMarker | null {
-    for (const regex of CNextMarkerDetector.SOURCE_PATH_REGEXES) {
+  static findMarker(content: string): ICnxMarker | null {
+    for (const regex of CnxMarkerDetector.SOURCE_PATH_REGEXES) {
       const match = regex.exec(content);
       if (match) {
-        return CNextMarkerDetector.markerAt(content, match);
+        return CnxMarkerDetector.markerAt(content, match);
       }
     }
     return null;
   }
 
-  private static markerAt(
-    content: string,
-    match: RegExpExecArray,
-  ): ICNextMarker {
+  private static markerAt(content: string, match: RegExpExecArray): ICnxMarker {
     const sourcePath = match[1];
     // The name ends the match, so it starts this far into the file.
     const offset = match.index + match[0].length - sourcePath.length;
@@ -76,4 +73,4 @@ class CNextMarkerDetector {
   }
 }
 
-export default CNextMarkerDetector;
+export default CnxMarkerDetector;

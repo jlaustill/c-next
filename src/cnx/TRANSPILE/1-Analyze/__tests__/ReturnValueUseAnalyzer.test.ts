@@ -7,8 +7,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CnxLexer } from "../../../PARSE/2-Parse/grammar/CnxLexer";
 import { CnxParser } from "../../../PARSE/2-Parse/grammar/CnxParser";
-import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
-import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import CnxResolver from "../../../PARSE/3-Declare/cnx/index";
+import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TranspileState from "../../TranspileState";
 import ReturnValueUseAnalyzer from "../ReturnValueUseAnalyzer";
@@ -29,7 +29,7 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(
+    CnxResolver.resolve(
       ProgramLowering.program(tree, null),
       "test.cnx",
       registry,

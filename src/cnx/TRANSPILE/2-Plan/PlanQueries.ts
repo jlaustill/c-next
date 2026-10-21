@@ -39,7 +39,7 @@ class PlanQueries implements IPlanQueries {
     return TypeCheckUtils.isInteger(typeName);
   }
 
-  isCNextFunction(name: string): boolean {
+  isCnxFunction(name: string): boolean {
     return SymbolLookupHelper.isCNextFunctionCombined(
       this.state.knownFunctions,
       this.state.symbolTable,

@@ -7,7 +7,7 @@
  * Source of truth: src/constants/TypeMappings.ts
  */
 
-import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 
 /**
  * Map a C-Next type to C type
@@ -24,8 +24,8 @@ import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
  */
 function mapType(type: string): string {
   // Check direct mapping first
-  if (CNEXT_TO_C_TYPE_MAP[type]) {
-    return CNEXT_TO_C_TYPE_MAP[type];
+  if (CNX_TO_C_TYPE_MAP[type]) {
+    return CNX_TO_C_TYPE_MAP[type];
   }
 
   // Issue #427: Handle string<N> types -> char[N+1]
@@ -59,7 +59,7 @@ function mapType(type: string): string {
  */
 function isBuiltInType(typeName: string): boolean {
   // Direct primitive types
-  if (CNEXT_TO_C_TYPE_MAP[typeName]) {
+  if (CNX_TO_C_TYPE_MAP[typeName]) {
     return true;
   }
 
@@ -71,4 +71,4 @@ function isBuiltInType(typeName: string): boolean {
   return false;
 }
 
-export default { TYPE_MAP: CNEXT_TO_C_TYPE_MAP, mapType, isBuiltInType };
+export default { TYPE_MAP: CNX_TO_C_TYPE_MAP, mapType, isBuiltInType };

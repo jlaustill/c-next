@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import CallbackAssignmentAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer";
 import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
@@ -39,7 +39,7 @@ const build = (source: string) => {
 // Only the empty-program case below: it asserts what an EMPTY program does,
 // which a real declared program cannot stand in for.
 const findings = (source: string) => {
-  const syntax = CNextSourceParser.parse(source).program;
+  const syntax = CnxSourceParser.parse(source).program;
   return new CallbackAssignmentAnalyzer(
     testAnalysisContext(new TranspileState()),
   ).analyze(syntax, new Map());

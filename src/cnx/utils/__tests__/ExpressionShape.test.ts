@@ -3,14 +3,14 @@
  */
 import { describe, it, expect } from "vitest";
 import ExpressionShape from "../ExpressionShape";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import * as Parser from "../../PARSE/2-Parse/grammar/CnxParser";
 
 function parseExpression(exprSource: string): Parser.ExpressionContext {
   // Wrap in a variable declaration in main() to get a complete program
   const source = `void main() { u32 x <- ${exprSource}; }`;
-  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CnxSourceParser.parse(source);
 
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 import StatementLowering from "../StatementLowering";
 import type TStatement from "../../../types/syntax/TStatement";
 
 function bodyOf(statements: string): readonly TStatement[] {
-  const tree = CNextSourceParser.parse(`void f() {\n${statements}\n}\n`).tree;
+  const tree = CnxSourceParser.parse(`void f() {\n${statements}\n}\n`).tree;
   const block = tree.declaration()[0].functionDeclaration()?.block();
   if (!block) throw new Error(`no body in: ${statements}`);
   return StatementLowering.block(block).statements;

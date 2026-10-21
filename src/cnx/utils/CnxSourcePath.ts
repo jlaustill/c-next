@@ -28,7 +28,7 @@ interface ISourceRejection {
  * that is `.cnx` in any other case is E0518; `.cnext`, in any case, is E0519
  * (#2167). Each is `isRejected`, and every site reports `rejection`.
  */
-class CNextSourcePath {
+class CnxSourcePath {
   /** Whether `path` names cnx source. */
   static isSource(path: string): boolean {
     return extname(path) === CNX_EXTENSION;
@@ -36,7 +36,7 @@ class CNextSourcePath {
 
   /** Whether `path` looks like cnx source but is E0518 or E0519. */
   static isRejected(path: string): boolean {
-    return CNextSourcePath.rejectedCode(path) !== null;
+    return CnxSourcePath.rejectedCode(path) !== null;
   }
 
   /**
@@ -44,7 +44,7 @@ class CNextSourcePath {
    * what to change at the reporting site: the file, an include, a header.
    */
   static rejection(name: string, rename: string): ISourceRejection | null {
-    const code = CNextSourcePath.rejectedCode(name);
+    const code = CnxSourcePath.rejectedCode(name);
     if (code === null) return null;
     const message =
       code === "E0519"
@@ -61,10 +61,10 @@ class CNextSourcePath {
    */
   static stem(path: string): string {
     invariant(
-      !CNextSourcePath.isRejected(path),
+      !CnxSourcePath.isRejected(path),
       `a rejected cnx path is E0518 or E0519 before it is named (${path})`,
     );
-    return CNextSourcePath.isSource(path)
+    return CnxSourcePath.isSource(path)
       ? path.slice(0, -extname(path).length)
       : path;
   }
@@ -75,9 +75,9 @@ class CNextSourcePath {
    * #1833; what a source run's `<string>` self-include should be is #1204.
    */
   static withExtension(path: string, ext: string): string {
-    return CNextSourcePath.isSource(path)
-      ? CNextSourcePath.stem(path) + ext
-      : CNextSourcePath.stem(path);
+    return CnxSourcePath.isSource(path)
+      ? CnxSourcePath.stem(path) + ext
+      : CnxSourcePath.stem(path);
   }
 
   private static rejectedCode(path: string): "E0518" | "E0519" | null {
@@ -89,4 +89,4 @@ class CNextSourcePath {
   }
 }
 
-export default CNextSourcePath;
+export default CnxSourcePath;

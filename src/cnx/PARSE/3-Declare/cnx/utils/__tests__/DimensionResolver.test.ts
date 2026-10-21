@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../2-Parse/CnxSourceParser";
 import * as Parser from "../../../../2-Parse/grammar/CnxParser";
 import SyntaxLowering from "../../../../2-Parse/SyntaxLowering";
 import DimensionResolver from "../DimensionResolver";
@@ -15,7 +15,7 @@ import type IDeclaredDimension from "../../types/IDeclaredDimension";
 describe("DimensionResolver", () => {
   /** Extract the initializer expression from `u8 x <- <expr>;`. */
   function getExpression(source: string): Parser.ExpressionContext | null {
-    const result = CNextSourceParser.parse(source);
+    const result = CnxSourceParser.parse(source);
     return (
       result.tree.declaration(0)?.variableDeclaration()?.expression() ?? null
     );

@@ -15,7 +15,7 @@
  * - Header generation for extern declarations
  * - Symbol resolution for type conversion
  */
-const CNEXT_TO_C_TYPE_MAP: Record<string, string> = {
+const CNX_TO_C_TYPE_MAP: Record<string, string> = {
   u8: "uint8_t",
   u16: "uint16_t",
   u32: "uint32_t",
@@ -32,4 +32,4 @@ const CNEXT_TO_C_TYPE_MAP: Record<string, string> = {
   cstring: "char*", // ADR-046: C string pointer type (nullable)
 };
 
-export default CNEXT_TO_C_TYPE_MAP;
+export default CNX_TO_C_TYPE_MAP;

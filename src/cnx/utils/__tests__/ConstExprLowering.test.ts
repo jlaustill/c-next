@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import ConstExprLowering from "../ConstExprLowering";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import type TConstExpr from "../../types/TConstExpr";
@@ -7,7 +7,7 @@ import ConstExprShape from "../__testUtils__/ConstExprShape";
 
 /** The expression `source` lowers to, written as a const's initializer */
 function lowerOf(source: string): TConstExpr {
-  const tree = CNextSourceParser.parse(`const u32 Q <- ${source};\n`).tree;
+  const tree = CnxSourceParser.parse(`const u32 Q <- ${source};\n`).tree;
   const expression = tree.declaration()[0].variableDeclaration()?.expression();
   if (!expression) throw new Error(`no expression in: ${source}`);
   return ConstExprLowering.lower(SyntaxLowering.expression(expression));

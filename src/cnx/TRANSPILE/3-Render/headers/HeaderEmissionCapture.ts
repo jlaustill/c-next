@@ -2,7 +2,7 @@ import { basename } from "node:path";
 
 import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
-import CNextSourcePath from "../../../utils/CNextSourcePath";
+import CnxSourcePath from "../../../utils/CnxSourcePath";
 import IncludePath from "../../../utils/IncludePath";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
@@ -75,7 +75,7 @@ class HeaderEmissionCapture {
     // Issue #1319: the state's getter is the one derivation from the mode;
     // the `#include` lines read the same getter
     const ext = state.outputExtensions.header;
-    const headerName = CNextSourcePath.withExtension(
+    const headerName = CnxSourcePath.withExtension(
       IncludeGuards.identity(request.anchor, sourcePath),
       ext,
     );

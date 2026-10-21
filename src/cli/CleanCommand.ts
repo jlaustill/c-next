@@ -8,7 +8,7 @@ import InputExpansion from "../cnx/PARSE/1-Discover/InputExpansion";
 import PathResolver from "../cnx/PARSE/1-Discover/PathResolver";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import Write from "../cnx/WRITE/1-Write/Write";
-import CNextSourcePath from "../cnx/utils/CNextSourcePath";
+import CnxSourcePath from "../cnx/utils/CnxSourcePath";
 
 /**
  * Command to clean generated output files
@@ -47,7 +47,7 @@ class CleanCommand {
     let count = 0;
     for (const ext of extensions) {
       const outputPath = relativePath
-        ? join(targetDir, CNextSourcePath.withExtension(relativePath, ext))
+        ? join(targetDir, CnxSourcePath.withExtension(relativePath, ext))
         : join(targetDir, baseName + ext);
       if (this.deleteIfExists(outputPath)) {
         count++;
@@ -86,7 +86,7 @@ class CleanCommand {
     let deletedCount = 0;
 
     for (const cnxFile of cnxFiles) {
-      const baseName = CNextSourcePath.stem(basename(cnxFile));
+      const baseName = CnxSourcePath.stem(basename(cnxFile));
       const relativePath = pathResolver.getRelativePathFromInputs(cnxFile);
 
       // Delete code files (.c and .cpp)

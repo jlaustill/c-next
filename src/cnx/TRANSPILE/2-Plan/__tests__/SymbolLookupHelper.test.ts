@@ -164,33 +164,27 @@ describe("SymbolLookupHelper", () => {
     });
   });
 
-  describe("isCNextFunction", () => {
+  describe("isCnxFunction", () => {
     it("returns false when symbolTable is null", () => {
-      expect(SymbolLookupHelper.isCNextFunction(null, "myFunc")).toBe(false);
+      expect(SymbolLookupHelper.isCnxFunction(null, "myFunc")).toBe(false);
     });
 
     it("returns false when symbolTable is undefined", () => {
-      expect(SymbolLookupHelper.isCNextFunction(undefined, "myFunc")).toBe(
-        false,
-      );
+      expect(SymbolLookupHelper.isCnxFunction(undefined, "myFunc")).toBe(false);
     });
 
     it("returns true for C-Next function", () => {
       const mockTable = makeSymbolTable([
         { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
       ]);
-      expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
-        true,
-      );
+      expect(SymbolLookupHelper.isCnxFunction(mockTable, "myFunc")).toBe(true);
     });
 
     it("returns false for C function", () => {
       const mockTable = makeSymbolTable([
         { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
       ]);
-      expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
-        false,
-      );
+      expect(SymbolLookupHelper.isCnxFunction(mockTable, "myFunc")).toBe(false);
     });
 
     // Issue #1139 regression guard. The two indexes answer different questions:
@@ -210,28 +204,24 @@ describe("SymbolLookupHelper", () => {
       };
 
       expect(
-        SymbolLookupHelper.isCNextFunction(table, "Sensors__readValue"),
+        SymbolLookupHelper.isCnxFunction(table, "Sensors__readValue"),
       ).toBe(true);
       // The bare name is not this symbol's identity, so it must not resolve.
-      expect(SymbolLookupHelper.isCNextFunction(table, "readValue")).toBe(
-        false,
-      );
+      expect(SymbolLookupHelper.isCnxFunction(table, "readValue")).toBe(false);
     });
 
     it("returns false for C++ function", () => {
       const mockTable = makeSymbolTable([
         { kind: "function" as const, sourceLanguage: ESourceLanguage.Cpp },
       ]);
-      expect(SymbolLookupHelper.isCNextFunction(mockTable, "myFunc")).toBe(
-        false,
-      );
+      expect(SymbolLookupHelper.isCnxFunction(mockTable, "myFunc")).toBe(false);
     });
 
     it("returns false for C-Next struct", () => {
       const mockTable = makeSymbolTable([
         { kind: "struct" as const, sourceLanguage: ESourceLanguage.CNext },
       ]);
-      expect(SymbolLookupHelper.isCNextFunction(mockTable, "MyStruct")).toBe(
+      expect(SymbolLookupHelper.isCnxFunction(mockTable, "MyStruct")).toBe(
         false,
       );
     });

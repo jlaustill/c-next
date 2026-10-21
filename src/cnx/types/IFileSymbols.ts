@@ -28,7 +28,7 @@ import type TCallbackUse from "./TCallbackUse";
  * scope types this file can SEE does not, because it is the union across an
  * include closure, and that is a cross-file fact by construction.
  *
- * Keeping the two apart is the point rather than a tidiness: `CNextResolver`
+ * Keeping the two apart is the point rather than a tidiness: `CnxResolver`
  * previously held one set that was seeded from included files and then filled
  * with local declarations, so "declared here" and "visible here" were the same
  * object and neither could be read back. #1312 is what that costs at the other

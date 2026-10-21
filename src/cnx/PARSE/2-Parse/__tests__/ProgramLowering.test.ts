@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 import CommentScanner from "../CommentScanner";
 import ProgramLowering from "../ProgramLowering";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 
 function lower(source: string): IProgramSyntax {
-  const parsed = CNextSourceParser.parse(source);
+  const parsed = CnxSourceParser.parse(source);
   return ProgramLowering.program(
     parsed.tree,
     new CommentScanner(parsed.tokenStream),
@@ -153,7 +153,7 @@ describe("ProgramLowering", () => {
   });
 
   it("reads no comments when there is no token stream", () => {
-    const parsed = CNextSourceParser.parse("// note\nu32 count <- 0;\n");
+    const parsed = CnxSourceParser.parse("// note\nu32 count <- 0;\n");
     const program = ProgramLowering.program(parsed.tree, null);
     expect(program.declarations[0].leadingComments).toEqual([]);
   });
@@ -206,7 +206,7 @@ describe("ProgramLowering on recovered files", () => {
   }
 
   function missingCount(source: string): number {
-    const parsed = CNextSourceParser.parse(source);
+    const parsed = CnxSourceParser.parse(source);
     if (parsed.parseErrors.length === 0) return -1;
     return JSON.stringify(parsed.program).split('"kind":"missing"').length - 1;
   }

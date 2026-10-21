@@ -12,7 +12,7 @@
  * to a narrower essential type).
  */
 import TYPE_LIMITS from "../../../2-Plan/types/TYPE_LIMITS";
-import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import invariant from "../../../../utils/invariant";
 import SaturationRule from "../../../../utils/SaturationRule";
 
@@ -56,7 +56,7 @@ class SaturatingCast {
    * defaults for anything but `f32` and `f64`)
    */
   static floatCType(sourceType: string): string {
-    const cType = CNEXT_TO_C_TYPE_MAP[sourceType];
+    const cType = CNX_TO_C_TYPE_MAP[sourceType];
     invariant(
       cType === "float" || cType === "double",
       `a saturating cast's source is a float ('${sourceType}')`,

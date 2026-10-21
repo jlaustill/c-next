@@ -3,7 +3,7 @@ import type IBitmapFieldSymbol from "../symbols/IBitmapFieldSymbol";
 import type IRegisterMemberSymbol from "../symbols/IRegisterMemberSymbol";
 import type IEnumMemberSymbol from "../symbols/IEnumMemberSymbol";
 import type IStructFieldSymbol from "../symbols/IStructFieldSymbol";
-import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../symbol-kinds/TSymbolKindCnx";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TestSourceSpan from "./testSourceSpan";
@@ -33,7 +33,7 @@ class TestMembers {
    * drifted silently because different tests exercise each.
    */
   static base(
-    kind: TSymbolKindCNext,
+    kind: TSymbolKindCnx,
     name: string,
     ownerScopedName: string,
     line: number,

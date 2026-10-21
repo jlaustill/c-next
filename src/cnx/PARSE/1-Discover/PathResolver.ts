@@ -12,7 +12,7 @@ import IDiscoveredFile from "./types/IDiscoveredFile";
 import type TSourceExtension from "../../types/TSourceExtension";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IFileSystem from "../../types/IFileSystem";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 import IncludePath from "../../utils/IncludePath";
 
 /**
@@ -92,13 +92,13 @@ class PathResolver {
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
       // File is under an input directory - preserve structure
-      const outputRelative = CNextSourcePath.withExtension(relativePath, ext);
+      const outputRelative = CnxSourcePath.withExtension(relativePath, ext);
       return join(this.config.outDir, outputRelative);
     }
 
     // Fallback: output next to the source file (not in outDir)
     // This handles included files that aren't under any input directory
-    const outputName = CNextSourcePath.withExtension(basename(file.path), ext);
+    const outputName = CnxSourcePath.withExtension(basename(file.path), ext);
     return join(dirname(file.path), outputName);
   }
 
@@ -166,7 +166,7 @@ class PathResolver {
     const relativePath = this.getRelativePathFromInputs(cnxPath);
     if (relativePath) {
       // File is under an input directory - preserve structure
-      return join(headerDir, CNextSourcePath.withExtension(relativePath, ext));
+      return join(headerDir, CnxSourcePath.withExtension(relativePath, ext));
     }
 
     // Issue #489: a file outside every input directory still has to land
@@ -194,14 +194,14 @@ class PathResolver {
       if (relativeFromBase && !relativeFromBase.startsWith("..")) {
         return join(
           this.config.headerOutDir,
-          CNextSourcePath.withExtension(relativeFromBase, ext),
+          CnxSourcePath.withExtension(relativeFromBase, ext),
         );
       }
 
       // File outside the base: place by basename.
       return join(
         this.config.headerOutDir,
-        CNextSourcePath.withExtension(basename(cnxPath), ext),
+        CnxSourcePath.withExtension(basename(cnxPath), ext),
       );
     }
 
@@ -209,7 +209,7 @@ class PathResolver {
     // This handles included files that aren't under any input directory
     return join(
       dirname(cnxPath),
-      CNextSourcePath.withExtension(basename(cnxPath), ext),
+      CnxSourcePath.withExtension(basename(cnxPath), ext),
     );
   }
 }

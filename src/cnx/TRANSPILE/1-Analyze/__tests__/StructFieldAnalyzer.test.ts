@@ -6,14 +6,14 @@
  * Currently there are no reserved field names.
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import StructFieldAnalyzer from "../StructFieldAnalyzer";
 
 /**
  * Helper to parse C-Next code and return 1.2's syntax
  */
 function parse(source: string) {
-  return CNextSourceParser.parse(source).program;
+  return CnxSourceParser.parse(source).program;
 }
 
 describe("StructFieldAnalyzer", () => {
