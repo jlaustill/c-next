@@ -70,7 +70,7 @@ describe("IncludeResolver", () => {
       })(),
     );
 
-    // Create test C-Next include file
+    // Create test cnx include file
     writeFileSync(join(includeDir, "shared.cnx"), "scope Shared { }");
   });
 
@@ -306,10 +306,10 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve(content);
 
       expect(result.headers).toHaveLength(1);
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
     });
 
-    it("should categorize .cnx files as C-Next includes", () => {
+    it("should categorize .cnx files as cnx includes", () => {
       const resolver = spellingResolver(
         [includeDir],
         ".h",
@@ -322,11 +322,11 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve(content);
 
       expect(result.headers).toHaveLength(0);
-      expect(result.cnextIncludes).toHaveLength(1);
-      expect(result.cnextIncludes[0].path).toBe(join(includeDir, "shared.cnx"));
+      expect(result.cnxIncludes).toHaveLength(1);
+      expect(result.cnxIncludes[0].path).toBe(join(includeDir, "shared.cnx"));
     });
 
-    it("should handle mixed header and C-Next includes", () => {
+    it("should handle mixed header and cnx includes", () => {
       const resolver = spellingResolver(
         [includeDir],
         ".h",
@@ -339,7 +339,7 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve(content);
 
       expect(result.headers).toHaveLength(1);
-      expect(result.cnextIncludes).toHaveLength(1);
+      expect(result.cnxIncludes).toHaveLength(1);
     });
   });
 
@@ -367,7 +367,7 @@ describe("IncludeResolver", () => {
         srcDir,
       ).resolve(content);
 
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
       expect(result.hasForeignInclude).toBe(expected);
     });
   });
@@ -553,7 +553,7 @@ describe("IncludeResolver", () => {
         '#include "other.h"',
         "#include <lib.h>",
       ]);
-      // The author's spacing survives, and `<>` names no C-Next source
+      // The author's spacing survives, and `<>` names no cnx source
       expect(result.cHeaderIncludes).toEqual([
         "#include  <system.h>",
         '#include "types.h"',
@@ -575,10 +575,10 @@ describe("IncludeResolver", () => {
     // source; any other case, and `.cnext` in any case (#2167), is its own
     // kind, which 2.1 rejects as E0518 or E0519.
     it.each([
-      ['#include "Utils.cnx"', EFileType.CNext],
-      ["#include <utils.cnext>", EFileType.RejectedCNext],
-      ['#include "Utils.CNX"', EFileType.RejectedCNext],
-      ["#include <utils.Cnext>", EFileType.RejectedCNext],
+      ['#include "Utils.cnx"', EFileType.Cnx],
+      ["#include <utils.cnext>", EFileType.RejectedCnx],
+      ['#include "Utils.CNX"', EFileType.RejectedCnx],
+      ["#include <utils.Cnext>", EFileType.RejectedCnx],
       ['#include "utils.h"', EFileType.CHeader],
       ['#include "utils.cnx.h"', EFileType.CHeader],
       ['#include "impl.c++"', EFileType.CppSource],
@@ -679,7 +679,7 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve("");
 
       expect(result.headers).toHaveLength(0);
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
     });
 
@@ -695,7 +695,7 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve("void main() { }");
 
       expect(result.headers).toHaveLength(0);
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
     });
 
@@ -937,7 +937,7 @@ describe("IncludeResolver", () => {
           includeDir,
         ).resolve(source, sourcePath);
 
-        expect(result.cnextIncludes).toHaveLength(1);
+        expect(result.cnxIncludes).toHaveLength(1);
         expect([...result.headerIncludeDirectives.values()]).toEqual([
           expected,
         ]);

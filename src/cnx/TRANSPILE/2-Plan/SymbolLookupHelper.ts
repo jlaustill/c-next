@@ -91,8 +91,8 @@ class SymbolLookupHelper {
   }
 
   /**
-   * Check if a function is a C-Next function (uses pass-by-reference semantics).
-   * Returns true if the function is found in symbol table as C-Next.
+   * Check if a function is a cnx function (uses pass-by-reference semantics).
+   * Returns true if the function is found in symbol table as cnx.
    */
   static isCnxFunction(
     symbolTable: ISymbolTable | null | undefined,
@@ -102,15 +102,15 @@ class SymbolLookupHelper {
       symbolTable,
       name,
       "function",
-      [ESourceLanguage.CNext],
+      [ESourceLanguage.Cnx],
     );
   }
 
   /**
-   * Check if a function is a C-Next function (combined local + symbol table lookup).
+   * Check if a function is a cnx function (combined local + symbol table lookup).
    * Checks local knownFunctions set first, then falls back to symbol table.
    */
-  static isCNextFunctionCombined(
+  static isCnxFunctionCombined(
     knownFunctions: ReadonlySet<string> | undefined,
     symbolTable: ISymbolTable | null | undefined,
     name: string,

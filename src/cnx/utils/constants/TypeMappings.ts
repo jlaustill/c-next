@@ -1,11 +1,11 @@
 /**
- * C-Next to C Type Mappings
+ * cnx to C Type Mappings
  *
  * Single source of truth for the primitive type mappings.
  */
 
 /**
- * Maps C-Next primitive types to their C equivalents.
+ * Maps cnx primitive types to their C equivalents.
  *
  * Used by:
  * - Code generation for variable/parameter declarations

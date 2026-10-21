@@ -323,10 +323,10 @@ describe("IncludeDiscovery", () => {
   });
 
   // ==========================================================================
-  // extractCNextIncludes (#1745)
+  // extractCnxIncludes (#1745)
   // ==========================================================================
 
-  describe("extractCNextIncludes", () => {
+  describe("extractCnxIncludes", () => {
     // Each case beside its opposite: a directive the grammar reads, and the
     // same text in a place the grammar does not, where the text scan above
     // read one anyway.
@@ -359,7 +359,7 @@ describe("IncludeDiscovery", () => {
         [["a>b.h", true]],
       ],
     ])("reads %s", (_label, source, expected) => {
-      const result = IncludeDiscovery.extractCNextIncludes(source as string);
+      const result = IncludeDiscovery.extractCnxIncludes(source as string);
       expect(result.map((r) => [r.path, r.isLocal])).toEqual(expected);
     });
 
@@ -371,15 +371,13 @@ describe("IncludeDiscovery", () => {
       ["mismatched delimiters", '#include <a.h"\n'],
       ["an empty path", "#include <>\n"],
     ])("reads no directive from %s", (_label, source) => {
-      expect(IncludeDiscovery.extractCNextIncludes(source as string)).toEqual(
-        [],
-      );
+      expect(IncludeDiscovery.extractCnxIncludes(source as string)).toEqual([]);
     });
 
     it("leaves a lexical error for 1.2 to report, printing nothing", () => {
       const printed = vi.spyOn(console, "error").mockImplementation(() => {});
       try {
-        IncludeDiscovery.extractCNextIncludes("#\ninclude <a.h>\n@\n");
+        IncludeDiscovery.extractCnxIncludes("#\ninclude <a.h>\n@\n");
         expect(printed).not.toHaveBeenCalled();
       } finally {
         printed.mockRestore();

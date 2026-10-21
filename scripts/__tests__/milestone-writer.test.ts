@@ -2,13 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import MilestoneWriter from "../releases/MilestoneWriter";
 
-const SLUG = "jlaustill/c-next";
+const SLUG = "smeltworks/cnx";
 
 describe("MilestoneWriter.patchArgs", () => {
   it("sends the milestone number as a typed field", () => {
     expect(MilestoneWriter.patchArgs(SLUG, 1314, 2)).toEqual([
       "api",
-      "repos/jlaustill/c-next/issues/1314",
+      "repos/smeltworks/cnx/issues/1314",
       "-X",
       "PATCH",
       "-F",
@@ -39,7 +39,7 @@ describe("MilestoneWriter.patchArgs", () => {
 
   it("patches a pull request through the issues path, as the REST API does", () => {
     expect(MilestoneWriter.patchArgs(SLUG, 1390, 2)).toContain(
-      "repos/jlaustill/c-next/issues/1390",
+      "repos/smeltworks/cnx/issues/1390",
     );
   });
 

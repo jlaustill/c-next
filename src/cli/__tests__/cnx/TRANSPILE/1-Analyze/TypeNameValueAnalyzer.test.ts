@@ -101,7 +101,7 @@ scope Shadow {
     expect(errors(source)).toEqual([]);
   });
 
-  it("reads a header enum's member as a value, as a C-Next enum's", () => {
+  it("reads a header enum's member as a value, as a cnx enum's", () => {
     const symbolTable = new SymbolTable();
     const tree = HeaderParser.parseC("typedef enum { HA, HB } HE;\n").syntax;
     symbolTable.addCSymbols(

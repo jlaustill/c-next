@@ -90,7 +90,7 @@ describe("toolchain documentation generator", () => {
 
   it("reports honestly that there is no compiler-version floor", () => {
     expect(rendered).toContain(
-      "No construct C-Next emits has a minimum compiler version",
+      "No construct cnx emits has a minimum compiler version",
     );
   });
 

@@ -57,7 +57,7 @@
      keeps the conformance corpus and discards every module name, so a fixture
      path is the citation that survives it — and it fails loudly when it stops
      resolving, which a prose module name never does. ADR-063 is the worked
-     example; ADR-016 names `SymbolTable.detectCNextDuplicate` and is what this
+     example; ADR-016 names `SymbolTable.detectCnxDuplicate` and is what this
      guidance exists to prevent. -->
 
 | Code | Meaning | Asserted by |

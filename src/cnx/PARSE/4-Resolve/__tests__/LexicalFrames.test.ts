@@ -49,7 +49,7 @@ function build(files: Record<string, string>) {
   // #1724: a file sees the scope types of its include closure only, so the
   // graph is stated as discovery would resolve it -- a quoted `.cnx` include
   // naming another file of the run
-  const cnextIncludesByFile = new Map(
+  const cnxIncludesByFile = new Map(
     Object.entries(files).map(([path, source]) => [
       path,
       [...source.matchAll(/^#include "([^"]+\.cnx)"/gm)]
@@ -61,7 +61,7 @@ function build(files: Record<string, string>) {
   return Program.build(declared, {
     cppMode: false,
     registry,
-    visibility: { cnextIncludesByFile },
+    visibility: { cnxIncludesByFile },
   });
 }
 

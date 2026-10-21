@@ -27,9 +27,9 @@ import type TType from "../types/TType";
 /** ADR-058 (#1975 review 2): a bool is one bit wide; its memory is C's */
 const BOOL_BITS = 1;
 
-/** A C-Next declaration by C name -- Program's, or what a file can see */
+/** A cnx declaration by C name -- Program's, or what a file can see */
 type TSymbolLookup = (cName: string) => TSymbol | undefined;
-/** #1975 review: a header type's width, for a C-Next field of one; null for none */
+/** #1975 review: a header type's width, for a cnx field of one; null for none */
 type THeaderBits = (typeName: string) => number | null;
 
 const KINDS: ReadonlyArray<TLengthKind> = ["value", "type", "memory"];
@@ -302,9 +302,9 @@ class LengthProperty {
   }
 
   /**
-   * A C-Next declared type's element width in bits -- the same answer
+   * A cnx declared type's element width in bits -- the same answer
    * `elementBits` gives render for the type's name; null for a type whose
-   * width C-Next does not fix (a C header type)
+   * width cnx does not fix (a C header type)
    */
   static elementBitsOfType(
     type: TType,
@@ -319,7 +319,7 @@ class LengthProperty {
         );
         if (struct)
           return LengthProperty.structBits(struct, lookup, headerBits);
-        // A header's struct, which a C-Next field names as a struct (#1975)
+        // A header's struct, which a cnx field names as a struct (#1975)
         return headerBits?.(type.name) ?? null;
       }
       case "external":
@@ -363,7 +363,7 @@ class LengthProperty {
       : dimensions;
   }
 
-  /** A C-Next struct by C name; undefined for any other name */
+  /** A cnx struct by C name; undefined for any other name */
   static struct(
     cName: string,
     lookup: TSymbolLookup,
@@ -375,7 +375,7 @@ class LengthProperty {
   /**
    * ADR-058 resolved question 7 (#1535): a struct's fields' bits together,
    * without C padding -- `struct P { u32 x; u8 y; }` is 40 bits where C
-   * stores 64. Null when a field's width is not C-Next's to fix.
+   * stores 64. Null when a field's width is not cnx's to fix.
    */
   static structBits(
     struct: IStructSymbol,
@@ -395,7 +395,7 @@ class LengthProperty {
     return bits;
   }
 
-  /** An element type's width in bits, from C-Next's own types; null if unknown */
+  /** An element type's width in bits, from cnx's own types; null if unknown */
   static elementBits(
     typeName: string,
     facts: IElementWidthFacts,

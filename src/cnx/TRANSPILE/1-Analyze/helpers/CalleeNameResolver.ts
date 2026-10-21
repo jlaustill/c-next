@@ -37,7 +37,7 @@ class CalleeNameResolver {
 
   /**
    * Resolve one member-access step. Returns the new qualified name, or null
-   * when the base is not something a C-Next call can be named against.
+   * when the base is not something a cnx call can be named against.
    */
   static resolveMemberAccess(
     resolvedName: string,
@@ -61,7 +61,7 @@ class CalleeNameResolver {
       return QualifiedCName.fromParts([resolvedName, memberName]);
     }
 
-    // Object.method or a chained access -- not a C-Next function call
+    // Object.method or a chained access -- not a cnx function call
     return null;
   }
 

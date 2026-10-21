@@ -6,7 +6,7 @@
 interface IElementWidthFacts {
   /** A C enum's declared width (a typed C enum, #208); null when it has none */
   enumBitWidth(typeName: string): number | null;
-  /** A C-Next enum's fewest bits for its members (`LengthProperty.enumBits`); null for any other */
+  /** A cnx enum's fewest bits for its members (`LengthProperty.enumBits`); null for any other */
   enumBits(typeName: string): number | null;
   /** A bitmap's width; null for anything else */
   bitmapBitWidth(typeName: string): number | null;

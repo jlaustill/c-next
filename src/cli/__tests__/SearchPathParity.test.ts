@@ -1,8 +1,8 @@
 /**
  * Two more answers to "what does this include resolve to?", made one.
  *
- * #1706: a C/C++ entry point (`cnext src/main.cpp`) built its own search path,
- * without the PlatformIO and Arduino tiers `.cnx` discovery uses, so a C-Next
+ * #1706: a C/C++ entry point (`cnx src/main.cpp`) built its own search path,
+ * without the PlatformIO and Arduino tiers `.cnx` discovery uses, so a cnx
  * library installed by PlatformIO was "not found" from main.cpp while a `.cnx`
  * entry found it.
  *
@@ -31,7 +31,7 @@ describe("search path parity", () => {
   let lib: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-parity-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-parity-"));
     writeFileSync(join(project, "platformio.ini"), "[env:teensy41]\n");
     lib = join(project, ".pio", "libdeps", "teensy41", "colors", "src");
     mkdirSync(lib, { recursive: true });
@@ -70,7 +70,7 @@ describe("search path parity", () => {
       return run(main);
     }
 
-    it("finds a C-Next library in .pio/libdeps", async () => {
+    it("finds a cnx library in .pio/libdeps", async () => {
       installColors(lib);
 
       const result = await fromMainCpp();
@@ -304,14 +304,14 @@ describe("search path parity", () => {
     });
 
     /** `ext.h` in a directory on no search path, named by absolute path. */
-    function absoluteHeader(withCNextSource: boolean): string {
+    function absoluteHeader(withCnxSource: boolean): string {
       const vendor = join(project, "vendor");
       mkdirSync(vendor);
       writeFileSync(
         join(vendor, "ext.h"),
         "#ifndef EXT_H\n#define EXT_H\n#endif\n",
       );
-      if (withCNextSource) {
+      if (withCnxSource) {
         writeFileSync(
           join(vendor, "ext.cnx"),
           "u32 extValue() {\n    return 1;\n}\n",
@@ -333,7 +333,7 @@ describe("search path parity", () => {
       expect(result.errors.map((e) => e.message).join("\n")).toContain("E0504");
     });
 
-    it("control: an absolute angle header with no C-Next source is accepted", async () => {
+    it("control: an absolute angle header with no cnx source is accepted", async () => {
       const result = await run(absoluteHeader(false));
 
       expect(result.errors).toEqual([]);

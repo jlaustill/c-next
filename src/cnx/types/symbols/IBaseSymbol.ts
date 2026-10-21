@@ -50,7 +50,7 @@ interface IBaseSymbol {
   readonly fullyQualifiedCName: string;
 
   /**
-   * The name a C-Next author would write -- `Motor.init`, `Outer.Inner.process`.
+   * The name a cnx author would write -- `Motor.init`, `Outer.Inner.process`.
    *
    * A separate namespace from `fullyQualifiedCName`, not a transformation of it.
    * Diagnostics want this one: reporting the generated identifier names something
@@ -98,7 +98,7 @@ interface IBaseSymbol {
    */
   readonly span: ISourceSpan;
 
-  /** Source language (CNext, C, Cpp) */
+  /** Source language (Cnx, C, Cpp) */
   readonly sourceLanguage: ESourceLanguage;
 
   /**

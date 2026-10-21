@@ -35,7 +35,7 @@ describe("RegisterCollector", () => {
         text: "0x40000000",
       });
       expect(symbol.sourceFile).toBe("test.cnx");
-      expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(symbol.visibility).toBe("public");
       expect(symbol.scopePath).toBe("");
 
@@ -78,7 +78,7 @@ describe("RegisterCollector", () => {
       expect(symbol.members.get("SET")?.access).toBe("w1s");
     });
 
-    it("converts C-Next types to C types", () => {
+    it("converts cnx types to C types", () => {
       const code = `
         register TIMERS @ 0x40002000 {
           COUNT8:  u8 rw @ 0x00,

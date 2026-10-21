@@ -284,7 +284,7 @@ describe("IdentifierForm (E0201, E0202)", () => {
       expect(errors[0].helpText).not.toMatch(/value_'/);
     });
 
-    // References are deliberately unchecked, which is what lets a C-Next file
+    // References are deliberately unchecked, which is what lets a cnx file
     // call an external C symbol that happens to use the prefix (ADR-010).
     it("does not check references", () => {
       const errors = analyze(`

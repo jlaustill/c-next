@@ -85,7 +85,7 @@ class ConfigFileNames {
 
   /**
    * E0918, at the old file. Placed at `1:0`, as a diagnostic about a whole
-   * file is; the file is the config, not a C-Next source.
+   * file is; the file is the config, not a cnx source.
    */
   static errorFor(renamed: IRenamedConfigFile): ITranspileError {
     const oldName = basename(renamed.path);

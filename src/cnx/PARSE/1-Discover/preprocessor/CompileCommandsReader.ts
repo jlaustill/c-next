@@ -3,14 +3,14 @@
  * preprocessor defines, compiler binary) from a `compile_commands.json`
  * compilation database.
  *
- * cnext is a source consumer that must resolve external C/C++ headers exactly as
+ * cnx is a source consumer that must resolve external C/C++ headers exactly as
  * the compiler will. Rather than couple to any one build system's path logic (or
  * hand-mirror it in cnx.config.json), it reads the build-system-agnostic
  * contract every build system converges on: the compiler command line, serialized
  * per translation unit in `compile_commands.json` (the LLVM compilation database
  * that clangd/clang-tidy also consume). Framework include paths are project-global
  * — identical across translation units — so the union of every entry's `-I` set is
- * the search path cnext needs; defines and the compiler binary come along for free.
+ * the search path cnx needs; defines and the compiler binary come along for free.
  *
  * This is the pure parse layer: a database string in, `{ includePaths, defines,
  * compiler }` out. No filesystem access — the loader layer reads the file.

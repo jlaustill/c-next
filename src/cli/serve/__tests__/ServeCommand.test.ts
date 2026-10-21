@@ -253,7 +253,7 @@ describe("ServeCommand", () => {
       });
     });
 
-    it("transpiles valid C-Next source", async () => {
+    it("transpiles valid cnx source", async () => {
       // Initialize first (required for transpile)
       await sendRequest({
         id: 100,
@@ -314,7 +314,7 @@ describe("ServeCommand", () => {
       // Run from the project, so the relative path climbs nothing: one that
       // climbs to `/` would hide the second resolution, which `resolve`
       // clamps at the root.
-      const project = mkdtempSync(join(tmpdir(), "cnext-serve-1435-"));
+      const project = mkdtempSync(join(tmpdir(), "cnx-serve-1435-"));
       const cwd = process.cwd();
       try {
         mkdirSync(join(project, "src"));

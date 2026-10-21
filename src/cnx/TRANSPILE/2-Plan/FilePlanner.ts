@@ -145,7 +145,7 @@ interface FunctionSignature {
   name: string;
   parameters: Array<{
     name: string;
-    baseType: string; // The C-Next type (e.g., 'u32', 'f32')
+    baseType: string; // The cnx type (e.g., 'u32', 'f32')
     isConst: boolean;
     isArray: boolean;
   }>;
@@ -423,7 +423,7 @@ class FilePlanner {
   /**
    * Issue #388: Resolve a qualified type from dot notation to the correct output format.
    * For C++ namespace types (like MockLib.Parse.ParseResult), uses :: separator.
-   * For C-Next scope types (like Motor.State), uses _ separator.
+   * For cnx scope types (like Motor.State), uses _ separator.
    *
    * @param identifiers Array of identifier names forming the qualified type
    * @returns The resolved type name with appropriate separator
@@ -441,7 +441,7 @@ class FilePlanner {
       return CppNamespaceUtils.fromParts(identifiers);
     }
 
-    // C-Next scope type: join all parts with _
+    // cnx scope type: join all parts with _
     return QualifiedCName.fromParts(identifiers);
   }
 
@@ -963,7 +963,7 @@ class FilePlanner {
   }
 
   /**
-   * The value's folded spelling. A const C-Next has no value for and C does
+   * The value's folded spelling. A const cnx has no value for and C does
    * -- a char literal, a header macro -- named alone is spelled as that
    * const is where it is used, so C is given the literal or the macro (#1739)
    */
@@ -1001,7 +1001,7 @@ class FilePlanner {
         settled,
         value.typeName!,
       );
-      // 2.1 stopped every value C-Next settled to nothing C can be given
+      // 2.1 stopped every value cnx settled to nothing C can be given
       // (E0909, E0910); what is left is C's to evaluate as written
       invariant(
         spelling !== null ||
@@ -2058,7 +2058,7 @@ class FilePlanner {
    * rule an assignment's value does (#1257): a literal initializes the array,
    * and a copy, a concatenation and a substring are written into it. 2.1 has
    * rejected a value that is no string (E0923), so a copy's is a string: a
-   * C-Next one, or a C `char*` or `char[]`.
+   * cnx one, or a C `char*` or `char[]`.
    */
   private static planStringInits(
     program: IProgramSyntax,
@@ -3166,7 +3166,7 @@ class FilePlanner {
     // ADR-045: a `string<N>` parameter is `char*` in C. Decided HERE, not in
     // either caller's renderer, because that is where the two disagreed: the
     // parse-tree renderer answered `char` (the ELEMENT type) and the symbol
-    // renderer answered `string<8>` (C-Next surface syntax, not C at all, and
+    // renderer answered `string<8>` (cnx surface syntax, not C at all, and
     // rejected by cc while the transpiler exited 0). Both are now wrong in one
     // place instead of differently wrong in two -- which is the property this
     // method exists to hold, and the one its comment already claimed.
@@ -3244,7 +3244,7 @@ class FilePlanner {
         .getOverloadsByCName(cName)
         .find(
           (candidate) =>
-            candidate.sourceLanguage === ESourceLanguage.CNext &&
+            candidate.sourceLanguage === ESourceLanguage.Cnx &&
             SymbolGuards.isFunction(candidate as TSymbol),
         ) as IFunctionSymbol | undefined;
 
@@ -3339,7 +3339,7 @@ class FilePlanner {
   }
 
   /**
-   * ADR-029: a resolved C-Next type name, spelled in a `_fp` typedef the way
+   * ADR-029: a resolved cnx type name, spelled in a `_fp` typedef the way
    * the function's own prototype spells it -- `headerCType` for the C++
    * namespace (`hw::Dev`, not the C join `hw__Dev`) and the primitive map,
    * then `generateUserType` for the `struct` keyword a C tag with no typedef
@@ -3539,7 +3539,7 @@ class FilePlanner {
   /**
    * Resolve the C type string for a named struct field, converting C++ underscore-separated
    * names to :: notation. Returns undefined if the field is not in the type map.
-   * Issue #502: C-Next stores C++ types with _ separator; codegen needs ::.
+   * Issue #502: cnx stores C++ types with _ separator; codegen needs ::.
    */
   private _resolveFieldType(
     fieldName: string,
@@ -3575,7 +3575,7 @@ class FilePlanner {
 
   /**
    * The type an assignment's value is rendered against: what the target
-   * holds, as the typer types it -- its C-Next name, or, where C-Next does
+   * holds, as the typer types it -- its cnx name, or, where cnx does
    * not fix the width (a header `size_t`), the header's spelling, so the
    * output is the same on every target -- with `::` for a C++ namespace's
    * type. #1760 review: three walkers derived it from the target's shape,

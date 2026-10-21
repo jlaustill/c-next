@@ -58,7 +58,7 @@ describe("TOOLCHAIN_REQUIREMENTS", () => {
   });
 
   it("carries no compiler-version floor", () => {
-    // Documents the current state deliberately: the only floor C-Next ever had
+    // Documents the current state deliberately: the only floor cnx ever had
     // came from the unreachable __builtin_*_overflow calls removed in #1143.
     // If a floor is ever added, this test should be updated with the reason --
     // it exists so that becomes a conscious decision rather than a drift.

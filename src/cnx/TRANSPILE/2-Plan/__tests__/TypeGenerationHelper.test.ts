@@ -1,6 +1,6 @@
 /**
  * Unit tests for TypeGenerationHelper
- * Tests for C type generation from a planned C-Next type
+ * Tests for C type generation from a planned cnx type
  *
  * #1445: the helper takes an `IPlannedType` now, so these build plans instead
  * of parsing source. What moved OUT of this file with the parse contexts is
@@ -179,7 +179,7 @@ describe("TypeGenerationHelper", () => {
 
     /**
      * The struct keyword is asked about the WRITTEN name, and only when the
-     * name was not captured. A qualified name is a C-Next scope type, which is
+     * name was not captured. A qualified name is a cnx scope type, which is
      * always a typedef -- asking would be asking about the wrong identifier.
      */
     it("does not ask about the struct keyword for a captured name", () => {

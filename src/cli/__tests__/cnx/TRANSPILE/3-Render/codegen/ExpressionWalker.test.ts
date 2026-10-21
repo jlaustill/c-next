@@ -9,7 +9,7 @@ import Transpiler from "../../../../../Transpiler";
 import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /**
- * Helper to parse C-Next source and get the first statement from main().
+ * Helper to parse cnx source and get the first statement from main().
  */
 function parseFirstStatement(source: string): Parser.StatementContext {
   const { tree, parseErrors: errors } = CnxSourceParser.parse(source);

@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * C-Next Coverage Tracking Tool
+ * cnx Coverage Tracking Tool
  *
  * Maps coverage.md checkboxes to test file annotations,
  * providing visibility into test coverage status.

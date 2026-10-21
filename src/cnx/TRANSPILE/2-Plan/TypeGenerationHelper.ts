@@ -1,7 +1,7 @@
 /**
  * TypeGenerationHelper
  *
- * Helper class for generating C type strings from C-Next types.
+ * Helper class for generating C type strings from cnx types.
  * Handles primitive types, scoped types, qualified types, user types, and array types.
  *
  * Extracted from CodeGenerator._generateType for improved testability.
@@ -69,7 +69,7 @@ class TypeGenerationHelper {
     let include: TIncludeHeader | null = null;
 
     // `<stdint.h>` / `<stdbool.h>` are decided from the C type returned here,
-    // not from the C-Next name (#1927): `f32` is in `TYPE_MAP` and needs
+    // not from the cnx name (#1927): `f32` is in `TYPE_MAP` and needs
     // neither.
     if (type === "ISR") {
       include = "isr";

@@ -12,7 +12,7 @@ interface ILengthSubject {
   /** A string value -- not an array of them */
   readonly isString: boolean;
   readonly isArray: boolean;
-  /** A C-Next struct, or a header's struct or class */
+  /** A cnx struct, or a header's struct or class */
   readonly isStruct: boolean;
   /** A bitmap field or a header bit-field, which has no storage of its own */
   readonly isBitField: boolean;

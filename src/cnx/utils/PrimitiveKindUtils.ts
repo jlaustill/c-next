@@ -1,11 +1,11 @@
 import TPrimitiveKind from "../types/TPrimitiveKind";
 
 /**
- * Utility functions for working with C-Next primitive types.
+ * Utility functions for working with cnx primitive types.
  */
 class PrimitiveKindUtils {
   /**
-   * The C-Next primitive type names. A name set, not a width table (#1760
+   * The cnx primitive type names. A name set, not a width table (#1760
    * review): the widths here were read by nothing but their own tests, and
    * gave `bool` 1 where TYPE_WIDTH, the one width table, gives 8.
    */

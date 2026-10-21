@@ -16,7 +16,7 @@ class ParserUtils {
    * Extract source position from a parser context.
    *
    * Handles null/undefined start tokens gracefully, returning 0 for
-   * missing values. This is the standard pattern used throughout C-Next
+   * missing values. This is the standard pattern used throughout cnx
    * for error reporting.
    *
    * @param ctx - Any parser context with a start token

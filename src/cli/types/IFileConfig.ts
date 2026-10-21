@@ -1,5 +1,5 @@
 /**
- * C-Next configuration file options
+ * cnx configuration file options
  *
  * This interface represents the structure of a config file: cnx.config.json,
  * .cnx.json or .cnxrc (`ConfigFileNames`).

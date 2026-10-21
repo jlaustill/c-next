@@ -3,7 +3,7 @@ import TPrimitiveKind from "../../types/TPrimitiveKind";
 import PrimitiveKindUtils from "../PrimitiveKindUtils";
 
 describe("TPrimitiveKind", () => {
-  it("includes all C-Next primitive types", () => {
+  it("includes all cnx primitive types", () => {
     const primitives: TPrimitiveKind[] = [
       "void",
       "bool",

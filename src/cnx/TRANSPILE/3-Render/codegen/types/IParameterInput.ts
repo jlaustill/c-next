@@ -15,7 +15,7 @@ interface IParameterInput {
   /** Parameter name */
   name: string;
 
-  /** Original C-Next type: 'u32', 'string<32>', 'Point', etc. */
+  /** Original cnx type: 'u32', 'string<32>', 'Point', etc. */
   baseType: string;
 
   /** Mapped C type: 'uint32_t', 'char', 'Point', etc. */

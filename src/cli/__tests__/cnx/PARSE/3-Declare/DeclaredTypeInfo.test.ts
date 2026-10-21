@@ -181,7 +181,7 @@ extern int n;
     });
   });
 
-  // #1760 review: the foreign arm asked a bare-name C-Next lookup first, so a
+  // #1760 review: the foreign arm asked a bare-name cnx lookup first, so a
   // scope member of the same name answered for the header's variable
   it("types a header global by the header, not a same-named scope member", () => {
     const table = new SymbolTable();
@@ -263,7 +263,7 @@ extern Dev cDevice;`;
     expect(typeAt("cfgTable")).toBeUndefined();
   });
 
-  it("holds a C-Next variable of a handle type through a pointer (ADR-030)", () => {
+  it("holds a cnx variable of a handle type through a pointer (ADR-030)", () => {
     expect(typeAt("shared")).toMatchObject({
       baseType: "Dev",
       isPointer: true,
@@ -271,7 +271,7 @@ extern Dev cDevice;`;
   });
 
   it("leaves a C header's global of the handle type as C declared it", () => {
-    // C declared it, not C-Next, so it keeps its own type and still takes `&`
+    // C declared it, not cnx, so it keeps its own type and still takes `&`
     expect(typeAt("cDevice")).toMatchObject({
       baseType: "Dev",
       isPointer: false,

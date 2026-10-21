@@ -138,7 +138,7 @@ describe("parseWithSymbols", () => {
 
   describe("symbol kind mapping", () => {
     it("maps register symbols correctly", () => {
-      // Use valid C-Next register syntax with proper fields
+      // Use valid cnx register syntax with proper fields
       const source = `
         scope Board {
           register GPIO @ 0x40000000 {

@@ -1,6 +1,6 @@
 /**
  * Unit tests for CnxSourceParser.
- * Tests C-Next source parsing with error collection.
+ * Tests cnx source parsing with error collection.
  */
 
 import { describe, expect, it } from "vitest";
@@ -8,7 +8,7 @@ import CnxSourceParser from "../CnxSourceParser";
 
 describe("CnxSourceParser", () => {
   describe("parse", () => {
-    it("parses valid C-Next source and returns tree with no errors", () => {
+    it("parses valid cnx source and returns tree with no errors", () => {
       const source = `u32 x <- 5;`;
 
       const result = CnxSourceParser.parse(source);
@@ -64,7 +64,7 @@ describe("CnxSourceParser", () => {
     });
 
     it("collects lexer errors for invalid characters", () => {
-      // Backtick is not a valid C-Next character - should trigger lexer error
+      // Backtick is not a valid cnx character - should trigger lexer error
       const source = "u32 x <- `invalid`;";
 
       const result = CnxSourceParser.parse(source);

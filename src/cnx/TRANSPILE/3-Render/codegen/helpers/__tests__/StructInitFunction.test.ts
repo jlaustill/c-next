@@ -62,7 +62,7 @@ describe("StructInitFunction", () => {
       expect(lines).toHaveLength(4);
     });
 
-    it("names the rule that shaped the output (C-Next compliance standard)", () => {
+    it("names the rule that shaped the output (cnx compliance standard)", () => {
       const [annotation] = StructInitFunction.prototypeLines(["A"]);
 
       expect(annotation).toContain("MISRA C:2012 Rule 8.4");

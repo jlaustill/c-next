@@ -159,7 +159,7 @@ function generateConsoleReport(report: ICoverageReport): void {
   console.log(
     chalk.bold("═══════════════════════════════════════════════════════"),
   );
-  console.log(chalk.bold("  C-Next Coverage Tracking Report"));
+  console.log(chalk.bold("  cnx Coverage Tracking Report"));
   console.log(
     chalk.bold("═══════════════════════════════════════════════════════"),
   );
@@ -258,7 +258,7 @@ function generateMarkdownReport(
   const lines: string[] = [];
 
   lines.push(
-    "# C-Next Coverage Report",
+    "# cnx Coverage Report",
     "",
     `Generated: ${report.generated.toISOString().split("T")[0]}`,
     "",

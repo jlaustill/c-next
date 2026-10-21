@@ -193,7 +193,7 @@ class ProgramGeneration {
     };
   }
 
-  /** 2.2's plan for one whole C-Next source, its symbols registered as 1.3 would */
+  /** 2.2's plan for one whole cnx source, its symbols registered as 1.3 would */
   static planSource(source: string): IFilePlan {
     const parsed = CnxSourceParser.parse(source);
     expect(parsed.parseErrors).toEqual([]);

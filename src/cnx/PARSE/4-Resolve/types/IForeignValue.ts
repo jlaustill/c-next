@@ -7,7 +7,7 @@
 type IForeignValue =
   | {
       readonly kind: "variable";
-      /** The element's C type, which C-Next does not measure */
+      /** The element's C type, which cnx does not measure */
       readonly type: string;
       /** Empty for a scalar */
       readonly dimensions: ReadonlyArray<number | string>;

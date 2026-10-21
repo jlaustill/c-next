@@ -20,7 +20,7 @@ class FileDiscovery {
    * Classify a file path into a discovered file, by its extension alone --
    * nothing is read, so the path need not exist.
    *
-   * Whether it is C-Next is `CnxSourcePath`'s answer, which is case-
+   * Whether it is cnx is `CnxSourcePath`'s answer, which is case-
    * sensitive (#1833); the C and C++ extensions are looked up lowercased.
    */
   static classifyFile(filePath: string): IDiscoveredFile {

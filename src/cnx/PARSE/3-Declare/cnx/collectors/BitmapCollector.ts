@@ -79,7 +79,7 @@ class BitmapCollector {
       ...identity,
       sourceFile,
       span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility,
       backingType,
       bitWidth: expectedBits,

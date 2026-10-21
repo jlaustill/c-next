@@ -30,7 +30,7 @@ class UnusedCode {
    * Plural because there are three roots, not one: `antlr`, `antlr:c` and the
    * two `antlr:cpp:*` scripts each carry their own `-o`. Reading only the first
    * covered the other two by accident -- their paths happen to nest under the
-   * C-Next one, so a `startsWith` test caught them. Moving either output out
+   * cnx one, so a `startsWith` test caught them. Moving either output out
    * from under `logic/parser` would have turned a dozen generated findings into
    * "authored dead code" with nothing pointing at the cause (#1580 review).
    *

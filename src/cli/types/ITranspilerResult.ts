@@ -38,7 +38,7 @@ interface ITranspilerResult {
   /**
    * Issue #1143: Union of every file's toolchain requirements, with the source
    * sites that incurred each. Printed by ResultPrinter and used to answer
-   * "what does *my* project need?" rather than "what might C-Next need?".
+   * "what does *my* project need?" rather than "what might cnx need?".
    */
   requirements?: readonly IRecordedRequirement[];
 

@@ -34,7 +34,7 @@ describe("PreprocessCache keeps only recent configurations (#1844)", () => {
     );
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), "cnext-preprocess-cache-"));
+    root = mkdtempSync(join(tmpdir(), "cnx-preprocess-cache-"));
     read = join(root, "a.h");
     writeFileSync(read, "int x;\n");
   });

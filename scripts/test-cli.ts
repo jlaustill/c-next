@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * C-Next CLI Integration Tests
+ * cnx CLI Integration Tests
  *
  * Tests the cnx CLI binary for correct behavior:
  * - Flag parsing (--version, --help, etc.)
@@ -154,7 +154,7 @@ function cleanup(files: readonly string[]): void {
 // Test Cases
 // ============================================================================
 
-console.log(chalk.cyan("C-Next CLI Integration Tests"));
+console.log(chalk.cyan("cnx CLI Integration Tests"));
 console.log(chalk.dim(`CLI path: ${cliPath}`));
 console.log();
 
@@ -232,7 +232,7 @@ test("no arguments shows help and exits 0", () => {
 // Note: The CLI writes to input dir then renames to -o path.
 // Using a copy of the input file in /tmp/ avoids affecting tracked files.
 test("single file transpiles to .c alongside input", () => {
-  const tempInputDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+  const tempInputDir = mkdtempSync(join(tmpdir(), "cnx-test-"));
   const tempInputFile = join(tempInputDir, "test.cnx");
   const tempOutputFile = join(tempInputDir, "test.c");
 
@@ -261,7 +261,7 @@ test("single file transpiles to .c alongside input", () => {
 // Explicit -o flag
 // Note: Using temp copy of input to avoid renaming tracked files
 test("-o flag overrides output path", () => {
-  const tempInputDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+  const tempInputDir = mkdtempSync(join(tmpdir(), "cnx-test-"));
   const tempInputFile = join(tempInputDir, "test.cnx");
   const customOutput = join(tempInputDir, "custom-output.c");
 
@@ -291,7 +291,7 @@ test("-o flag overrides output path", () => {
 // --cpp flag
 // Note: Using temp copy of input to avoid renaming tracked files
 test("--cpp flag outputs .cpp extension", () => {
-  const tempInputDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+  const tempInputDir = mkdtempSync(join(tmpdir(), "cnx-test-"));
   const tempInputFile = join(tempInputDir, "test.cnx");
   const tempOutputFile = join(tempInputDir, "test.cpp");
 
@@ -342,8 +342,8 @@ test("--parse mode validates without creating output file", () => {
 // Syntax error handling
 test("syntax error in file exits 1", () => {
   // Create a temp file with invalid syntax
-  const tempFile = "/tmp/cnext-test-invalid.cnx";
-  writeFileSync(tempFile, "this is not valid cnext syntax @@@");
+  const tempFile = "/tmp/cnx-test-invalid.cnx";
+  writeFileSync(tempFile, "this is not valid cnx syntax @@@");
 
   const result = runCli([tempFile], true);
   assert(!result.success, "Command should fail");
@@ -362,7 +362,7 @@ test("syntax error in file exits 1", () => {
  * @returns {string} Path to temp directory
  */
 function createTempPioProject(pioIniContent: string): string {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-pio-test-"));
   writeFileSync(join(tempDir, "platformio.ini"), pioIniContent, "utf-8");
   return tempDir;
 }
@@ -408,7 +408,7 @@ function cleanupTempDir(dir: string): void {
  * Create temp test environment with .cnx and .c file paths
  * Returns object with tempDir, cnxFile, cFile, and optional configFile
  */
-function createTempTestEnv(prefix = "cnext-test-"): ITempTestEnv {
+function createTempTestEnv(prefix = "cnx-test-"): ITempTestEnv {
   const tempDir = mkdtempSync(join(tmpdir(), prefix));
   return {
     tempDir,
@@ -536,7 +536,7 @@ test("--pio-install is idempotent (safe to run twice)", () => {
 });
 
 test("--pio-install fails without platformio.ini", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-pio-test-"));
   try {
     const result = runCliInDir(tempDir, ["--pio-install"], true);
     assert(!result.success, "Should fail without platformio.ini");
@@ -641,7 +641,7 @@ test("--pio-uninstall is idempotent (safe on clean project)", () => {
 });
 
 test("--pio-uninstall fails without platformio.ini", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-pio-test-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-pio-test-"));
   try {
     const result = runCliInDir(tempDir, ["--pio-uninstall"], true);
     assert(!result.success, "Should fail without platformio.ini");
@@ -807,7 +807,7 @@ test("cnx_build.py runs cnx for the environment being built", () => {
 // ----------------------------------------------------------------------------
 
 test("--target teensy41 generates LDREX/STREX code", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
+  withTempTest("cnx-target-test-", ({ tempDir, cnxFile, cFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "teensy41", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
@@ -820,7 +820,7 @@ test("--target teensy41 generates LDREX/STREX code", () => {
 // an ARMv7-M addition. #1668: cortex-m0+ used to claim it.
 for (const target of ["cortex-m0", "cortex-m0+"]) {
   test(`--target ${target} generates PRIMASK fallback code`, () => {
-    withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
+    withTempTest("cnx-target-test-", ({ tempDir, cnxFile, cFile }) => {
       writeFileSync(cnxFile, atomicCnx, "utf-8");
       const result = runCliInDir(tempDir, ["--target", target, cnxFile]);
       assert(result.success, `Compile should succeed: ${result.output}`);
@@ -840,7 +840,7 @@ for (const target of ["cortex-m0", "cortex-m0+"]) {
 }
 
 test("--target avr generates PRIMASK fallback code", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
+  withTempTest("cnx-target-test-", ({ tempDir, cnxFile, cFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "avr", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
@@ -857,7 +857,7 @@ test("--target avr generates PRIMASK fallback code", () => {
 // ADR-049: every name given must be a known target. An unknown --target used
 // to warn and fall back, so a misspelling compiled for the wrong platform.
 test("--target with an unknown target is E0510", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
+  withTempTest("cnx-target-test-", ({ tempDir, cnxFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(
       tempDir,
@@ -877,7 +877,7 @@ test("--target with an unknown target is E0510", () => {
 // ADR-049: a program with no pragma, no option, no config target and no
 // PlatformIO board names no target, and has no defined meaning.
 test("a program that names no target is E0515", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
+  withTempTest("cnx-target-test-", ({ tempDir, cnxFile }) => {
     writeFileSync(cnxFile, atomicCnx, "utf-8");
     const result = runCliInDir(tempDir, [cnxFile], true);
     assert(!result.success, "A program with no target must fail the run");
@@ -890,7 +890,7 @@ test("a program that names no target is E0515", () => {
 
 // ADR-049: source first -- a file's #pragma target decides over --target.
 test("#pragma target decides over --target", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile, cFile }) => {
+  withTempTest("cnx-target-test-", ({ tempDir, cnxFile, cFile }) => {
     writeFileSync(cnxFile, `#pragma target teensy41\n${atomicCnx}`, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "cortex-m0", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
@@ -904,7 +904,7 @@ test("#pragma target decides over --target", () => {
 
 // ...but the option must still be a known name, even when the pragma decides.
 test("an unknown --target is E0510 even when a pragma decides", () => {
-  withTempTest("cnext-target-test-", ({ tempDir, cnxFile }) => {
+  withTempTest("cnx-target-test-", ({ tempDir, cnxFile }) => {
     writeFileSync(cnxFile, `#pragma target teensy41\n${atomicCnx}`, "utf-8");
     const result = runCliInDir(tempDir, ["--target", "bogus", cnxFile], true);
     assert(!result.success, "An unknown option must fail the run");
@@ -963,7 +963,7 @@ test("--pio-env picks the environment whose board names the target", () => {
 
 test("cnx.config.json target is respected", () => {
   withTempTest(
-    "cnext-config-test-",
+    "cnx-config-test-",
     ({ tempDir, cnxFile, cFile, configFile }) => {
       writeFileSync(cnxFile, atomicCnx, "utf-8");
       // teensy41 has LDREX; the fallback does not, so the output shows
@@ -1110,7 +1110,7 @@ test("a home .cnxrc does not apply to a project below a .git", () => {
 
 test("CLI --target overrides config file target", () => {
   withTempTest(
-    "cnext-config-test-",
+    "cnx-config-test-",
     ({ tempDir, cnxFile, cFile, configFile }) => {
       writeFileSync(cnxFile, atomicCnx, "utf-8");
       // Config says cortex-m0 (PRIMASK)
@@ -1178,7 +1178,7 @@ scope Serial {
 `;
 
 test("Issue #565: multi-file transitive const inference propagates correctly", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-multifile-const-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-multifile-const-"));
 
   try {
     // Create the multi-file test case
@@ -1228,7 +1228,7 @@ test("Issue #565: multi-file transitive const inference propagates correctly", (
 });
 
 test("Issue #565: read-only multi-file calls preserve const", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-multifile-const-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-multifile-const-"));
 
   // Test that read-only calls still get const correctly
   const readOnlyStorage = `#include "Config.cnx"
@@ -1345,7 +1345,7 @@ scope Handler {
 `;
 
 test("Issue #580: C++ mode gives correct transitive const inference", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-issue580-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-issue580-"));
 
   try {
     // Create the test files
@@ -1650,7 +1650,7 @@ for (const includeCase of includePathCases) {
     // the path. Creating it inside the helper meant any throw -- a failing
     // transpile, or reading a build/main.c that was never written -- escaped
     // before cleanup and leaked a directory per run.
-    const tempDir = mkdtempSync(join(tmpdir(), "cnext-1467-"));
+    const tempDir = mkdtempSync(join(tmpdir(), "cnx-1467-"));
     try {
       assertIncludeAgreesWithHeader(
         includeCase.name,
@@ -1667,7 +1667,7 @@ for (const includeCase of includePathCases) {
 // relative --include must reach it as an absolute path, for a header that
 // includes another header too
 test("a header declaration error recovery damages drops only that declaration", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-header-recovery-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-header-recovery-"));
   try {
     writeFileSync(
       join(tempDir, "dev.h"),
@@ -1688,7 +1688,7 @@ test("a header declaration error recovery damages drops only that declaration", 
 });
 
 test("a relative --include reaches headers that include each other", () => {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-rel-include-"));
+  const tempDir = mkdtempSync(join(tmpdir(), "cnx-rel-include-"));
   try {
     mkdirSync(join(tempDir, "include"));
     mkdirSync(join(tempDir, "deps"));

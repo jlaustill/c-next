@@ -18,18 +18,18 @@ import EFileType from "../../../../../cnx/PARSE/1-Discover/types/EFileType";
  *
  * `runAnalyzers` requires 1.1's include resolutions rather than accepting
  * absent ones, so a unit test states them too -- no file on disk, so the one
- * directive these tests write resolves to nothing, and no header has a C-Next
+ * directive these tests write resolves to nothing, and no header has a cnx
  * source. That makes E0504 and E0506 silent here by construction, and it says
  * so, where an optional parameter would have made them silent by omission.
  */
 const NO_INCLUDES: IIncludeContext = {
   resolutions: new Map([["#include <string.h>", null]]),
-  cnextAlternatives: new Map(),
+  cnxAlternatives: new Map(),
   kinds: new Map([["#include <string.h>", EFileType.CHeader]]),
 };
 
 /**
- * Helper to parse C-Next code and return the AST plus its comments.
+ * Helper to parse cnx code and return the AST plus its comments.
  *
  * #1445: this used to build its own `CharStream`/lexer/`CommonTokenStream`/
  * parser -- a second spelling of `CnxSourceParser.parse` that had to be kept

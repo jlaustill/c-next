@@ -81,7 +81,7 @@ function runHarness(dir: string, extraArgs: string[] = []): IHarnessRun {
         // project as a side effect and could rewrite `dist/index.js` under a
         // concurrent `npm test`. What is asserted here is how the harness
         // REPORTS, so a stale bundle is immaterial.
-        CNEXT_SKIP_DIST_REBUILD: "1",
+        CNX_SKIP_DIST_REBUILD: "1",
       },
     },
   );
@@ -104,7 +104,7 @@ describe("missing-snapshot reporting (Issue #1397)", () => {
   let withSnapshot: IHarnessRun;
 
   beforeAll(() => {
-    workDir = mkdtempSync(join(tmpdir(), "cnext-1397-"));
+    workDir = mkdtempSync(join(tmpdir(), "cnx-1397-"));
     writeFileSync(join(workDir, "missing-snapshot.test.cnx"), FIXTURE);
 
     // Red case: exactly one fixture, no `.expected.*` beside it.

@@ -1,7 +1,7 @@
 /**
  * Factory functions and utilities for IFunctionSymbol.
  *
- * Provides utilities for creating and inspecting C-Next functions.
+ * Provides utilities for creating and inspecting cnx functions.
  * Scope-qualified C names come from ScopeUtils.getTranspiledCName.
  */
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
@@ -50,7 +50,7 @@ class FunctionUtils {
       visibility: options.visibility,
       sourceFile: options.sourceFile,
       span: options.span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
     };
   }
 

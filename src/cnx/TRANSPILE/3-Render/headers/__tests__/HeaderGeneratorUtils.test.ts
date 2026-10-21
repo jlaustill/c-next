@@ -166,7 +166,7 @@ describe("HeaderGeneratorUtils", () => {
       expect(HeaderGeneratorUtils.isCppTemplateType(undefined)).toBe(false);
     });
 
-    it("returns false for C-Next string<N> types", () => {
+    it("returns false for cnx string<N> types", () => {
       expect(HeaderGeneratorUtils.isCppTemplateType("string<32>")).toBe(false);
       expect(HeaderGeneratorUtils.isCppTemplateType("string<1>")).toBe(false);
       expect(HeaderGeneratorUtils.isCppTemplateType("string<256>")).toBe(false);
@@ -463,7 +463,7 @@ describe("HeaderGeneratorUtils", () => {
       expect(result[0].name).toBe("b");
     });
 
-    it("keeps C-Next string<N> types", () => {
+    it("keeps cnx string<N> types", () => {
       const variables: IHeaderSymbol[] = [
         makeSymbol({
           name: "name",

@@ -499,7 +499,7 @@ interface IPropertyContext {
  * Returns 0 if type is unknown.
  */
 const getNumericBitWidth = (typeName: string, input: IGeneratorInput): number =>
-  // #1175: C-Next's own widths are the one rule the constant evaluator reads
+  // #1175: cnx's own widths are the one rule the constant evaluator reads
   // too; a C header type's width, from a table 1.4 may not read, is render's
   LengthProperty.elementBits(typeName, {
     enumBitWidth: (name) => input.symbolTable?.getEnumBitWidth(name) || null,
@@ -514,7 +514,7 @@ const getNumericBitWidth = (typeName: string, input: IGeneratorInput): number =>
   C_TYPE_WIDTH[typeName] ??
   0;
 
-/** A C-Next struct the measured value's element is; undefined for any other */
+/** A cnx struct the measured value's element is; undefined for any other */
 const measuredStruct = (
   measured: IOperandType | null,
   input: IGeneratorInput,
@@ -554,7 +554,7 @@ const elementBitWidth = (
     return measured.bitWidth;
   }
   // #1535: its fields' sizes together, without C padding (ADR-058 q7); a
-  // header's struct by the same rule, and a C-Next field of one (#1975)
+  // header's struct by the same rule, and a cnx field of one (#1975)
   const program = input.program;
   const headers = input.symbolTable;
   const headerBits =
@@ -709,7 +709,7 @@ const memoryLength = (
   return LengthProperty.memoryC(element, measured.dimensions, bits);
 };
 
-/** The C type `sizeof` measures: a C-Next type as 2.3 declares it, a header's as C spells it */
+/** The C type `sizeof` measures: a cnx type as 2.3 declares it, a header's as C spells it */
 const memoryCType = (
   measured: IOperandType,
   input: IGeneratorInput,

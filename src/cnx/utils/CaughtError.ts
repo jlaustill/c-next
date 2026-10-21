@@ -11,7 +11,7 @@ class CaughtError {
   }
 
   /**
-   * True for a deliberate C-Next diagnostic rather than an incidental failure.
+   * True for a deliberate cnx diagnostic rather than an incidental failure.
    *
    * Keyed on the `E<NNNN>: ` prefix -- the SHAPE, not any one code -- because
    * that is already this codebase's identity for a diagnostic: `.expected.error`

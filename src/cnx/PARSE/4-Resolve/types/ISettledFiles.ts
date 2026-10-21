@@ -44,7 +44,7 @@ interface ISettledFiles {
   readonly foreignValues: ReadonlyMap<string, IForeignValue>;
   /** What the C and C++ headers contributed, or none */
   readonly foreign: IForeignSymbols;
-  /** Which C-Next files each file includes, or none */
+  /** Which cnx files each file includes, or none */
   readonly visibility: IVisibilityInput;
   /** The run's target, which a header's length properties are folded for; null with none */
   readonly target: TRunTarget | null;

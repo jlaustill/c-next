@@ -16,7 +16,7 @@ import type IProjectRootWalk from "./types/IProjectRootWalk";
 import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
 
 /**
- * Auto-discovery of include paths for C-Next compilation
+ * Auto-discovery of include paths for cnx compilation
  *
  * Implements 4-tier include path discovery:
  * 1. File's own directory (for relative #include "header.h")
@@ -413,7 +413,7 @@ class IncludeDiscovery {
    *
    * A text scan, for C and C++ headers. It does not know about comments, so
    * it reads a directive inside one (#1829). A `.cnx` file's directives are
-   * read by `extractCNextIncludes`, which the grammar decides, and
+   * read by `extractCnxIncludes`, which the grammar decides, and
    * `directivesOf` is where a file on disk is given one or the other.
    *
    * @param content - Source file content
@@ -456,7 +456,7 @@ class IncludeDiscovery {
    *
    * @param source - A `.cnx` file's text
    */
-  static extractCNextIncludes(
+  static extractCnxIncludes(
     source: string,
   ): Array<{ path: string; isLocal: boolean }> {
     return IncludeDiscovery.directiveTextsOf(source).flatMap(
@@ -508,13 +508,13 @@ class IncludeDiscovery {
   }
 
   /**
-   * Whether `include` is a quoted include of C-Next source: the form ADR-010
+   * Whether `include` is a quoted include of cnx source: the form ADR-010
    * resolves beside the including file only, and whose absence is E0506.
    */
-  static isQuotedCNext(include: { path: string; isLocal: boolean }): boolean {
+  static isQuotedCnx(include: { path: string; isLocal: boolean }): boolean {
     return (
       include.isLocal &&
-      FileDiscovery.classifyFile(include.path).type === EFileType.CNext
+      FileDiscovery.classifyFile(include.path).type === EFileType.Cnx
     );
   }
 
@@ -522,12 +522,12 @@ class IncludeDiscovery {
    * #1672: where an include resolves -- the one decision, for both routes
    * by which 1.1 resolves a file's includes: a `.cnx` file's own
    * (`IncludeResolver`) and the C/C++ entry point's scan
-   * (`CppEntryPointScanner`). A quoted C-Next include resolves beside the
+   * (`CppEntryPointScanner`). A quoted cnx include resolves beside the
    * including file and only there (ADR-010); anything else by its absolute
    * path or along the search path, as a compiler searches its -I list.
    *
    * @param quotedIncludeDirectory - The including file's directory. It is
-   *   required: with no directory, a quoted C-Next include was searched like
+   *   required: with no directory, a quoted cnx include was searched like
    *   any other, which is the second rule #1672 removed (#1835 review)
    */
   static resolveSpelling(
@@ -536,7 +536,7 @@ class IncludeDiscovery {
     searchPaths: string[],
     fs: IFileSystem,
   ): string | null {
-    if (IncludeDiscovery.isQuotedCNext(include)) {
+    if (IncludeDiscovery.isQuotedCnx(include)) {
       return IncludeDiscovery.resolveQuoted(
         include.path,
         quotedIncludeDirectory,
@@ -547,7 +547,7 @@ class IncludeDiscovery {
   }
 
   /**
-   * A file's #include directives, read by the rules of its kind: a C-Next
+   * A file's #include directives, read by the rules of its kind: a cnx
    * file's as the grammar reads them, anything else's by the text scan.
    *
    * The one place that choice is made for the readers that walk files on
@@ -557,15 +557,15 @@ class IncludeDiscovery {
    * through that route. #1829 changes the other branch.
    *
    * A file with no path to classify, a source run's in-memory root, never
-   * reaches here. The pipeline's own files are C-Next by construction and
-   * call `extractCNextIncludes` directly.
+   * reaches here. The pipeline's own files are cnx by construction and
+   * call `extractCnxIncludes` directly.
    */
   static directivesOf(
     path: string,
     content: string,
   ): Array<{ path: string; isLocal: boolean }> {
-    return FileDiscovery.classifyFile(path).type === EFileType.CNext
-      ? IncludeDiscovery.extractCNextIncludes(content)
+    return FileDiscovery.classifyFile(path).type === EFileType.Cnx
+      ? IncludeDiscovery.extractCnxIncludes(content)
       : IncludeDiscovery.extractIncludesWithInfo(content);
   }
 

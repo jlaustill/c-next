@@ -19,7 +19,7 @@
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 
 /**
- * Compliance annotation for the emitted declarations (C-Next standard: codegen
+ * Compliance annotation for the emitted declarations (cnx standard: codegen
  * whose shape is dictated by a safety standard says which rule shaped it).
  * One line above the block -- the declarations are contiguous and share a
  * single reason, so repeating it per prototype would add noise, not tracing.

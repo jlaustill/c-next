@@ -1,5 +1,5 @@
 /**
- * Prettier Plugin for C-Next
+ * Prettier Plugin for cnx
  *
  * Usage:
  *   prettier --plugin ./prettier-plugin/dist/index.js --write "src/*.cnx"
@@ -16,12 +16,12 @@ import { Parser, Printer, SupportLanguage } from "prettier";
 
 import Cst from "./cst";
 import parse from "./parser";
-import CNextPrinter from "./printer";
+import CnxPrinter from "./printer";
 import TPrintableNode from "./types/TPrintableNode";
 
 const languages: SupportLanguage[] = [
   {
-    name: "C-Next",
+    name: "cnx",
     parsers: ["cnext"],
     extensions: [".cnx"],
     vscodeLanguageIds: ["cnext"],
@@ -39,7 +39,7 @@ const parsers: Record<string, Parser<TPrintableNode>> = {
 
 const printers: Record<string, Printer<TPrintableNode>> = {
   "cnext-cst": {
-    print: CNextPrinter.print,
+    print: CnxPrinter.print,
 
     /**
      * Confine traversal to `children`.
@@ -66,7 +66,7 @@ const printers: Record<string, Printer<TPrintableNode>> = {
 
 const options = {};
 
-/** 4-space indent, matching the project's C-Next sources. */
+/** 4-space indent, matching the project's cnx sources. */
 const defaultOptions = {
   tabWidth: 4,
   useTabs: false,

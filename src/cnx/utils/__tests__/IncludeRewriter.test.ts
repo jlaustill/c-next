@@ -2,7 +2,7 @@
  * Unit tests for IncludeRewriter
  *
  * Issue #1467: it decides no paths -- `PathResolver` does -- and since #1444
- * it decides no kinds either: whether a directive names C-Next source is 1.1
+ * it decides no kinds either: whether a directive names cnx source is 1.1
  * Discover's answer, which its callers ask first (owner ruling 1). These cover
  * what it IS responsible for: using the owner's answer in preference to the
  * extension-swap fallback, and keeping the author's form and spacing.
@@ -16,7 +16,7 @@ import EFileType from "../../PARSE/1-Discover/types/EFileType";
 /** 1.1 Discover's answer for one directive, as it records it. */
 const kindOf = (
   directive: string,
-  kind: EFileType = EFileType.CNext,
+  kind: EFileType = EFileType.Cnx,
 ): ReadonlyMap<string, EFileType> => {
   const include = IncludeDirectiveText.split(directive);
   return include === null
@@ -115,14 +115,14 @@ describe("IncludeRewriter", () => {
     });
   });
 
-  describe("namesCNext", () => {
+  describe("namesCnx", () => {
     it.each([
-      [EFileType.CNext, true],
+      [EFileType.Cnx, true],
       [EFileType.CHeader, false],
       [EFileType.CppSource, false],
     ])("follows 1.1's answer: %s gives %s", (kind, expected) => {
       expect(
-        IncludeRewriter.namesCNext(
+        IncludeRewriter.namesCnx(
           '#include "Gen.CNX"',
           kindOf('#include "Gen.CNX"', kind),
         ),

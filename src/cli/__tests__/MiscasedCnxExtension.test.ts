@@ -37,7 +37,7 @@ describe("a cnx extension is a lowercase .cnx (#1833, #2167)", () => {
   let src: string;
 
   beforeEach(() => {
-    src = join(mkdtempSync(join(tmpdir(), "cnext-1833-")), "src");
+    src = join(mkdtempSync(join(tmpdir(), "cnx-1833-")), "src");
     mkdirSync(src);
   });
 
@@ -112,7 +112,7 @@ describe("a cnx extension is a lowercase .cnx (#1833, #2167)", () => {
     expect(codesOf(result.errors)).toEqual([code]);
   });
 
-  // Its self-include, which a path with no C-Next extension leaves as it was
+  // Its self-include, which a path with no cnx extension leaves as it was
   // before #1833 (`<string>` itself is #1204).
   for (const [name, selfInclude] of [
     ["Colors.cnx", "Colors.h"],

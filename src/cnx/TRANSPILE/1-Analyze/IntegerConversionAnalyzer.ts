@@ -196,7 +196,7 @@ class IntegerConversionCheck {
   }
 
   /**
-   * E0914: a string value at a position that types it a C-Next scalar -- an
+   * E0914: a string value at a position that types it a cnx scalar -- an
    * integer, a float, a bool, an enum or a bitmap. True when reported, so the
    * value is not judged again as a number.
    */
@@ -216,7 +216,7 @@ class IntegerConversionCheck {
   }
 
   /**
-   * Every C-Next type that holds one value and is not a string. A named type
+   * Every cnx type that holds one value and is not a string. A named type
    * is the one its spelling names where the value is (ADR-057): `ELocal` in
    * `scope S` is `S__ELocal`.
    */
@@ -362,7 +362,7 @@ class IntegerConversionCheck {
   // --- What type a source is ------------------------------------------------
 
   /**
-   * The integer type a source converts from, as a C-Next integer name, or
+   * The integer type a source converts from, as a cnx integer name, or
    * null when the rule does not judge it (#1668, the design's §5 row):
    *
    * - a top-level ternary: its branches are what matter, and

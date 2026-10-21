@@ -4,7 +4,7 @@ import CnxSourcePath from "../../utils/CnxSourcePath";
 import CodedErrorText from "../../utils/CodedErrorText";
 
 /**
- * Input expansion for C-Next CLI
+ * Input expansion for cnx CLI
  *
  * Validates and resolves file paths for compilation.
  */

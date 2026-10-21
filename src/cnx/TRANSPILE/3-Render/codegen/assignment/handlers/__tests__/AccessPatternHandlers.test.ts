@@ -29,7 +29,7 @@ function createMockContext(
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: false,
-    cnextOp: "<-",
+    cnxOp: "<-",
     cOp: "=",
     generatedValue: "5",
     // #1445: renders, not nodes -- each delegates to the mocked generator the
@@ -140,7 +140,7 @@ describe("AccessPatternHandlers", () => {
       });
       const ctx = createMockContext({
         isCompound: true,
-        cnextOp: "+<-",
+        cnxOp: "+<-",
         cOp: "+=",
       });
 
@@ -210,7 +210,7 @@ describe("AccessPatternHandlers", () => {
         hasThis: true,
         hasGlobal: false,
         isCompound: true,
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
       });
 
@@ -361,7 +361,7 @@ describe("AccessPatternHandlers", () => {
       const ctx = createMockContext({
         identifiers: ["obj", "field"],
         isCompound: true,
-        cnextOp: "*<-",
+        cnxOp: "*<-",
         cOp: "*=",
       });
 

@@ -1,5 +1,5 @@
 /**
- * #1688: the preprocessor's macro dump of one C-Next file's own C includes.
+ * #1688: the preprocessor's macro dump of one cnx file's own C includes.
  * `dump` is null when nothing could be preprocessed; `complete` is false when
  * any include was left out, so a name the file uses may be an unread macro.
  */

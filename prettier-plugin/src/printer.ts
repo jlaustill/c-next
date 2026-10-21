@@ -1,5 +1,5 @@
 /**
- * Printer for the C-Next Prettier plugin (#1364).
+ * Printer for the cnx Prettier plugin (#1364).
  *
  * Prints ANTLR's parse tree directly. Every case dispatches on the *generated*
  * rule index (`CnxParser.RULE_*`), so `tests/rule-coverage.test.ts` can assert
@@ -950,7 +950,7 @@ function printNode(
   return result;
 }
 
-class CNextPrinter {
+class CnxPrinter {
   /** Prettier's printer entry point. */
   static print(
     path: TPath,
@@ -978,4 +978,4 @@ class CNextPrinter {
   }
 }
 
-export default CNextPrinter;
+export default CnxPrinter;

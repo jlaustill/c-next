@@ -1,6 +1,6 @@
 /**
  * TypeNameLadder -- the one ladder from a written type's plain data to its
- * resolved C-Next name (#1285, #1932).
+ * resolved cnx name (#1285, #1932).
  *
  * Seven independent `scopedType()/globalType()/qualifiedType()/userType()`
  * ladders existed: two in TypeRegistrationEngine, one each in TypeUtils,
@@ -105,7 +105,7 @@ class TypeNameLadder {
   }
 
   /**
-   * The C-Next name a type is written as -- a named type resolved, a primitive,
+   * The cnx name a type is written as -- a named type resolved, a primitive,
    * an array's element, `string<N>` or `string` -- or null for template and
    * `void`, which each caller answers for itself.
    *

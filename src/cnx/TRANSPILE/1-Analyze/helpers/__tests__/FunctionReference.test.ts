@@ -10,7 +10,7 @@ import FunctionReference from "../FunctionReference";
 import testAnalysisContext from "../../__tests__/testAnalysisContext";
 
 /**
- * #1322. Which C-Next function a spelling denotes, and -- the part that is a
+ * #1322. Which cnx function a spelling denotes, and -- the part that is a
  * DECISION rather than a lookup -- the ORDER the candidates are tried in.
  *
  * ADR-057: inside a scope, a bare `f` means the scope's own `f` when one

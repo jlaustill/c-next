@@ -1,7 +1,7 @@
 /**
  * Factory functions and type guards for IScopeSymbol.
  *
- * Provides utilities for creating and inspecting C-Next scopes.
+ * Provides utilities for creating and inspecting cnx scopes.
  */
 import type TChainRoot from "../types/TChainRoot";
 import type IScopeSymbol from "../types/symbols/IScopeSymbol";
@@ -42,7 +42,7 @@ class ScopeUtils {
       declarationSites: new Set<string>(),
       sourceFile: "",
       span: UNSET_SOURCE_SPAN,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public",
       // #1285: computed through the same encoder as every other symbol rather
       // than hardcoded, so the global scope cannot become the one symbol whose
@@ -78,7 +78,7 @@ class ScopeUtils {
       declarationSites: new Set<string>(),
       sourceFile: "",
       span: UNSET_SOURCE_SPAN,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public",
     };
   }
@@ -160,7 +160,7 @@ class ScopeUtils {
    * ADR-016: visibility of a declaration that has no enclosing scope.
    *
    * A top-level declaration is unconditionally part of the file's interface --
-   * scopes are how C-Next expresses privacy, and neither `public` nor `private`
+   * scopes are how cnx expresses privacy, and neither `public` nor `private`
    * parses at top level.
    *
    * This is deliberately NOT `getDefaultVisibility(false)`. That answers a
@@ -204,7 +204,7 @@ class ScopeUtils {
    * the canonical identity a symbol can be looked up by.
    *
    * Takes the whole enclosing PATH rather than a scope's leaf name -- the latter
-   * silently drops outer scopes. The two agree on every program C-Next can
+   * silently drops outer scopes. The two agree on every program cnx can
    * express, and ADR-016 makes that a DECISION rather than the coincidence #1285
    * called it: scopes never nest, permanently, so a leaf is always the whole path
    * in source. The encoder is still written at the path level because it is handed
@@ -230,7 +230,7 @@ class ScopeUtils {
    * Build the SOURCE-language qualified name for a symbol from its scope chain.
    *
    * `Motor.init`, `Outer.Inner.process`, and the bare name for a global symbol --
-   * the spelling a C-Next author would recognize. The counterpart to
+   * the spelling a cnx author would recognize. The counterpart to
    * getTranspiledCName, which builds the identifier the C compiler sees.
    *
    * Takes the same whole enclosing path, for the same reason: a scope's leaf name
@@ -354,7 +354,7 @@ class ScopeUtils {
    * a symbol whose C name and source name disagree about where it lives, which
    * is the shape of defect this whole line of work exists to remove.
    *
-   * Spread into every C-Next symbol literal, so both names are a property of the
+   * Spread into every cnx symbol literal, so both names are a property of the
    * symbol from the moment it exists rather than something each consumer
    * re-derives from `scope`.
    */

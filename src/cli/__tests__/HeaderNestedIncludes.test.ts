@@ -39,7 +39,7 @@ describe("a C header's own includes (#1723)", () => {
   let libB: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-1723-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-1723-"));
     writeFileSync(
       join(project, "platformio.ini"),
       "[env:uno]\nplatform = atmelavr\nboard = uno\n",

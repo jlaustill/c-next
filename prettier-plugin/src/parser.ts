@@ -1,5 +1,5 @@
 /**
- * Parser for the C-Next Prettier plugin (#1364).
+ * Parser for the cnx Prettier plugin (#1364).
  *
  * This file used to be 1,993 lines converting ANTLR contexts into a bespoke AST
  * declared in `nodes.ts`. That conversion was the hand-maintained mapping of the
@@ -184,7 +184,7 @@ function attachToTerminals(
 }
 
 /**
- * Parse C-Next source into the parse tree Prettier will print.
+ * Parse cnx source into the parse tree Prettier will print.
  *
  * Throws on any syntax error: a formatter that cannot parse a file must leave
  * it alone rather than emit a guess.

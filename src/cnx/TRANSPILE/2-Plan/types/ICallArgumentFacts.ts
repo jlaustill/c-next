@@ -8,7 +8,7 @@ interface ICallArgumentFacts {
   readonly symbolTable: IResolvedSymbols | null;
   readonly functionSignatures: ReadonlyMap<string, IFunctionSignature>;
   readonly callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
-  /** Issue #895: the C callback typedef a C-Next function is used as, if any */
+  /** Issue #895: the C callback typedef a cnx function is used as, if any */
   callbackTypedefTypeFor(functionName: string): string | undefined;
   /** #1639: the settled program `ParameterPassing` decides from */
   readonly program: TranspileState["program"];

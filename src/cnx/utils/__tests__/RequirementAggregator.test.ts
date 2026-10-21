@@ -1,7 +1,7 @@
 /**
  * Issue #1143: Folding per-file requirements into a project-level view.
  *
- * A static matrix can only say what C-Next might need. Merging what each file
+ * A static matrix can only say what cnx might need. Merging what each file
  * recorded is what lets the transpiler answer what THIS project needs, and
  * point at the lines responsible.
  */

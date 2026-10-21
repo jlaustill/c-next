@@ -5,7 +5,7 @@
  * `state.targetDescription` is assigned only inside
  * `CodeGenerator.generate()` — Stage 5, per file — so reading it at Stage 4c
  * yields the module default on a fresh process and the previously generated
- * file's target in a long-lived one (`cnext serve`, the VS Code path, any API
+ * file's target in a long-lived one (`cnx serve`, the VS Code path, any API
  * consumer). That made E0204 reject programs declaring no target at all, on a
  * budget belonging to an earlier run.
  *
@@ -71,7 +71,7 @@ describe("External identifier significance (#1307)", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-e0204-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-e0204-"));
   });
 
   afterEach(() => {

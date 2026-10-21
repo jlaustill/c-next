@@ -75,7 +75,7 @@ class MemberSymbolBase {
       // 1.2's span for the member. A member always has a start token:
       // antlr4ng's `enterRule` sets it to `LT(1)`, EOF at worst (#2074 review).
       span: input.memberSpan,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: input.visibility,
     };
   }

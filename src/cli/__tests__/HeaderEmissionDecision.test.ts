@@ -26,7 +26,7 @@ describe("Header emission decision (#1161, #1164)", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-header-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-header-"));
   });
 
   afterEach(() => {
@@ -113,7 +113,7 @@ scope S {
 
     // Not a privacy exception: C needs a COMPLETE type wherever a value of it
     // is returned, so a private type named by a public signature has to be in
-    // the header or no caller compiles. C-Next still rejects `S.Hidden` from
+    // the header or no caller compiles. cnx still rejects `S.Hidden` from
     // outside, so the type remains unnameable -- only complete.
     it("promotes a private type named by a public signature, and then does NOT define it in the .c", async () => {
       const { code, headerCode } = await transpileSource(`

@@ -194,7 +194,7 @@ class StructCollector {
       ...identity,
       sourceFile,
       span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility,
       fields,
     };
@@ -216,16 +216,16 @@ class StructCollector {
   ): IStructFieldSymbol {
     const typeSyntax = field.type;
     const fieldType = TypeUtils.resolveType(typeSyntax, scopePath, isScopeType);
-    // Note: C-Next struct members don't have const modifier in grammar
+    // Note: cnx struct members don't have const modifier in grammar
     const isConst = false;
-    // C-Next struct members don't have atomic modifier
+    // cnx struct members don't have atomic modifier
     const isAtomic = false;
 
     const arrayDims = field.dimensions;
     const dimensions: IDeclaredDimension[] = [];
     let isArray = false;
 
-    // Check for C-Next style arrayType syntax: Item[3] items -> typeCtx.arrayType()
+    // Check for cnx style arrayType syntax: Item[3] items -> typeCtx.arrayType()
     const arrayTypeResult = processArrayTypeSyntax(typeSyntax);
     if (arrayTypeResult.isArray) {
       isArray = true;

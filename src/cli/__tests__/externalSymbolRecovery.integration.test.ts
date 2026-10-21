@@ -35,11 +35,11 @@ const GUARD_H = `#define WIDGET_GUARD 1
   widget_t *widget_create(void) PRIVILEGED;
 `;
 
-// A header cnext's include walk finds (it ignores #if) but that cannot
+// A header cnx's include walk finds (it ignores #if) but that cannot
 // preprocess -- its <no-such-header> mirrors lvgl's OSAL headers probing
 // <semaphore.h>. USE_PTHREAD is 0, so a C compile never opens it, and #1844
 // settles nothing from it: no language, no error, no symbols.
-const PTHREAD_IMPL_H = `#include <cnext_no_such_header_zzz.h>\n`;
+const PTHREAD_IMPL_H = `#include <cnx_no_such_header_zzz.h>\n`;
 
 // Preprocesses on its own, but not once guard.h has run. So widget.h, which
 // fails alone, fails again when retried with the macros of the headers before
@@ -84,7 +84,7 @@ describe("external-symbol recovery (integration)", () => {
     ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-recovery-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-recovery-"));
     writeFileSync(join(dir, "guard.h"), GUARD_H);
     writeFileSync(join(dir, "widget.h"), WIDGET_H);
     writeFileSync(join(dir, "pthread_impl.h"), PTHREAD_IMPL_H);
@@ -182,7 +182,7 @@ describe("external-symbol recovery (integration)", () => {
     // run populates .cnx/ with the DEGRADED header symbols (cached before the
     // recovery pass runs); the second run restores them from cache. The
     // recovery gate must survive caching so warm builds re-apply the fix.
-    const cacheDir = mkdtempSync(join(tmpdir(), "cnext-recovery-cache-"));
+    const cacheDir = mkdtempSync(join(tmpdir(), "cnx-recovery-cache-"));
     try {
       writeFileSync(join(cacheDir, "cnx.config.json"), "{}\n");
       writeFileSync(join(cacheDir, "guard.h"), GUARD_H);
@@ -232,7 +232,7 @@ describe("external-symbol recovery (integration)", () => {
 
     // A .cnx with no C includes has no header that fails to preprocess, so the
     // recovery pass is a no-op and transpilation still succeeds.
-    const cleanDir = mkdtempSync(join(tmpdir(), "cnext-clean-"));
+    const cleanDir = mkdtempSync(join(tmpdir(), "cnx-clean-"));
     try {
       writeFileSync(
         join(cleanDir, "main.cnx"),
@@ -277,9 +277,9 @@ const PASTE_GUARD_H = `#define REC_GUARD 1
 #define OPEN_SCOPE PASTE(name, space) Rec {
 `;
 
-// Found by cnext's include walk but never opened by a C compile (USE_BROKEN
+// Found by cnx's include walk but never opened by a C compile (USE_BROKEN
 // is 0), exactly as pthread_impl.h is above, so it counts for nothing.
-const PASTE_BROKEN_H = `#include <cnext_no_such_header_zzz.h>\n`;
+const PASTE_BROKEN_H = `#include <cnx_no_such_header_zzz.h>\n`;
 
 // paste_sinker.h sinks paste_widget.h's retry, as sinker.h does above, so the
 // widget is settled from the unit's slice.
@@ -312,7 +312,7 @@ describe("diagnostics on a recovery slice (#1319, integration)", () => {
     ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-recovery-e0507-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-recovery-e0507-"));
     writeFileSync(join(dir, "paste_guard.h"), PASTE_GUARD_H);
     writeFileSync(join(dir, "paste_widget.h"), PASTE_WIDGET_H);
     writeFileSync(join(dir, "broken.h"), PASTE_BROKEN_H);

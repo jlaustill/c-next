@@ -15,7 +15,7 @@ const fn = (name: string, sourceFile = "a.cnx"): IFunctionSymbol => ({
   scopePath: "S",
   sourceFile,
   span: UNSET_SOURCE_SPAN,
-  sourceLanguage: ESourceLanguage.CNext,
+  sourceLanguage: ESourceLanguage.Cnx,
   visibility: "public",
   parameters: [],
   returnType: TTypeUtils.createPrimitive("void"),

@@ -24,7 +24,7 @@ class CastRequirement {
   /**
    * Type widths including C's promoted `int`.
    *
-   * `TYPE_WIDTH` is the shared table and holds C-Next types only; `int` is
+   * `TYPE_WIDTH` is the shared table and holds cnx types only; `int` is
    * what C's integer promotion produces, so a comparison against a promoted
    * operand needs it and nothing else does.
    */
@@ -38,7 +38,7 @@ class CastRequirement {
    * explicit cast.
    *
    * @param sourceType - the expression's type, or `"int"` once promoted
-   * @param targetType - the target's C-Next type
+   * @param targetType - the target's cnx type
    */
   static forConversion(sourceType: string, targetType: string): boolean {
     // Same type never needs a cast.

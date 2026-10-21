@@ -103,7 +103,7 @@ type TOperandForm = IOperandType["form"];
 
 const DECLARED: TOperandForm = { kind: "declared" };
 
-/** A name that may be a macro C-Next could not read (#1688, ADR-024) */
+/** A name that may be a macro cnx could not read (#1688, ADR-024) */
 const UNREAD_MACRO: THeaderMacro = { kind: "unreadable" };
 
 class OperandTyper {
@@ -442,7 +442,7 @@ class OperandTyper {
   }
 
   /**
-   * #1975: a type named at the head of a chain -- a primitive, a C-Next
+   * #1975: a type named at the head of a chain -- a primitive, a cnx
    * struct or bitmap (ADR-057's qualification, as every type position), or a
    * header's struct. Null for a name that is no such type.
    */
@@ -482,7 +482,7 @@ class OperandTyper {
     };
   }
 
-  /** A C-Next struct or bitmap the C name names; null for any other symbol */
+  /** A cnx struct or bitmap the C name names; null for any other symbol */
   private static namedTypeOf(
     cName: string,
     ctx: ITypingContext,
@@ -710,7 +710,7 @@ class OperandTyper {
     );
   }
 
-  /** The essential category of a C-Next type name: decided here, once (G8) */
+  /** The essential category of a cnx type name: decided here, once (G8) */
   static categoryOf(typeName: string | null): TEssentialCategory {
     if (typeName === null) return "none";
     if (typeName === "bool") return "boolean";
@@ -1020,7 +1020,7 @@ class OperandTyper {
       );
     }
     // ADR-057's qualification is the program's one answer, as for every
-    // `TypeNameLadder` caller; whether the result is a C-Next type this file
+    // `TypeNameLadder` caller; whether the result is a cnx type this file
     // sees is `declaresNamedType`, as in `fromType` (#1668 review: the trio
     // was spelled out here by hand)
     const cName =
@@ -1078,15 +1078,15 @@ class OperandTyper {
     }
   }
 
-  /** A C-Next type, as a declaration states it */
+  /** A cnx type, as a declaration states it */
   private static fromType(
     type: TType,
     dimensions: ReadonlyArray<number | string>,
     ctx: ITypingContext,
   ): IOperandType {
-    // A header's type named in a C-Next declaration (`real_t x`,
+    // A header's type named in a cnx declaration (`real_t x`,
     // `float32_t v`): 1.3 guesses a named type's kind from its spelling
-    // (#1720), so a name that is no C-Next struct, enum or bitmap, and that is
+    // (#1720), so a name that is no cnx struct, enum or bitmap, and that is
     // a C type or a header's, is asked of the header too (#1668 review:
     // it was untyped, and `x * i` went to an integer clamp helper).
     if (
@@ -1142,7 +1142,7 @@ class OperandTyper {
     );
   }
 
-  /** Whether this file sees `name` declared as a C-Next struct, enum or bitmap */
+  /** Whether this file sees `name` declared as a cnx struct, enum or bitmap */
   private static declaresNamedType(name: string, ctx: ITypingContext): boolean {
     const symbols = ctx.symbols;
     return (
@@ -1153,7 +1153,7 @@ class OperandTyper {
   }
 
   /**
-   * What a named C-Next type is, from the names this file sees declared.
+   * What a named cnx type is, from the names this file sees declared.
    * Never from `TType.kind`: 1.3 guesses a named type's kind from its
    * spelling, so an enum not named `E...` and every bitmap settle as a
    * struct (#1720).
@@ -1395,7 +1395,7 @@ class OperandTyper {
 
   /**
    * The one precedence for a name a header macro may define (#1688, ADR-024):
-   * a C-Next declaration of the name wins; a macro wins over a header
+   * a cnx declaration of the name wins; a macro wins over a header
    * declaration, as the preprocessor replaces it before C sees one. Null for
    * an integer macro, which keeps an unsuffixed literal's untyped path. A
    * name nothing declares, in a file whose macros were not all read, may be
@@ -1512,7 +1512,7 @@ class OperandTyper {
     member: string,
     ctx: ITypingContext,
   ): TChainValue {
-    // A header enum names its members first (`Color.Red`), as a C-Next enum
+    // A header enum names its members first (`Color.Red`), as a cnx enum
     // does; only a length property measures it. It stays the header's enum,
     // which ADR-017 does not type (no `enumTypeName`)
     if (t.category === "enum" && !LengthProperty.isLength(member)) {
@@ -1591,7 +1591,7 @@ class OperandTyper {
             t: { ...foreign, form: DECLARED },
           };
         }
-        // A C-Next enum types the member as that enum (#2155 review 9)
+        // A cnx enum types the member as that enum (#2155 review 9)
         const named = OperandTyper.namedFacts(cType, ctx);
         const t =
           named.category === "enum"
@@ -1783,7 +1783,7 @@ class OperandTyper {
         },
       };
     }
-    // A field whose type C-Next does not read, `char *p`: a value still, so
+    // A field whose type cnx does not read, `char *p`: a value still, so
     // a length property of it is one, and E0867's to reject (#1975)
     const info = ctx.symbolTable.getStructFieldInfo(typeName, member);
     if (info !== undefined) {
@@ -1830,7 +1830,7 @@ class OperandTyper {
    * What the classifier is told about a subscripted value.
    *
    * ADR-024's "a subscript into a scalar is a bit index" is about integers
-   * whose bits C-Next can see, so a C or C++ header's scalar integer is one
+   * whose bits cnx can see, so a C or C++ header's scalar integer is one
    * (S25). A header's value that is NOT an integer -- a struct, a C++ type
    * with its own `operator[]` -- is left to C and C++: shown as unknown, so
    * its subscript stays the element access it always was.
@@ -1842,7 +1842,7 @@ class OperandTyper {
     const isArray = t.dimensions.length > 0;
     // A header scalar with bits -- an integer, or a float (#1760 review: a
     // `double`'s subscript was read as an element) -- is bit-indexed as a
-    // C-Next one is (ADR-007); anything else there is untyped
+    // cnx one is (ADR-007); anything else there is untyped
     if (
       t.form.kind === "foreign" &&
       !isArray &&

@@ -8,7 +8,7 @@ import TypeMapping from "./mapType";
  * Two steps, and they have to happen together: a C++ namespaced type arrives as
  * the generated C name `SeaDash__Parse__ParseResult` and must be written
  * `SeaDash::Parse::ParseResult` for a C++ header, and every type then goes
- * through the C-Next to C mapping.
+ * through the cnx to C mapping.
  *
  * ## Why it is one function
  *

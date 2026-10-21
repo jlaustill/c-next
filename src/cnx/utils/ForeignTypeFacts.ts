@@ -28,7 +28,7 @@ type TTypedefHop =
     };
 
 /**
- * What C-Next may read of a C or C++ header symbol's type.
+ * What cnx may read of a C or C++ header symbol's type.
  *
  * Two readers, one owner:
  *
@@ -39,7 +39,7 @@ type TTypedefHop =
  *   pointer to one included (#978: `font_t* g` is read through `->`), which
  *   the operand typer deliberately leaves untyped, and a floating scalar.
  *
- * A floating answer is given in C-Next spelling (`f32`/`f64`), so no caller has
+ * A floating answer is given in cnx spelling (`f32`/`f64`), so no caller has
  * to know that `float` and `double` are floating too.
  */
 class ForeignTypeFacts {
@@ -47,7 +47,7 @@ class ForeignTypeFacts {
   private static readonly MAX_TYPEDEF_HOPS = 8;
 
   /**
-   * The type C-Next may use for a C or C++ header variable: its struct type
+   * The type cnx may use for a C or C++ header variable: its struct type
    * (through one pointer, #978), or its floating type. Null for anything
    * else, including arrays and pointers of a floating type.
    *
@@ -81,11 +81,11 @@ class ForeignTypeFacts {
 
   /**
    * A header variable's declared type in the shape 2.2 and render read,
-   * where C-Next may use its type at all (#978, #1668): a struct global, or
+   * where cnx may use its type at all (#978, #1668): a struct global, or
    * a floating scalar.
    *
    * #1760 review: asked of the headers alone. It came from a reader that
-   * tried a bare-name C-Next lookup first, so a scope member of the same
+   * tried a bare-name cnx lookup first, so a scope member of the same
    * name answered for the header's variable -- `speed +<- 300` on a header
    * `uint32_t` was clamped at the member's u8 -- and that asked C only, so a
    * C++ header's variable had no type.
@@ -213,7 +213,7 @@ class ForeignTypeFacts {
    * Whether `name` is a C or C++ type: one of C's own (`uint32_t`, `size_t`,
    * `unsigned int` -- known by spelling, as `operandType` knows them), or a
    * typedef, struct, class or enum a header declares. A name that is
-   * neither is not a header's type, whatever a C-Next declaration spelled.
+   * neither is not a header's type, whatever a cnx declaration spelled.
    */
   static isForeignType(
     name: string,
@@ -302,7 +302,7 @@ class ForeignTypeFacts {
 
   /**
    * #1975 review (owner ruling): a bit-field holds its declared width, as a
-   * C-Next bitmap field does -- `uint32_t a : 3` is 3 bits, not its storage
+   * cnx bitmap field does -- `uint32_t a : 3` is 3 bits, not its storage
    * type's 32. Null for a width that is no integer literal; undefined for a
    * field that is no bit-field.
    */
@@ -311,7 +311,7 @@ class ForeignTypeFacts {
     return typeof info.bitWidth === "number" ? info.bitWidth : null;
   }
 
-  /** #1975 review: a header type's width, as a C-Next struct's field reads it */
+  /** #1975 review: a header type's width, as a cnx struct's field reads it */
   static headerBits(
     lookup: IForeignSymbolLookup,
     target: ITargetDescription | null,
@@ -321,9 +321,9 @@ class ForeignTypeFacts {
 
   /**
    * ADR-058 for a header's struct (#1975, owner ruling): its fields' bits
-   * together, without C padding, as a C-Next struct's are -- `struct { uint32_t
+   * together, without C padding, as a cnx struct's are -- `struct { uint32_t
    * a; uint8_t b; }` is 40 bits where C stores 64. Null when a field has no
-   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read;
+   * width cnx fixes: a pointer (cnx has none), or a type it does not read;
    * and for a union or a struct with a bit-field, whose fields do not each
    * hold their own bits (#1975 review).
    */
@@ -364,7 +364,7 @@ class ForeignTypeFacts {
 
   /**
    * ADR-058's `.type_element_count` of a header's struct, its field count as a
-   * C-Next struct's is (#1535); null where its layout has no length either
+   * cnx struct's is (#1535); null where its layout has no length either
    * (#1975 review: `Cfg.type_element_count` was E0867, `Point.type_element_count` 2).
    */
   static fieldCount(
@@ -379,7 +379,7 @@ class ForeignTypeFacts {
 
   /**
    * One element's bits of a header's C type, `uint16_t` or a header struct
-   * (`structBits`); null for a type C-Next fixes no width of. 1.4 folds a
+   * (`structBits`); null for a type cnx fixes no width of. 1.4 folds a
    * header's length properties with this, as render measures them (#2076).
    */
   static typeBits(
@@ -416,7 +416,7 @@ class ForeignTypeFacts {
    * What calling a C struct's function-pointer field gives, `ops.get()`:
    * the pointed-to function's result, through any typedefs to the pointer
    * (`typedef float (*getter_t)(void)`). Null when the result is a type
-   * C-Next does not read; undefined when the field is not a function
+   * cnx does not read; undefined when the field is not a function
    * pointer at all.
    */
   static fieldCallOperand(
@@ -531,7 +531,7 @@ class ForeignTypeFacts {
     volatile: boolean;
     /**
      * The spelling that named an integer or float element, typedefs followed
-     * to it, when C-Next does not fix its width (see IOperandType.cType)
+     * to it, when cnx does not fix its width (see IOperandType.cType)
      */
     spelling: string | null;
   } | null {

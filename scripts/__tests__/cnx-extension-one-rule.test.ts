@@ -4,7 +4,7 @@
  * stem is, is answered by `src/cnx/utils/CnxSourcePath.ts` alone. A module that matches
  * the extension itself -- a `/\.cnx$/` regex, `endsWith(".cnx")`, a list of
  * `".cnx"` and `".cnext"` -- can disagree with it, which is how `Colors.CNX`
- * was transpiled by discovery and then named as if it were not C-Next.
+ * was transpiled by discovery and then named as if it were not cnx.
  *
  * A stem cut with `extname` is the same decision without a literal
  * (`IncludeRewriter.besideSource` was one), so `extname` is scanned too.
@@ -42,14 +42,14 @@ const EXTNAME_NOT_A_STEM: ReadonlyArray<readonly [string, string]> = [
   // A C/C++ entry point's extension (#2050), and the rejection's text.
   ["src/cnx/PARSE/1-Discover/InputExpansion.ts", "const ext = extname(path);"],
   // An included header's string keeps the header's extension (#1991)...
-  ["src/cnx/PARSE/2-Parse/preprocessor/Preprocessor.ts", "cnext-include"],
+  ["src/cnx/PARSE/2-Parse/preprocessor/Preprocessor.ts", "cnx-include"],
   // ...because standard input has no name, so cpp is told its language with
   // `-x` from that extension (#1991 replaced the temporary file).
   [
     "src/cnx/PARSE/2-Parse/preprocessor/Preprocessor.ts",
     "extname(text.filename)",
   ],
-  // Every other kind's table key (#2043); C-Next is asked of the owner.
+  // Every other kind's table key (#2043); cnx is asked of the owner.
   ["src/cnx/utils/FileKinds.ts", "extname(filePath)"],
 ];
 
@@ -60,10 +60,10 @@ function lineAt(file: string, offset: number): string {
   return source.slice(start, end === -1 ? undefined : end);
 }
 
-describe("one rule says what C-Next source is (#1833)", () => {
+describe("one rule says what cnx source is (#1833)", () => {
   const hits = SourceScan.scan(EXTENSION_MATCH);
 
-  it("no module but CnxSourcePath matches a C-Next extension", () => {
+  it("no module but CnxSourcePath matches a cnx extension", () => {
     const outside = hits
       .filter((hit) => hit.file !== OWNER)
       .filter(

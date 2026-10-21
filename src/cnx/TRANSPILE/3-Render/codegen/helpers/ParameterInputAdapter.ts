@@ -55,7 +55,7 @@ interface IFromASTDeps {
  * Simpler than AST deps since IParameterSymbol already contains most info.
  */
 interface IFromSymbolDeps {
-  /** Map C-Next type to C type */
+  /** Map cnx type to C type */
   mapType: (type: string) => string;
 }
 

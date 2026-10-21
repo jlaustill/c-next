@@ -17,7 +17,7 @@
  * This is the string-level counterpart to `ConstExprLowering`, which works
  * from the parse tree (#1175; `ArrayDimensionParser` before it). Two entry
  * points exist because C and C++ declarators reach the symbol layer as text,
- * with no C-Next parse tree behind them.
+ * with no cnx parse tree behind them.
  *
  * ## An unsized `[]` now yields an entry
  *

@@ -1,7 +1,7 @@
 /**
  * BitmapGenerator - ADR-034 Bitmap Declaration Generation
  *
- * Generates C typedef declarations from C-Next bitmap syntax.
+ * Generates C typedef declarations from cnx bitmap syntax.
  * Bitmaps are fixed-width integers with named bit fields.
  *
  * Example:
@@ -26,7 +26,7 @@ import BitmapCommentUtils from "./BitmapCommentUtils";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
- * Generate a C typedef from a C-Next bitmap declaration.
+ * Generate a C typedef from a cnx bitmap declaration.
  *
  * ADR-034: Bitmaps provide type-safe bit field access.
  * The backing type (uint8_t, uint16_t, uint32_t) depends on the bitmap size.

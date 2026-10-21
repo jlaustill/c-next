@@ -1,5 +1,5 @@
 /**
- * ADR-023: C-Next has no `sizeof`.
+ * ADR-023: cnx has no `sizeof`.
  *
  * Error codes:
  * - E0603: `sizeof` is written; a size is ADR-058's `.type_byte_length`

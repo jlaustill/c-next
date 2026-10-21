@@ -11,7 +11,7 @@ import type TCppSymbol from "./symbols/cpp/TCppSymbol";
  * The run's symbol table as every pass after 1.4 sees it: read-only, reached
  * through `IProgram.symbolTable()` and nowhere else (#1991).
  *
- * 1.3 declares the header symbols into a `SymbolTable` and 1.4 adds the C-Next
+ * 1.3 declares the header symbols into a `SymbolTable` and 1.4 adds the cnx
  * ones while it builds `Program`; nothing after that writes. Only queries are
  * declared here, so a later pass that tries to add or mark a symbol fails to
  * compile rather than mutating a table another file's pass already read.

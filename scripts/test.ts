@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * C-Next Integration Test Runner
+ * cnx Integration Test Runner
  *
  * Comprehensive testing for transpiler output:
  * - Finds all .test.cnx test files (helpers without .test are skipped)
@@ -753,7 +753,7 @@ async function main(): Promise<void> {
   }
 
   if (!quietMode) {
-    console.log(chalk.cyan("C-Next Integration Tests"));
+    console.log(chalk.cyan("cnx Integration Tests"));
     console.log(
       chalk.dim(`Test ${isSingleFile ? "file" : "directory"}: ${testPath}`),
     );

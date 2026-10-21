@@ -77,7 +77,7 @@ describe("CppNamespaceUtils", () => {
     };
   }
 
-  // Helper to create a C-Next scope symbol.
+  // Helper to create a cnx scope symbol.
   //
   // Built through the real factories. This once hand-built a self-parented
   // scope under a non-empty name, which no factory produced and which hung any
@@ -85,7 +85,7 @@ describe("CppNamespaceUtils", () => {
   // entirely -- a scope names its container with a string -- so that shape is
   // no longer representable, and the factory is used here for the identity pair
   // rather than to avoid the hang.
-  function makeCNextScope(name: string, sourceFile: string): IScopeSymbol {
+  function makeCnxScope(name: string, sourceFile: string): IScopeSymbol {
     return { ...ScopeUtils.createScope(name, ""), sourceFile };
   }
 
@@ -131,8 +131,8 @@ describe("CppNamespaceUtils", () => {
       );
     });
 
-    it("should return false for C-Next namespace (scope)", () => {
-      symbolTable.addTSymbol(makeCNextScope("MyScope", "MyScope.cnx"));
+    it("should return false for cnx namespace (scope)", () => {
+      symbolTable.addTSymbol(makeCnxScope("MyScope", "MyScope.cnx"));
       expect(CppNamespaceUtils.isCppNamespace("MyScope", symbolTable)).toBe(
         false,
       );
@@ -199,8 +199,8 @@ describe("CppNamespaceUtils", () => {
       ).toBe(false);
     });
 
-    it("should return false for C-Next scope underscore type", () => {
-      symbolTable.addTSymbol(makeCNextScope("MyScope", "MyScope.cnx"));
+    it("should return false for cnx scope underscore type", () => {
+      symbolTable.addTSymbol(makeCnxScope("MyScope", "MyScope.cnx"));
       expect(
         CppNamespaceUtils.isCppNamespaceType("MyScope_MyType", symbolTable),
       ).toBe(false);
@@ -253,8 +253,8 @@ describe("CppNamespaceUtils", () => {
       ).toBe("some_c_struct");
     });
 
-    it("should NOT convert C-Next scope underscore type", () => {
-      symbolTable.addTSymbol(makeCNextScope("MyScope", "MyScope.cnx"));
+    it("should NOT convert cnx scope underscore type", () => {
+      symbolTable.addTSymbol(makeCnxScope("MyScope", "MyScope.cnx"));
       expect(
         CppNamespaceUtils.convertToCppNamespace("MyScope_MyType", symbolTable),
       ).toBe("MyScope_MyType");

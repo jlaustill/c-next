@@ -43,7 +43,7 @@ interface ICodeGeneratorOptions {
   /**
    * #1444, owner ruling 1: the kind of file each `#include` directive's
    * spelling names, keyed by `IncludeDirectiveText.join`, as 1.1 Discover
-   * classified it. Render rewrites a directive only when this says C-Next,
+   * classified it. Render rewrites a directive only when this says cnx,
    * and classifies nothing itself.
    */
   includeKinds: ReadonlyMap<string, EFileType>;

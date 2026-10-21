@@ -15,7 +15,7 @@
  * This class walked the chain itself, through the render state's struct
  * fields, with its own count of how many subscripts an array field takes. That
  * count was wrong for an element of an array field, so `s.arr[1][3] <- true`
- * was emitted as `s.arr[1][3] = true;`, and it knew only C-Next integer names,
+ * was emitted as `s.arr[1][3] = true;`, and it knew only cnx integer names,
  * so a C header's `uint8_t` field was never a bit target. What is left here is
  * the decision; the write itself is `AssignmentHandlerUtils.writeBits`, the
  * one every bit handler uses (#1668 review: this class rendered the base

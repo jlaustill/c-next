@@ -1,6 +1,6 @@
 /**
- * Test helpers for C-Next collector unit tests
- * Provides utilities to parse C-Next code strings into parse trees.
+ * Test helpers for cnx collector unit tests
+ * Provides utilities to parse cnx code strings into parse trees.
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
@@ -8,7 +8,7 @@ import { CnxLexer } from "../../../2-Parse/grammar/CnxLexer";
 import { CnxParser, ProgramContext } from "../../../2-Parse/grammar/CnxParser";
 
 /**
- * Parse a C-Next code string into a ProgramContext.
+ * Parse a cnx code string into a ProgramContext.
  * Throws if there are parse errors.
  */
 function parse(code: string): ProgramContext {

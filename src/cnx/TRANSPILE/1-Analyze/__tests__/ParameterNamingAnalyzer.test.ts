@@ -7,7 +7,7 @@ import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import ParameterNamingAnalyzer from "../ParameterNamingAnalyzer";
 
 /**
- * Helper to parse C-Next code and return 1.2's syntax
+ * Helper to parse cnx code and return 1.2's syntax
  */
 function parse(source: string) {
   return CnxSourceParser.parse(source).program;

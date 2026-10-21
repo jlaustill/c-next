@@ -55,7 +55,7 @@ function installMockSymbols(
  *
  * `fullyQualifiedCName` is the set entry verbatim -- the set already holds the
  * generated C name, and that is the key `SymbolTable` indexes by. The leaf and the
- * C-Next name are derived from it so a diagnostic reading `cnxScopedName` gets
+ * cnx name are derived from it so a diagnostic reading `cnxScopedName` gets
  * something an author could have written.
  */
 function register(
@@ -85,7 +85,7 @@ function register(
       scopePath: "",
       sourceFile: "mock.cnx",
       span: TestSourceSpan.at(1),
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public" as TVisibility,
     };
     TestSymbolTable.of(state).addTSymbol(build(base));

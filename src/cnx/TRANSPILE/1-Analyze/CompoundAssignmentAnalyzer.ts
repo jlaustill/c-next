@@ -1,7 +1,7 @@
 /**
  * E0857: a compound operator needs a whole storage location.
  *
- * `+<-` and friends are read-modify-write. C-Next implements them where the
+ * `+<-` and friends are read-modify-write. cnx implements them where the
  * target names one location it can read and write back, and rejects them on a
  * bit index, a bit range, a slice, a bitmap field, a string or a whole array.
  *

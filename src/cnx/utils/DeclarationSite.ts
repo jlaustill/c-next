@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 
 /**
- * DeclarationSite - the single source of truth for how C-Next renders and orders
+ * DeclarationSite - the single source of truth for how cnx renders and orders
  * "where a declaration is", `sourceFile:line`.
  *
  * #1334 gave IScopeSymbol a `declarationSites` set so a reopened scope records every

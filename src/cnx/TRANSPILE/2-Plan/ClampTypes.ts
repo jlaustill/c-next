@@ -3,10 +3,10 @@ import WIDER_TYPE_MAP from "./types/WIDER_TYPE_MAP";
 import TYPE_LIMITS from "./types/TYPE_LIMITS";
 import type IClampTypeInfo from "./types/IClampTypeInfo";
 
-/** The C types an overflow helper for a C-Next type is written in */
+/** The C types an overflow helper for a cnx type is written in */
 class ClampTypes {
   /**
-   * Resolve type information for a C-Next type
+   * Resolve type information for a cnx type
    */
   static resolve(cnxType: string): IClampTypeInfo | null {
     const cType = TYPE_MAP[cnxType];

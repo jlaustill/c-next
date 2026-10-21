@@ -89,7 +89,7 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   }
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-pass-chain-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-pass-chain-"));
     calls = [];
     watch(Discover, "run", "1.1");
     watch(Parse, "sources", "1.2");

@@ -1,7 +1,7 @@
 /**
  * FunctionGenerator - Function Declaration Generation
  *
- * Generates C function declarations from C-Next function syntax.
+ * Generates C function declarations from cnx function syntax.
  *
  * Example:
  *   fn add(i32 a, i32 b) -> i32 { return a + b; }
@@ -24,7 +24,7 @@ import FunctionContextManager from "../../helpers/FunctionContextManager";
 import type IPlannedFunction from "../../types/IPlannedFunction";
 
 /**
- * Generate a C function from a C-Next function declaration.
+ * Generate a C function from a cnx function declaration.
  *
  * Handles:
  * - Return type generation

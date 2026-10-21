@@ -276,7 +276,7 @@ describe("Transpiler.determineProjectRoot", () => {
   describe("no project markers found", () => {
     it("returns undefined when no markers exist in hierarchy", () => {
       // Create a directory structure with no project markers
-      // Note: We're inside testDir which is inside the c-next project,
+      // Note: We're inside testDir which is inside the cnx project,
       // so we need to create an isolated structure
       const isolatedDir = join(testDir, "isolated");
       mkdirSync(isolatedDir, { recursive: true });
@@ -291,11 +291,11 @@ describe("Transpiler.determineProjectRoot", () => {
         NodeFileSystem.instance,
       );
 
-      // This will actually find the c-next project root (which has package.json)
-      // because we're inside the c-next repo. That's expected behavior.
+      // This will actually find the cnx project root (which has package.json)
+      // because we're inside the cnx repo. That's expected behavior.
       const root = getProjectRoot(transpiler);
 
-      // Verify it found a project root (the c-next repo)
+      // Verify it found a project root (the cnx repo)
       expect(root).toBeDefined();
       // And that root has a project marker
       expect(
@@ -307,7 +307,7 @@ describe("Transpiler.determineProjectRoot", () => {
     });
 
     it("disables caching when no project root found", () => {
-      // This is hard to test in practice because we're inside the c-next repo
+      // This is hard to test in practice because we're inside the cnx repo
       // We can at least verify the noCache flag works
       const transpiler = new Transpiler(
         {

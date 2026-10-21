@@ -15,7 +15,7 @@ type TParameterPassingFacts = Pick<
 > & { readonly callbackTypes: ReadonlyMap<string, ICallbackTypeInfo> };
 
 /**
- * #1639: whether each parameter of a C-Next function is passed by value or
+ * #1639: whether each parameter of a cnx function is passed by value or
  * through a pointer, decided once. The `.c` signature, the `.h` prototype, the
  * `_fp` typedef, the body's uses of the parameter and every call to the
  * function read this answer; none of them works it out again.

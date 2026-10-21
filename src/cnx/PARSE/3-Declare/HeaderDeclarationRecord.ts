@@ -64,7 +64,7 @@ class HeaderDeclarationRecord {
   private static _isForeign(
     symbol: TAnySymbol,
   ): symbol is TCSymbol | TCppSymbol {
-    return symbol.sourceLanguage !== ESourceLanguage.CNext;
+    return symbol.sourceLanguage !== ESourceLanguage.Cnx;
   }
 }
 

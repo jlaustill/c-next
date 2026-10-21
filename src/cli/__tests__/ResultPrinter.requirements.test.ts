@@ -2,7 +2,7 @@
  * Issue #1143: The transpile-time toolchain requirements report.
  *
  * The report answers "what does MY project need?" rather than "what might
- * C-Next need?", so the cases that matter most are the ones where it must stay
+ * cnx need?", so the cases that matter most are the ones where it must stay
  * silent (a plain C99 project owes nothing) and the ones where a cost is
  * conditional (a critical section needs one of four platform libraries,
  * decided by the compiler, not all four).

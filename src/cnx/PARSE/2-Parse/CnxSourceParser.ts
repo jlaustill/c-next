@@ -1,6 +1,6 @@
 /**
  * CnxSourceParser
- * Handles parsing of C-Next source code with error collection.
+ * Handles parsing of cnx source code with error collection.
  *
  * Extracted from Pipeline.ts to reduce duplication and improve testability.
  */
@@ -83,7 +83,7 @@ const NESTED_SCOPE_RULES: ReadonlySet<number> = new Set([
 ]);
 
 /**
- * Parses C-Next source code and collects errors.
+ * Parses cnx source code and collects errors.
  *
  * Returns `IParsedFile` -- 1.2 Parse's artifact -- rather than a private result
  * shape of its own. Until #1445 this file declared an `IParseResult` that
@@ -146,7 +146,7 @@ class CnxSourceParser {
   }
 
   /**
-   * Parse C-Next source code
+   * Parse cnx source code
    * @param source - The source code string to parse
    * @returns 1.2 Parse's artifact for this source
    */

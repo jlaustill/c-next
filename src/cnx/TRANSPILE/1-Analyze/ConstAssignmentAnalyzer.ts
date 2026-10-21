@@ -190,7 +190,7 @@ class ConstAssignmentCheck {
   }
 
   /**
-   * E0900, too: a read-only binding passed to a C-Next `mut` parameter; and
+   * E0900, too: a read-only binding passed to a cnx `mut` parameter; and
    * E0915 for an argument that is no binding at all.
    */
   public checkExpression(expr: TExpression): void {
@@ -218,7 +218,7 @@ class ConstAssignmentCheck {
       }
       return;
     }
-    if (callee.sourceLanguage !== ESourceLanguage.CNext) return;
+    if (callee.sourceLanguage !== ESourceLanguage.Cnx) return;
     const calledAs =
       FunctionReference.ofCallChain(expr, scopePath, this.context) === null
         ? ConstAssignmentCheck.calleeAsWritten(expr)
@@ -322,7 +322,7 @@ class ConstAssignmentCheck {
   ): symbol is IVariableSymbol {
     return (
       symbol.kind === "variable" &&
-      symbol.sourceLanguage === ESourceLanguage.CNext &&
+      symbol.sourceLanguage === ESourceLanguage.Cnx &&
       !symbol.isConst &&
       !symbol.isConstructed &&
       symbol.scopePath !== "" &&

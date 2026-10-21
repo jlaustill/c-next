@@ -24,9 +24,9 @@ interface IConstantNameFacts {
   ): TValueBinding | null;
   /** The scope a position is in, for ADR-057's type qualification */
   scopePathAt(at: ISourcePosition): string;
-  /** A C-Next declaration this file can see, by C name */
+  /** A cnx declaration this file can see, by C name */
   visibleSymbol(cName: string): TSymbol | undefined;
-  /** Whether a qualified C-Next type name is a scope type this file can see */
+  /** Whether a qualified cnx type name is a scope type this file can see */
   isScopeTypeVisible(qualifiedName: string): boolean;
   /** A const's settled value, or why it has none; undefined until it settles */
   constValue(symbol: IVariableSymbol): TSettledConst | undefined;

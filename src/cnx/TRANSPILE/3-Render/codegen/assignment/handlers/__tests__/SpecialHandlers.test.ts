@@ -36,7 +36,7 @@ function createMockContext(
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: true,
-    cnextOp: "+<-",
+    cnxOp: "+<-",
     cOp: "+=",
     generatedValue: "1",
     // #1445: renders, not nodes -- each delegates to the mocked generator the
@@ -241,7 +241,7 @@ describe("SpecialHandlers", () => {
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
       });
 
@@ -291,7 +291,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["value"],
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
         generatedValue: "100",
       });
@@ -311,7 +311,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["result"],
-        cnextOp: "*<-",
+        cnxOp: "*<-",
         cOp: "*=",
         generatedValue: "2",
       });
@@ -347,7 +347,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["d"],
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
         generatedValue: "0.5",
       });
@@ -365,7 +365,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["value"],
-        cnextOp: "/<-",
+        cnxOp: "/<-",
         cOp: "/=",
         generatedValue: "2",
       });
@@ -427,7 +427,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["scaled"],
-        cnextOp: "*<-",
+        cnxOp: "*<-",
         cOp: "*=",
         generatedValue: "s.v",
         valueHasFloatingOperand: () => true,

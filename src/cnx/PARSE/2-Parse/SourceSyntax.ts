@@ -2,7 +2,7 @@ import CnxSourceParser from "./CnxSourceParser";
 import type ISourceSyntax from "../../types/ISourceSyntax";
 
 /**
- * 1.2 Parse's entry for the transpile run (#1991): one C-Next source in, its
+ * 1.2 Parse's entry for the transpile run (#1991): one cnx source in, its
  * plain-data artifact out, and the tree released here -- it never leaves 1.2.
  *
  * `CnxSourceParser.parse` stays for the tools that read the tree itself

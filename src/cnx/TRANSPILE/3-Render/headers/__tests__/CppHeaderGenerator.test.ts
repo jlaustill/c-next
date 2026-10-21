@@ -369,7 +369,7 @@ describe("CppHeaderGenerator", () => {
   });
 
   describe("type mapping", () => {
-    it("maps C-Next integer types to C types", () => {
+    it("maps cnx integer types to C types", () => {
       const generator = new CppHeaderGenerator();
       const types = [
         { cnx: "u8", c: "uint8_t" },

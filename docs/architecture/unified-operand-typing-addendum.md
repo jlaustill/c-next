@@ -355,13 +355,13 @@ This reaches serve, which builds its Transpiler with `input: ""` (`ServeCommand.
 **The one fact behind "reaches a header".**
 
 - `IResolvedIncludes.hasForeignInclude` (set in `IncludeResolver._categorizeFile` and `_handleUnresolvedInclude`) becomes `firstForeignInclude: {line, column} | null`.
-- `IncludeDiscovery.extractCNextIncludes` carries the position of the `INCLUDE_DIRECTIVE` token. Since #1745, it is how `IncludeResolver.resolve` reads a `.cnx` file's directives. The text scan, `extractIncludesWithInfo`, now reads only C and C++ headers.
+- `IncludeDiscovery.extractCnxIncludes` carries the position of the `INCLUDE_DIRECTIVE` token. Since #1745, it is how `IncludeResolver.resolve` reads a `.cnx` file's directives. The text scan, `extractIncludesWithInfo`, now reads only C and C++ headers.
 - Its one reader, in `Transpiler._buildPipelineInput`, compares it with `!== null`.
 - `IPipelineFile` gains `firstForeignInclude`, which is direct. `IPipelineFile.reachesForeignHeader` is unchanged, so E0426 and E0427 are unchanged.
 
 **Source-mode reach.**
 
-- The gap: `IncludeTreeWalker.resolveIncludes` (`:129-152`) already runs `resolver.resolve` and throws away everything except `cnextIncludes`. Without the fix, source mode reports `E0427 'cValue' is not defined` where files mode reports E0510 (**[ran]** critic `crit/src3`).
+- The gap: `IncludeTreeWalker.resolveIncludes` (`:129-152`) already runs `resolver.resolve` and throws away everything except `cnxIncludes`. Without the fix, source mode reports `E0427 'cValue' is not defined` where files mode reports E0510 (**[ran]** critic `crit/src3`).
 - The change: the walker passes each walked file's `firstForeignInclude` to its callback, which `_discoverFromSource` stores.
 - This adds no include-graph derivation; #1435 remains the unification card. This answers critic finding B2.
 - Still open: source mode never collects the symbols of such a header. That is filed.

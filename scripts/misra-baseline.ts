@@ -10,15 +10,15 @@
  * runner and its unit tests share one source of truth:
  *   - buildArgs()      — cppcheck argv (always enables style).
  *   - parseViolations()— extract MISRA findings from cppcheck output.
- *   - isGenerated()    — is a file C-Next-generated output?
+ *   - isGenerated()    — is a file cnx-generated output?
  *   - findFailures()   — violations that should fail the build.
  *
  * Failure policy (per-rule allowlist baseline):
- *   A violation fails the build only when it is in C-Next-GENERATED code
+ *   A violation fails the build only when it is in cnx-GENERATED code
  *   (`*.test.c` / generated `*.test.h`) AND its rule is NOT in BASELINE.
  *   - Generated-only: cppcheck also flags transitively-included third-party
  *     libs (cJSON) and hand-written fixtures (widget.h, c-interop headers);
- *     those are not C-Next output and must never gate the build.
+ *     those are not cnx output and must never gate the build.
  *   - Per-rule baseline: every rule that currently has generated violations is
  *     listed below, mapped to its tracking issue. This keeps the check green
  *     today while failing on any NEW rule class (or any baselined rule once its
@@ -129,7 +129,7 @@ class MisraBaseline {
     return violations;
   }
 
-  /** True for C-Next-generated output (*.test.c / *.test.h), false for fixtures. */
+  /** True for cnx-generated output (*.test.c / *.test.h), false for fixtures. */
   static isGenerated(file: string): boolean {
     return /\.test\.(c|h)$/.test(file);
   }

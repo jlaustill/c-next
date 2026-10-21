@@ -86,7 +86,7 @@ class RegisterCollector {
       ...identity,
       sourceFile,
       span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility,
       baseAddress,
       members,

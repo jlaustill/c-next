@@ -1,6 +1,6 @@
 /**
  * Unit tests for DimensionResolver
- * Issue #1127: one array-dimension resolver shared by both C-Next collectors
+ * Issue #1127: one array-dimension resolver shared by both cnx collectors
  * Issue #1175: what it cannot size it keeps as WRITTEN, never as source text
  */
 
@@ -83,7 +83,7 @@ describe("DimensionResolver", () => {
     it("never drops a dimension, and never keeps source text", () => {
       // Dropping a dimension loses the field's array-ness and shifts every
       // dimension after it -- the failure behind #1157 and #1158. Keeping
-      // its text is how C-Next names reached the header (#1175).
+      // its text is how cnx names reached the header (#1175).
       const cases = [
         "10",
         "SIZE",

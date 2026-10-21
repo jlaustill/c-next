@@ -26,7 +26,7 @@ function createMockContext(
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: false,
-    cnextOp: "<-",
+    cnxOp: "<-",
     cOp: "=",
     generatedValue: '"hello"',
     // #1445: renders, not nodes -- each delegates to the mocked generator the

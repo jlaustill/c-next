@@ -4,7 +4,7 @@
  * denotes a register, which is not a type (E0429, #1336).
  *
  * Issue #1312. `CodeGenerator.getTypeName` ends in `resolved ?? ctx.getText()`,
- * so a name that resolves to no type was emitted as the raw C-Next source text
+ * so a name that resolves to no type was emitted as the raw cnx source text
  * and the run exited 0. `Mode borrowedFromSibling <- Mode.MODE_A;` produced
  * `Mode borrowedFromSibling = Mode.MODE_A;`, which gcc rejects with
  * "unknown type name 'Mode'". The report framed this as a cross-file sibling
@@ -132,7 +132,7 @@ class UndeclaredTypeAnalyzer {
     // #1399 review: the answer is computed during discovery from the
     // resolver's own categorization and is TRANSITIVE. An earlier version
     // walked this file's own `#include` token text, which made a third
-    // spelling of "is this a C-Next include?" (it missed `.cnext`) and stopped
+    // spelling of "is this a cnx include?" (it missed `.cnext`) and stopped
     // at one hop -- so a macro reached through a `.cnx` include was REJECTED,
     // code that main compiles.
     this.knowsEveryName = !this.context.reachesForeignHeader;

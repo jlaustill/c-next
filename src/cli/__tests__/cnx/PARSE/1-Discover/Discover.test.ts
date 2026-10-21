@@ -145,7 +145,7 @@ describe("Discover", () => {
   it("orders the files so each follows the files it includes", async () => {
     const { graph } = await discover(project());
 
-    expect(graph.cnextFiles.map((file) => file.path)).toEqual([
+    expect(graph.cnxFiles.map((file) => file.path)).toEqual([
       "/proj/src/lib.cnx",
       "/proj/src/app.cnx",
     ]);
@@ -153,18 +153,18 @@ describe("Discover", () => {
 
   it("carries each file's kind, its edges and the text it was read from", async () => {
     const { graph } = await discover(project());
-    const byPath = new Map(graph.cnextFiles.map((file) => [file.path, file]));
+    const byPath = new Map(graph.cnxFiles.map((file) => [file.path, file]));
     const app = byPath.get("/proj/src/app.cnx");
     const lib = byPath.get("/proj/src/lib.cnx");
     if (app === undefined || lib === undefined) {
       throw new Error("both files are discovered");
     }
 
-    expect(app.discoveredFile.type).toBe(EFileType.CNext);
-    expect(app.cnextIncludes.map((include) => include.path)).toEqual([
+    expect(app.discoveredFile.type).toBe(EFileType.Cnx);
+    expect(app.cnxIncludes.map((include) => include.path)).toEqual([
       "/proj/src/lib.cnx",
     ]);
-    expect(lib.cnextIncludes).toEqual([]);
+    expect(lib.cnxIncludes).toEqual([]);
     expect(app.source).toContain('#include "lib.cnx"');
     // The header is the file's edge to C, which is what E0426/E0427 decline on
     expect(app.reachesForeignHeader).toBe(true);
@@ -177,7 +177,7 @@ describe("Discover", () => {
   it("records each file's include facts, in the order it visited them", async () => {
     const { graph } = await discover(project());
 
-    // Visit order, not `cnextFiles`' dependency order (see `ISourceGraph`)
+    // Visit order, not `cnxFiles`' dependency order (see `ISourceGraph`)
     expect([...graph.includes.c.keys()]).toEqual([
       "/proj/src/app.cnx",
       "/proj/src/lib.cnx",
@@ -209,8 +209,8 @@ describe("Discover", () => {
     const { graph } = await discover(project());
 
     expect(Object.isFrozen(graph)).toBe(true);
-    expect(Object.isFrozen(graph.cnextFiles)).toBe(true);
-    expect(graph.cnextFiles.every((file) => Object.isFrozen(file))).toBe(true);
+    expect(Object.isFrozen(graph.cnxFiles)).toBe(true);
+    expect(graph.cnxFiles.every((file) => Object.isFrozen(file))).toBe(true);
     expect(Object.isFrozen(graph.headerFiles)).toBe(true);
     expect(Object.isFrozen(graph.includeSearchPaths)).toBe(true);
     expect(
@@ -221,32 +221,32 @@ describe("Discover", () => {
 
   it("is frozen all the way down, not just the records (#1444 review)", async () => {
     const { graph } = await discover(project());
-    const app = graph.cnextFiles.find(
+    const app = graph.cnxFiles.find(
       (file) => file.path === "/proj/src/app.cnx",
     );
 
     expect(Object.isFrozen(app?.discoveredFile)).toBe(true);
-    expect(Object.isFrozen(app?.cnextIncludes)).toBe(true);
-    expect(Object.isFrozen(app?.cnextIncludes[0])).toBe(true);
+    expect(Object.isFrozen(app?.cnxIncludes)).toBe(true);
+    expect(Object.isFrozen(app?.cnxIncludes[0])).toBe(true);
     expect(Object.isFrozen(graph.headerFiles[0])).toBe(true);
     // The `RunAnchor`'s own object, which the next run at this anchor reuses
     expect(Object.isFrozen(graph.anchor.defines)).toBe(true);
   });
 
-  it("has no files when the entry is not C-Next", async () => {
+  it("has no files when the entry is not cnx", async () => {
     const fs = new MockFileSystem().addFile("/proj/src/readme.txt", "hello");
     const warnings: string[] = [];
-    const notCNext = { ...settings, input: "/proj/src/readme.txt" };
+    const notCnx = { ...settings, input: "/proj/src/readme.txt" };
 
     const { graph } = Discover.run(
       { kind: "files" },
-      RunAnchor.at(notCNext.input, null, notCNext, fs),
-      notCNext,
+      RunAnchor.at(notCnx.input, null, notCnx, fs),
+      notCnx,
       fs,
       warnings,
     );
 
-    expect(graph.cnextFiles).toEqual([]);
+    expect(graph.cnxFiles).toEqual([]);
     expect(graph.includes.c.size).toBe(0);
   });
 
@@ -389,13 +389,13 @@ describe("Discover", () => {
     });
 
     it("reports the anchor's own walk though no file of the run is walked", () => {
-      const notCNext = { ...settings, input: "/proj/src/readme.txt" };
+      const notCnx = { ...settings, input: "/proj/src/readme.txt" };
 
       const errors = discoverErrors(
         new MockFileSystem()
           .addFile("/proj/src/readme.txt", "hello")
           .addFile("/proj/src/.cnext.json", "{}"),
-        notCNext,
+        notCnx,
       );
 
       expect(errors).toEqual([

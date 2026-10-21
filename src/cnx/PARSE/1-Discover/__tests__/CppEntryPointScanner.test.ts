@@ -49,11 +49,11 @@ void led_on(void);`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toHaveLength(1);
-      expect(result.cnextSources[0]).toBe("/project/led.cnx");
+      expect(result.cnxSources).toHaveLength(1);
+      expect(result.cnxSources[0]).toBe("/project/led.cnx");
     });
 
-    it("should return empty when no C-Next markers found", () => {
+    it("should return empty when no cnx markers found", () => {
       files.set("/project/main.cpp", '#include "utils.h"\nint main() {}');
       files.set("/project/utils.h", "void utils_init(void);");
 
@@ -64,8 +64,8 @@ void led_on(void);`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toHaveLength(0);
-      expect(result.noCNextFound).toBe(true);
+      expect(result.cnxSources).toHaveLength(0);
+      expect(result.noCnxFound).toBe(true);
     });
 
     it("should follow transitive includes through .cnx sources", () => {
@@ -92,8 +92,8 @@ void led_on(void);`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toContain("/project/middleware.cnx");
-      expect(result.cnextSources).toContain("/project/led.cnx");
+      expect(result.cnxSources).toContain("/project/middleware.cnx");
+      expect(result.cnxSources).toContain("/project/led.cnx");
     });
 
     it("should report error when marker points to missing .cnx", () => {
@@ -154,10 +154,10 @@ void led_on(void);`,
 
       if (message === null) {
         expect(result.errors).toEqual([]);
-        expect(result.cnextSources).toEqual([`/project/${name}`]);
+        expect(result.cnxSources).toEqual([`/project/${name}`]);
         return;
       }
-      expect(result.cnextSources).toEqual([]);
+      expect(result.cnxSources).toEqual([]);
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0]).toMatchObject({
         sourcePath: "/project/led.h",
@@ -193,8 +193,8 @@ void led_on(void);`,
       const result = scanner.scan("/project/main.cpp");
 
       // Should not infinite loop
-      expect(result.cnextSources).toContain("/project/a.cnx");
-      expect(result.cnextSources).toContain("/project/b.cnx");
+      expect(result.cnxSources).toContain("/project/a.cnx");
+      expect(result.cnxSources).toContain("/project/b.cnx");
     });
 
     it("should handle multiple includes in one file", () => {
@@ -226,9 +226,9 @@ int main() {}`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toHaveLength(2);
-      expect(result.cnextSources).toContain("/project/led.cnx");
-      expect(result.cnextSources).toContain("/project/motor.cnx");
+      expect(result.cnxSources).toHaveLength(2);
+      expect(result.cnxSources).toContain("/project/led.cnx");
+      expect(result.cnxSources).toContain("/project/motor.cnx");
     });
 
     it("should skip system includes", () => {
@@ -254,11 +254,11 @@ int main() {}`,
       const result = scanner.scan("/project/main.cpp");
 
       // Should only find led.cnx, not fail on stdio.h
-      expect(result.cnextSources).toHaveLength(1);
-      expect(result.cnextSources[0]).toBe("/project/led.cnx");
+      expect(result.cnxSources).toHaveLength(1);
+      expect(result.cnxSources[0]).toBe("/project/led.cnx");
     });
 
-    it("should scan non-C-Next headers for nested includes", () => {
+    it("should scan non-cnx headers for nested includes", () => {
       files.set("/project/main.cpp", '#include "wrapper.h"');
       files.set("/project/wrapper.h", '#include "led.h"\nvoid wrapper_init();');
       files.set(
@@ -276,11 +276,11 @@ int main() {}`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toHaveLength(1);
-      expect(result.cnextSources[0]).toBe("/project/led.cnx");
+      expect(result.cnxSources).toHaveLength(1);
+      expect(result.cnxSources[0]).toBe("/project/led.cnx");
     });
 
-    it("should handle old-style C-Next markers without source path", () => {
+    it("should handle old-style cnx markers without source path", () => {
       files.set("/project/main.cpp", '#include "led.h"');
       files.set(
         "/project/led.h",
@@ -297,10 +297,10 @@ void led_on(void);`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      // Old marker without source path - should be treated as C-Next generated
-      // but without a source path, we can't add it to cnextSources
-      expect(result.cnextSources).toHaveLength(0);
-      // Should not follow includes from old-style C-Next headers (they're leaf nodes)
+      // Old marker without source path - should be treated as cnx generated
+      // but without a source path, we can't add it to cnxSources
+      expect(result.cnxSources).toHaveLength(0);
+      // Should not follow includes from old-style cnx headers (they're leaf nodes)
     });
 
     it("should find .cnx source via search paths when --header-out is used", () => {
@@ -324,8 +324,8 @@ void led_on(void);`,
       );
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toHaveLength(1);
-      expect(result.cnextSources[0]).toBe("/project/src/led.cnx");
+      expect(result.cnxSources).toHaveLength(1);
+      expect(result.cnxSources[0]).toBe("/project/src/led.cnx");
       expect(result.errors).toHaveLength(0);
     });
 
@@ -346,7 +346,7 @@ void led_on(void);`,
       ]);
       const result = scanner.scan("/project/main.cpp");
 
-      expect(result.cnextSources).toEqual(["/project/a.cnx", "/lib/other.cnx"]);
+      expect(result.cnxSources).toEqual(["/project/a.cnx", "/lib/other.cnx"]);
       expect(result.errors).toEqual([]);
     });
   });

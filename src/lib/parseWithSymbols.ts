@@ -1,5 +1,5 @@
 /**
- * Parse C-Next source and extract symbols for IDE features
+ * Parse cnx source and extract symbols for IDE features
  * ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
@@ -278,12 +278,12 @@ function convertScope(
 }
 
 /**
- * Parse C-Next source and extract symbols for IDE features
+ * Parse cnx source and extract symbols for IDE features
  *
  * Unlike transpile(), this function attempts to extract symbols even when
  * there are parse errors, making it suitable for autocomplete during typing.
  *
- * @param source - C-Next source code string
+ * @param source - cnx source code string
  * @returns Parse result with symbols
  *
  * @example

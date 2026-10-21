@@ -13,7 +13,7 @@ import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ExpressionCalls from "../ExpressionCalls";
 
 /**
- * Helper to parse C-Next code and extract the expression from a variable declaration.
+ * Helper to parse cnx code and extract the expression from a variable declaration.
  * Parses: "void main() { u32 x <- <expression>; }"
  */
 function extractExpression(exprText: string): ExpressionContext | null {

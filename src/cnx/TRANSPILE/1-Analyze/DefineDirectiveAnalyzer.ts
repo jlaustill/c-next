@@ -13,12 +13,12 @@
  * diagnostics (E0501-E0506), which need the preprocessor artifact rather than
  * a tree walk". That is false, and it is worth writing down why, because the
  * sentence reads plausible: a `#define` inside an INCLUDED C HEADER genuinely
- * is not in the C-Next parse tree -- but it never reached these throws either.
+ * is not in the cnx parse tree -- but it never reached these throws either.
  * C headers are lexed by the C grammar, whose directive rule sends every
  * `#`-line to ANTLR's hidden channel before parsing, so a header holding
  * `#define SQUARE(x) ((x) * (x))` transpiles at exit 0 today and always did.
  * The throws' own parameter type is the proof: `DefineDirectiveContext` is a
- * C-NEXT grammar node, and the C grammar has no such rule to produce one.
+ * cnx grammar node, and the C grammar has no such rule to produce one.
  *
  * What the rule actually sees is `defineDirective`, whose three alternatives
  * ARE the three cases the throw discriminated (`DEFINE_FLAG`,

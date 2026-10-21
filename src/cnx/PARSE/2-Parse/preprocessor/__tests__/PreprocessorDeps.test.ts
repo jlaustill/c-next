@@ -14,7 +14,7 @@ describe.skipIf(!available)("Preprocessor records what a run read", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-preprocess-deps-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-preprocess-deps-"));
   });
 
   afterEach(() => {
@@ -31,7 +31,7 @@ describe.skipIf(!available)("Preprocessor records what a run read", () => {
       NodeFileSystem.instance,
       undefined,
       cache,
-    ).preprocessString('#include "h#x.h"\n', "cnext-include.h", {
+    ).preprocessString('#include "h#x.h"\n', "cnx-include.h", {
       includePaths: [dir],
     });
     expect(result.success).toBe(true);

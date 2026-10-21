@@ -2,7 +2,7 @@ import type ICnxMarker from "./types/ICnxMarker";
 import GeneratedBanner from "../../utils/GeneratedBanner";
 
 /**
- * Detects C-Next generation markers in header files.
+ * Detects cnx generation markers in header files.
  *
  * Used by the C/C++ entry point feature to discover which headers
  * were generated from .cnx source files, and by header resolution to skip
@@ -35,16 +35,16 @@ class CnxMarkerDetector {
     );
 
   /**
-   * Check if content contains any C-Next generation marker.
+   * Check if content contains any cnx generation marker.
    */
-  static isCNextGenerated(content: string): boolean {
+  static isCnxGenerated(content: string): boolean {
     return CnxMarkerDetector.MARKER_REGEXES.some((regex) =>
       regex.test(content),
     );
   }
 
   /**
-   * Find the C-Next generation marker that records a source .cnx path.
+   * Find the cnx generation marker that records a source .cnx path.
    *
    * @param content - File content
    * @returns The recorded source path (e.g., "led.cnx") and the line and

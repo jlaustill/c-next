@@ -414,7 +414,7 @@ class StructCollector {
       name: fullName,
       sourceFile,
       span: ParserUtils.getSpan(ctx),
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       isExported: true,
       fields: this.collectFields(ctx),
     };

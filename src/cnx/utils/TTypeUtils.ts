@@ -1,7 +1,7 @@
 /**
  * Factory functions and type guards for TType.
  *
- * Provides utilities for creating and inspecting C-Next types.
+ * Provides utilities for creating and inspecting cnx types.
  */
 import type TType from "../types/TType";
 import type TPrimitiveKind from "../types/TPrimitiveKind";

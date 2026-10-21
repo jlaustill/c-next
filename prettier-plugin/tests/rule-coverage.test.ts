@@ -11,11 +11,11 @@
  */
 
 import { CnxParser } from "../../src/cnx/PARSE/2-Parse/grammar/CnxParser";
-import CNextPrinter from "../src/printer";
+import CnxPrinter from "../src/printer";
 
 describe("grammar rule coverage", () => {
   it("has a layout for every rule the grammar generates", () => {
-    const handled = CNextPrinter.handledRuleIndices();
+    const handled = CnxPrinter.handledRuleIndices();
     const missing = CnxParser.ruleNames.filter(
       (_name, index) => !handled.has(index),
     );
@@ -24,7 +24,7 @@ describe("grammar rule coverage", () => {
 
   it("lays out no rule the grammar does not have", () => {
     const ruleCount = CnxParser.ruleNames.length;
-    const unknown = [...CNextPrinter.handledRuleIndices()].filter(
+    const unknown = [...CnxPrinter.handledRuleIndices()].filter(
       (index) => index < 0 || index >= ruleCount,
     );
     expect(unknown).toEqual([]);

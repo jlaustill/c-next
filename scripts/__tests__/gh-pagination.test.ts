@@ -321,12 +321,9 @@ describe("GhPagination — list-shaped subcommands not spelled `list`", () => {
   // Controls. These subcommands are visible to the scanner now, so a write or a
   // non-list read through one must stay silent; all three are live in this repo.
   it.each([
-    [
-      "a secret write",
-      `${GH} secret set PROJECT_TOKEN --repo jlaustill/c-next`,
-    ],
-    ["a repo edit", `${GH} repo edit jlaustill/c-next --description x`],
-    ["a repo clone", `${GH} repo clone jlaustill/c-next`],
+    ["a secret write", `${GH} secret set PROJECT_TOKEN --repo smeltworks/cnx`],
+    ["a repo edit", `${GH} repo edit smeltworks/cnx --description x`],
+    ["a repo clone", `${GH} repo clone smeltworks/cnx`],
   ])("does not flag %s", (_name, command) => {
     expect(kinds(command)).toEqual([]);
   });

@@ -91,7 +91,7 @@ describe("Program", () => {
   const including = (graph: Record<string, string[]>) => ({
     cppMode: false,
     visibility: {
-      cnextIncludesByFile: new Map(
+      cnxIncludesByFile: new Map(
         Object.entries(graph).map(([file, includes]) => [
           file,
           includes.map((path) => ({ path })),
@@ -101,7 +101,7 @@ describe("Program", () => {
   });
 
   // #1991: a pass after 1.4 reads the run's symbol table only off Program, so
-  // 1.4 is what completes it -- 1.3's header symbols, plus the C-Next ones it
+  // 1.4 is what completes it -- 1.3's header symbols, plus the cnx ones it
   // resolved -- and hands that one table on.
   describe("symbolTable()", () => {
     it("is the table 1.3 declared into, completed with what 1.4 resolved", () => {
@@ -816,7 +816,7 @@ describe("Program", () => {
       expect(typesIn([["doSomething", "function"]]).size).toBe(0);
     });
 
-    it("reports the types a C-Next file declares under its own path", () => {
+    it("reports the types a cnx file declares under its own path", () => {
       const lib = declare(
         `struct Point { u32 x; } enum Color { RED }`,
         "lib.cnx",

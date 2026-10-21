@@ -61,7 +61,7 @@ function foldContextuallyTypedLiteral(
  * The source is materialized once into an unsigned temp before the writes
  * (`buildSliceWrites`), so this drives the right-hand side of the unrolled copy:
  *  - non-integer sources (float/struct/string) cannot be shifted — reject them
- *    with a clear C-Next error instead of emitting non-compiling C;
+ *    with a clear cnx error instead of emitting non-compiling C;
  *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
  *    would otherwise emit an undefined out-of-range shift);
  *  - `unsignedCType` is the type of the materialized temp. Shifting that temp
@@ -178,9 +178,9 @@ function resolveLiteralSliceSource(
 }
 
 class SliceSource {
-  /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
+  /** Matches the unsigned cnx integer types (u8/u16/u32/u64). */
   static readonly UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
-  /** Matches the signed C-Next integer types (i8/i16/i32/i64). */
+  /** Matches the signed cnx integer types (i8/i16/i32/i64). */
   static readonly SIGNED_INT_RE = /^i(8|16|32|64)$/;
 
   static of(

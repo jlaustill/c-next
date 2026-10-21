@@ -37,11 +37,11 @@ interface IFileIncludes {
 
   /**
    * ADR-010's E0504 question answered by the same rule: for each include of a
-   * header whose C-Next source the same form of include would find, that
+   * header whose cnx source the same form of include would find, that
    * source's spelling, keyed like `resolutions` (#1672). An include with no
    * entry has no such source.
    */
-  readonly cnextAlternatives: ReadonlyMap<string, string>;
+  readonly cnxAlternatives: ReadonlyMap<string, string>;
 
   /**
    * The kind of file each directive's spelling names, keyed like
@@ -58,7 +58,7 @@ interface IFileIncludes {
    *
    * 2.1 once re-derived it as `dirname(sourcePath)` while discovery resolved
    * from `workingDir`, so a missing include read as a foreign header, E0426
-   * declined, and C-Next member syntax reached the C output at exit 0. A
+   * declined, and cnx member syntax reached the C output at exit 0. A
    * generated header spells a quoted include relative to it (#1725).
    */
   readonly quotedIncludeDirectory: string;

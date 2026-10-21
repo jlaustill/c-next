@@ -20,7 +20,7 @@ describe("Dual Code Paths (Issue #634)", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-test-"));
   });
 
   afterEach(() => {

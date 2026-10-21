@@ -1219,8 +1219,8 @@ describe("Transpiler coverage tests", () => {
   // ==========================================================================
 
   describe("C++ entry point discovery", () => {
-    it("discovers C-Next files from C++ entry point via header markers", async () => {
-      // Create a C-Next source file
+    it("discovers cnx files from C++ entry point via header markers", async () => {
+      // Create a cnx source file
       mockFs.addFile(
         "/project/src/led.cnx",
         "scope LED { public void on() { } }",
@@ -1306,8 +1306,8 @@ int main() { LED__on(); return 0; }`,
       expect(headers[0].content).not.toContain("C-Next Transpiler");
     });
 
-    it("returns empty result when no C-Next markers found in C++ include tree", async () => {
-      // Create a regular C header (no C-Next marker)
+    it("returns empty result when no cnx markers found in C++ include tree", async () => {
+      // Create a regular C header (no cnx marker)
       mockFs.addFile(
         "/project/src/utils.h",
         `#ifndef UTILS_H
@@ -1382,8 +1382,8 @@ int main() { return 0; }`,
       expect(result.warnings.join("\n")).not.toContain("Error:");
     });
 
-    it("discovers multiple C-Next files from C++ entry point", async () => {
-      // Create two C-Next source files
+    it("discovers multiple cnx files from C++ entry point", async () => {
+      // Create two cnx source files
       mockFs.addFile(
         "/project/src/led.cnx",
         "scope LED { public void on() { } }",
@@ -1467,7 +1467,7 @@ int main() { LED_on(); return 0; }`,
       expect(result.filesProcessed).toBe(1);
     });
   });
-  describe("E0509: a generated header names a missing C-Next source", () => {
+  describe("E0509: a generated header names a missing cnx source", () => {
     const MARKER_HEADER = (source: string) =>
       [
         "#ifndef GHOST_H",
@@ -1866,7 +1866,7 @@ describe("Transpiler coverage integration tests", () => {
     );
   });
 
-  it("handles multiple C-Next files with dependencies", async () => {
+  it("handles multiple cnx files with dependencies", async () => {
     // Create files with cross-file dependencies
     writeFileSync(
       join(testDir, "types.cnx"),
@@ -2189,8 +2189,8 @@ describe("Transpiler coverage integration tests", () => {
    * and exits 1. Two discovery routes, one class of fault, opposite outcomes.
    *
    * The error is buried twice: because the scan finds a marker but no source,
-   * `noCNextFound` is also true, so the run additionally prints the friendly
-   * "No C-Next files found ... To get started:" onboarding text. A user whose
-   * header path is wrong is told they have no C-Next files at all.
+   * `noCnxFound` is also true, so the run additionally prints the friendly
+   * "No cnx files found ... To get started:" onboarding text. A user whose
+   * header path is wrong is told they have no cnx files at all.
    */
 });

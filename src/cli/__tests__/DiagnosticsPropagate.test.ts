@@ -39,7 +39,7 @@ const FILES = [
   join("src", "cnx", "PARSE", "3-Declare", "Declare.ts"),
 ];
 
-/** Calls that can now raise a C-Next diagnostic rather than a parse failure. */
+/** Calls that can now raise a cnx diagnostic rather than a parse failure. */
 const DIAGNOSTIC_RAISING = ["HeaderDeclarations.declare("];
 
 interface ICatchSite {

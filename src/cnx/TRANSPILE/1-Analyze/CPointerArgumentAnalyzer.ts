@@ -11,12 +11,12 @@
  * also needs a parameter that points to const, or C could write to it: that
  * is a write, so it is ADR-071's E0900.
  *
- * E0896, owner ruling: C-Next cannot see how a C function uses its pointer --
+ * E0896, owner ruling: cnx cannot see how a C function uses its pointer --
  * one `u8` or `n` of them -- so it accepts both, and warns that the call is not
  * memory safe.
  *
- * Asked only where both sides are known: a C function (a C-Next function's
- * parameters are C-Next's own), a parameter of exactly one pointer, and an
+ * Asked only where both sides are known: a C function (a cnx function's
+ * parameters are cnx's own), a parameter of exactly one pointer, and an
  * argument the typer types as a declared value. A literal or an expression is
  * passed as a compound literal of the parameter's type.
  */

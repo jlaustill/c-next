@@ -1,6 +1,6 @@
 /**
- * A generated header names a scoped C-Next type by its C name, `Lib__Point`,
- * and asks which included header declares that name. The run recorded C-Next
+ * A generated header names a scoped cnx type by its C name, `Lib__Point`,
+ * and asks which included header declares that name. The run recorded cnx
  * types by their bare name, so the answer was "none":
  *
  * - the header forward-declared `Lib__Point` after including lib.h, which
@@ -22,7 +22,7 @@ describe("a scoped type in a generated header", () => {
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-scoped-hdr-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-scoped-hdr-"));
   });
 
   afterEach(() => {

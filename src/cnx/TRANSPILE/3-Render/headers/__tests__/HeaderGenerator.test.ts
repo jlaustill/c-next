@@ -366,7 +366,7 @@ describe("HeaderGenerator", () => {
         expect(header).not.toContain("vector<int>");
       });
 
-      it("should allow C-Next string<N> types (not C++ templates)", () => {
+      it("should allow cnx string<N> types (not C++ templates)", () => {
         const symbols = [makeVarSymbol("name", "string<32>")];
         const header = generator.generate(symbols, "test.h", {});
 
@@ -389,6 +389,6 @@ describe("HeaderGenerator", () => {
   });
 
   // ============================================================================
-  // Coverage tests for generateFromSymbolTable and generateCNextHeader
+  // Coverage tests for generateFromSymbolTable and generateCnxHeader
   // ============================================================================
 });

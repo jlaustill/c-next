@@ -22,8 +22,8 @@ const EXTENSION_MAP: Record<string, EFileType> = {
  */
 class FileKinds {
   static of(filePath: string): EFileType {
-    if (CnxSourcePath.isSource(filePath)) return EFileType.CNext;
-    if (CnxSourcePath.isRejected(filePath)) return EFileType.RejectedCNext;
+    if (CnxSourcePath.isSource(filePath)) return EFileType.Cnx;
+    if (CnxSourcePath.isRejected(filePath)) return EFileType.RejectedCnx;
     return EXTENSION_MAP[extname(filePath).toLowerCase()] ?? EFileType.Unknown;
   }
 }

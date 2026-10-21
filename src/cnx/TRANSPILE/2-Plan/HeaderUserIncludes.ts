@@ -76,7 +76,7 @@ class HeaderUserIncludes {
     // Known to a C/C++ header, but not as something forward-declarable.
     //
     // The C++ index is keyed by the C++ NAME -- `SeaDash::Parse::ParseResult`
-    // -- while a C-Next type naming it carries the generated C form,
+    // -- while a cnx type naming it carries the generated C form,
     // `SeaDash__Parse__ParseResult`. Asking the index with the transpiled name
     // returns nothing for every namespaced type, which reads as "no such
     // symbol" rather than "wrong question" (CLAUDE.md, #1139). That is why

@@ -129,14 +129,14 @@ class PublicInterface {
    *     public struct W { Secret s; }
    *     public Secret shared <- ...
    *
-   * The type stays unnameable from outside -- C-Next rejects `Internal.Secret`
+   * The type stays unnameable from outside -- cnx rejects `Internal.Secret`
    * in another scope either way -- so what reaches the header is completeness,
    * not access. Putting a type in a public signature opts it into the ABI, and
    * that is the author's decision to make.
    *
    * Without this the transpiler exits 0 and emits a header carrying only the
    * incomplete `typedef struct Internal__Secret Internal__Secret;`, which any
-   * caller that touches the value fails to compile -- cnext green, cc red.
+   * caller that touches the value fails to compile -- cnx green, cc red.
    */
   private static typeClosure(symbols: readonly TSymbol[]): Set<string> {
     // What a name can resolve to. Only type-forming kinds can be pulled in --
@@ -219,7 +219,7 @@ class PublicInterface {
    * Flatten a TType to the names it depends on.
    *
    * An array needs its ELEMENT type complete; its dimensions are values, not
-   * names (#1175). Primitives and strings name nothing -- a C-Next string is
+   * names (#1175). Primitives and strings name nothing -- a cnx string is
    * a fixed-capacity char array.
    */
   private static collectTypeNames(type: TType, into: string[]): void {

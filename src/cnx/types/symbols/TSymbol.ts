@@ -7,7 +7,7 @@ import type IBitmapSymbol from "./IBitmapSymbol";
 import type IRegisterSymbol from "./IRegisterSymbol";
 
 /**
- * Discriminated union of all C-Next symbol types.
+ * Discriminated union of all cnx symbol types.
  *
  * Use the `kind` field to narrow to a specific symbol type:
  * ```typescript

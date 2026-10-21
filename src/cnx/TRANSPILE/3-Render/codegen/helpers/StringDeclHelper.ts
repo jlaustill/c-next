@@ -199,7 +199,7 @@ class StringDeclHelper {
    * Issue #1030: a string initialized from another string. C cannot
    * initialize an array from one, so it is declared empty and copied into.
    * The copy writes the buffer, so it is never a C `const` array, here or in
-   * the concatenation and substring arms; C-Next still rejects a write to it
+   * the concatenation and substring arms; cnx still rejects a write to it
    * (ADR-071). Issue #1044: the bounded copy an assignment makes, not an
    * unbounded strcpy, which flawfinder flags as CWE-120.
    */

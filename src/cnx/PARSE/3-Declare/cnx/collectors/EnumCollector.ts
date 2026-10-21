@@ -76,7 +76,7 @@ class EnumCollector {
       ...identity,
       sourceFile,
       span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility,
       members,
     };

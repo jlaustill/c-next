@@ -1,6 +1,6 @@
 /**
  * Unit tests for StdlibFunctions
- * The single source of truth for what C-Next knows about functions it does not
+ * The single source of truth for what cnx knows about functions it does not
  * parse: which header declares them, and whether they return a value.
  */
 import { describe, it, expect } from "vitest";
@@ -98,7 +98,7 @@ describe("StdlibFunctions", () => {
     });
   });
 
-  describe("C-Next intrinsics (ADR-051)", () => {
+  describe("cnx intrinsics (ADR-051)", () => {
     it("lists the builtins", () => {
       expect(StdlibFunctions.builtinNames().sort()).toEqual([
         "safe_div",

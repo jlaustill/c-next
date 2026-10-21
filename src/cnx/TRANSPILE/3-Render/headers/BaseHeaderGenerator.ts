@@ -22,7 +22,7 @@ import StructInitFunction from "../codegen/helpers/StructInitFunction";
 /**
  * Abstract base class for header file generation
  *
- * Generates header files (.h) from C-Next symbols. Subclasses implement
+ * Generates header files (.h) from cnx symbols. Subclasses implement
  * emitsCpp(), which also decides pass-by-reference semantics:
  * - CHeaderGenerator writes C, so "*" for pointer-based semantics
  * - CppHeaderGenerator writes C++, so "&" for reference-based semantics
@@ -73,7 +73,7 @@ abstract class BaseHeaderGenerator {
     }
 
     // The declaration that pulled the type in. This fires on a file the user
-    // did not write, so naming the C-Next declaration is the difference
+    // did not write, so naming the cnx declaration is the difference
     // between an actionable error and a puzzle.
     const origin = BaseHeaderGenerator.findDeclaringSymbol(
       symbols,

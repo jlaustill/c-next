@@ -343,7 +343,7 @@ class TSymbolInfoAdapter {
       // include closure is known, not decided here from one file's.
       maps.registerMemberCTypes.set(
         fullName,
-        TSymbolInfoAdapter.cnextTypeToCType(
+        TSymbolInfoAdapter.cnxTypeToCType(
           TypeResolver.getTypeName(memberInfo.type),
         ),
       );
@@ -383,7 +383,7 @@ class TSymbolInfoAdapter {
     functionReturnTypes.set(cName, returnTypeStr);
   }
 
-  private static cnextTypeToCType(typeName: string): string {
+  private static cnxTypeToCType(typeName: string): string {
     return CNX_TO_C_TYPE_MAP[typeName] || typeName;
   }
 }

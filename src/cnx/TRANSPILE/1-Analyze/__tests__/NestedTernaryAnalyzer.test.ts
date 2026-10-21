@@ -47,7 +47,7 @@ describe("NestedTernaryAnalyzer", () => {
 
   it("accepts a branch that is a string containing ? and :", () => {
     // THE regression. The substring check rejected this, and it is ordinary
-    // C-Next: the characters are inside a literal, not operators.
+    // cnx: the characters are inside a literal, not operators.
     expect(
       errors(inMain('    string<16> s <- (n = 1) ? "a?b:c" : "plain";')),
     ).toEqual([]);
@@ -77,7 +77,7 @@ describe("NestedTernaryAnalyzer", () => {
     //
     // Note the parentheses: `((n = 1) ? 2 : 3) = 2 ? 4 : 5` does NOT parse. An
     // earlier version of this test used that form, so it was asserting against
-    // an error-recovered tree rather than legal C-Next.
+    // an error-recovered tree rather than legal cnx.
     const found = errors(
       inMain("    u32 v <- (((n = 1) ? 2 : 3) = 2) ? 4 : 5;"),
     );

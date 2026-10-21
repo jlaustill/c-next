@@ -32,7 +32,7 @@ describe("StructCollector", () => {
       expect(symbol.kind).toBe("struct");
       expect(symbol.name).toBe("Point");
       expect(symbol.sourceFile).toBe("test.cnx");
-      expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(symbol.visibility).toBe("public");
       expect(symbol.scopePath).toBe("");
 
@@ -290,7 +290,7 @@ describe("StructCollector", () => {
   });
 
   describe("const fields", () => {
-    // Note: C-Next grammar doesn't support const modifier on struct members
+    // Note: cnx grammar doesn't support const modifier on struct members
     // All struct fields are non-const
     it("struct fields are always non-const", () => {
       const code = `

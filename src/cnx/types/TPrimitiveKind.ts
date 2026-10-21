@@ -1,5 +1,5 @@
 /**
- * C-Next primitive type kinds.
+ * cnx primitive type kinds.
  *
  * These are the built-in types that map directly to C types.
  */

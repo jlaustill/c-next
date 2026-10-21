@@ -1,5 +1,5 @@
 /**
- * Shared factory for C-Next symbols in tests.
+ * Shared factory for cnx symbols in tests.
  *
  * Every field on IBaseSymbol is supplied here, so adding one costs a single
  * edit rather than an edit per literal. Before this existed, 44 literals across
@@ -64,7 +64,7 @@ class TestSymbolUtils {
       scopePath,
       sourceFile: overrides.sourceFile ?? "test.cnx",
       span: overrides.span ?? TestSourceSpan.at(1),
-      sourceLanguage: overrides.sourceLanguage ?? ESourceLanguage.CNext,
+      sourceLanguage: overrides.sourceLanguage ?? ESourceLanguage.Cnx,
       visibility: overrides.visibility ?? "public",
       ...ScopeUtils.identityOf({ name, scopePath }),
     };

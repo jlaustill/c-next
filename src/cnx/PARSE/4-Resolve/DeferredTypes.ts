@@ -124,7 +124,7 @@ class DeferredTypes {
       const parameters = symbol.parameters.map((parameter): IParameterInfo => {
         const type = settle(parameter.type);
         // #1722: decided here, once, on the settled type -- a bare name that
-        // settles to a scope type is C-Next's own and never opaque.
+        // settles to a scope type is cnx's own and never opaque.
         const isOpaqueHandle = isOpaqueType(TypeResolver.getTypeName(type));
         if (type === parameter.type && !isOpaqueHandle) return parameter;
         parametersChanged = true;

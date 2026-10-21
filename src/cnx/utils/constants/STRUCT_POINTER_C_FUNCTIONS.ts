@@ -1,7 +1,7 @@
 /**
  * Nullable C standard-library functions that return a STRUCT pointer (`FILE*`),
  * as opposed to the `char*`-returning ones (`fgets`, `strstr`) which map to
- * C-Next's `cstring`. Codegen adds an asterisk to the generated type for these.
+ * cnx's `cstring`. Codegen adds an asterisk to the generated type for these.
  *
  * #1322: this was a static method on `NullCheckAnalyzer`, which put a constant
  * lookup inside pass 2.1 and gave `output/` a reason to import an analyzer.

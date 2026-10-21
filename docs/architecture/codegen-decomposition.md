@@ -363,7 +363,7 @@ interface AssignmentContext {
   } | null;
 
   operator: {
-    cnextOp: string;
+    cnxOp: string;
     cOp: string;
     isCompound: boolean;
   };

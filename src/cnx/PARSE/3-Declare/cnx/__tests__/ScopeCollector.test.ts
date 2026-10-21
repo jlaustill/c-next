@@ -92,7 +92,7 @@ describe("ScopeCollector", () => {
       expect(result.scopeSymbol.name).toBe("Motor");
       expect(result.scopeSymbol.members).toEqual([]);
       expect(result.scopeSymbol.sourceFile).toBe("test.cnx");
-      expect(result.scopeSymbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(result.scopeSymbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(result.scopeSymbol.visibility).toBe("public");
 
       expect(result.memberSymbols).toEqual([]);

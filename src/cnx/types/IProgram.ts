@@ -58,7 +58,7 @@ interface IProgram {
   isScopeTypeVisibleFrom(sourceFile: string, qualifiedName: string): boolean;
 
   /**
-   * The C-Next symbol whose canonical identity is this transpiled C name.
+   * The cnx symbol whose canonical identity is this transpiled C name.
    *
    * Exact identity, never the bare-name index: asking a bare-name lookup with a
    * transpiled name returns empty for every scoped symbol, which reads as "no
@@ -68,7 +68,7 @@ interface IProgram {
 
   /** The settled symbols a file declares. */
   symbolsInFile(sourceFile: string): ReadonlyArray<TSymbol>;
-  /** The run's symbol table, complete: 1.3's header symbols plus the C-Next ones 1.4 resolved (#1991). */
+  /** The run's symbol table, complete: 1.3's header symbols plus the cnx ones 1.4 resolved (#1991). */
   symbolTable(): IResolvedSymbols;
 
   /** Every file the program declared, in the order they were declared. */
@@ -114,7 +114,7 @@ interface IProgram {
    *
    * Cross-file by construction — a conflict exists only when two files define
    * the same name — and one of the three facts that also needs the C and C++
-   * header symbols, not just C-Next's. It was previously derived from an
+   * header symbols, not just cnx's. It was previously derived from an
    * accumulator mid-run, so the answer depended on how much had been inserted
    * when it was asked (#1511).
    */
@@ -122,7 +122,7 @@ interface IProgram {
 
   /**
    * The type names a file declares — struct, type, enum and class — by the C
-   * name a generated signature uses: a C-Next scope's `Point` is `Lib__Point`.
+   * name a generated signature uses: a cnx scope's `Point` is `Lib__Point`.
    *
    * "Which C header declares this type", asked from the file's side. Header
    * generation includes the header that defines a type rather than forward
@@ -189,7 +189,7 @@ interface IProgram {
   callbackCompatibleFunctions(): ReadonlyMap<string, string>;
 
   /**
-   * ADR-071: every C-Next function used as a callback at all (a type, or a
+   * ADR-071: every cnx function used as a callback at all (a type, or a
    * value placed in a slot), by C name. Its `mut` parameters are part of the
    * callback type, so E0899 does not ask them to be written.
    */
@@ -273,7 +273,7 @@ interface IProgram {
   ): IConstTarget | null;
 
   /**
-   * A C-Next type name as C spells it at `at` in `sourceFile` (ADR-057), for a
+   * A cnx type name as C spells it at `at` in `sourceFile` (ADR-057), for a
    * constant expression C evaluates (a cast) -- the same answer 1.4
    * wrote into the header (#1863 review)
    */
@@ -294,7 +294,7 @@ interface IProgram {
    * What each member of the enum with C name `enumCName` settled to, in
    * declaration order (#1669, ADR-017 "Member Values") -- for 2.1 to report
    * a value that has none, overflows, or leaves `i32`. Empty for a name that
-   * is not a C-Next enum.
+   * is not a cnx enum.
    */
   enumMemberValues(enumCName: string): ReadonlyArray<TEnumMemberValue>;
 

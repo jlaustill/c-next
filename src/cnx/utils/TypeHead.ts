@@ -6,7 +6,7 @@ import type TSymbol from "../types/symbols/TSymbol";
 import type TType from "../types/TType";
 
 /**
- * #1975 review: the C-Next type a chain's head names (`u32`, `Point`,
+ * #1975 review: the cnx type a chain's head names (`u32`, `Point`,
  * `Geo.Box`, `EMode`) -- one decision, which the typer and 1.4's constant
  * folding both read. A header's type extends it only in a pass that reads
  * headers.
@@ -14,7 +14,7 @@ import type TType from "../types/TType";
 class TypeHead {
   /**
    * A primitive type keyword; `void` names no type a value has. ADR-040's
-   * `ISR` is a function pointer, a type with no width C-Next fixes (#1975
+   * `ISR` is a function pointer, a type with no width cnx fixes (#1975
    * review: `ISR.type_byte_length` reached the C as written).
    */
   static primitive(name: string): TType | null {
@@ -39,8 +39,8 @@ class TypeHead {
 
   /**
    * #1975 review: a type a header names, or one of C's own spellings --
-   * `Cfg`, `word_t`, `HE`, `uint32_t` -- for a name no C-Next symbol names.
-   * Its width is `ForeignTypeFacts.typeBits`'s, null where C-Next fixes none.
+   * `Cfg`, `word_t`, `HE`, `uint32_t` -- for a name no cnx symbol names.
+   * Its width is `ForeignTypeFacts.typeBits`'s, null where cnx fixes none.
    */
   static header(
     name: string,

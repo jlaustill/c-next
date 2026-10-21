@@ -1,5 +1,5 @@
 #!/bin/bash
-# Static Analysis Script for C-Next Generated Code
+# Static Analysis Script for cnx Generated Code
 # Transpiles examples and runs static analyzers on the output
 
 set -e
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}=== C-Next Static Analysis ===${NC}"
+echo -e "${BLUE}=== cnx Static Analysis ===${NC}"
 echo ""
 
 # Create temp directory for generated C files
