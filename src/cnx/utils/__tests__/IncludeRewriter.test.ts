@@ -28,18 +28,13 @@ describe("IncludeRewriter", () => {
   const none = new Map<string, string>();
 
   describe("rewrite", () => {
-    it.each([
-      [".cnx", "#include <utils.cnx>", "utils.cnx"],
-      [".cnext", "#include <utils.cnext>", "utils.cnext"],
-    ])(
-      "names the resolved header for a %s include",
-      (_ext, directive, spec) => {
-        const rewrites = new Map([[spec, "Display/utils.h"]]);
-        expect(
-          IncludeRewriter.rewrite(directive, kindOf(directive), rewrites, ".h"),
-        ).toBe("#include <Display/utils.h>");
-      },
-    );
+    it("names the resolved header for a .cnx include", () => {
+      const directive = "#include <utils.cnx>";
+      const rewrites = new Map([["utils.cnx", "Display/utils.h"]]);
+      expect(
+        IncludeRewriter.rewrite(directive, kindOf(directive), rewrites, ".h"),
+      ).toBe("#include <Display/utils.h>");
+    });
 
     it("keeps a quoted include quoted", () => {
       const rewrites = new Map([["utils.cnx", "Display/utils.h"]]);
@@ -55,11 +50,9 @@ describe("IncludeRewriter", () => {
 
     it.each([
       ["#include <utils.cnx>", ".h", "#include <utils.h>"],
-      ["#include <utils.cnext>", ".h", "#include <utils.h>"],
       ["#include <utils.cnx>", ".hpp", "#include <utils.hpp>"],
-      ["#include <utils.cnext>", ".hpp", "#include <utils.hpp>"],
-      // #1833: only a lowercase extension is C-Next; `Utils.CNX` is E0518
-      ['#include "Utils.cnext"', ".h", '#include "Utils.h"'],
+      // #1833: only a lowercase extension is cnx source; `Utils.CNX` is E0518
+      ['#include "Utils.cnx"', ".h", '#include "Utils.h"'],
       // only the path is replaced: the author's spacing survives
       ["#  include  <utils.cnx>", ".h", "#  include  <utils.h>"],
     ])(

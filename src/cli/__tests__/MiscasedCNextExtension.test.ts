@@ -1,8 +1,8 @@
 /**
- * Issue #1833, owner ruling of 2026-10-13: only a lowercase `.cnx` or
- * `.cnext` is C-Next source. A source spelled in any other case is rejected
- * with E0518 -- at the include that names it, or as the run's input -- and
- * nothing is written. Before the ruling 1.1 Discover lowercased the extension
+ * Issue #1833, owner ruling of 2026-10-13: only a lowercase `.cnx` is cnx
+ * source. A `.cnx` spelled in any other case is rejected with E0518, and
+ * `.cnext` in any case with E0519 (#2167) -- at the include that names it, or
+ * as the run's input -- and nothing is written. Before the ruling 1.1 Discover lowercased the extension
  * while every output-naming site matched it case-sensitively, so an in-place
  * build wrote generated C over `Colors.CNX` and exited 0.
  */
@@ -33,7 +33,7 @@ void main() {
 `;
 }
 
-describe("a C-Next extension is lowercase (#1833)", () => {
+describe("a cnx extension is a lowercase .cnx (#1833, #2167)", () => {
   let src: string;
 
   beforeEach(() => {
@@ -56,7 +56,12 @@ describe("a C-Next extension is lowercase (#1833)", () => {
   const codesOf = (errors: readonly { message: string }[]) =>
     errors.map((e) => /^error\[(E\d{4})\]/.exec(e.message)?.[1] ?? e.message);
 
-  for (const name of ["Colors.CNX", "Colors.Cnx", "Colors.CNEXT"]) {
+  for (const [name, code] of [
+    ["Colors.CNX", "E0518"],
+    ["Colors.Cnx", "E0518"],
+    ["Colors.cnext", "E0519"],
+    ["Colors.CNEXT", "E0519"],
+  ] as const) {
     it(`rejects an include of ${name} and writes nothing`, async () => {
       writeFileSync(join(src, name), COLORS);
       writeFileSync(join(src, "main.cnx"), mainIncluding(name));
@@ -64,7 +69,7 @@ describe("a C-Next extension is lowercase (#1833)", () => {
       const result = await buildInPlace("main.cnx");
 
       expect(result.success).toBe(false);
-      expect(codesOf(result.errors)).toEqual(["E0518"]);
+      expect(codesOf(result.errors)).toEqual([code]);
       expect(readFileSync(join(src, name), "utf8")).toBe(COLORS);
       expect(readdirSync(src).sort()).toEqual([name, "main.cnx"].sort());
     });
@@ -75,7 +80,7 @@ describe("a C-Next extension is lowercase (#1833)", () => {
       const result = await buildInPlace(name);
 
       expect(result.success).toBe(false);
-      expect(codesOf(result.errors)).toEqual(["E0518"]);
+      expect(codesOf(result.errors)).toEqual([code]);
       // No line names the input: `1:0`, as every run diagnostic (#1847).
       expect(result.errors[0]).toMatchObject({ line: 1, column: 0 });
       expect(readFileSync(join(src, name), "utf8")).toBe(COLORS);
@@ -97,11 +102,14 @@ describe("a C-Next extension is lowercase (#1833)", () => {
     });
   }
 
-  it("rejects a source run's text named Colors.CNX", async () => {
-    const result = await buildSource("Colors.CNX");
+  it.each([
+    ["Colors.CNX", "E0518"],
+    ["Colors.cnext", "E0519"],
+  ])("rejects a source run's text named %s with %s", async (name, code) => {
+    const result = await buildSource(name);
 
     expect(result.success).toBe(false);
-    expect(codesOf(result.errors)).toEqual(["E0518"]);
+    expect(codesOf(result.errors)).toEqual([code]);
   });
 
   // Its self-include, which a path with no C-Next extension leaves as it was
@@ -120,7 +128,7 @@ describe("a C-Next extension is lowercase (#1833)", () => {
     });
   }
 
-  for (const name of ["Colors.cnx", "Colors.cnext"]) {
+  for (const name of ["Colors.cnx"]) {
     it(`control: ${name} builds Colors.c and Colors.h beside it`, async () => {
       writeFileSync(join(src, name), COLORS);
       writeFileSync(join(src, "main.cnx"), mainIncluding(name));

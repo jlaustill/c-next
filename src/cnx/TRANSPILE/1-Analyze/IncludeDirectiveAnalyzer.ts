@@ -71,7 +71,7 @@ class IncludeDirectiveChecks {
 
     const directive = IncludeDirectiveText.join(spec);
     const kind = this.kindOf(directive);
-    if (this.checkMiscasedCnextFile(ctx, spec, kind)) return;
+    if (this.checkRejectedCnextFile(ctx, spec, kind)) return;
     if (this.checkImplementationFile(ctx, spec, kind)) return;
     if (
       this.checkMissingCnextFile(ctx, spec, kind, this.resolutionOf(directive))
@@ -110,21 +110,22 @@ class IncludeDirectiveChecks {
   }
 
   /**
-   * E0518: `#include "Colors.CNX"`. Only a lowercase `.cnx` or `.cnext` is
-   * C-Next source (#1833, owner ruling), in either form of include.
+   * E0518: `#include "Colors.CNX"`; E0519: `#include "Colors.cnext"`. Only
+   * a lowercase `.cnx` is cnx source (#1833 owner ruling, #2167), in either
+   * form of include.
    */
-  private checkMiscasedCnextFile(
+  private checkRejectedCnextFile(
     ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     kind: EFileType,
   ): boolean {
-    if (kind !== EFileType.MiscasedCNext) return false;
-    this.report(
-      ctx,
-      "E0518",
-      CNextSourcePath.miscasedMessage(spec.path),
-      CNextSourcePath.miscasedHelp("rename the file and this include."),
+    if (kind !== EFileType.RejectedCNext) return false;
+    const rejection = CNextSourcePath.rejection(
+      spec.path,
+      "rename the file and this include.",
     );
+    invariant(rejection !== null, `${spec.path} is a rejected cnx path`);
+    this.report(ctx, rejection.code, rejection.message, rejection.helpText);
     return true;
   }
 

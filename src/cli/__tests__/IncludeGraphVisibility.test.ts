@@ -471,7 +471,7 @@ void main() {
       });
     }
 
-    it.each(['#include "b.cnx"', "#include <b.cnx>", '#include "b.cnext"'])(
+    it.each(['#include "b.cnx"', "#include <b.cnx>"])(
       "%s, missing, leaves the includer's E0426 on",
       async (include) => {
         const result = await preview(include);

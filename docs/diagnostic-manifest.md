@@ -413,7 +413,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested.test.cnx                                  | E0430               |
 | tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx                   | E0204               |
 | tests/bugs/issue-1307-external-identifier-significance/cross-file-collision.test.cnx                      | E0204               |
-| tests/bugs/issue-1312-undefined-type-position/cnext-extension.test.cnx                                    | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx                               | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx                                    | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-same-file.test.cnx                           | E0426               |
@@ -607,6 +606,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2157-array-parameter-list/non-array-argument-error.test.cnx                              | E0866               |
 | tests/bugs/issue-2157-array-parameter-list/transitive-argument-error.test.cnx                             | E0866               |
 | tests/bugs/issue-2165-renamed-config/renamed-config-beside-include.test.cnx                               | E0918               |
+| tests/bugs/issue-2167-cnext-extension/cnext-include-error.test.cnx                                        | E0519               |
 | tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx                                      | E0921               |
 | tests/bugs/issue-2191-assignment-capacity/assignment-capacity-every-target-error.test.cnx                 | E0864               |
 | tests/bugs/issue-2194-array-argument-shape/shape-error.test.cnx                                           | E0866               |

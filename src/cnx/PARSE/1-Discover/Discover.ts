@@ -517,8 +517,8 @@ class Discover {
     const fileByPath = new Map<string, IDiscoveredFile>();
 
     const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
-    if (entryFile?.type === EFileType.MiscasedCNext) {
-      return this._miscasedInput(entryPath);
+    if (entryFile?.type === EFileType.RejectedCNext) {
+      return this._rejectedInput(entryPath);
     }
     if (entryFile?.type !== EFileType.CNext) {
       return Discover._noCNextFiles();
@@ -591,20 +591,23 @@ class Discover {
   }
 
   /**
-   * #1833: E0518 for the run's input, files or source. No directive names the
-   * input, so it is placed at `1:0`, as every diagnostic about the run is
-   * (E0510, E0511, E0515); #1847 decides that form for all of them.
+   * #1833, #2167: E0518 or E0519 for the run's input, files or source. No
+   * directive names the input, so it is placed at `1:0`, as every diagnostic
+   * about the run is (E0510, E0511, E0515); #1847 decides that form for all
+   * of them.
    */
-  private _miscasedInput(path: string): TDiscoveredFiles {
+  private _rejectedInput(path: string): TDiscoveredFiles {
+    const rejection = CNextSourcePath.rejection(
+      basename(path),
+      "rename the file.",
+    );
+    invariant(rejection !== null, `${path} is a rejected cnx path`);
     this.errors.push({
       sourcePath: path,
       line: 1,
       column: 0,
-      message: CodedErrorText.of(
-        "E0518",
-        CNextSourcePath.miscasedMessage(basename(path)),
-      ),
-      helpText: CNextSourcePath.miscasedHelp("rename the file."),
+      message: CodedErrorText.of(rejection.code, rejection.message),
+      helpText: rejection.helpText,
       severity: "error",
     });
     return Discover._noCNextFiles();
@@ -643,8 +646,8 @@ class Discover {
     entry: IInMemorySource,
     callerIncludeDirs: readonly string[],
   ): TDiscoveredFiles {
-    if (CNextSourcePath.isMiscased(entry.path)) {
-      return this._miscasedInput(entry.path);
+    if (CNextSourcePath.isRejected(entry.path)) {
+      return this._rejectedInput(entry.path);
     }
     const root: IDiscoveredFile = {
       path: entry.path,

@@ -1617,18 +1617,6 @@ const includePathCases: IIncludePathCase[] = [
     expected: "utils.h",
   },
   {
-    // Issue #1467 review: `.cnext` is a C-Next source extension too, and the
-    // patterns that reach the owner used to match `.cnx` alone -- so a
-    // `.cnext` include was emitted verbatim into the `.c`, which gcc rejects,
-    // and dropped from the `.h` entirely.
-    name: "Issue #1467: a .cnext include reaches the owner like a .cnx one",
-    includeSpec: "utils.cnext",
-    utilsAt: "src/Display/utils.cnext",
-    includeArg: "src/Display",
-    useStruct: false,
-    expected: "Display/utils.h",
-  },
-  {
     // Found while building the control above: when the shared tree is INSIDE
     // the cwd, PathResolver's #489 branch nests the header instead, and the
     // emitted include is bare either way. Same defect, third layout.

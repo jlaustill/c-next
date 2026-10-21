@@ -23,7 +23,7 @@ const EXTENSION_MAP: Record<string, EFileType> = {
 class FileKinds {
   static of(filePath: string): EFileType {
     if (CNextSourcePath.isSource(filePath)) return EFileType.CNext;
-    if (CNextSourcePath.isMiscased(filePath)) return EFileType.MiscasedCNext;
+    if (CNextSourcePath.isRejected(filePath)) return EFileType.RejectedCNext;
     return EXTENSION_MAP[extname(filePath).toLowerCase()] ?? EFileType.Unknown;
   }
 }

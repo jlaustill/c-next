@@ -42,7 +42,7 @@ class InputExpansion {
   /**
    * Validate file extension
    *
-   * Accepts: .cnx, .cnext, .c, .cpp, .cc, .cxx, .c++
+   * Accepts: .cnx, .c, .cpp, .cc, .cxx, .c++
    *
    * @param path - File path to validate
    * @throws Error if extension is invalid
@@ -51,15 +51,14 @@ class InputExpansion {
     const ext = extname(path);
     const fileName = basename(path);
 
-    // Accept C-Next source files
+    // Accept cnx source files
     if (CNextSourcePath.isSource(path)) {
       return;
     }
 
-    if (CNextSourcePath.isMiscased(path)) {
-      throw new Error(
-        CodedErrorText.of("E0518", CNextSourcePath.miscasedMessage(fileName)),
-      );
+    const rejection = CNextSourcePath.rejection(fileName, "rename the file.");
+    if (rejection !== null) {
+      throw new Error(CodedErrorText.of(rejection.code, rejection.message));
     }
 
     // Accept C/C++ entry point files
@@ -69,7 +68,7 @@ class InputExpansion {
 
     throw new Error(
       `Invalid file extension '${ext}' for file '${fileName}'. ` +
-        `cnx only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files.`,
+        `cnx only accepts .cnx, .c, .cpp, .cc, .cxx, or .c++ files.`,
     );
   }
 
