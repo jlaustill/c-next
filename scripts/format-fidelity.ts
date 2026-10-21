@@ -125,7 +125,7 @@ async function format(source: string, filepath: string): Promise<string> {
     ...config,
     filepath,
     plugins: [pluginPath],
-    parser: "cnext",
+    parser: "cnx",
   });
 }
 

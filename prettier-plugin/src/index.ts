@@ -22,23 +22,23 @@ import TPrintableNode from "./types/TPrintableNode";
 const languages: SupportLanguage[] = [
   {
     name: "cnx",
-    parsers: ["cnext"],
+    parsers: ["cnx"],
     extensions: [".cnx"],
-    vscodeLanguageIds: ["cnext"],
+    vscodeLanguageIds: ["cnx"],
   },
 ];
 
 const parsers: Record<string, Parser<TPrintableNode>> = {
-  cnext: {
+  cnx: {
     parse,
-    astFormat: "cnext-cst",
+    astFormat: "cnx-cst",
     locStart: (node: TPrintableNode) => Cst.startOffsetOf(node),
     locEnd: (node: TPrintableNode) => Cst.endOffsetOf(node),
   },
 };
 
 const printers: Record<string, Printer<TPrintableNode>> = {
-  "cnext-cst": {
+  "cnx-cst": {
     print: CnxPrinter.print,
 
     /**

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The library reports a cnx symbol's language as `"cnx"`** (Issue #2173). `TLanguage`, the
+  type of `ISymbolInfo.language`, is `"cnx" | "c" | "cpp"`; it was `"cnext" | "c" | "cpp"`. Code
+  that compares `language` with `"cnext"` must compare it with `"cnx"`.
+- **The Prettier plugin is `@smeltworks/prettier-plugin-cnx` and its parser is `cnx`** (Issue
+  #2182). It was `prettier-plugin-cnext` with parser `cnext` (never published). A Prettier
+  config that names `parser: "cnext"` must name `parser: "cnx"`.
 - **`CNX_CROSS_COMPILER` names the compiler a project reads its headers with** (Issue #2166).
   It replaces `CNEXT_CROSS_COMPILER`, which cnx no longer reads: a run whose environment still
   sets the old name is error E0924, which names the new one, so a build is never silently read

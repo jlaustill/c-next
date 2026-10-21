@@ -1,5 +1,5 @@
 /**
- * Exhaustiveness gate for the C-Next Prettier plugin (#1364).
+ * Exhaustiveness gate for the cnx Prettier plugin (#1364).
  *
  * The previous plugin rotted for seven months because a grammar change could
  * not fail anything: it carried its own hand-written model of the grammar, and

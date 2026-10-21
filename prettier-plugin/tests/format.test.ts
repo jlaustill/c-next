@@ -1,5 +1,5 @@
 /**
- * Basic formatting tests for the C-Next Prettier plugin
+ * Basic formatting tests for the cnx Prettier plugin
  */
 
 import * as prettier from "prettier";
@@ -9,13 +9,13 @@ const pluginPath = path.resolve(__dirname, "../dist/index.js");
 
 async function format(code: string): Promise<string> {
   return prettier.format(code, {
-    parser: "cnext",
+    parser: "cnx",
     plugins: [pluginPath],
     tabWidth: 4,
   });
 }
 
-describe("C-Next Prettier Plugin", () => {
+describe("cnx Prettier Plugin", () => {
   describe("Variable declarations", () => {
     it("should format variable declarations with proper spacing", async () => {
       const input = "u32 x<-5;";
