@@ -10,6 +10,8 @@
  * rejects (E0909, E0910) and 2.2 spells.
  */
 import type IProgram from "../../../types/IProgram";
+import type TValueBinding from "../../../types/TValueBinding";
+import type ISourcePosition from "../../../utils/types/ISourcePosition";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type IValuePosition from "../../../types/IValuePosition";
 import type TConstExpr from "../../../types/TConstExpr";
@@ -69,17 +71,30 @@ class StaticInitializers {
     program: IProgram,
     sourceFile: string,
   ): boolean {
-    return StaticInitializers.names(ConstExprLowering.lower(value)).some(
+    return StaticInitializers.bindings(value, program, sourceFile).some(
+      ({ binding }) => binding.kind === "variable" || binding.kind === "local",
+    );
+  }
+
+  /**
+   * What each name the value reads binds to, and where it is written; a
+   * length property's subject is a size, which C is never asked to read
+   */
+  static bindings(
+    value: TExpression,
+    program: IProgram,
+    sourceFile: string,
+  ): { readonly binding: TValueBinding; readonly at: ISourcePosition }[] {
+    return StaticInitializers.names(ConstExprLowering.lower(value)).flatMap(
       (name) => {
-        // `x.type_bit_length` is a size, which C is never asked to read
-        if (LengthProperty.isLength(name.path.at(-1) ?? "")) return false;
+        if (LengthProperty.isLength(name.path.at(-1) ?? "")) return [];
         const binding = program.bindValue(
           sourceFile,
           name.root,
           name.path[0] ?? "",
           name.at,
         );
-        return binding?.kind === "variable" || binding?.kind === "local";
+        return binding === null ? [] : [{ binding, at: name.at }];
       },
     );
   }

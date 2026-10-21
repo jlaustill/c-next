@@ -40,6 +40,7 @@ import type TStringValueForm from "../types/TStringValueForm";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
+import StaticInitializers from "./1-Analyze/helpers/StaticInitializers";
 import type TChainRoot from "../types/TChainRoot";
 import type TValueBinding from "../types/TValueBinding";
 import IComment from "../types/IComment";
@@ -173,6 +174,7 @@ import WrittenCTypes from "./3-Render/codegen/helpers/WrittenCTypes";
 import invariant from "../utils/invariant";
 import StringUtils from "../utils/StringUtils";
 import AdrProvenance from "../instrumentation/AdrProvenance";
+import ExpressionNodes from "../utils/ExpressionNodes";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
@@ -355,9 +357,40 @@ class CodeGenWalker {
         folded.narrowing,
       );
       this.host.applyEffects(written.effects);
+      this.recordFoldedRules(expr);
       return written.code;
     }
     return this.invokeGenerator(generateTernaryExpr, this.planTernary(expr));
+  }
+
+  /**
+   * #1735: the rules a folded value applied, recorded where they fired, as
+   * writing it would have: ADR-001's `=` as equality, and ADR-057's bare name
+   * bound to a scope member
+   */
+  private recordFoldedRules(expr: TExpression): void {
+    for (const node of ExpressionNodes.direct(expr)) {
+      if (
+        node.kind === "binary" &&
+        node.level === "equality" &&
+        node.operators.includes("=")
+      ) {
+        AdrProvenance.record("001", node.span.line);
+      }
+    }
+    const typing = this.host.state.typingContext();
+    for (const { binding, at } of StaticInitializers.bindings(
+      expr,
+      typing.program,
+      typing.sourceFile,
+    )) {
+      if (
+        (binding.kind === "variable" || binding.kind === "function") &&
+        binding.symbol.scopePath !== ""
+      ) {
+        AdrProvenance.record("057", at.line);
+      }
+    }
   }
 
   /** #1735: why a static-storage initializer that read a name is written as its value */
