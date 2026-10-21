@@ -31,7 +31,7 @@ const uint32_t FROM_MACRO = STATIC_LIMIT;
 const uint32_t fromMacro = (STATIC_LIMIT);
 
 /* Scope: S */
-const uint8_t S__CH = 'B';
+const uint8_t S__CH = (uint8_t)'B';
 const uint32_t S__LIMIT = STATIC_LIMIT;
 const uint32_t S__COUNT = 3U;
 const EColor S__COLOR = EColor__GREEN;

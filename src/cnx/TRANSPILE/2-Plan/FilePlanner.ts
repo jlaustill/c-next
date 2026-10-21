@@ -1546,7 +1546,10 @@ class FilePlanner {
       if (copiesString(declaration)) return null;
       const planned = types.get(type);
       if (scopeMembers.has(declaration)) {
-        return planned === undefined ? null : this.cTypeOf(planned);
+        if (planned === undefined) return null;
+        // A primitive is its C-Next name, as outside a scope: MISRA 10.3's
+        // casts are decided over C-Next types
+        return planned.primitiveName ?? this.cTypeOf(planned);
       }
       if (forInits.has(declaration)) {
         if (planned === undefined) return null;
