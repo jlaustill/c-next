@@ -319,7 +319,7 @@ _Using C-Next in your project? Open an issue to get listed!_
 
 ```
 c-next/
-├── grammar/Cnx.g4                    # ANTLR4 grammar definition
+├── grammar/Cnx.g4                      # ANTLR4 grammar definition
 ├── src/
 │   ├── index.ts                        # CLI entry point
 │   ├── transpiler/

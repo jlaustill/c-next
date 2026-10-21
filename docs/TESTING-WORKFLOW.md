@@ -580,7 +580,7 @@ vim tests/[feature]/basic.test.cnx     # Write tests
 npm test                               # Run tests
 
 # Phase 3: Bug Resolution
-vim grammar/Cnx.g4                   # Fix grammar
+vim grammar/Cnx.g4                     # Fix grammar
 vim BUG-DISCOVERED-[feature].md       # Document bugs
 
 # Phase 4: Documentation
