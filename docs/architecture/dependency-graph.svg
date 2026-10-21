@@ -333,15 +333,15 @@
 <path fill="none" stroke="#757575" d="M3642.67,-1108.55C3689.03,-1058.65 3870.91,-862.85 3928.84,-800.5"/>
 <polygon fill="#757575" stroke="#757575" points="3931.62,-802.64 3935.86,-792.93 3926.49,-797.88 3931.62,-802.64"/>
 </g>
-<!-- transpiler/logic/parser/CnxSourceParser.ts -->
+<!-- transpiler/logic/parser/CNextSourceParser.ts -->
 <g id="node23" class="node">
-<title>transpiler/logic/parser/CnxSourceParser.ts</title>
+<title>transpiler/logic/parser/CNextSourceParser.ts</title>
 <path fill="none" stroke="#c6c5fe" d="M3702.74,-1100.66C3702.74,-1100.66 3435.08,-1100.66 3435.08,-1100.66 3431.24,-1100.66 3427.41,-1096.83 3427.41,-1092.99 3427.41,-1092.99 3427.41,-1085.33 3427.41,-1085.33 3427.41,-1081.49 3431.24,-1077.66 3435.08,-1077.66 3435.08,-1077.66 3702.74,-1077.66 3702.74,-1077.66 3706.58,-1077.66 3710.41,-1081.49 3710.41,-1085.33 3710.41,-1085.33 3710.41,-1092.99 3710.41,-1092.99 3710.41,-1096.83 3706.58,-1100.66 3702.74,-1100.66"/>
-<text text-anchor="middle" x="3568.91" y="-1085.46" font-family="Arial" font-size="14.00" fill="#c6c5fe">transpiler/logic/parser/CnxSourceParser.ts</text>
+<text text-anchor="middle" x="3568.91" y="-1085.46" font-family="Arial" font-size="14.00" fill="#c6c5fe">transpiler/logic/parser/CNextSourceParser.ts</text>
 </g>
-<!-- transpiler/Transpiler.ts&#45;&gt;transpiler/logic/parser/CnxSourceParser.ts -->
+<!-- transpiler/Transpiler.ts&#45;&gt;transpiler/logic/parser/CNextSourceParser.ts -->
 <g id="edge70" class="edge">
-<title>transpiler/Transpiler.ts&#45;&gt;transpiler/logic/parser/CnxSourceParser.ts</title>
+<title>transpiler/Transpiler.ts&#45;&gt;transpiler/logic/parser/CNextSourceParser.ts</title>
 <path fill="none" stroke="#757575" d="M3608.4,-1108.65C3606.3,-1107.62 3604.15,-1106.55 3601.99,-1105.49"/>
 <polygon fill="#757575" stroke="#757575" points="3603.09,-1102.13 3592.57,-1100.84 3599.99,-1108.4 3603.09,-1102.13"/>
 </g>
@@ -825,9 +825,9 @@
 <path fill="none" stroke="#757575" d="M3975.81,-1448.31C4060.22,-1485.84 4325.18,-1603.66 4421.37,-1646.43"/>
 <polygon fill="#757575" stroke="#757575" points="4420.11,-1649.7 4430.67,-1650.56 4422.95,-1643.3 4420.11,-1649.7"/>
 </g>
-<!-- lib/parseWithSymbols.ts&#45;&gt;transpiler/logic/parser/CnxSourceParser.ts -->
+<!-- lib/parseWithSymbols.ts&#45;&gt;transpiler/logic/parser/CNextSourceParser.ts -->
 <g id="edge29" class="edge">
-<title>lib/parseWithSymbols.ts&#45;&gt;transpiler/logic/parser/CnxSourceParser.ts</title>
+<title>lib/parseWithSymbols.ts&#45;&gt;transpiler/logic/parser/CNextSourceParser.ts</title>
 <path fill="none" stroke="#757575" d="M3936.95,-1425.1C3881.28,-1374.29 3658.08,-1170.55 3589.23,-1107.71"/>
 <polygon fill="#757575" stroke="#757575" points="3591.37,-1104.92 3581.62,-1100.77 3586.65,-1110.09 3591.37,-1104.92"/>
 </g>
@@ -885,9 +885,9 @@
 <path fill="none" stroke="#757575" d="M4482.75,-1621.1C4513.15,-1657.24 4606.04,-1767.67 4643.89,-1812.66"/>
 <polygon fill="#757575" stroke="#757575" points="4641.37,-1815.11 4650.49,-1820.51 4646.73,-1810.6 4641.37,-1815.11"/>
 </g>
-<!-- transpiler/logic/parser/CnxSourceParser.ts&#45;&gt;lib/types/ITranspileError.ts -->
+<!-- transpiler/logic/parser/CNextSourceParser.ts&#45;&gt;lib/types/ITranspileError.ts -->
 <g id="edge169" class="edge">
-<title>transpiler/logic/parser/CnxSourceParser.ts&#45;&gt;lib/types/ITranspileError.ts</title>
+<title>transpiler/logic/parser/CNextSourceParser.ts&#45;&gt;lib/types/ITranspileError.ts</title>
 <path fill="none" stroke="#757575" d="M3577.29,-1077.54C3592.83,-1055.98 3626.29,-1009.57 3645.46,-982.98"/>
 <polygon fill="#757575" stroke="#757575" points="3648.35,-984.95 3651.36,-974.79 3642.68,-980.85 3648.35,-984.95"/>
 </g>
@@ -1167,9 +1167,9 @@
 <path fill="none" stroke="#c6c5fe" d="M3213.42,-917.76C3213.42,-917.76 3125.75,-917.76 3125.75,-917.76 3121.92,-917.76 3118.08,-913.93 3118.08,-910.09 3118.08,-910.09 3118.08,-902.43 3118.08,-902.43 3118.08,-898.59 3121.92,-894.76 3125.75,-894.76 3125.75,-894.76 3213.42,-894.76 3213.42,-894.76 3217.25,-894.76 3221.08,-898.59 3221.08,-902.43 3221.08,-902.43 3221.08,-910.09 3221.08,-910.09 3221.08,-913.93 3217.25,-917.76 3213.42,-917.76"/>
 <text text-anchor="middle" x="3169.58" y="-902.56" font-family="Arial" font-size="14.00" fill="#c6c5fe">lib/transpiler.ts</text>
 </g>
-<!-- lib/transpiler.ts&#45;&gt;transpiler/logic/parser/CnxSourceParser.ts -->
+<!-- lib/transpiler.ts&#45;&gt;transpiler/logic/parser/CNextSourceParser.ts -->
 <g id="edge44" class="edge">
-<title>lib/transpiler.ts&#45;&gt;transpiler/logic/parser/CnxSourceParser.ts</title>
+<title>lib/transpiler.ts&#45;&gt;transpiler/logic/parser/CNextSourceParser.ts</title>
 <path fill="none" stroke="#757575" d="M3194.87,-917.84C3263.84,-949.43 3455.35,-1037.15 3534.25,-1073.29"/>
 <polygon fill="#757575" stroke="#757575" points="3533.19,-1076.65 3543.74,-1077.63 3536.1,-1070.29 3533.19,-1076.65"/>
 </g>

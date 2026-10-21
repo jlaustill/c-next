@@ -18,7 +18,7 @@
 //
 // The sibling fixtures all declare the enum first. This one declares it LAST,
 // so moving the qualification pass back inside the loop fails here rather than
-// silently reintroducing the order dependence. Same standard CnxResolver
+// silently reintroducing the order dependence. Same standard CNextResolver
 // Pass 0b is held to.
 //
 // Transpile-only because the generated .c does not compile in this order, for
