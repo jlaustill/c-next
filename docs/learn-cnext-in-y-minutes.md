@@ -370,6 +370,13 @@ struct Packet {
 }
 mut Packet pkt <- { level: 250, checksum: 250 };
 pkt.level +<- 10;               // 255
+
+// A file-scope or scope variable's initializer is fixed at compile time
+// (C and C++ alike): it is written as its value, never clamped or wrapped
+u8 base <- 250;
+u8 near <- base + 5;            // written as 255
+// u8 over <- base + 10;        // ERROR E0910: overflows u8
+// u32 late <- brightness;      // ERROR E0909: no value at compile time
 pkt.checksum +<- 10;            // 4
 mut u8[2] levels <- [250, 250];
 levels[0] +<- 10;               // 255
