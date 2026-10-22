@@ -292,7 +292,7 @@ describe("HeaderMacros.collect", () => {
 });
 
 describe("HeaderMacros.integerTypes (#1619)", () => {
-  it("names each exact-width type the compiler predefines", () => {
+  it("names each exact-width type the compiler defines", () => {
     const types = HeaderMacros.integerTypes(
       [
         "#define __UINT32_TYPE__ long unsigned int",
@@ -311,7 +311,7 @@ describe("HeaderMacros.integerTypes (#1619)", () => {
     ]);
   });
 
-  it("names nothing for a dump that predefines none", () => {
+  it("names nothing for a dump that defines none of them", () => {
     expect(HeaderMacros.integerTypes("#define FOO 1").size).toBe(0);
   });
 });
