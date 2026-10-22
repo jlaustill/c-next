@@ -192,7 +192,7 @@ class CResolver {
             ctx.sourceFile,
             ctx.span,
             typedefType === spelled ? [...declarator.arrayDimensions] : [],
-            ctx.isConst === true && typedefType === spelled,
+            ctx.isConst === true,
           ),
         );
       } else if (declarator.isFunction) {

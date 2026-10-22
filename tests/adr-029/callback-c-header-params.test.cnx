@@ -7,7 +7,9 @@
 // own `*`s, and a 2-D array keeps its inner dimension. A function-pointer
 // parameter, written or typedef'd, is a shape the header lowering does not
 // carry, so it is accepted here and gcc is the check. uint_least32_t is the
-// compiler's own type for it, and a typedef's const reaches its pointee.
+// compiler's own type for it, and a typedef's const reaches its pointee,
+// whether the typedef or its use spells the `*`. A type name that merely
+// contains `const` or `volatile` is not qualified.
 #include "callback-c-header-params.h"
 
 void valueSlot(u32 v) {
@@ -46,6 +48,14 @@ void tickSink(tickSource t) {
     u32 n <- t();
 }
 
+void cfgSlot(mut nonvolatile_cfg_t c) {
+    c.v <- 1;
+}
+
+void consSlot(mut constraint_t c) {
+    c.v <- 1;
+}
+
 void gridSlot(u8[4][4] g) {
     u8 b <- g[0][0];
 }
@@ -65,6 +75,10 @@ struct Slots {
     gridSlot grid;
     tickSource least;
     bytesSlot cbytes;
+    bytesSlot cbytePtr;
+    textSlot name;
+    cfgSlot cfg;
+    consSlot cons;
 }
 
 Slots slots <- {
@@ -81,5 +95,9 @@ Slots slots <- {
     clockFn: onClockFn,
     grid: onGrid,
     least: leastClock,
-    cbytes: onCBytes
+    cbytes: onCBytes,
+    cbytePtr: onCBytePtr,
+    name: onName,
+    cfg: onCfg,
+    cons: onCons
 };

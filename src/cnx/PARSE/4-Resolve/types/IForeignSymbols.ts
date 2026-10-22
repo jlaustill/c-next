@@ -48,8 +48,8 @@ interface IForeignSymbols {
   readonly macrosUnread: ReadonlySet<string>;
 
   /**
-   * #1619: the C type the run's header compiler gives each exact-width
-   * `<stdint.h>` name (`uint32_t` to `long unsigned int`)
+   * #1619: the C type the run's header compiler gives
+   * each `<stdint.h>`/`<stddef.h>` integer name the compiler's predefined macros define (`uint32_t` to `long unsigned int`)
    */
   readonly integerTypes: ReadonlyMap<string, string>;
 }

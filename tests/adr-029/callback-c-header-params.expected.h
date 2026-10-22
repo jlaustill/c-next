@@ -24,6 +24,8 @@ typedef void (*textSlot_fp)(const char*);
 typedef float (*mixSlot_fp)(const double, const bool, const int8_t);
 typedef uint32_t (*tickSource_fp)(void);
 typedef void (*tickSink_fp)(tickSource_fp);
+typedef void (*cfgSlot_fp)(nonvolatile_cfg_t*);
+typedef void (*consSlot_fp)(constraint_t*);
 typedef void (*gridSlot_fp)(const uint8_t g[4][4]);
 
 /* Struct definitions */
@@ -42,6 +44,10 @@ typedef struct Slots {
     gridSlot_fp grid;
     tickSource_fp least;
     bytesSlot_fp cbytes;
+    bytesSlot_fp cbytePtr;
+    textSlot_fp name;
+    cfgSlot_fp cfg;
+    consSlot_fp cons;
 } Slots;
 
 /* External variables */
@@ -57,6 +63,8 @@ void textSlot(const char* text);
 float mixSlot(const double d, const bool b, const int8_t i);
 uint32_t tickSource(void);
 void tickSink(tickSource_fp t);
+void cfgSlot(nonvolatile_cfg_t* c);
+void consSlot(constraint_t* c);
 void gridSlot(const uint8_t g[4][4]);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Slots Slots_init(void);

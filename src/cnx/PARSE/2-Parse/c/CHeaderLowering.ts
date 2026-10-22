@@ -31,6 +31,13 @@ import ArrayDimensionText from "../../../utils/ArrayDimensionText";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 
+/** `DeclarationSpecifiersContext` and `DeclarationSpecifiers2Context` alike */
+interface IQualifiedSpecifiers {
+  declarationSpecifier(): ReadonlyArray<{
+    typeQualifier(): { getText(): string } | null;
+  }>;
+}
+
 class CHeaderLowering {
   static header(tree: CompilationUnitContext): ICHeaderSyntax {
     const declarations: TCExternalDeclarationSyntax[] = [];
@@ -109,6 +116,20 @@ class CHeaderLowering {
           })
         : null,
     };
+  }
+
+  /**
+   * Whether a type qualifier token is among the specifiers. `getText()` joins
+   * tokens with no separator, so a substring test would read `constraint_t`
+   * as `const` and `nonvolatile_cfg_t` as `volatile`.
+   */
+  private static hasQualifier(
+    specifiers: IQualifiedSpecifiers,
+    qualifier: string,
+  ): boolean {
+    return specifiers
+      .declarationSpecifier()
+      .some((spec) => spec.typeQualifier()?.getText() === qualifier);
   }
 
   private static hasStorageClass(
@@ -233,7 +254,7 @@ class CHeaderLowering {
         CHeaderLowering.declaratorName,
       ),
       ...CHeaderLowering.declaratorExtras(
-        declarationSpecifiers.getText(),
+        CHeaderLowering.hasQualifier(declarationSpecifiers, "volatile"),
         directText,
       ),
     };
@@ -268,7 +289,10 @@ class CHeaderLowering {
       type: shape[0],
       isConst: shape[1],
       isArray: shape[2],
-      ...CHeaderLowering.declaratorExtras(specifiers.getText(), directText),
+      ...CHeaderLowering.declaratorExtras(
+        CHeaderLowering.hasQualifier(specifiers, "volatile"),
+        directText,
+      ),
     };
   }
 
@@ -279,7 +303,7 @@ class CHeaderLowering {
    * lowering, so `T (*rows)[4]` and `T (*)[4]` lower alike.
    */
   private static parameterShape(
-    specifiers: { getText(): string },
+    specifiers: IQualifiedSpecifiers,
     typeSpecifiers: readonly ICTypeSpecifierSyntax[],
     pointer: { getText(): string } | null,
     directText: string,
@@ -289,7 +313,7 @@ class CHeaderLowering {
         DeclaratorTypes.baseType(typeSpecifiers),
         (pointer?.getText() ?? "").split("*").length - 1,
       ),
-      specifiers.getText().includes("const"),
+      CHeaderLowering.hasQualifier(specifiers, "const"),
       directText.includes("[") && directText.includes("]"),
     ];
   }
@@ -300,16 +324,14 @@ class CHeaderLowering {
    * `f(void)`), which makes it a pointer to a function or to an array.
    */
   private static declaratorExtras(
-    specifiersText: string,
+    isVolatile: boolean,
     directText: string,
   ): {
     arrayDimensions?: string[];
     isNestedDeclarator?: true;
     isVolatile?: true;
   } {
-    const qualifiers = specifiersText.includes("volatile")
-      ? { isVolatile: true as const }
-      : {};
+    const qualifiers = isVolatile ? { isVolatile: true as const } : {};
     if (directText.includes("(")) {
       return { ...qualifiers, isNestedDeclarator: true };
     }

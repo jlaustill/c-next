@@ -14,7 +14,9 @@
 // own `*`s, and a 2-D array keeps its inner dimension. A function-pointer
 // parameter, written or typedef'd, is a shape the header lowering does not
 // carry, so it is accepted here and gcc is the check. uint_least32_t is the
-// compiler's own type for it, and a typedef's const reaches its pointee.
+// compiler's own type for it, and a typedef's const reaches its pointee,
+// whether the typedef or its use spells the `*`. A type name that merely
+// contains `const` or `volatile` is not qualified.
 #include "callback-c-header-params.h"
 
 #include <stdint.h>
@@ -57,13 +59,21 @@ void tickSink(tickSource_fp t) {
     const uint32_t n = t();
 }
 
+void cfgSlot(nonvolatile_cfg_t* c) {
+    c->v = 1U;
+}
+
+void consSlot(constraint_t* c) {
+    c->v = 1U;
+}
+
 void gridSlot(const uint8_t g[4][4]) {
     const uint8_t b = g[0U][0U];
 }
 
 Slots Slots_init(void) {
-    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot, .least = tickSource, .cbytes = bytesSlot };
+    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot, .least = tickSource, .cbytes = bytesSlot, .cbytePtr = bytesSlot, .name = textSlot, .cfg = cfgSlot, .cons = consSlot };
     return value;
 }
 
-const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid, .least = leastClock, .cbytes = onCBytes };
+const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid, .least = leastClock, .cbytes = onCBytes, .cbytePtr = onCBytePtr, .name = onName, .cfg = onCfg, .cons = onCons };

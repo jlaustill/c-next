@@ -25,4 +25,18 @@ uint_least32_t leastClock(void);
 typedef const uint8_t CByte;
 void onCBytes(CByte *b);
 void onVolatile(volatile uint32_t *v);
+typedef const uint8_t *CBytePtr;
+typedef const char *cstr_t;
+void onCBytePtr(CBytePtr b);
+void onName(cstr_t n);
+typedef const uint32_t *CU32Ptr;
+void onCU32(CU32Ptr v);
+typedef struct {
+    uint32_t v;
+} nonvolatile_cfg_t;
+typedef struct {
+    uint32_t v;
+} constraint_t;
+void onCfg(nonvolatile_cfg_t *c);
+void onCons(constraint_t *c);
 #endif

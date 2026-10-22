@@ -17,7 +17,10 @@ interface ICTypedefSymbol extends ICBaseSymbol {
    */
   readonly arrayDimensions?: ReadonlyArray<number | string>;
 
-  /** #1619: the typedef names a `const` type (`typedef const uint8_t CByte`) */
+  /**
+   * #1619: `const` among the typedef's specifiers (`typedef const uint8_t
+   * CByte`, `typedef const char *cstr_t`); a declarator's `* const` is not it
+   */
   readonly isConst?: boolean;
 }
 
