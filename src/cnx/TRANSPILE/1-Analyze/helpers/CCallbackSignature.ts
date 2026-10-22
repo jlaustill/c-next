@@ -106,6 +106,7 @@ class CCallbackSignature {
       ).map((parameter, index) =>
         CCallbackSignature.compareParameter(
           parameter,
+          (expected.parameters[index].arrayDimensions ?? []).map(String),
           actualParameters[index],
           isCppMode,
           context,
@@ -118,13 +119,14 @@ class CCallbackSignature {
 
   private static compareParameter(
     parameter: Required<ICallbackTypedefParameter>,
+    slotDimensions: readonly string[],
     cParameter: ICParameterInfo,
     isCppMode: boolean,
     context: IAnalysisContext,
   ): TSignatureMatch {
     if (cParameter.isNestedDeclarator === true) return "unknown";
     const dimensions = CCallbackSignature.innerDimensions(
-      [...parameter.arrayDims.matchAll(/\[([^\]]*)\]/g)].map((m) => m[1]),
+      slotDimensions,
       cParameter.arrayDimensions ?? [],
     );
     if (dimensions !== "match") return dimensions;

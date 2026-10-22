@@ -298,10 +298,15 @@ class CHeaderLowering {
     isNestedDeclarator?: true;
   } {
     if (directText.includes("(")) return { isNestedDeclarator: true };
-    const dimensions = [...directText.matchAll(/\[([^\]]*)\]/g)].map(
-      (match) => match[1],
-    );
-    return dimensions.length > 0 ? { arrayDimensions: dimensions } : {};
+    const open = directText.indexOf("[");
+    if (open < 0) return {};
+    // `[4][8]` splits on `]` to `[4`, `[8`, and a trailing empty part
+    const dimensions = directText
+      .slice(open)
+      .split("]")
+      .filter((part) => part.startsWith("["))
+      .map((part) => part.slice(1));
+    return { arrayDimensions: dimensions };
   }
 
   private static struct(
