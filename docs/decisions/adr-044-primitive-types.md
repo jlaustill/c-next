@@ -419,6 +419,35 @@ A clamped size is a buffer smaller than its arithmetic says, and a wrapped one i
 still. At run time, saturating protects a value that cannot be known in advance. Here the
 value is known in advance, so the rejection reports the overflow while it can still be fixed.
 
+Owner ruling, 2026-10-21 ([#1735](https://github.com/smeltworks/cnx/issues/1735#issuecomment-6329098698)): a file-scope or scope variable's initializer is a value fixed
+at compile time too, with or without `mut`, and **in C++ output as in C**. It is written as its
+folded value. Where its arithmetic would clamp or wrap, the program is rejected. An initializer
+with no value at compile time, such as a read of a `mut` variable or a function call, is rejected
+as well. A cast of a value its type does not hold is rejected too, because ADR-024 forbids a
+narrowing cast; that is not part of this ruling.
+
+Owner ruling, 2026-10-21 ([#1735](https://github.com/smeltworks/cnx/issues/1735#issuecomment-6329098698)), on a header macro in such an initializer. A macro cnx can
+read, such as `#define LIMIT 10`, is checked like any other value and written as the macro, so
+`u32 L <- LIMIT + A` with `A` at 4 is written `LIMIT + 4`. A macro it cannot read, such as
+`#define UNREAD (sizeof(int) * 100)`, is written through to C when it is used alone. Arithmetic
+over one it cannot read is rejected (E0909), even though C would compile it, because cnx
+cannot check that the arithmetic does not clamp or wrap. An enum member's value is rejected the
+same way (ADR-017).
+
+```cnx
+mut u32 g <- 4;
+u8 D <- 250;
+
+u32 F <- g;     // ERROR: g has no value at compile time, also with --cpp
+u8 E <- D + 10; // ERROR: D + 10 overflows u8
+u8 G <- D + 5;  // OK: written as 255
+```
+
+C would refuse a static initializer it could not settle. C++ would run it before `main` (dynamic
+initialization), so `--cpp` could accept what C refuses. The same cnx program means the same
+thing whichever language it is written out in, so cnx settles the value, or rejects the
+program, before either compiler sees it.
+
 #### Rationale
 
 1. **Intent is documented at declaration** - Code is self-documenting
@@ -648,10 +677,11 @@ chances for them to disagree.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                                                                                                                                                 | Asserted by                                                                                                                                                                                                                 |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0910 | A value fixed at compile time -- an array's size, an enum member's value, a file-scope or scope variable's initializer (#1735) -- is arithmetic that would clamp or wrap at its operands' width, or a cast of a value its type does not hold ("Values fixed at compile time") | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`, `tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow.test.cnx` |
-| E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                                                                                                                                  | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                                                                                                  |
+| Code  | Reported when                                                                                                                                                                                                                                                                                                                     | Asserted by                                                                                                                                                                                                                 |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0909 | A file-scope or scope variable's initializer has no value at compile time, such as a read of a `mut` variable or a function call, or is arithmetic over a header macro cnx cannot read, so it cannot check that the arithmetic does not clamp or wrap. This applies in C++ output as in C (#1735, "Values fixed at compile time") | `tests/bugs/issue-1735-static-initializer-arithmetic/static-not-constant.test.cnx`                                                                                                                                          |
+| E0910 | A value fixed at compile time -- an array's size, an enum member's value, a file-scope or scope variable's initializer (#1735) -- is arithmetic that would clamp or wrap at its operands' width, or a cast of a value its type does not hold ("Values fixed at compile time")                                                     | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`, `tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow.test.cnx` |
+| E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                                                                                                                                                                                      | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                                                                                                  |
 
 ## Scope-Context Matrix
 
