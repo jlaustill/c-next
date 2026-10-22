@@ -572,13 +572,10 @@ describe("IncludeResolver", () => {
 
     // #1444, owner ruling 1: the one classification of an include. Render
     // and 2.1 read this map. #1833 ruling: only a lowercase `.cnx` is cnx
-    // source; any other case, and `.cnext` in any case (#2167), is its own
-    // kind, which 2.1 rejects as E0518 or E0519.
+    // source; any other case is its own kind, which 2.1 rejects as E0518.
     it.each([
       ['#include "Utils.cnx"', EFileType.Cnx],
-      ["#include <utils.cnext>", EFileType.RejectedCnx],
       ['#include "Utils.CNX"', EFileType.RejectedCnx],
-      ["#include <utils.Cnext>", EFileType.RejectedCnx],
       ['#include "utils.h"', EFileType.CHeader],
       ['#include "utils.cnx.h"', EFileType.CHeader],
       ['#include "impl.c++"', EFileType.CppSource],

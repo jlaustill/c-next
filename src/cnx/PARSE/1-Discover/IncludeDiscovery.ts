@@ -9,11 +9,7 @@ import FileDiscovery from "./FileDiscovery";
 import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
 import IFileSystem from "../../types/IFileSystem";
-import ConfigFileNames from "./ConfigFileNames";
 import PROJECT_MARKERS from "../../types/PROJECT_MARKERS";
-import type IIncludeTiers from "./types/IIncludeTiers";
-import type IProjectRootWalk from "./types/IProjectRootWalk";
-import type IRenamedConfigFile from "../../types/IRenamedConfigFile";
 
 /**
  * Auto-discovery of include paths for cnx compilation
@@ -33,13 +29,9 @@ class IncludeDiscovery {
    *
    * @param inputFile - Path to .cnx file being compiled
    * @param fs - File system abstraction
-   * @returns the include directory paths, and the project-root walk that
-   *   found the project tier
+   * @returns the include directory paths
    */
-  static discoverIncludePaths(
-    inputFile: string,
-    fs: IFileSystem,
-  ): IIncludeTiers {
+  static discoverIncludePaths(inputFile: string, fs: IFileSystem): string[] {
     const paths: string[] = [];
 
     // Tier 1: File's own directory (highest priority)
@@ -47,8 +39,7 @@ class IncludeDiscovery {
     paths.push(fileDir);
 
     // Tier 2: Project root detection
-    const walk = this.findProjectRoot(fileDir, fs);
-    const projectRoot = walk.root;
+    const projectRoot = this.findProjectRoot(fileDir, fs);
     if (projectRoot) {
       // Add common include directories if they exist
       const commonDirs = ["include", "src", "lib"];
@@ -85,7 +76,7 @@ class IncludeDiscovery {
     paths.push(...arduinoPaths);
 
     // Remove duplicates
-    return { paths: Array.from(new Set(paths)), projectRoot: walk };
+    return Array.from(new Set(paths));
   }
 
   /** Common subdirectories where library headers might live */
@@ -256,31 +247,23 @@ class IncludeDiscovery {
    * header base used to walk with two marker lists that each lacked a marker
    * the other had.
    *
-   * #2165: a config under an old name is not a marker. The walk passes it and
-   * returns it, with every other one it passed, for the caller to report as
-   * E0918: the walk from the entry alone cannot see them all, since a file
-   * included from another tree is walked from there.
-   *
    * #2261: this is the config's walk too. `ConfigLoader` reads the config
    * from the root it returns and from no directory above, so a run's settings
    * and its root are one directory.
    *
    * @param startDir - Directory to start search from
    * @param fs - File system abstraction
-   * @returns the project root, or null if there is none, and the renamed
-   *   configs on the way
+   * @returns the project root, or null if there is none
    */
-  static findProjectRoot(startDir: string, fs: IFileSystem): IProjectRootWalk {
-    const renamedConfigs: IRenamedConfigFile[] = [];
+  static findProjectRoot(startDir: string, fs: IFileSystem): string | null {
     let dir = resolve(startDir);
     while (true) {
-      renamedConfigs.push(...ConfigFileNames.renamedIn(dir, fs));
       if (PROJECT_MARKERS.some((marker) => fs.exists(join(dir, marker)))) {
-        return { root: dir, renamedConfigs };
+        return dir;
       }
       const parent = dirname(dir);
       if (parent === dir) {
-        return { root: null, renamedConfigs };
+        return null;
       }
       dir = parent;
     }

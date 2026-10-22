@@ -9,7 +9,6 @@ import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
 import ArgParser from "./ArgParser";
 import ConfigLoader from "./ConfigLoader";
 import ConfigPrinter from "./ConfigPrinter";
-import ResultPrinter from "./ResultPrinter";
 import PlatformIOCommand from "./PlatformIOCommand";
 import CleanCommand from "./CleanCommand";
 import PathNormalizer from "./PathNormalizer";
@@ -56,14 +55,7 @@ class Cli {
       args.inputFiles.length > 0
         ? dirname(resolve(args.inputFiles[0]))
         : process.cwd();
-    const loaded = ConfigLoader.load(configDir);
-    if (loaded.kind === "renamed") {
-      for (const error of loaded.errors) {
-        ResultPrinter.printError(error);
-      }
-      return { shouldRun: false, exitCode: 1 };
-    }
-    const fileConfig = loaded.config;
+    const fileConfig = ConfigLoader.load(configDir);
 
     // Merge CLI args with file config
     const config = this.mergeConfig(args, fileConfig);

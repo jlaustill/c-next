@@ -110,9 +110,8 @@ class IncludeDirectiveChecks {
   }
 
   /**
-   * E0518: `#include "Colors.CNX"`; E0519: `#include "Colors.cnext"`. Only
-   * a lowercase `.cnx` is cnx source (#1833 owner ruling, #2167), in either
-   * form of include.
+   * E0518: `#include "Colors.CNX"`. Only a lowercase `.cnx` is cnx source
+   * (#1833 owner ruling), in either form of include.
    */
   private checkRejectedCnxFile(
     ctx: ISyntaxNode,

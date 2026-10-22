@@ -20,12 +20,12 @@ import NodeFileSystem from "../NodeFileSystem";
 
 /** The include directories discovered from `inputFile`. */
 function includePaths(inputFile: string, fs: IFileSystem): readonly string[] {
-  return IncludeDiscovery.discoverIncludePaths(inputFile, fs).paths;
+  return IncludeDiscovery.discoverIncludePaths(inputFile, fs);
 }
 
 /** The project root found from `startDir`, or null. */
 function projectRoot(startDir: string, fs: IFileSystem): string | null {
-  return IncludeDiscovery.findProjectRoot(startDir, fs).root;
+  return IncludeDiscovery.findProjectRoot(startDir, fs);
 }
 
 describe("IncludeDiscovery", () => {
@@ -103,31 +103,6 @@ describe("IncludeDiscovery", () => {
       const result = projectRoot(innerDir, NodeFileSystem.instance);
 
       expect(result).toBe(resolve(innerDir));
-    });
-
-    // #2165: an old-name config is not a marker; the walk passes it and
-    // returns it for discovery to report
-    it("passes an old-name config, returning it, and stops at the next marker", () => {
-      const files = new Set([
-        "/p/.git",
-        "/p/app/cnext.config.json",
-        "/cnext.config.json",
-      ]);
-      const fs = TestFileSystem.with({
-        exists: (path: string) => files.has(path),
-        isFile: (path: string) => files.has(path),
-      });
-
-      expect(IncludeDiscovery.findProjectRoot("/p/app/src", fs)).toEqual({
-        root: "/p",
-        renamedConfigs: [
-          {
-            path: "/p/app/cnext.config.json",
-            successor: "cnx.config.json",
-            besideConfig: null,
-          },
-        ],
-      });
     });
 
     it("returns null when no marker found", () => {

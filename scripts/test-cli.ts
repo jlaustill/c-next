@@ -29,6 +29,7 @@ import { tmpdir } from "node:os";
 import chalk from "chalk";
 
 import ExecFailure from "../src/cnx/utils/ExecFailure";
+import FormerName from "./utils/FormerName";
 import packageJson from "../package.json" with { type: "json" };
 
 /** One CLI run, as runCliInDir reports it. */
@@ -204,19 +205,18 @@ test("-h shows help text and exits 0", () => {
   assert(result.exitCode === 0, "Exit code should be 0");
 });
 
-// Issue #2164: the command is `cnx`, with no `cnext` alias. #2165 renamed the
-// config files the help lists, so no `cnext` of any kind remains to exempt.
-test("--help names the command cnx, never cnext", () => {
+// Issue #2164: the command is `cnx`, and the help names nothing by the
+// language's former name, as a command or a file (#2163).
+test("--help names the command cnx, never the former name", () => {
   const result = runCli(["--help"]);
   assert(result.success, "Command should succeed");
   assert(
     result.output.includes("cnx <file.cnx>"),
     `Usage should name cnx: ${result.output}`,
   );
-  const oldName = /cnext/i.exec(result.output);
   assert(
-    oldName === null,
-    `Help should not name cnext, as a command or a file: ${result.output}`,
+    !FormerName.isIn(result.output),
+    `Help should not spell the former name: ${result.output}`,
   );
 });
 
@@ -567,33 +567,6 @@ test("--pio-install preserves existing extra_scripts", () => {
   }
 });
 
-// #2174: installing beside the old hook would leave every build running it
-test("--pio-install stops at the old cnext_build.py integration", () => {
-  const ini = minimalPioIni + "extra_scripts = pre:cnext_build.py\n";
-  const tempDir = createTempPioProject(ini);
-  try {
-    writeFileSync(join(tempDir, "cnext_build.py"), "", "utf-8");
-    const result = runCliInDir(tempDir, ["--pio-install"], true);
-    assert(result.exitCode === 1, "Exit code should be 1");
-    assert(
-      result.stderr.includes(
-        "Run cnx --pio-uninstall, then cnx --pio-install.",
-      ),
-      `Should name the migration: ${result.stderr}`,
-    );
-    assertFileNotExists(
-      join(tempDir, "cnx_build.py"),
-      "cnx_build.py should not be written",
-    );
-    assert(
-      readFileSync(join(tempDir, "platformio.ini"), "utf-8") === ini,
-      "platformio.ini should be unchanged",
-    );
-  } finally {
-    cleanupTempDir(tempDir);
-  }
-});
-
 // ----------------------------------------------------------------------------
 // Category 2: --pio-uninstall tests
 // ----------------------------------------------------------------------------
@@ -664,33 +637,6 @@ test("--pio-uninstall preserves other extra_scripts", () => {
       "Should preserve custom_script.py after uninstall",
     );
     assert(!pioIni.includes("cnx_build.py"), "Should remove cnx_build.py");
-  } finally {
-    cleanupTempDir(tempDir);
-  }
-});
-
-test("--pio-uninstall removes the old cnext_build.py integration (#2174)", () => {
-  const tempDir = createTempPioProject(
-    pioIniWithExtraScripts + "    pre:cnext_build.py\n",
-  );
-  try {
-    writeFileSync(join(tempDir, "cnext_build.py"), "", "utf-8");
-    const result = runCliInDir(tempDir, ["--pio-uninstall"]);
-    assert(result.success, `Uninstall should succeed: ${result.output}`);
-
-    assertFileNotExists(
-      join(tempDir, "cnext_build.py"),
-      "cnext_build.py should be removed",
-    );
-    const pioIni = readFileSync(join(tempDir, "platformio.ini"), "utf-8");
-    assert(
-      pioIni === pioIniWithExtraScripts,
-      `Only the old entry should be removed: ${pioIni}`,
-    );
-
-    // The migration the install error names then succeeds
-    const install = runCliInDir(tempDir, ["--pio-install"]);
-    assert(install.success, `Install should succeed: ${install.output}`);
   } finally {
     cleanupTempDir(tempDir);
   }
@@ -984,47 +930,6 @@ test("cnx.config.json target is respected", () => {
       );
     },
   );
-});
-
-// Issue #2165: a config under an old name stops the run, naming its new name;
-// a new-name config beside it is not read instead.
-test("a config under an old name is E0918 and exits 1", () => {
-  withTempTest("cnx-renamed-config-test-", ({ tempDir, cnxFile, cFile }) => {
-    writeFileSync(cnxFile, atomicCnx, "utf-8");
-    writeFileSync(join(tempDir, "cnx.config.json"), '{"target":"teensy41"}');
-    writeFileSync(join(tempDir, "cnext.config.json"), '{"target":"teensy41"}');
-
-    const result = runCliInDir(tempDir, [cnxFile], true);
-    assert(result.exitCode === 1, `Exit code should be 1: ${result.stderr}`);
-    assert(
-      result.stderr.includes(
-        "error[E0918]: a config file has its old name: cnext.config.json, beside cnx.config.json",
-      ),
-      `The error should name both files: ${result.stderr}`,
-    );
-    assert(!existsSync(cFile), "Nothing should be generated");
-  });
-});
-
-// Issue #2261: a config above the project root is not the run's, whatever its
-// name. pkg/package.json ends the walk, so the old name above it is never
-// reached: it is neither read nor E0918.
-test("an old-name config above a package root is not reached", () => {
-  withTempTest("cnx-renamed-config-test-", ({ tempDir }) => {
-    const pkg = join(tempDir, "pkg");
-    mkdirSync(pkg);
-    const cnxFile = join(pkg, "test.cnx");
-    writeFileSync(cnxFile, atomicCnx, "utf-8");
-    writeFileSync(join(pkg, "package.json"), "{}");
-    writeFileSync(join(tempDir, ".cnextrc"), '{"target":"teensy41"}');
-
-    const result = runCliInDir(pkg, [cnxFile, "--target", "host"], true);
-    assert(result.exitCode === 0, `Exit code should be 0: ${result.stderr}`);
-    assert(
-      !result.stderr.includes("E0918"),
-      `Nothing above the root is reported: ${result.stderr}`,
-    );
-  });
 });
 
 /**

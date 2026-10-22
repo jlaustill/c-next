@@ -36,7 +36,6 @@ import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CnxSourcePath from "../../utils/CnxSourcePath";
 import IncludePath from "../../utils/IncludePath";
-import ConfigFileNames from "./ConfigFileNames";
 import CrossCompilerVariable from "./CrossCompilerVariable";
 
 /** The configuration a run's discovery reads. */
@@ -91,10 +90,7 @@ interface IResolvedFileIncludes {
 class Discover {
   /**
    * The run's discovery errors: E0509, each at its header's marker (#1542),
-   * E0518 for an input whose cnx extension is not lowercase (#1833), and
-   * E0918 for each config under an old name a project-root walk passed
-   * (#2165), and E0924 for an environment that sets the cross compiler's old
-   * name (#2166).
+   * and E0518 for an input whose cnx extension is not lowercase (#1833).
    */
   private readonly errors: ITranspileError[] = [];
 
@@ -105,9 +101,6 @@ class Discover {
    * answer -- and a source run makes this run on every editor request.
    */
   private readonly tiersByDirectory = new Map<string, readonly string[]>();
-
-  /** The renamed configs reported so far, so each is E0918 once. */
-  private readonly reportedConfigs = new Set<string>();
 
   /**
    * #1844: each file's includes as resolved, in visiting order. They are
@@ -194,17 +187,6 @@ class Discover {
       new ReadOnceFileSystem(fs),
       warnings,
     );
-    // #2165: the anchor's own walk reports its renamed configs by construction,
-    // not because the run's first file happens to sit beside it; the anchor
-    // reads only the root, since it is reused across runs.
-    discovery._tiersFor(anchor.path);
-    const renamedVariable = CrossCompilerVariable.errorFor(
-      process.env,
-      root === null ? settings.input : root.path,
-    );
-    if (renamedVariable !== null) {
-      discovery.errors.push(renamedVariable);
-    }
     const files =
       input.kind === "source" && root !== null
         ? discovery._fromSource(root, input.includeDirs ?? [])
@@ -589,7 +571,7 @@ class Discover {
   }
 
   /**
-   * #1833, #2167: E0518 or E0519 for the run's input, files or source. No
+   * #1833: E0518 for the run's input, files or source. No
    * directive names the input, so it is placed at `1:0`, as every diagnostic
    * about the run is (E0510, E0511, E0515); #1847 decides that form for all
    * of them.
@@ -854,9 +836,7 @@ class Discover {
 
   /**
    * What `discoverIncludePaths` finds from `file`'s directory, walked once
-   * per directory per run. #2165: the walk's renamed configs are E0918 here,
-   * each once however many directories' walks pass it. Every project-root
-   * walk a run makes comes through here, the anchor's first.
+   * per directory per run.
    */
   private _tiersFor(file: string): readonly string[] {
     const directory = dirname(resolve(file));
@@ -865,14 +845,8 @@ class Discover {
       return cached;
     }
     const tiers = IncludeDiscovery.discoverIncludePaths(file, this.fs);
-    for (const renamed of tiers.projectRoot.renamedConfigs) {
-      if (!this.reportedConfigs.has(renamed.path)) {
-        this.reportedConfigs.add(renamed.path);
-        this.errors.push(ConfigFileNames.errorFor(renamed));
-      }
-    }
-    this.tiersByDirectory.set(directory, tiers.paths);
-    return tiers.paths;
+    this.tiersByDirectory.set(directory, tiers);
+    return tiers;
   }
 
   /**

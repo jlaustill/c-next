@@ -1,10 +1,10 @@
 /**
  * #1833 box 3: whether a path is cnx source, whether its extension is
- * rejected (E0518, or E0519 for the retired `.cnext`, #2167), and what its
- * stem is, is answered by `src/cnx/utils/CnxSourcePath.ts` alone. A module that matches
- * the extension itself -- a `/\.cnx$/` regex, `endsWith(".cnx")`, a list of
- * `".cnx"` and `".cnext"` -- can disagree with it, which is how `Colors.CNX`
- * was transpiled by discovery and then named as if it were not cnx.
+ * rejected (E0518), and what its stem is, is answered by
+ * `src/cnx/utils/CnxSourcePath.ts` alone. A module that matches the extension
+ * itself -- a `/\.cnx$/` regex, `endsWith(".cnx")`, a list holding `".cnx"` --
+ * can disagree with it, which is how `Colors.CNX` was transpiled by discovery
+ * and then named as if it were not cnx.
  *
  * A stem cut with `extname` is the same decision without a literal
  * (`IncludeRewriter.besideSource` was one), so `extname` is scanned too.
@@ -18,7 +18,7 @@ import SourceScan from "./SourceScan";
 
 // A regex literal's `\.cnx` in any case, or a quoted string that is exactly
 // the extension. Prose in backticks in a message (`.cnx`) is not a match.
-const EXTENSION_MATCH = /\\\.cn(?:x|ext)\b|["']\.cn(?:x|ext)["']/gi;
+const EXTENSION_MATCH = /\\\.cnx\b|["']\.cnx["']/gi;
 const OWNER = "src/cnx/utils/CnxSourcePath.ts";
 
 /**
@@ -78,12 +78,12 @@ describe("one rule says what cnx source is (#1833)", () => {
     expect(outside).toEqual([]);
   });
 
-  // Controls: the pattern sees the owner's source extension and the retired
-  // one it rejects (#2167), and every exemption is still live, so a stale one
-  // cannot hide a new match on its line.
-  it("sees the owner's extensions", () => {
+  // Controls: the pattern sees the owner's source extension, and every
+  // exemption is still live, so a stale one cannot hide a new match on its
+  // line.
+  it("sees the owner's extension", () => {
     expect(hits.filter((hit) => hit.file === OWNER).map((h) => h.text)).toEqual(
-      ['".cnx"', '".cnext"'],
+      ['".cnx"'],
     );
   });
 
@@ -124,10 +124,10 @@ describe("one rule says what cnx source is (#1833)", () => {
   );
 
   it.each([
-    String.raw`p.replace(/\.cnx$|\.cnext$/, ext)`,
+    String.raw`p.replace(/\.cnx$/, ext)`,
     String.raw`/\.CNX$/i.test(p)`,
     `p.endsWith(".cnx")`,
-    `[".cnx", ".cnext"].includes(ext)`,
+    `[".cnx", ".h"].includes(ext)`,
   ])("the pattern matches %s", (spelling) => {
     expect(spelling.match(EXTENSION_MATCH)).not.toBeNull();
   });

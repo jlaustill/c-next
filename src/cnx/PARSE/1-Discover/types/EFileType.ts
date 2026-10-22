@@ -3,7 +3,7 @@
  */
 enum EFileType {
   Cnx = "cnx",
-  /** `.cnx` in any case but lowercase (#1833, E0518), or `.cnext` (#2167, E0519) */
+  /** `.cnx` in any case but lowercase (#1833, E0518) */
   RejectedCnx = "rejected_cnx",
   CHeader = "c_header",
   CppHeader = "cpp_header",

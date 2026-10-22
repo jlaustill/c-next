@@ -101,25 +101,6 @@ describe("IncludeDirectiveAnalyzer (E0506)", () => {
     ).toEqual([]);
   });
 
-  // #2167: `.cnext` no longer names cnx source, whether or not it is there.
-  it.each([
-    ['#include "helper.cnext"', ["/project/src/helper.cnext"]],
-    ["#include <helper.cnext>", []],
-  ])("rejects %s with E0519 at the directive", (directive, present) => {
-    const [found, ...rest] = analyze(
-      `#include <stdint.h>\n${directive}\n\nu8 main() {\n    return 0;\n}`,
-      present,
-    );
-    expect(rest).toEqual([]);
-    expect([found.code, found.line, found.column]).toEqual(["E0519", 2, 0]);
-    expect(found.message).toBe(
-      "`.cnext` no longer names cnx source; rename it to `.cnx`: helper.cnext",
-    );
-    expect(found.helpText).toBe(
-      "Only `.cnx`, spelled in lowercase, names cnx source (ADR-010); rename the file and this include.",
-    );
-  });
-
   it("stays silent on an angle cnx include, whose search is discovery's", () => {
     expect(
       analyze("#include <missing.cnx>\n\nu8 main() {\n    return 0;\n}"),

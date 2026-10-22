@@ -6,7 +6,6 @@
 import { dirname, isAbsolute, resolve } from "node:path";
 import IFileConfig from "./types/IFileConfig";
 import TConfigInDirectory from "./types/TConfigInDirectory";
-import TConfigLoad from "./types/TConfigLoad";
 import TConfigObject from "./types/TConfigObject";
 import PathNormalizer from "./PathNormalizer";
 import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
@@ -14,7 +13,6 @@ import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
 import ConfigFileNames from "../cnx/PARSE/1-Discover/ConfigFileNames";
 import IncludeDiscovery from "../cnx/PARSE/1-Discover/IncludeDiscovery";
-import invariant from "../cnx/utils/invariant";
 
 /**
  * Load configuration from project directory
@@ -39,52 +37,31 @@ class ConfigLoader {
    * search remains: the three names, JSON, and this walk.
    *
    * @param startDir - Directory to start searching from
-   * @returns The loaded configuration (empty if none was found), or E0918
-   *   for each file under an old name the walk passed (#2165)
+   * @returns The loaded configuration (empty if none was found)
    */
   static load(
     startDir: string,
     fs: IFileSystem = NodeFileSystem.instance,
-  ): TConfigLoad {
-    const walk = IncludeDiscovery.findProjectRoot(startDir, fs);
-    if (walk.renamedConfigs.length > 0) {
-      return {
-        kind: "renamed",
-        errors: walk.renamedConfigs.map((file) =>
-          ConfigFileNames.errorFor(file),
-        ),
-      };
+  ): IFileConfig {
+    const root = IncludeDiscovery.findProjectRoot(startDir, fs);
+    if (root === null) {
+      return {};
     }
-    if (walk.root === null) {
-      return { kind: "loaded", config: {} };
-    }
-    const found = ConfigLoader.inDirectory(walk.root, fs);
-    invariant(
-      found.kind !== "renamed",
-      "the root walk has reported every renamed config in the root it returns",
-    );
+    const found = ConfigLoader.inDirectory(root, fs);
     for (const file of found.unreadable) {
       console.error(`Warning: ${file.reason}`);
     }
-    return { kind: "loaded", config: ConfigLoader.parse(found) };
+    return ConfigLoader.parse(found);
   }
 
   /**
-   * What `dir` alone holds (#2165): an old-name file is E0918, whatever else
-   * is there; otherwise `ConfigFileNames.readIn`'s config, the one decision of
-   * which new-name file that is. `load` asks it about the project root.
+   * What `dir` alone holds (#2165): `ConfigFileNames.readIn`'s config, the
+   * one decision of which file that is. `load` asks it about the project root.
    * `--pio-install` asks it about the directory it configures, which holds
    * `platformio.ini` and so is its own root (#2261): that directory's config
    * is the one a run there reads, and no ancestor's applies.
    */
   static inDirectory(dir: string, fs: IFileSystem): TConfigInDirectory {
-    const renamed = ConfigFileNames.renamedIn(dir, fs);
-    if (renamed.length > 0) {
-      return {
-        kind: "renamed",
-        errors: renamed.map((file) => ConfigFileNames.errorFor(file)),
-      };
-    }
     const read = ConfigFileNames.readIn(dir, fs);
     return read.config === null
       ? { kind: "none", unreadable: read.unreadable }
@@ -120,9 +97,7 @@ class ConfigLoader {
   }
 
   /** The config a walk found, parsed and anchored; empty when there is none. */
-  private static parse(
-    found: Exclude<TConfigInDirectory, { kind: "renamed" }>,
-  ): IFileConfig {
+  private static parse(found: TConfigInDirectory): IFileConfig {
     if (found.kind === "none") {
       return {};
     }

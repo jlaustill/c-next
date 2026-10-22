@@ -143,7 +143,6 @@ This enables modular cnx code while ensuring the generated C code includes the c
 | E0506 | a quoted cnx include names a file that is not there                        |
 | E0509 | a generated header records a cnx source that is not there                  |
 | E0518 | `.cnx` spelled in any case but lowercase                                   |
-| E0519 | `.cnext`, in any case: the extension cnx source had before the rename      |
 
 The first three are reported at the directive's own line and column.
 
@@ -172,14 +171,12 @@ was live until #1322, where a header and its cnx twin sitting together in an
 added include directory transpiled with no diagnostic while the same two files
 beside the source were rejected.
 
-**Only a lowercase `.cnx` names cnx source** (owner ruling on #1833; `.cnext`
-retired by #2167). `Colors.CNX` and `Colors.Cnx` are not cnx source, and
-naming one is E0518. `Colors.cnext`, in any case, is not cnx source either, and
-naming one is E0519, whose message says to rename it to `.cnx`. Both are
-reported at the directive's line and column for an include, at the marker for
-a generated header's record, and at `1:0` of the file when it is the run's
+**Only a lowercase `.cnx` names cnx source** (owner ruling on #1833).
+`Colors.CNX` and `Colors.Cnx` are not cnx source, and naming one is E0518. It
+is reported at the directive's line and column for an include, at the marker
+for a generated header's record, and at `1:0` of the file when it is the run's
 input, as the other diagnostics about the run are (#1847 decides that form for
-all of them). `cnx --clean` reports them for such an input too.
+all of them). `cnx --clean` reports it for such an input too.
 Nothing is written. The
 case of an extension is significant elsewhere in C tooling as well — GCC reads
 `.C` as C++, not C. Before the ruling, discovery accepted the extension in any

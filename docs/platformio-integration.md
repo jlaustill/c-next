@@ -23,10 +23,6 @@ root: the nearest directory, from the entry file up, that holds a config,
 `platformio.ini`, `.git` or `package.json`. A PlatformIO project is therefore
 its own root, and a config in a directory above it is never read.
 
-A config under an old name — `cnext.config.json`, `.cnext.json` or `.cnextrc` —
-is error E0918 and is never read: rename it. That includes one in a library your
-project includes, which only the library can fix.
-
 `--pio-install` writes a working default; the fields you'll touch most:
 
 | Field         | Purpose                                                                                                                                                                                                    |
@@ -77,9 +73,7 @@ The run prints the target it used and where it came from, e.g.
 `Target: teensy41 (platformio)`, and `pio run` shows that line.
 
 **Upgrading:** re-run `cnx --pio-install` after upgrading cnx. It rewrites
-`cnx_build.py`. In a project that still has `cnext_build.py` it stops instead:
-see [Migrating from `cnext_build.py`](#migrating-from-cnext_buildpy). A script
-written before the target was required passes no
+`cnx_build.py`. A script written before the target was required passes no
 `--pio-env`, so in a project whose environments name different targets and that
 sets no `default_envs`, every build fails with E0511.
 
@@ -190,24 +184,10 @@ cnx --pio-uninstall
 
 This removes:
 
-- the `cnx_build.py` script, and the old `cnext_build.py`
-- either one's `extra_scripts` reference from `platformio.ini`
+- the `cnx_build.py` script
+- its `extra_scripts` reference from `platformio.ini`
 
 Your `.cnx` files and generated `.c|.cpp|.h` files remain untouched.
-
-## Migrating from `cnext_build.py`
-
-Before the command was renamed `cnx`, `--pio-install` wrote `cnext_build.py`, which
-runs `cnext`. That command no longer exists, so every build with the old script
-fails. Replace it:
-
-```bash
-cnx --pio-uninstall
-cnx --pio-install
-```
-
-Until you do, `cnx --pio-install` stops with that instruction and writes nothing,
-since adding `cnx_build.py` beside the old script would leave every build running both.
 
 ## Manual Integration
 
