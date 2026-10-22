@@ -1,6 +1,6 @@
 # Nucleo-F446RE Test Project
 
-PlatformIO project for testing C-Next transpiled code on the ST Nucleo-F446RE board.
+PlatformIO project for testing cnx transpiled code on the ST Nucleo-F446RE board.
 
 ## Hardware Requirements
 
@@ -43,18 +43,19 @@ The green LED (LD2) should start blinking at 0.5 Hz (500ms on, 500ms off).
 test-nucleo/
 ├── platformio.ini    # PlatformIO configuration
 ├── src/
-│   └── main.c        # Transpiled C-Next code (from ../blink.cnx)
+│   ├── main.c        # Transpiled cnx code (from ../blink.cnx)
+│   └── blink.h       # Its header, written beside it
 └── README.md         # This file
 ```
 
-## Regenerating from C-Next Source
+## Regenerating from cnx Source
 
-To regenerate `src/main.c` from the C-Next source:
+To regenerate `src/main.c` and `src/blink.h` from the cnx source:
 
 ```bash
-# From c-next repository root
+# From cnx repository root
 cd examples/nucleo-f446re
-cnext blink.cnx -o test-nucleo/src/main.c
+cnx blink.cnx -o test-nucleo/src/main.c
 ```
 
 ## Build Configuration

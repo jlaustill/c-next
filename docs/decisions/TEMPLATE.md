@@ -7,7 +7,7 @@
 >
 > **The rewrite test governs every section below.** If the transpiler were
 > rebuilt from scratch in a different language and stack, this document must
-> still be fully applicable. It decides something about the _C-Next language_;
+> still be fully applicable. It decides something about the _cnx language_;
 > it does not record how today's TypeScript/ANTLR/Node implementation satisfies
 > that decision. What that admits and excludes is listed once, in
 > [`README.md`](README.md#the-rewrite-test) — read it before you fill in
@@ -30,7 +30,7 @@
      a transpiled snippet is worth a paragraph. If a rule is being added, this
      is where the bug it prevents belongs.
 
-     "Show it" means the C-Next that triggers the behavior and the C or C++ it
+     "Show it" means the cnx that triggers the behavior and the C or C++ it
      currently generates. Both survive a rewrite: they are what the language
      promises, observable from outside. The TypeScript that produces them does
      not, and pasting it here is the single most common way an ADR rots —
@@ -40,7 +40,7 @@
 
 ## Decision
 
-<!-- What C-Next does, stated so an implementer needs nothing else. Say what is
+<!-- What cnx does, stated so an implementer needs nothing else. Say what is
      REJECTED as well as what is chosen: an ADR that lists only the choice
      leaves the next reader re-litigating the alternatives.
 

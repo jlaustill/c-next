@@ -3,16 +3,16 @@
 **Status:** Implemented
 **Date:** 2025-12-27
 **Last Updated:** 2026-01-13
-**Decision Makers:** C-Next Language Design Team
-**Tracking:** [Issue #39](https://github.com/jlaustill/c-next/issues/39)
+**Decision Makers:** cnx Language Design Team
+**Tracking:** [Issue #39](https://github.com/smeltworks/cnx/issues/39)
 
 ## Context
 
-For C-Next to succeed in real embedded projects, it must support **incremental adoption**. Teams cannot rewrite entire codebases at once. They need to:
+For cnx to succeed in real embedded projects, it must support **incremental adoption**. Teams cannot rewrite entire codebases at once. They need to:
 
-1. Add C-Next files to existing C/C++ projects
-2. Call C/C++ code from C-Next
-3. Call C-Next code from C/C++
+1. Add cnx files to existing C/C++ projects
+2. Call C/C++ code from cnx
+3. Call cnx code from C/C++
 4. Convert file-by-file over time
 
 ### The Key Insight
@@ -47,18 +47,18 @@ Parse all source files with their native ANTLR grammar, building a unified symbo
 
 ### 1. Battle-Tested Patterns Force Good Design
 
-Using existing C/C++ grammars means C-Next naturally aligns with established patterns:
+Using existing C/C++ grammars means cnx naturally aligns with established patterns:
 
 - **Expression precedence** matches C exactly
 - **Type declaration patterns** are compatible
 - **Statement structures** align with C conventions
 - **Operator semantics** follow C standards
 
-This isn't just about parsing C files — it's about ensuring C-Next's own grammar follows patterns that decades of C development have proven work.
+This isn't just about parsing C files — it's about ensuring cnx's own grammar follows patterns that decades of C development have proven work.
 
 ### 2. No New Syntax Required
 
-C-Next code simply uses symbols that exist in the unified symbol table:
+cnx code simply uses symbols that exist in the unified symbol table:
 
 ```cnx
 // Arduino functions are parsed from Arduino.h
@@ -96,12 +96,12 @@ One parser infrastructure handles everything:
 
 ---
 
-## C-Next File Includes
+## cnx File Includes
 
-C-Next supports including other C-Next files using standard C `#include` syntax. The transpiler automatically transforms `.cnx` file references to `.h` references in the generated C code:
+cnx supports including other cnx files using standard C `#include` syntax. The transpiler automatically transforms `.cnx` file references to `.h` references in the generated C code:
 
 ```cnx
-// C-Next source file
+// cnx source file
 #include <types.cnx>        // System/library includes use angle brackets
 #include "utils.cnx"        // Local includes use quotes
 
@@ -132,31 +132,31 @@ uint32_t main(void) {
 - Validates that quoted (local) `.cnx` files exist at transpile time
 - Angle bracket includes (system/library) are transformed without validation
 
-This enables modular C-Next code while ensuring the generated C code includes the correct header files.
+This enables modular cnx code while ensuring the generated C code includes the correct header files.
 
 ### Diagnostics
 
 | Code  | Rejects                                                                    |
 | ----- | -------------------------------------------------------------------------- |
 | E0503 | `#include` of an implementation file (`.c`, `.cpp`, `.cc`, `.cxx`, `.c++`) |
-| E0504 | a header is included where its C-Next source exists                        |
-| E0506 | a quoted C-Next include names a file that is not there                     |
-| E0509 | a generated header records a C-Next source that is not there               |
+| E0504 | a header is included where its cnx source exists                           |
+| E0506 | a quoted cnx include names a file that is not there                        |
+| E0509 | a generated header records a cnx source that is not there                  |
 | E0518 | `.cnx` spelled in any case but lowercase                                   |
 | E0519 | `.cnext`, in any case: the extension cnx source had before the rename      |
 
 The first three are reported at the directive's own line and column.
 
 **E0509 has no directive to point at, and that is what it is about.** A
-generated header records the C-Next source it was written from, and a C or C++
+generated header records the cnx source it was written from, and a C or C++
 entry point is compiled by following those records rather than by reading any
-C-Next source. So the reference that fails is in generated output, not in
-anything the author wrote, and there is no C-Next position to name; the
+cnx source. So the reference that fails is in generated output, not in
+anything the author wrote, and there is no cnx position to name; the
 diagnostic names the missing source and the header that recorded it instead.
 It is reported at the line of the generated header's marker that names the
 missing source, at the column where that name starts.
 
-The rule it restores is the one E0506 already states: **a C-Next source that is
+The rule it restores is the one E0506 already states: **a cnx source that is
 named but absent is an error.** Which route reached the name — a quoted include,
 or a generated header's record — does not change the answer. It used to: reached
 the second way the same fault was reported as a warning, and the run finished
@@ -168,7 +168,7 @@ E0504 and E0506 look there and nowhere else. An angle include is searched along
 the run's include path — the including file's directory, the directories the
 invocation adds, and the project's own — so E0504 must consult the whole of it.
 A narrower search silently accepts the very case the rule exists to reject; that
-was live until #1322, where a header and its C-Next twin sitting together in an
+was live until #1322, where a header and its cnx twin sitting together in an
 added include directory transpiled with no diagnostic while the same two files
 beside the source were rejected.
 
@@ -192,7 +192,7 @@ property of the construct rather than a coverage gap.** An `#include` is only
 grammatical before the first declaration, so it is enclosed by no scope, no
 function and no variable, and the matrix's context axis asks exactly that. This
 statement is scoped to these five codes — E0509 the most plainly, since the
-reference it rejects is not in C-Next source at all; ADR-010's other decisions
+reference it rejects is not in cnx source at all; ADR-010's other decisions
 are about
 declarations and are not covered by it.
 
@@ -206,9 +206,9 @@ general case, and the general rule is not "swap the extension".
 that root alone is sufficient on the C compiler's search path.** Nothing else
 need be added to build the generated C.
 
-This follows from C-Next generating _both_ sides of the contract. In C one
+This follows from cnx generating _both_ sides of the contract. In C one
 author writes the `#include` and places the header, and keeps them consistent
-by hand. C-Next decides where the header is written — mirroring the source
+by hand. cnx decides where the header is written — mirroring the source
 tree, or flattening it for a file outside that tree — and separately emits the
 include text. Only the first fact knows where the header went, so the include
 text is derived from it and never from the spelling the author used.
@@ -223,8 +223,8 @@ Two consequences, both of which are the point rather than side effects:
   tree — the bare name _is_ the answer, and the emitted include stays bare.
   The rule is "name where it went", never "add a prefix".
 
-Findings recorded 2026-09-04 under [issue #1467](https://github.com/jlaustill/c-next/issues/1467),
-which fixed generated C that named a header C-Next had written elsewhere. This
+Findings recorded 2026-09-04 under [issue #1467](https://github.com/smeltworks/cnx/issues/1467),
+which fixed generated C that named a header cnx had written elsewhere. This
 records the guarantee the fix restored; it does not revise the decision above.
 Whether the guarantee belongs in the Decision itself is open.
 
@@ -333,8 +333,8 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 ### Phase 2: Unified Symbol Table
 
 1. One symbol table, shared across all three languages
-2. C-Next, C and C++ sources all populate it
-3. Every symbol reference resolves against that one table, so a C-Next name and a
+2. cnx, C and C++ sources all populate it
+3. Every symbol reference resolves against that one table, so a cnx name and a
    C name cannot mean different things to different stages
 4. Track symbol origin (which file, which language)
 
@@ -348,8 +348,8 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 ### Phase 4: Header Generation
 
 1. Emit `.h` files alongside `.c` files
-2. Public C-Next symbols become C declarations
-3. Enable C code to call C-Next functions
+2. Public cnx symbols become C declarations
+3. Enable C code to call cnx functions
 
 ### Phase 5: C++ Support (Optional)
 
@@ -369,24 +369,24 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 - ✅ Phase 2: cross-language symbol conflicts are detected
 - ✅ Phase 2: all three languages populate one unified symbol table
 - ✅ Phase 3: references resolve across file boundaries
-  - **Behavior:** a struct declared in a C header is indistinguishable from a C-Next
+  - **Behavior:** a struct declared in a C header is indistinguishable from a cnx
     one at the point of use -- field types and array dimensions come from the same
     lookup either way
-  - **Impact:** ADR-058's length properties work on a C header struct member ([Issue #45](https://github.com/jlaustill/c-next/issues/45))
+  - **Impact:** ADR-058's length properties work on a C header struct member ([Issue #45](https://github.com/smeltworks/cnx/issues/45))
 - ✅ Phase 4: `.h` files are emitted with include guards
 - ✅ Phase 5: C++ grammar imported and working (with known limitations)
 - ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)
 - ✅ `Project` class for multi-file compilation
-- ✅ Unified parsing is now the default behavior (removed `--project` flag - [Issue #46](https://github.com/jlaustill/c-next/issues/46))
-- ✅ C++ namespace type references ([Issue #388](https://github.com/jlaustill/c-next/issues/388))
+- ✅ Unified parsing is now the default behavior (removed `--project` flag - [Issue #46](https://github.com/smeltworks/cnx/issues/46))
+- ✅ C++ namespace type references ([Issue #388](https://github.com/smeltworks/cnx/issues/388))
   - **Syntax:** Use dot notation: `MockLib.Parse.ParseResult`
   - **Output:** Transpiles to C++ `::` syntax: `MockLib::Parse::ParseResult`
-  - **Detection:** a C++ namespace and a C-Next scope are distinguished, so the same dot notation resolves correctly against either
+  - **Detection:** a C++ namespace and a cnx scope are distinguished, so the same dot notation resolves correctly against either
   - **Depth:** Supports arbitrary nesting (e.g., `Deep.Level1.Level2.DeepType`)
 
 **Known Issues:**
 
-- ~~Array indexing on C header structs broken~~ — Resolved ([Issue #8](https://github.com/jlaustill/c-next/issues/8) closed)
+- ~~Array indexing on C header structs broken~~ — Resolved ([Issue #8](https://github.com/smeltworks/cnx/issues/8) closed)
 
 ---
 
@@ -394,12 +394,12 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 
 ```
 project/
-├── main.cnx          # C-Next entry point
+├── main.cnx          # cnx entry point
 ├── drivers/
 │   ├── gpio.c        # Existing C driver
 │   └── gpio.h        # C header
 ├── sensors/
-│   └── temp.cnx      # New C-Next module
+│   └── temp.cnx      # New cnx module
 └── lib/
     └── Arduino.h     # External library
 ```
@@ -438,7 +438,7 @@ Build process:
    - **Implementation:** Working via unified parsing (always enabled)
 
 2. **Symbol conflicts** ✅
-   - **Decision:** Symbol conflicts between C-Next and C/C++ are **ERRORS**
+   - **Decision:** Symbol conflicts between cnx and C/C++ are **ERRORS**
    - **Exceptions:**
      - Multiple `extern` declarations in C (OK - declaration, not definition)
      - C++ function overloads (OK - different signatures)

@@ -10,7 +10,7 @@
 // Comprehensive C++ Interop Test
 // Tests: C++ syntax patterns for scope resolution and type handling
 // This is a compilation-only test (no test-execution marker)
-// Note: C-Next doesn't have native pointer syntax, so pointer tests are omitted
+// Note: cnx doesn't have native pointer syntax, so pointer tests are omitted
 #include "comprehensive-cpp.hpp"
 
 #include <stdint.h>
@@ -234,7 +234,7 @@ void testArrayParams(void) {
 // ============================================================================
 // SECTION 15: CALLBACK INTEROP (Issue #409)
 // ============================================================================
-// Test passing C-Next callbacks to C++ registration functions
+// Test passing cnx callbacks to C++ registration functions
 // Define callback matching C++ Callback typedef: void(*)()
 void simpleCallback(void) {
 }

@@ -1,7 +1,7 @@
 /*
  * Shared types for FreeRTOS integration test
  *
- * This header defines types used by both C-Next and C wrapper.
+ * This header defines types used by both cnx and C wrapper.
  * No function declarations - just data types.
  */
 
@@ -13,7 +13,7 @@
 
 /*
  * TaskData - Typed struct for task parameters
- * Used by both C wrapper and C-Next code.
+ * Used by both C wrapper and cnx code.
  */
 typedef struct {
     uint32_t counter;

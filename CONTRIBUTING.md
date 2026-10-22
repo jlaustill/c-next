@@ -1,6 +1,6 @@
-# Contributing to C-Next
+# Contributing to cnx
 
-This guide covers the development workflow for contributing to C-Next. We use a branch-based, pull request workflow with automated CI checks to ensure code quality and maintain project stability.
+This guide covers the development workflow for contributing to cnx. We use a branch-based, pull request workflow with automated CI checks to ensure code quality and maintain project stability.
 
 ---
 
@@ -93,14 +93,14 @@ npm run typecheck
 
 ## Development Workflow
 
-**C-Next has transitioned from direct commits to main to a PR-based workflow.**
+**cnx has transitioned from direct commits to main to a PR-based workflow.**
 
 **How work travels:** [`docs/WORKFLOW.md`](./docs/WORKFLOW.md) is the single
 source of truth for the project board — the seven statuses, what moves a card
 automatically, and what you move by hand. This guide covers how to write the
 change; that one covers how the change travels.
 
-**Picking what to work on:** Run `/issue-check` in Claude Code to triage open issues — it detects in-flight work (open PRs, assigned issues, recent pushes) and recommends the highest-value issue using c-next's label taxonomy and conventions.
+**Picking what to work on:** Run `/issue-check` in Claude Code to triage open issues — it detects in-flight work (open PRs, assigned issues, recent pushes) and recommends the highest-value issue using cnx's label taxonomy and conventions.
 
 ### When to Create a Branch
 
@@ -400,7 +400,7 @@ When implementing a feature, update in this order:
 
 This prevents README and ADR from getting out of sync.
 
-#### 3. Learn C-Next (`docs/learn-cnext-in-y-minutes.md`)
+#### 3. Learn cnx (`docs/learn-cnext-in-y-minutes.md`)
 
 Update if your changes add:
 
@@ -420,7 +420,7 @@ Update if your changes add:
 
 - **Research** ADRs are proposals under investigation (not established syntax)
 - **Rejected** ADRs document decisions NOT to implement something
-- When explaining "how C-Next does X", only cite Accepted/Implemented ADRs
+- When explaining "how cnx does X", only cite Accepted/Implemented ADRs
 
 ### Memory Bank Updates
 

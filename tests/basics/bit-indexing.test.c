@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests: Bit indexing syntax (C-Next specific)
+// Tests: Bit indexing syntax (cnx specific)
 // Demonstrates: value[start, width] for bit extraction
 int main(void) {
     const uint32_t value = 0xDEADBEEFU;

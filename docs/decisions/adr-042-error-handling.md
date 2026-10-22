@@ -6,13 +6,13 @@
 
 ## Decision
 
-**No dedicated error handling syntax needed.** Error handling patterns work naturally with existing C-Next features.
+**No dedicated error handling syntax needed.** Error handling patterns work naturally with existing cnx features.
 
 ## Rationale
 
-C-Next's existing features provide all necessary error handling capabilities:
+cnx's existing features provide all necessary error handling capabilities:
 
-| Pattern        | How It Works in C-Next                                          |
+| Pattern        | How It Works in cnx                                             |
 | -------------- | --------------------------------------------------------------- |
 | Return codes   | Use enums (ADR-017) as return types                             |
 | Out parameters | Pass-by-reference (ADR-006) allows modifying caller's variables |

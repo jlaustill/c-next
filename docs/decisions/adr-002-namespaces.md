@@ -3,16 +3,16 @@
 **Status:** Rejected
 **Date:** 2025-12-25
 **Updated:** 2025-12-29
-**Decision Makers:** C-Next Language Design Team
-**Superseded By:** ADR-016 (How to Handle Scope in C-Next?)
+**Decision Makers:** cnx Language Design Team
+**Superseded By:** ADR-016 (How to Handle Scope in cnx?)
 
 ## Rejection Rationale
 
-This ADR is rejected due to terminology concerns, not behavioral concerns. The term "namespace" carries significant C++ baggage and expectations that C-Next explicitly wants to avoid:
+This ADR is rejected due to terminology concerns, not behavioral concerns. The term "namespace" carries significant C++ baggage and expectations that cnx explicitly wants to avoid:
 
 - Developers expect C++ namespace semantics (nested namespaces, `using namespace`, ADL)
 - The terminology implies module system complexity we don't want
-- Questions arise about features C-Next will never implement
+- Questions arise about features cnx will never implement
 
 **The behavior described in this ADR remains valid** — singleton services with private-by-default visibility and name prefixing. However, the `namespace` keyword has been renamed to `scope` to avoid misleading expectations.
 
@@ -96,7 +96,7 @@ Modern languages have learned to separate these concerns:
 
 ### Application Services vs Hardware Peripherals
 
-While individual hardware peripheral _instances_ are singletons (there's only one UART1 at address 0x40011000), the _type_ UART often has multiple instances. This is why hardware peripherals should be **classes** in C-Next.
+While individual hardware peripheral _instances_ are singletons (there's only one UART1 at address 0x40011000), the _type_ UART often has multiple instances. This is why hardware peripherals should be **classes** in cnx.
 
 However, application-level services are true singletons:
 
@@ -107,7 +107,7 @@ For application services like `Console`, `Logger`, or `Math`, there genuinely is
 
 ## Decision
 
-C-Next provides **namespaces** as a first-class scoping mechanism for organizing singleton services.
+cnx provides **namespaces** as a first-class scoping mechanism for organizing singleton services.
 
 ### Visibility: Private by Default
 
@@ -210,7 +210,7 @@ namespace Console {
 }
 ```
 
-**Rejected.** C++ namespaces don't provide the encapsulation we want, and C-Next transpiles to C, not C++.
+**Rejected.** C++ namespaces don't provide the encapsulation we want, and cnx transpiles to C, not C++.
 
 ### Alternative 2: Use Static Classes (C#/Java Style)
 
@@ -227,13 +227,13 @@ static class Console {
 
 Make each file implicitly a module with the file name as namespace.
 
-**Rejected for now.** While elegant, this couples code organization to file structure. C-Next aims to drop into existing C projects where file organization may be constrained. Explicit namespaces are more flexible.
+**Rejected for now.** While elegant, this couples code organization to file structure. cnx aims to drop into existing C projects where file organization may be constrained. Explicit namespaces are more flexible.
 
 ### Alternative 4: Keep C's Manual Prefix Convention
 
 Just use `Console_init()` everywhere like C developers already do.
 
-**Rejected.** This provides no compiler enforcement, no scoping, and no encapsulation. The prefix convention works but C-Next can do better.
+**Rejected.** This provides no compiler enforcement, no scoping, and no encapsulation. The prefix convention works but cnx can do better.
 
 ## Consequences
 
@@ -257,9 +257,9 @@ Just use `Console_init()` everywhere like C developers already do.
 
 ## Relationship to Classes
 
-Namespaces are for **singleton services**. When you need **multiple instances** of something, you need a **class**. Classes are first-class citizens in C-Next (without inheritance). That is documented in a future ADR.
+Namespaces are for **singleton services**. When you need **multiple instances** of something, you need a **class**. Classes are first-class citizens in cnx (without inheritance). That is documented in a future ADR.
 
-| Need                       | C-Next Construct                             |
+| Need                       | cnx Construct                                |
 | -------------------------- | -------------------------------------------- |
 | One system console         | `namespace Console { ... }`                  |
 | Math utilities             | `namespace Math { ... }`                     |

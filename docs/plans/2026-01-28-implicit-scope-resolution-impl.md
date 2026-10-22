@@ -826,7 +826,7 @@ Implemented
 
 ## Context
 
-C-Next required explicit `this.` and `global.` prefixes for all scope and global variable access inside scopes. This was verbose and unfamiliar to developers coming from C.
+cnx required explicit `this.` and `global.` prefixes for all scope and global variable access inside scopes. This was verbose and unfamiliar to developers coming from C.
 
 ## Decision
 

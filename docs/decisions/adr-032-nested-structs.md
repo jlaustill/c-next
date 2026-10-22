@@ -38,7 +38,7 @@ Named/tagged nested structs are well-established C patterns with no significant 
 
 ### Anonymous Nested Structs: Multiple Concerns
 
-Research identified several issues with anonymous structs that make them unsuitable for C-Next:
+Research identified several issues with anonymous structs that make them unsuitable for cnx:
 
 #### 1. Type Compatibility Problems
 
@@ -64,7 +64,7 @@ C uses name equivalence within a translation unit. Without a tag, there's no nam
 
 #### 3. Pre-C11 Compatibility
 
-Anonymous structs/unions are a **C11 feature**. Code using them won't compile with C99/C90 compilers, which matters for embedded targets where C-Next aims to be useful.
+Anonymous structs/unions are a **C11 feature**. Code using them won't compile with C99/C90 compilers, which matters for embedded targets where cnx aims to be useful.
 
 #### 4. Name Collision Risk
 

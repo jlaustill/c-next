@@ -1,6 +1,6 @@
 # PlatformIO Integration
 
-C-Next integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c`, `.h`, and `.cpp` as needed before each build.
+cnx integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c`, `.h`, and `.cpp` as needed before each build.
 
 ## Quick Setup
 
@@ -18,7 +18,7 @@ This command:
 
 ## Project Configuration (`cnx.config.json`)
 
-C-Next reads `cnx.config.json` (or `.cnx.json` / `.cnxrc`) from the project
+cnx reads `cnx.config.json` (or `.cnx.json` / `.cnxrc`) from the project
 root: the nearest directory, from the entry file up, that holds a config,
 `platformio.ini`, `.git` or `package.json`. A PlatformIO project is therefore
 its own root, and a config in a directory above it is never read.
@@ -29,14 +29,14 @@ project includes, which only the library can fix.
 
 `--pio-install` writes a working default; the fields you'll touch most:
 
-| Field         | Purpose                                                                                                                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how C-Next sees that a header is C++ (below). |
-| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                             |
-| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                   |
-| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                           |
-| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                             |
-| `cppRequired` | `true` emits C++ (`.cpp`/`.hpp`) regardless; `false` requires C. Unset, the mode is detected from the headers your sources reach — see below.                                                                 |
+| Field         | Purpose                                                                                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how cnx sees that a header is C++ (below). |
+| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                          |
+| `target`      | The program's target when its source names none (ADR-049), e.g. `teensy41`. A PlatformIO board can name it instead (below).                                                                                |
+| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                        |
+| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                          |
+| `cppRequired` | `true` emits C++ (`.cpp`/`.hpp`) regardless; `false` requires C. Unset, the mode is detected from the headers your sources reach — see below.                                                              |
 
 Relative paths in `cnx.config.json` resolve against the directory holding the
 config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve
@@ -76,7 +76,7 @@ usually need not name it: when no `#pragma target` and no `--target` (or config
 The run prints the target it used and where it came from, e.g.
 `Target: teensy41 (platformio)`, and `pio run` shows that line.
 
-**Upgrading:** re-run `cnx --pio-install` after upgrading C-Next. It rewrites
+**Upgrading:** re-run `cnx --pio-install` after upgrading cnx. It rewrites
 `cnx_build.py`. In a project that still has `cnext_build.py` it stops instead:
 see [Migrating from `cnext_build.py`](#migrating-from-cnext_buildpy). A script
 written before the target was required passes no
@@ -85,7 +85,7 @@ sets no `default_envs`, every build fails with E0511.
 
 ## C vs C++ Output
 
-C-Next emits **C** (`.c` + `.h`) unless a header your sources reach is C++: a
+cnx emits **C** (`.c` + `.h`) unless a header your sources reach is C++: a
 `.hpp`, or a `.h` whose preprocessed text holds templates, classes, namespaces or
 access specifiers (`FlexCAN_T4.h`, Arduino classes). Then it emits **C++**
 (`.cpp` + `.hpp`). Set `cppRequired: true` in `cnx.config.json` (or pass `--cpp`)
@@ -99,7 +99,7 @@ Error: src/main.cnx:3:0 error[E0507]: C++ syntax in 'lib/FlexCAN_T4/FlexCAN_T4.h
        help: 'cppRequired: false' (or --no-cpp) asks for C. Remove it so the mode is detected from the headers, or pass --cpp to compile as C++.
 ```
 
-> C-Next can only judge a header it can find. If `Arduino.h` is not on an `include`
+> cnx can only judge a header it can find. If `Arduino.h` is not on an `include`
 > path, an unset mode stays C, and your C++ calls fail at the _compiler_ instead,
 > with an error that points at generated code. Set `cppRequired: true` in a C++
 > project so the mode does not depend on the search path.
@@ -115,8 +115,8 @@ expansion, type checking — so keep C/C++ headers reachable (this is why
 ```bash
 src/
 ├── main.cpp              # Existing C++ code
-├── ConfigStorage.cnx     # New c-next code
-└── SensorProcessor.cnx   # New c-next code
+├── ConfigStorage.cnx     # New cnx code
+└── SensorProcessor.cnx   # New cnx code
 ```
 
 2. **Build as usual** — transpilation happens automatically:
@@ -172,9 +172,9 @@ my-teensy-project/
 ├── cnx_build.py             # Auto-generated transpilation script
 ├── src/
 │   ├── main.cpp             # C++ entry point
-│   ├── ConfigStorage.cnx    # c-next source
+│   ├── ConfigStorage.cnx    # cnx source
 │   ├── ConfigStorage.cpp    # Generated (committed)
-│   ├── SensorProcessor.cnx  # c-next source
+│   ├── SensorProcessor.cnx  # cnx source
 │   └── SensorProcessor.cpp  # Generated (committed)
 └── include/
     └── AppConfig.h          # Shared types

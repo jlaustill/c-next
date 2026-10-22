@@ -336,8 +336,8 @@ Add to `BinaryExprUtils.ts`:
 
 ```typescript
 /**
- * ADR-001: Map C-Next equality operator to C.
- * C-Next uses = for equality (mathematical notation), C uses ==.
+ * ADR-001: Map cnx equality operator to C.
+ * cnx uses = for equality (mathematical notation), C uses ==.
  */
 const mapEqualityOperator = (cnextOp: string): string =>
   cnextOp === "=" ? "==" : cnextOp;

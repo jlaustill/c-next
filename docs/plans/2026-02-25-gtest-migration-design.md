@@ -7,21 +7,21 @@
 
 The current custom test framework in `/scripts/test.ts` is ~1200 lines of TypeScript that:
 
-- Requires maintenance as C-Next evolves
+- Requires maintenance as cnx evolves
 - Has limited features compared to mature frameworks
 - Creates a learning curve for contributors
 - Duplicates functionality that exists in battle-tested tools
 
 ## Proposed Solution
 
-Migrate to [Google Test](https://google.github.io/googletest/) with CMake, using `add_custom_command` to run the C-Next transpiler as a code generation step before compilation.
+Migrate to [Google Test](https://google.github.io/googletest/) with CMake, using `add_custom_command` to run the cnx transpiler as a code generation step before compilation.
 
 ## Architecture
 
 ```
 tests/
 ├── led/
-│   ├── led.test.cnx          # C-Next source
+│   ├── led.test.cnx          # cnx source
 │   └── led_test.cpp          # GTest wrapper (minimal)
 ├── CMakeLists.txt
 └── ...
@@ -39,7 +39,7 @@ Build flow:
 ### Basic Custom Command for Transpilation
 
 ```cmake
-# Function to add a C-Next test
+# Function to add a cnx test
 function(add_cnext_test TEST_NAME CNX_FILE)
   # Get paths
   get_filename_component(CNX_DIR ${CNX_FILE} DIRECTORY)
@@ -92,7 +92,7 @@ include(GoogleTest)
 # Find cnext binary (installed globally or local)
 find_program(CNEXT_COMPILER cnext REQUIRED)
 
-# Function to add C-Next test
+# Function to add cnx test
 function(add_cnext_test TEST_NAME)
   set(CNX_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.cnx")
   set(GENERATED_C "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.c")
@@ -129,9 +129,9 @@ add_cnext_test(enum)
 
 ## Test File Structure
 
-### C-Next Source: `led.test.cnx`
+### cnx Source: `led.test.cnx`
 
-```c-next
+```cnx
 scope LED {
   u8 state <- 0;
 
@@ -154,7 +154,7 @@ scope LED {
 ```cpp
 #include <gtest/gtest.h>
 
-// Include the generated C-Next header
+// Include the generated cnx header
 extern "C" {
 #include "led.test.h"
 }

@@ -8,7 +8,7 @@
 **Date:** 2026-01-10
 **Accepted:** 2026-01-10
 **Implemented:** 2026-01-10
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
@@ -69,7 +69,7 @@ This issue was discovered while implementing a blink example for the Nucleo-F446
 
 ## Decision
 
-**Add `volatile` keyword to C-Next** with the same semantics as C's `volatile`:
+**Add `volatile` keyword to cnx** with the same semantics as C's `volatile`:
 
 ```cnx
 volatile u32 hardware_register;      // Prevents optimization
@@ -154,7 +154,7 @@ while (count > 0) {
 
 **Rejected** because:
 
-- Requires inline assembly (not supported in C-Next grammar)
+- Requires inline assembly (not supported in cnx grammar)
 - Less portable
 - `volatile` is the standard C solution
 
@@ -196,7 +196,7 @@ volatile uint32_t statusReg = 0U;
 volatile uint32_t counter = 0U;
 ```
 
-They are distinct in C-Next and identical in C because `atomic` promises more than
+They are distinct in cnx and identical in C because `atomic` promises more than
 the qualifier can express -- `volatile` asks the compiler not to cache the value,
 while `atomic` additionally asserts the access is indivisible. C has one spelling for
 the first and nothing for the second, so the difference is enforced before the C

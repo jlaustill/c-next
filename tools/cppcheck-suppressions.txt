@@ -1,4 +1,4 @@
-# cppcheck suppressions for C-Next generated code
+# cppcheck suppressions for cnx generated code
 # Format: error-id:filename:line or just error-id
 # See: https://cppcheck.sourceforge.io/manual.html#suppressions
 

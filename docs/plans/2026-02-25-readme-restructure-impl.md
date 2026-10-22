@@ -4,7 +4,7 @@
 
 **Goal:** Restructure README from ~870 lines to ~200-250 lines, moving detailed content to dedicated docs files.
 
-**Architecture:** Extract Core Features and ADR tables to separate markdown files. Add new content (Why C-Next?, CI badge, expanded projects). Update GitHub repo description.
+**Architecture:** Extract Core Features and ADR tables to separate markdown files. Add new content (Why cnx?, CI badge, expanded projects). Update GitHub repo description.
 
 **Tech Stack:** Markdown, GitHub CLI (`gh`)
 
@@ -28,9 +28,9 @@ Create `docs/language-guide.md` with:
 The file should start with:
 
 ```markdown
-# C-Next Language Guide
+# cnx Language Guide
 
-This guide covers all C-Next language features in detail. For a quick introduction, see the [README](../README.md).
+This guide covers all cnx language features in detail. For a quick introduction, see the [README](../README.md).
 
 ## Table of Contents
 
@@ -87,7 +87,7 @@ The file should start with:
 ```markdown
 # Architecture Decision Records
 
-This document lists all Architecture Decision Records (ADRs) for the C-Next project.
+This document lists all Architecture Decision Records (ADRs) for the cnx project.
 
 ADRs are stored in [`docs/decisions/`](decisions/) and document significant design choices.
 ```
@@ -121,13 +121,13 @@ Replace README.md with new structure:
 1. Title + Badges (add CI badge)
 2. One-liner + Status (keep)
 3. Quick Example (keep)
-4. **Why C-Next?** (NEW)
+4. **Why cnx?** (NEW)
 5. Philosophy (keep, including Simplicity Constraint table)
 6. Installation (keep)
 7. Usage (keep)
 8. VS Code Extension (keep)
 9. PlatformIO Integration (CONDENSED - remove detailed sections, add link)
-10. Projects Using C-Next (EXPANDED with test-teensy)
+10. Projects Using cnx (EXPANDED with test-teensy)
 11. **Documentation** (NEW - links to language-guide.md, architecture-decisions.md)
 12. Project Structure (keep)
 13. Development (keep)
@@ -138,15 +138,15 @@ Replace README.md with new structure:
 **CI badge to add after existing badges:**
 
 ```markdown
-[![CI](https://github.com/jlaustill/c-next/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/jlaustill/c-next/actions/workflows/pr-checks.yml)
+[![CI](https://github.com/smeltworks/cnx/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/smeltworks/cnx/actions/workflows/pr-checks.yml)
 ```
 
-**Why C-Next? section (insert after Quick Example):**
+**Why cnx? section (insert after Quick Example):**
 
 ```markdown
-## Why C-Next?
+## Why cnx?
 
-C-Next transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
+cnx transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
 
 This means:
 
@@ -155,7 +155,7 @@ This means:
 - **No new runtime** — the generated C is what runs on your hardware
 - **Incremental adoption** — drop a single `.cnx` file into an existing project
 
-Other memory-safe languages require adopting an entirely new toolchain, build system, and ecosystem. C-Next gives you safety improvements while keeping your investment in C infrastructure.
+Other memory-safe languages require adopting an entirely new toolchain, build system, and ecosystem. cnx gives you safety improvements while keeping your investment in C infrastructure.
 ```
 
 **Condensed PlatformIO section:**
@@ -163,7 +163,7 @@ Other memory-safe languages require adopting an entirely new toolchain, build sy
 ````markdown
 ## Getting Started with PlatformIO
 
-C-Next integrates seamlessly with PlatformIO. Quick setup:
+cnx integrates seamlessly with PlatformIO. Quick setup:
 
 ```bash
 cnext --pio-install
@@ -178,14 +178,14 @@ This creates a pre-build script that automatically transpiles `.cnx` files befor
 
 **Expanded Projects table:**
 ```markdown
-## Projects Using C-Next
+## Projects Using cnx
 
 | Project | Description |
 | ------- | ----------- |
-| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control |
+| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using cnx for safe embedded control |
 | [test-teensy](test-teensy/) | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
 
-_Using C-Next in your project? Open an issue to get listed!_
+_Using cnx in your project? Open an issue to get listed!_
 ````
 
 **NEW Documentation section (before Development):**
@@ -193,13 +193,13 @@ _Using C-Next in your project? Open an issue to get listed!_
 ```markdown
 ## Documentation
 
-| Resource                                                      | Description                                |
-| ------------------------------------------------------------- | ------------------------------------------ |
-| [Language Guide](docs/language-guide.md)                      | Complete reference for all C-Next features |
-| [Architecture Decisions](docs/architecture-decisions.md)      | 50+ ADRs documenting design choices        |
-| [Learn C-Next in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                      |
-| [Error Codes](docs/error-codes.md)                            | Compiler error reference                   |
-| [MISRA Compliance](docs/misra-compliance.md)                  | MISRA C:2012 compliance details            |
+| Resource                                                   | Description                             |
+| ---------------------------------------------------------- | --------------------------------------- |
+| [Language Guide](docs/language-guide.md)                   | Complete reference for all cnx features |
+| [Architecture Decisions](docs/architecture-decisions.md)   | 50+ ADRs documenting design choices     |
+| [Learn cnx in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                   |
+| [Error Codes](docs/error-codes.md)                         | Compiler error reference                |
+| [MISRA Compliance](docs/misra-compliance.md)               | MISRA C:2012 compliance details         |
 ```
 
 **Step 2: Verify README length**
@@ -211,7 +211,7 @@ Expected: ~200-250 lines
 
 ```bash
 git add README.md
-git commit -m "docs: restructure README - add Why C-Next, move features to language-guide"
+git commit -m "docs: restructure README - add Why cnx, move features to language-guide"
 ```
 
 ---
@@ -232,7 +232,7 @@ The file should start with:
 ```markdown
 # PlatformIO Integration
 
-C-Next integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c`, `.h`, and `.cpp` as needed before each build.
+cnx integrates seamlessly with PlatformIO embedded projects. The transpiler automatically converts `.cnx` files to `.c`, `.h`, and `.cpp` as needed before each build.
 ```
 
 Then include all the detailed content: Quick Setup, Usage workflow, Why Commit Generated Files, Example Project Structure, Uninstall, Manual Integration.
@@ -258,7 +258,7 @@ git commit -m "docs: create platformio-integration.md with full PlatformIO guide
 Run:
 
 ```bash
-gh repo edit jlaustill/c-next --description "A safer C for embedded systems — transpiles to clean, readable C99"
+gh repo edit smeltworks/cnx --description "A safer C for embedded systems — transpiles to clean, readable C99"
 ```
 
 **Step 2: Verify update**
@@ -266,7 +266,7 @@ gh repo edit jlaustill/c-next --description "A safer C for embedded systems — 
 Run:
 
 ```bash
-gh api repos/jlaustill/c-next --jq '.description'
+gh api repos/smeltworks/cnx --jq '.description'
 ```
 
 Expected: `A safer C for embedded systems — transpiles to clean, readable C99`
@@ -319,7 +319,7 @@ git commit -m "docs: final README restructure adjustments"
 - [ ] `docs/architecture-decisions.md` contains all ADR tables
 - [ ] `docs/platformio-integration.md` contains full PlatformIO guide
 - [ ] CI badge added to README
-- [ ] "Why C-Next?" section added
+- [ ] "Why cnx?" section added
 - [ ] Projects table expanded with test-teensy
 - [ ] Documentation section with links added
 - [ ] GitHub repo description updated

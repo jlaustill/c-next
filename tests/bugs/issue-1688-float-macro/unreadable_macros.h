@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* #1688: object-like macros C-Next cannot type from their tokens (ADR-024) */
+/* #1688: object-like macros cnx cannot type from their tokens (ADR-024) */
 #define _MMIO_BYTE(mem_addr) (*(volatile uint8_t *)(mem_addr))
 #define REG_BYTE _MMIO_BYTE(0x23)
 #define SCALED_CALL scale_of(2U)

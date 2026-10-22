@@ -12,7 +12,7 @@
 //
 // Every field below is a shape the old form got wrong or could get wrong:
 //   handler  callback      -- must be assigned (ADR-029 "Never Null")
-//   data     prefix array  -- C-Next's documented array syntax; reaches
+//   data     prefix array  -- cnx's documented array syntax; reaches
 //                            arrayType(), NOT arrayDimension(), which is why
 //                            the old code read it as a scalar
 //   cells    2-D array     -- same path, two dimensions

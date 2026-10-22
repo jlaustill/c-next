@@ -4,7 +4,7 @@
 **Date:** 2026-01-03
 **Accepted:** 2026-01-04
 **Implemented:** 2026-01-06
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Parent ADR:** [ADR-009: ISR Safety](adr-009-isr-safety.md)
 
 ## Context
@@ -15,7 +15,7 @@ When sharing data between ISRs and main code, normal variable access is unsafe d
 - **Read-Modify-Write races**: ISR fires between read and write phases
 - **Compiler reordering**: Optimizer caches values or reorders accesses
 
-C-Next needs a way to declare variables that are safe for ISR/main sharing, with the compiler generating appropriate code for the target platform.
+cnx needs a way to declare variables that are safe for ISR/main sharing, with the compiler generating appropriate code for the target platform.
 
 ### Related ADRs
 
@@ -96,7 +96,7 @@ C++, Rust, and Zig all expose memory ordering semantics:
 | Release  | Writes before this visible after acquire   | Lock release                |
 | SeqCst   | Full sequential consistency                | When in doubt               |
 
-**Question:** Does C-Next need to expose memory ordering, or is single-core embedded simple enough to always use one ordering?
+**Question:** Does cnx need to expose memory ordering, or is single-core embedded simple enough to always use one ordering?
 
 ---
 
@@ -224,7 +224,7 @@ _(Clarified 2026-10-18, #2200: a bit, a bit range or a bitmap field written to a
 
 A retry loop evaluates the value once, before the loop (#1807). On esp32, a type wider than `word_size` makes GCC call libatomic's `__atomic_*_N`, which the output's requirements list.
 
-**Related question:** How does C-Next know the target platform? (See ADR-009 Q6)
+**Related question:** How does cnx know the target platform? (See ADR-009 Q6)
 
 ### Q7: Atomic Variables in Scopes
 
@@ -257,7 +257,7 @@ atomic bool ready <- false;
 **Rationale:**
 
 - Senior C developers can understand it in 30 seconds
-- Consistent with C-Next's `clamp`/`wrap` modifier pattern
+- Consistent with cnx's `clamp`/`wrap` modifier pattern
 - Makes `atomic` a first-class citizen in the language
 - Clear and explicit without being verbose
 
@@ -273,7 +273,7 @@ atomic clamp u8 brightness <- 0;
 atomic wrap u32 counter <- 0;
 atomic bool ready <- false;
 
-// Operations use standard C-Next syntax
+// Operations use standard cnx syntax
 brightness +<- 10; // Atomic add with clamp
 counter +<- 1; // Atomic add with wrap
 ready <- true; // Atomic store
@@ -282,7 +282,7 @@ u32 val <- counter; // Atomic load
 
 **Key Insight: Behavior Belongs to the Type**
 
-C-Next already has `clamp` and `wrap` modifiers that define overflow behavior at the type level. Atomic operations work the same way—the **type** carries the behavior, not the operation site.
+cnx already has `clamp` and `wrap` modifiers that define overflow behavior at the type level. Atomic operations work the same way—the **type** carries the behavior, not the operation site.
 
 When you write `brightness +<- 10` on an `atomic clamp u8`, the transpiler generates:
 
@@ -314,7 +314,7 @@ Multiple ISRs can call `brightness +<- 10`—the retry loop ensures each operati
 
 **No Explicit CAS/fetchAdd Methods Needed**
 
-Other languages (C++, Rust, Zig) expose operations like `fetchAdd()`, `compareExchange()`, etc. C-Next takes a different approach:
+Other languages (C++, Rust, Zig) expose operations like `fetchAdd()`, `compareExchange()`, etc. cnx takes a different approach:
 
 | Concern                   | Who Handles It               |
 | ------------------------- | ---------------------------- |
@@ -348,7 +348,7 @@ Compare-And-Swap (CAS) is the primitive that enables lock-free algorithms. It at
 
 For most embedded use cases, CAS isn't needed:
 
-| Use Case                 | C-Next Solution                           | Needs CAS? |
+| Use Case                 | cnx Solution                              | Needs CAS? |
 | ------------------------ | ----------------------------------------- | ---------- |
 | Atomic counter           | `atomic wrap u32` + `counter +<- 1`       | No         |
 | Bounded value            | `atomic clamp u8` + `brightness +<- 5`    | No         |
@@ -373,7 +373,7 @@ The retry loop inside the transpiled code IS using CAS-like hardware (LDREX/STRE
 | Structs       | ✗        | Use `critical { }` block                     | Use `critical { }` block      |
 | Arrays        | ✗        | Use `critical { }` block                     | Use `critical { }` block      |
 
-**Guiding Principle**: C-Next makes the right thing easy, the wrong thing impossible, and remains flexible in between.
+**Guiding Principle**: cnx makes the right thing easy, the wrong thing impossible, and remains flexible in between.
 
 - 64-bit atomics on 32-bit platforms are **expensive but not wrong**
 - Atomic floats are **uncommon but not wrong**
@@ -412,9 +412,9 @@ atomic wrap u32 tickCount <- 0;
 
 **Key Insight: Wrong Thing Impossible**
 
-The memory ordering question becomes mostly irrelevant when C-Next enforces a stronger rule: **non-atomic variables accessed from both ISR and main code are a compile error.**
+The memory ordering question becomes mostly irrelevant when cnx enforces a stronger rule: **non-atomic variables accessed from both ISR and main code are a compile error.**
 
-| Variable Access Pattern           | C-Next Response      |
+| Variable Access Pattern           | cnx Response         |
 | --------------------------------- | -------------------- |
 | Only in main code                 | OK (no ISR concern)  |
 | Only in ISR(s)                    | OK (no main concern) |
@@ -422,7 +422,7 @@ The memory ordering question becomes mostly irrelevant when C-Next enforces a st
 | Both ISR and main, **non-atomic** | **COMPILE ERROR**    |
 | Inside `critical { }` block       | OK (protected)       |
 
-**Example of what C-Next prevents:**
+**Example of what cnx prevents:**
 
 ```cnx
 atomic bool dataReady <- false;
@@ -462,7 +462,7 @@ void main() {
 **Why SeqCst Always?**
 
 1. **Correct by construction** — SeqCst (Sequential Consistency) is always safe
-2. **Future-proof** — Works correctly when C-Next expands to multi-core
+2. **Future-proof** — Works correctly when cnx expands to multi-core
 3. **No cognitive burden** — Developers don't need to understand Acquire/Release/Relaxed
 4. **Minimal overhead** — On single-core Cortex-M, memory barriers are ~1-3 cycles
 
@@ -476,7 +476,7 @@ relaxed atomic u32 fastCounter <- 0;  // Expert opt-in, v2+
 
 For v1, the simplicity of "all atomics are SeqCst" outweighs micro-optimization.
 
-**The C-Next Philosophy Applied:**
+**The cnx Philosophy Applied:**
 
 - **Right thing easy**: Just mark shared variables as `atomic`
 - **Wrong thing impossible**: Compiler prevents non-atomic ISR access
@@ -526,7 +526,7 @@ A description must also satisfy C's relations: `short` ≤ `int` ≤ `long` ≤ 
 
 #### Named targets
 
-Named targets are published with the compiler as **one C-Next source file**, the target catalog, which any conforming compiler reads as a C-Next program:
+Named targets are published with the compiler as **one cnx source file**, the target catalog, which any conforming compiler reads as a cnx program:
 
 - The file declares its schema version, and a compiler rejects a version it does not know.
 - Each target is a `const TargetDescription` whose initializer gives every required field as a **literal**: an integer, `true` or `false`, or a string. No expression and no reference to another constant is allowed, so no compiler has to evaluate code to learn a target.

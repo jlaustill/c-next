@@ -7,18 +7,18 @@
 
 **Status:** Implemented
 **Date:** 2025-12-27
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-During development, the ability to see C-Next source alongside its generated C output has proven invaluable. Currently this requires:
+During development, the ability to see cnx source alongside its generated C output has proven invaluable. Currently this requires:
 
 1. Writing `.cnx` code
 2. Running the transpiler manually
 3. Opening the generated `.c` file
 4. Switching between windows to compare
 
-This friction slows the feedback loop and makes it harder to understand how C-Next constructs map to C output.
+This friction slows the feedback loop and makes it harder to understand how cnx constructs map to C output.
 
 ### Inspiration: VS Code Markdown Preview
 
@@ -29,7 +29,7 @@ VS Code's markdown extension provides an excellent UX pattern:
 - Updates live as you type
 - Single keystroke to toggle preview
 
-**Why not apply this pattern to C-Next?**
+**Why not apply this pattern to cnx?**
 
 ---
 
@@ -167,11 +167,11 @@ vscode-extension/
 
 ### Commands
 
-| Command                            | Keybinding     | Description                      |
-| ---------------------------------- | -------------- | -------------------------------- |
-| `C-Next: Open Preview to the Side` | `Ctrl+K V`     | Open C preview beside editor     |
-| `C-Next: Open Preview`             | `Ctrl+Shift+V` | Open C preview in current column |
-| `C-Next: Toggle Preview`           | —              | Toggle preview visibility        |
+| Command                         | Keybinding     | Description                      |
+| ------------------------------- | -------------- | -------------------------------- |
+| `cnx: Open Preview to the Side` | `Ctrl+K V`     | Open C preview beside editor     |
+| `cnx: Open Preview`             | `Ctrl+Shift+V` | Open C preview in current column |
+| `cnx: Toggle Preview`           | —              | Toggle preview visibility        |
 
 ### Settings
 
@@ -185,14 +185,14 @@ vscode-extension/
 
 ### Status Bar
 
-- Show transpile status: "C-Next: Ready" / "C-Next: Error"
+- Show transpile status: "cnx: Ready" / "cnx: Error"
 - Click to open Problems panel
 
 ---
 
 ## Error Handling Strategy
 
-When C-Next source has syntax errors:
+When cnx source has syntax errors:
 
 1. **Editor**: Red squiggly underlines at error locations
 2. **Problems Panel**: Full error messages with line/column
@@ -213,7 +213,7 @@ Add a third pane showing assembly output:
 
 ```
 ┌───────────────┬───────────────┬───────────────┐
-│   C-Next      │   Generated C │   Assembly    │
+│   cnx      │   Generated C │   Assembly    │
 ├───────────────┼───────────────┼───────────────┤
 │  ...          │  ...          │  LED_toggle:  │
 │               │               │    ldr r0, =  │
@@ -244,8 +244,8 @@ Add a third pane showing assembly output:
 
 ### Debugging Integration
 
-- Source maps: C-Next line → C line → Assembly
-- Breakpoints in C-Next that work in C debugger
+- Source maps: cnx line → C line → Assembly
+- Breakpoints in cnx that work in C debugger
 
 ---
 
@@ -254,7 +254,7 @@ Add a third pane showing assembly output:
 ### Advantages
 
 1. **Immediate feedback** — See C output as you type
-2. **Learning tool** — Understand how C-Next maps to C
+2. **Learning tool** — Understand how cnx maps to C
 3. **Debugging aid** — Verify generated code is correct
 4. **Low friction** — No manual transpile step needed
 5. **Standard UX** — Familiar markdown preview pattern

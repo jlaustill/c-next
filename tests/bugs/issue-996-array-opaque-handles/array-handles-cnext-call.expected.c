@@ -7,11 +7,11 @@
 
 // test-transpile-only
 // test-adr: 030
-// Issue #996: Array of opaque handles — C-Next function call path.
+// Issue #996: Array of opaque handles — cnx function call path.
 //
 // Guard against silent divergence between the two argument-generation paths.
 // The C-interop path (_generateCFunctionArg) decides address-of via the opaque
-// predicate; the C-Next path (ArgumentGenerator) instead passes pointer-typed
+// predicate; the cnx path (ArgumentGenerator) instead passes pointer-typed
 // (opaque) params by value, so it never takes their address. Both must emit a
 // bare `arr[i]` (widget_t*), never `&arr[i]` (widget_t**), when an opaque array
 // element is forwarded to a function expecting widget_t*.

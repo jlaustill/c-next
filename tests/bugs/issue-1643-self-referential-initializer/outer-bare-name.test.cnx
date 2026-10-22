@@ -2,7 +2,7 @@
 // test-adr: 030
 // test-adr: 057
 // #1643 review: a local whose initializer spells an outer global or member
-// bare reads the outer one, in C-Next and in the C. Each case returns a
+// bare reads the outer one, in cnx and in the C. Each case returns a
 // distinct code if the C reads the new, uninitialized local instead.
 
 u32 g <- 10;

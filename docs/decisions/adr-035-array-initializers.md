@@ -28,7 +28,7 @@ int values[] = {1, 2, 3, 4, 5};
 
 ## Decision
 
-**Support array initializers** with C-Next assignment syntax. C-Next uses square brackets `[]` instead of curly brackets `{}` to avoid confusion between arrays and scopes (functions, loops, etc).
+**Support array initializers** with cnx assignment syntax. cnx uses square brackets `[]` instead of curly brackets `{}` to avoid confusion between arrays and scopes (functions, loops, etc).
 
 ## Syntax
 
@@ -113,7 +113,7 @@ u8[] data <- [1, 2, 3];  // u8[3] data
 ```
 
 Only a one-dimensional array may omit its size: `u8[] data <- [1, 2, 3]` is
-`u8[3]`. A multi-dimensional array states every dimension. C-Next arrays
+`u8[3]`. A multi-dimensional array states every dimension. cnx arrays
 always have a size, so a `[]` with nothing to count is rejected (E0892): any
 dimension of a multi-dimensional array (`u8[][3]`, `u8[2][]`, `u8[][]`), a
 one-dimensional array with no initializer (`u8[] buffer;`), and a struct field
@@ -160,13 +160,13 @@ int z[4] = {1};       // z = {1, 0, 0, 0}
 
 ### Common Bugs
 
-| Bug                                    | Description                                    | C-Next Mitigation            |
+| Bug                                    | Description                                    | cnx Mitigation               |
 | -------------------------------------- | ---------------------------------------------- | ---------------------------- |
 | **Uninitialized elements**             | Relying on implicit zeros without realizing it | Require explicit fill syntax |
 | **Size mismatch**                      | Too many/few initializers                      | Compile error                |
 | **Designated initializer size change** | Removing `[19]=x` silently shrinks array       | Not supported                |
 
-## C-Next Decisions
+## cnx Decisions
 
 ### 1. Size Mismatch: Compile Error
 
@@ -178,7 +178,7 @@ u8[3] data <- [1, 2, 3, 4, 5];  // ERROR: 5 elements for size-3 array
 
 ### 2. Explicit Fill Syntax: `[value*]`
 
-C-Next does NOT support C's implicit zero-fill for partial initialization. Instead, use the explicit fill-all syntax `[value*]`:
+cnx does NOT support C's implicit zero-fill for partial initialization. Instead, use the explicit fill-all syntax `[value*]`:
 
 ```cnx
 u8[100] buffer <- [0*];      // All 100 elements initialized to 0
@@ -192,7 +192,7 @@ This is clearer than C's `{0}` which looks like it only initializes the first el
 
 ### 3. No Designated Initializers
 
-C-Next does **not** support C99 designated initializers like `[index]=value`. Rationale:
+cnx does **not** support C99 designated initializers like `[index]=value`. Rationale:
 
 - Violates explicit initialization principle (gaps are implicitly zero-filled)
 - Can silently change array size when highest index changes
@@ -240,7 +240,7 @@ array's list, at a declaration, a scope member, an assignment target, a field
 and an argument (#2110): `[[1*], [2*]]` for a `u32[2][3]` is
 `{{1U, 1U, 1U}, {2U, 2U, 2U}}`. A fill-all row had been emitted as C's `{v}`,
 which sets only its first slot, so the rest read 0 at exit 0. A fill-all other
-than zero needs a size C-Next can fold: C has no initializer that repeats a
+than zero needs a size cnx can fold: C has no initializer that repeats a
 value for a size it is not told, so `u8[SIZE] a <- [5*]` with `SIZE` a C macro
 had set only `a[0]`. It is E0866 at a declaration, a scope member, an assignment
 target, a field and an argument (#2196). C zero-fills what an initializer leaves

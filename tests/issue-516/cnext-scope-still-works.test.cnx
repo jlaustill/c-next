@@ -1,5 +1,5 @@
-// Tests: C-Next scopes still use _ separator after issue #516 fix
-// Ensures we didn't break existing C-Next scope functionality
+// Tests: cnx scopes still use _ separator after issue #516 fix
+// Ensures we didn't break existing cnx scope functionality
 
 scope Motor {
     public mut u8 speed;
@@ -15,11 +15,11 @@ scope Motor {
 
 scope Controller {
     public void run() {
-        // C-Next scope call should use _ separator
+        // cnx scope call should use _ separator
         Motor.start();
         Motor.stop();
 
-        // C-Next scope member access should use _ separator
+        // cnx scope member access should use _ separator
         u8 s <- Motor.speed;
     }
 }

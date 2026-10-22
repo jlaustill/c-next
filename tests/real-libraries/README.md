@@ -1,6 +1,6 @@
 # Real-World Library Integration Tests
 
-Tests C-Next interop against real C/C++ library headers (not stubs).
+Tests cnx interop against real C/C++ library headers (not stubs).
 
 ## Purpose
 

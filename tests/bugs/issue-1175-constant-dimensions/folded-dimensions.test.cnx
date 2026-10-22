@@ -1,9 +1,9 @@
 // test-execution
 // Issue #1175: a dimension the transpiler could not fold was copied into the
 // generated C as source text with its spacing removed. Each shape below did:
-// `(LOCAL)` named a C-Next const C cannot see, `1 - -1` became `1--1` (C's
+// `(LOCAL)` named a cnx const C cannot see, `1 - -1` became `1--1` (C's
 // decrement) in the .h while the .c folded it to 2, and `(u32)EColor.COUNT + 1`
-// put the C-Next type name `u32` into the header. Every dimension is now folded
+// put the cnx type name `u32` into the header. Every dimension is now folded
 // once, and the .c and the .h carry the same number.
 //
 // ADR-044: `wide` adds at u16, so it is 400; the same sum at u8 is E0910

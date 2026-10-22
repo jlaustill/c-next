@@ -1,8 +1,8 @@
-# C-Next v1 Feature Matrix
+# cnx v1 Feature Matrix
 
 Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
-**Goal:** Define what C-Next needs to be a complete C replacement for embedded systems.
+**Goal:** Define what cnx needs to be a complete C replacement for embedded systems.
 
 **Last Updated:** 2026-01-16
 
@@ -17,7 +17,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 1. Comments
 
-| Feature            | C-Next Status  | ADR | Notes                                  |
+| Feature            | cnx Status     | ADR | Notes                                  |
 | ------------------ | -------------- | --- | -------------------------------------- |
 | Single-line `//`   | ✅ Implemented | —   | Grammar: `LINE_COMMENT`                |
 | Multi-line `/* */` | ✅ Implemented | —   | Grammar: `BLOCK_COMMENT`               |
@@ -27,7 +27,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 2. Preprocessor / Includes
 
-| Feature               | C-Next Status  | ADR     | Notes                                            |
+| Feature               | cnx Status     | ADR     | Notes                                            |
 | --------------------- | -------------- | ------- | ------------------------------------------------ |
 | `#include <header.h>` | ✅ Implemented | —       | Pass-through to C                                |
 | `#include "header.h"` | ✅ Implemented | —       | Pass-through to C                                |
@@ -40,7 +40,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 3. Types
 
-| Feature              | C-Next Status  | ADR     | Notes                                                |
+| Feature              | cnx Status     | ADR     | Notes                                                |
 | -------------------- | -------------- | ------- | ---------------------------------------------------- |
 | Fixed-width integers | ✅ Implemented | —       | `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64` |
 | Floating point       | ✅ Implemented | —       | `f32`, `f64`                                         |
@@ -55,7 +55,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 4. Variables & Constants
 
-| Feature              | C-Next Status  | ADR     | Notes                                    |
+| Feature              | cnx Status     | ADR     | Notes                                    |
 | -------------------- | -------------- | ------- | ---------------------------------------- |
 | Variable declaration | ✅ Implemented | —       | `u32 x;`                                 |
 | Initialization       | ✅ Implemented | ADR-015 | Zero-init by default                     |
@@ -67,7 +67,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 5. Arrays
 
-| Feature                | C-Next Status  | ADR     | Notes                     |
+| Feature                | cnx Status     | ADR     | Notes                     |
 | ---------------------- | -------------- | ------- | ------------------------- |
 | Fixed-size arrays      | ✅ Implemented | —       | `u8 buffer[16];`          |
 | Array initialization   | ✅ Implemented | ADR-035 | `u8 data[] <- {1, 2, 3};` |
@@ -80,7 +80,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 6. Operators
 
-| Feature                     | C-Next Status  | ADR     | Notes                             |
+| Feature                     | cnx Status     | ADR     | Notes                             |
 | --------------------------- | -------------- | ------- | --------------------------------- |
 | Arithmetic `+ - * / %`      | ✅ Implemented | —       | —                                 |
 | Comparison `= != < > <= >=` | ✅ Implemented | ADR-001 | `=` for equality                  |
@@ -96,7 +96,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 7. Control Flow
 
-| Feature     | C-Next Status  | ADR     | Notes                               |
+| Feature     | cnx Status     | ADR     | Notes                               |
 | ----------- | -------------- | ------- | ----------------------------------- |
 | `if / else` | ✅ Implemented | —       | —                                   |
 | `while`     | ✅ Implemented | —       | —                                   |
@@ -111,7 +111,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 8. Functions
 
-| Feature              | C-Next Status  | ADR     | Notes                       |
+| Feature              | cnx Status     | ADR     | Notes                       |
 | -------------------- | -------------- | ------- | --------------------------- |
 | Declaration          | ✅ Implemented | —       | `void foo() { }`            |
 | Parameters           | ✅ Implemented | —       | `void foo(u32 x)`           |
@@ -125,7 +125,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 9. Structs
 
-| Feature           | C-Next Status  | ADR     | Notes                            |
+| Feature           | cnx Status     | ADR     | Notes                            |
 | ----------------- | -------------- | ------- | -------------------------------- |
 | Declaration       | ✅ Implemented | ADR-014 | `struct Point { i32 x; i32 y; }` |
 | Member access     | ✅ Implemented | —       | `point.x`                        |
@@ -139,16 +139,16 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 10. Unions
 
-| Feature           | C-Next Status | ADR     | Notes                                      |
-| ----------------- | ------------- | ------- | ------------------------------------------ |
-| Union declaration | 🚫 Rejected   | ADR-018 | Use register bindings or byte manipulation |
-| Tagged unions     | 🚫 Rejected   | ADR-018 | Use enums + structs instead                |
+| Feature           | cnx Status  | ADR     | Notes                                      |
+| ----------------- | ----------- | ------- | ------------------------------------------ |
+| Union declaration | 🚫 Rejected | ADR-018 | Use register bindings or byte manipulation |
+| Tagged unions     | 🚫 Rejected | ADR-018 | Use enums + structs instead                |
 
 ---
 
 ## 11. Memory & Pointers
 
-| Feature            | C-Next Status  | ADR     | Notes               |
+| Feature            | cnx Status     | ADR     | Notes               |
 | ------------------ | -------------- | ------- | ------------------- |
 | Pointer syntax     | 🚫 Not Needed  | ADR-006 | Implicit references |
 | Address-of         | ✅ Implemented | ADR-006 | `&x` read-only      |
@@ -161,7 +161,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 12. Hardware / Embedded Specific
 
-| Feature           | C-Next Status  | ADR     | Notes                          |
+| Feature           | cnx Status     | ADR     | Notes                          |
 | ----------------- | -------------- | ------- | ------------------------------ |
 | Register bindings | ✅ Implemented | ADR-004 | Type-safe hardware access      |
 | Access modifiers  | ✅ Implemented | ADR-004 | `ro`, `rw`, `wo`, `w1c`, `w1s` |
@@ -176,7 +176,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 13. Type Casting
 
-| Feature          | C-Next Status  | ADR     | Notes             |
+| Feature          | cnx Status     | ADR     | Notes             |
 | ---------------- | -------------- | ------- | ----------------- |
 | Explicit casting | ✅ Implemented | ADR-024 | `x as u32` syntax |
 
@@ -184,7 +184,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 14. Error Handling
 
-| Feature      | C-Next Status  | ADR | Notes                 |
+| Feature      | cnx Status     | ADR | Notes                 |
 | ------------ | -------------- | --- | --------------------- |
 | Return codes | ✅ Implemented | —   | C-style return values |
 
@@ -192,7 +192,7 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 15. Organization
 
-| Feature              | C-Next Status  | ADR     | Notes                 |
+| Feature              | cnx Status     | ADR     | Notes                 |
 | -------------------- | -------------- | ------- | --------------------- |
 | Scope                | ✅ Implemented | ADR-016 | Name prefixing        |
 | Visibility           | ✅ Implemented | ADR-016 | `public` / `private`  |
@@ -222,7 +222,7 @@ The following critical features are implemented:
 
 ### Rejected by Design
 
-These features are intentionally not part of C-Next:
+These features are intentionally not part of cnx:
 
 1. **Break/continue** (ADR-026) — Use exit conditions in loop headers
 2. **Unions** (ADR-018) — Use register bindings or explicit byte manipulation

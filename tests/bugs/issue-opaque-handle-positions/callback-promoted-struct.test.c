@@ -8,7 +8,7 @@
 // test-execution
 // test-no-warnings
 // test-link: full_cb_impl.c
-// A C-Next function registered with a C callback typedef takes the typedef's
+// A cnx function registered with a C callback typedef takes the typedef's
 // shape (#895): its `Full` parameter is a `Full*` in C AND in C++, because a C
 // function pointer cannot take a C++ reference. Member access honored that --
 // `f->pokes` in both modes -- but a whole-value use asked the MODE instead of

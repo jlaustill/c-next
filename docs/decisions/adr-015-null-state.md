@@ -2,11 +2,11 @@
 
 **Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2025-12-28
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-In C-Next, the pattern for classes (ADR-005) is:
+In cnx, the pattern for classes (ADR-005) is:
 
 ```cnx
 u32 UART1_BASE <- 0x40011000;
@@ -46,7 +46,7 @@ This is a source of countless bugs:
 
 ## Decision: Hybrid Approach
 
-C-Next uses a **hybrid approach** that combines the best of Go-style and Rust-style:
+cnx uses a **hybrid approach** that combines the best of Go-style and Rust-style:
 
 | Scope                         | Behavior                               | Rationale                                                  |
 | ----------------------------- | -------------------------------------- | ---------------------------------------------------------- |
@@ -94,7 +94,7 @@ This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Un
 | Structs                   | All fields zero   |
 | Class instances           | All fields zero   |
 
-#### C-Next Code (Global Scope)
+#### cnx Code (Global Scope)
 
 ```cnx
 // Global variables - zero initialized
@@ -194,7 +194,7 @@ error[E0381]: use of uninitialized variable 'value'
 > "When memory is allocated to store a value, either through a declaration or make or new, and no explicit initialization is provided, the memory is given a zero value."
 > — The Go Programming Language Specification
 
-C-Next adopts this philosophy **for global variables**.
+cnx adopts this philosophy **for global variables**.
 
 ## Zero Values Are Useful (for Globals)
 
@@ -206,7 +206,7 @@ var buffer []byte    // nil - ready for append
 var wg sync.WaitGroup // ready to use
 ```
 
-In C-Next globals:
+In cnx globals:
 
 ```cnx
 u32 count;           // 0 - ready for incrementing
@@ -282,7 +282,7 @@ No grammar changes needed. This is a code generation decision.
 ### Zero Initialization
 
 Every declaration without an initializer is zero-initialized. There is no form of
-C-Next declaration that yields an indeterminate value, so the C a reader is used to
+cnx declaration that yields an indeterminate value, so the C a reader is used to
 has no counterpart here:
 
 ```cnx
@@ -363,14 +363,14 @@ void receive(u8 byte) {
 
 ## Comparison with Other Languages
 
-| Language   | Uninitialized Variable                                    |
-| ---------- | --------------------------------------------------------- |
-| C          | Undefined behavior                                        |
-| C++        | Undefined for primitives, default constructor for objects |
-| Go         | Zero value                                                |
-| Rust       | Compile error                                             |
-| Java       | Zero for primitives, null for objects                     |
-| **C-Next** | **Zero value**                                            |
+| Language | Uninitialized Variable                                    |
+| -------- | --------------------------------------------------------- |
+| C        | Undefined behavior                                        |
+| C++      | Undefined for primitives, default constructor for objects |
+| Go       | Zero value                                                |
+| Rust     | Compile error                                             |
+| Java     | Zero for primitives, null for objects                     |
+| **cnx**  | **Zero value**                                            |
 
 ## Research: Go's Zero Initialization Experience
 
@@ -398,16 +398,16 @@ Go's philosophy of "make the zero value useful" works excellently for **value ty
 The issues arise from **reference types**, not value types. There's an [open proposal](https://github.com/golang/go/issues/39572)
 debating whether nil map reads should panic instead of silently returning zero.
 
-### Why C-Next Avoids Go's Problems
+### Why cnx Avoids Go's Problems
 
-C-Next sidesteps these issues by design:
+cnx sidesteps these issues by design:
 
 - **No maps/slices**: Static allocation only (ADR-003)
 - **No pointers in user code**: Pass-by-reference hides them (ADR-006)
 - **Structs are values**: Zero initialization is always safe
 - **No channels**: Not applicable to embedded
 
-C-Next operates in **Go's safe subset** where zero initialization is proven to work.
+cnx operates in **Go's safe subset** where zero initialization is proven to work.
 
 ## Research: Rust's Compile-Time Enforcement
 
@@ -461,9 +461,9 @@ The learning curve is real: ["Senior engineers may struggle for weeks/months or 
 | **C (undefined)**        | Fast                         | Bugs, CVEs, undefined behavior            |
 | **Rust (compile error)** | Safest                       | Learning curve, false positives, friction |
 | **Go (zero value)**      | Simple, safe for value types | Panics on reference types                 |
-| **C-Next (hybrid)**      | Best of both worlds          | Slightly more complex rules               |
+| **cnx (hybrid)**         | Best of both worlds          | Slightly more complex rules               |
 
-### C-Next's Hybrid Approach
+### cnx's Hybrid Approach
 
 | Scope             | Behavior                              | Why                                   |
 | ----------------- | ------------------------------------- | ------------------------------------- |
@@ -473,7 +473,7 @@ The learning curve is real: ["Senior engineers may struggle for weeks/months or 
 
 ### Why This Works
 
-1. **No reference type problems**: C-Next is all value types, so zero-init is always safe for globals
+1. **No reference type problems**: cnx is all value types, so zero-init is always safe for globals
 2. **Catches local bugs**: Uninitialized local reads are almost always bugs
 3. **Supports embedded patterns**: The `global + init()` pattern works naturally
 4. **Simple mental model**: Globals are zero, locals must be initialized

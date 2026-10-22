@@ -6,7 +6,7 @@
 
 **Architecture:** Rewrite `NullCheckAnalyzer.ts` to validate `c_` prefix on variables storing nullable C returns. Add new error codes E0905-E0908. Remove E0702 stream function exemption from `TypeValidator.ts`. Update tests to reflect new behavior.
 
-**Tech Stack:** TypeScript, ANTLR4 parser, C-Next transpiler pipeline
+**Tech Stack:** TypeScript, ANTLR4 parser, cnx transpiler pipeline
 
 ---
 
@@ -729,7 +729,7 @@ public reportNullComparisonOnNonNullable(
     line,
     column,
     message: `NULL comparison on non-nullable variable '${varName}'`,
-    helpText: `Only variables with 'c_' prefix can be compared to NULL. C-Next variables are never null.`,
+    helpText: `Only variables with 'c_' prefix can be compared to NULL. cnx variables are never null.`,
   });
 }
 ```
@@ -961,7 +961,7 @@ Find the NULL section and update with new c\_ prefix pattern:
 ````markdown
 ## C Library Interop with NULL
 
-C-Next variables are never null. C library functions can return nullable pointers.
+cnx variables are never null. C library functions can return nullable pointers.
 Use the `c_` prefix to mark variables storing nullable C returns:
 
 ```cnx

@@ -1,6 +1,6 @@
 // test-error
 // test-adr: 026
-// Bug #1011: continue is not part of C-Next — use structured conditions
+// Bug #1011: continue is not part of cnx — use structured conditions
 //
 // NEGATIVE CONTROL -- the structured form: the skipped case is an `if`
 // around the work, not an exit.

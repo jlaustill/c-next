@@ -31,7 +31,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: Struct parameters are always pass-by-reference (ADR-006)
 // Coverage: Struct modification visible to caller
-// Struct params are ALWAYS pass-by-reference in C-Next
+// Struct params are ALWAYS pass-by-reference in cnx
 // Modifications are visible to caller
 void movePoint(Point* p, const int32_t dx, const int32_t dy) {
     p->x = cnx_clamp_add_i32(p->x, dx);

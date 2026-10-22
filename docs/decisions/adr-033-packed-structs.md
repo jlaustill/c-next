@@ -17,7 +17,7 @@ C uses compiler-specific pragmas or attributes (`__attribute__((packed))`).
 
 ## Decision
 
-**Rejected.** C-Next does not provide packed struct syntax.
+**Rejected.** cnx does not provide packed struct syntax.
 
 ### Rationale
 
@@ -29,7 +29,7 @@ C uses compiler-specific pragmas or attributes (`__attribute__((packed))`).
 
 ### Alternatives for Each Use Case
 
-| Use Case            | C-Next Solution                           |
+| Use Case            | cnx Solution                              |
 | ------------------- | ----------------------------------------- |
 | Hardware registers  | `register` keyword (ADR-004)              |
 | Network protocols   | Explicit serialization functions          |

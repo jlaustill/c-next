@@ -1,6 +1,6 @@
-# C-Next Language Guide
+# cnx Language Guide
 
-This guide covers all C-Next language features in detail. For a quick introduction, see the [README](../README.md).
+This guide covers all cnx language features in detail. For a quick introduction, see the [README](../README.md).
 
 ## Table of Contents
 
@@ -211,38 +211,38 @@ uint8_t LED__getBrightness(void) { return 100U; }  // read-only, folded
 
 #### How a scope compares to a class, a namespace, and a struct
 
-C-Next uses `scope` rather than `namespace` or `class` because both of those terms
-promise things C-Next does not deliver (ADR-016). Rather than take that on faith,
+cnx uses `scope` rather than `namespace` or `class` because both of those terms
+promise things cnx does not deliver (ADR-016). Rather than take that on faith,
 check it row by row.
 
 Each row is a single claim, true or false in every column. Where two constructs share
 a spelling but not a meaning — `this.` is the important one — they get separate rows
 instead of a shared checkmark, because a shared checkmark would teach the wrong thing.
 
-|                                                         | C++ class | C++ namespace | C struct | C-Next struct | C-Next scope |
-| ------------------------------------------------------- | :-------: | :-----------: | :------: | :-----------: | :----------: |
-| **Identity**                                            |           |               |          |               |              |
-| Is a type — you can declare a variable of it            |     ✓     |       ✗       |    ✓     |       ✓       |      ✗       |
-| Can be instantiated                                     |     ✓     |       ✗       |    ✓     |       ✓       |      ✗       |
-| Exists exactly once, always                             |     ✗     |       ✓       |    ✗     |       ✗       |      ✓       |
-| **Contents**                                            |           |               |          |               |              |
-| Holds functions                                         |     ✓     |       ✓       |    ✗     |       ✗       |      ✓       |
-| Holds type declarations (enum, struct, bitmap)          |     ✓     |       ✓       |    ✓     |       ✗       |      ✓       |
-| Holds pointer or self-referential fields                |     ✓     |       ✓       |    ✓     |       ✗       |      ✗       |
-| Explicit layout control (packed)                        |     ✓     |       —       |    ✓     |       ✗       |      —       |
-| **Access**                                              |           |               |          |               |              |
-| Per-member `public` / `private`                         |     ✓     |       ✗       |    ✗     |       ✗       |      ✓       |
-| **Shape**                                               |           |               |          |               |              |
-| Nests inside itself                                     |     ✓     |       ✓       |    ✓     |       ✗       |      ✗       |
-| Reopened and split across several files                 |     ✗     |       ✓       |    ✗     |       ✗       |      ✓       |
-| **`this.`**                                             |           |               |          |               |              |
-| `this.` is an instance pointer                          |     ✓     |       ✗       |    ✗     |       ✗       |      ✗       |
-| `this.` disambiguates a name, with no runtime meaning   |     ✗     |       ✗       |    ✗     |       ✗       |      ✓       |
-| **Cost**                                                |           |               |          |               |              |
-| Copied when passed to a function                        |     ✓     |       —       |    ✓     |       ✗       |      —       |
-| Can carry a vtable, constructor, or destructor          |     ✓     |       ✗       |    ✗     |       ✗       |      ✗       |
-| Inheritance                                             |     ✓     |       ✗       |    ✗     |       ✗       |      ✗       |
-| Members reachable from plain C under a predictable name |     ✗     |       ✗       |    —     |       —       |      ✓       |
+|                                                         | C++ class | C++ namespace | C struct | cnx struct | cnx scope |
+| ------------------------------------------------------- | :-------: | :-----------: | :------: | :--------: | :-------: |
+| **Identity**                                            |           |               |          |            |           |
+| Is a type — you can declare a variable of it            |     ✓     |       ✗       |    ✓     |     ✓      |     ✗     |
+| Can be instantiated                                     |     ✓     |       ✗       |    ✓     |     ✓      |     ✗     |
+| Exists exactly once, always                             |     ✗     |       ✓       |    ✗     |     ✗      |     ✓     |
+| **Contents**                                            |           |               |          |            |           |
+| Holds functions                                         |     ✓     |       ✓       |    ✗     |     ✗      |     ✓     |
+| Holds type declarations (enum, struct, bitmap)          |     ✓     |       ✓       |    ✓     |     ✗      |     ✓     |
+| Holds pointer or self-referential fields                |     ✓     |       ✓       |    ✓     |     ✗      |     ✗     |
+| Explicit layout control (packed)                        |     ✓     |       —       |    ✓     |     ✗      |     —     |
+| **Access**                                              |           |               |          |            |           |
+| Per-member `public` / `private`                         |     ✓     |       ✗       |    ✗     |     ✗      |     ✓     |
+| **Shape**                                               |           |               |          |            |           |
+| Nests inside itself                                     |     ✓     |       ✓       |    ✓     |     ✗      |     ✗     |
+| Reopened and split across several files                 |     ✗     |       ✓       |    ✗     |     ✗      |     ✓     |
+| **`this.`**                                             |           |               |          |            |           |
+| `this.` is an instance pointer                          |     ✓     |       ✗       |    ✗     |     ✗      |     ✗     |
+| `this.` disambiguates a name, with no runtime meaning   |     ✗     |       ✗       |    ✗     |     ✗      |     ✓     |
+| **Cost**                                                |           |               |          |            |           |
+| Copied when passed to a function                        |     ✓     |       —       |    ✓     |     ✗      |     —     |
+| Can carry a vtable, constructor, or destructor          |     ✓     |       ✗       |    ✗     |     ✗      |     ✗     |
+| Inheritance                                             |     ✓     |       ✗       |    ✗     |     ✗      |     ✗     |
+| Members reachable from plain C under a predictable name |     ✗     |       ✗       |    —     |     —      |     ✓     |
 
 `—` marks a property that does not apply to that construct at all.
 
@@ -533,7 +533,7 @@ void readInput() {
 - Cannot store C pointer returns in variables
 - `fopen` returns a pointer that may be NULL, so it must be checked (E0901)
 - `malloc` and the rest of the dynamic memory family cannot be imported at all
-  (E0902): C-Next has no heap, so that code belongs in C or C++
+  (E0902): cnx has no heap, so that code belongs in C or C++
 
 ### Startup Allocation
 

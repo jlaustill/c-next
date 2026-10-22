@@ -184,7 +184,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Issue #1364: `.prettierrc` loads the C-Next plugin, so Prettier cannot
+      # Issue #1364: `.prettierrc` loads the cnx plugin, so Prettier cannot
       # check a .cnx file until the plugin is built. `npm ci` runs `prepare`,
       # which installs and builds it from the committed grammar -- the same path
       # a contributor gets from a plain `npm install`, so CI cannot pass on a

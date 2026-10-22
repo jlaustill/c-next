@@ -1,13 +1,13 @@
 ---
 name: cnext-way
-description: "The C-Next way — do it right, not fast; right, not easy; right, not a shortcut. Use when implementing a fix or feature in the c-next repo, when reviewing your own work before committing or opening a PR, when tempted to work around a problem instead of fixing it, or when the user says /cnext-way, 'the c-next way', 'do it right', or asks whether work meets the project's standards."
+description: "The cnx way — do it right, not fast; right, not easy; right, not a shortcut. Use when implementing a fix or feature in the cnx repo, when reviewing your own work before committing or opening a PR, when tempted to work around a problem instead of fixing it, or when the user says /cnext-way, 'the cnx way', 'do it right', or asks whether work meets the project's standards."
 user-invocable: true
 tools: Bash, Read, Edit, Grep, Glob, Write, AskUserQuestion
 ---
 
-# The C-Next Way
+# The cnx Way
 
-C-Next generates the C that goes into safety-critical embedded systems. The
+cnx generates the C that goes into safety-critical embedded systems. The
 generated code is a certification artifact. A shortcut here does not cost a
 little time later — it ships a defect into someone's firmware, or invalidates
 their qualification evidence.
@@ -23,8 +23,8 @@ impossible, **ask** — do not decide alone.
 
 ### 1. Fix it upstream, never work around it
 
-If C-Next generates wrong code, rejects valid syntax, or lacks a feature, fix
-C-Next. No shims in the consuming project, no avoiding the language feature, no
+If cnx generates wrong code, rejects valid syntax, or lacks a feature, fix
+cnx. No shims in the consuming project, no avoiding the language feature, no
 manual edits to generated files. Block the dependent work on the upstream fix.
 
 ### 2. No duplicate code paths — and the unit is the *decision*

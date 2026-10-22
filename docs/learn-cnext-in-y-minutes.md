@@ -1,11 +1,11 @@
 ---
-name: C-Next
+name: cnx
 filename: learncnext.cnx
 contributors:
   - ["Joshua Austill", "https://github.com/jlaustill"]
 ---
 
-C-Next is a safer C for embedded systems. It transpiles to clean, readable C.
+cnx is a safer C for embedded systems. It transpiles to clean, readable C.
 
 ```c
 // Every program names its one target (ADR-049), and a #pragma comes before
@@ -392,7 +392,7 @@ u8 field <- flags[4, 3];        // Read 3-bit field
 u8 w8 <- flags.type_bit_length;          // 8
 u32 w32 <- counter.type_bit_length;      // 32
 
-// A type answers the same length properties; C-Next has no sizeof (ADR-023)
+// A type answers the same length properties; cnx has no sizeof (ADR-023)
 u32 wordBytes <- u32.type_byte_length;   // 4
 
 // =============================================================================
@@ -467,7 +467,7 @@ u8 mode <- flags.Mode;
 // =============================================================================
 
 // Organize code with automatic name prefixing
-// scopes are purely optional in c-next
+// scopes are purely optional in cnx
 scope LED {
     mut u8 brightness;         // private by default (variable)
     public u8 maxBrightness;   // public (explicit), C code may write it
@@ -636,18 +636,18 @@ void poll() {
 
 `(void)` is C's own cast, not a new keyword, and it is exactly what appears in the generated C.
 
-This applies to anything C-Next can see the return type of, including the standard library:
+This applies to anything cnx can see the return type of, including the standard library:
 
 ```cnx
 (void) printf("ready\n");   // printf returns int
 ```
 
-If the return type cannot be resolved at all -- an external C function C-Next never parsed --
+If the return type cannot be resolved at all -- an external C function cnx never parsed --
 the rule cannot apply, because there is nothing to check against.
 
 ## Key Differences from C
 
-| C                | C-Next         | Why                       |
+| C                | cnx            | Why                       |
 | ---------------- | -------------- | ------------------------- |
 | `x = 5`          | `x <- 5`       | Assignment is explicit    |
 | `x == 5`         | `x = 5`        | Equality uses math =      |
@@ -662,5 +662,5 @@ the rule cannot apply, because there is nothing to check against.
 
 - [Project setup & PlatformIO integration](platformio-integration.md) — `cnx.config.json`, C/C++ output mode, build hook
 - [AI codegen reference](cnext-ai-reference.md) — comprehensive cheat sheet
-- [GitHub Repository](https://github.com/jlaustill/c-next)
-- [Architecture Decision Records](https://github.com/jlaustill/c-next/tree/main/docs/decisions)
+- [GitHub Repository](https://github.com/smeltworks/cnx)
+- [Architecture Decision Records](https://github.com/smeltworks/cnx/tree/main/docs/decisions)

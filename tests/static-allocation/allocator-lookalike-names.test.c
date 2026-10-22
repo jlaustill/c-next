@@ -29,16 +29,16 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 //   1. names that merely CONTAIN a forbidden one with no `_` separator --
 //      `myfree`, `saferealloc`. Before the separator rule these were rejected
 //      as `free` and `realloc`.
-//   2. names the separator rule DOES match, defined right here in C-Next --
+//   2. names the separator rule DOES match, defined right here in cnx --
 //      `pool_free`, `slot_is_free`. ADR-003 forbids IMPORTING an allocator; a
 //      function the author wrote is not an import, and a static pool with a
 //      `pool_free` is the alternative ADR-003's own Memory Pools section points
 //      to. These were rejected until the decision moved to the one analyzer
-//      that knows whether a callee resolved to a C-Next definition.
+//      that knows whether a callee resolved to a cnx definition.
 //
 // Shape 2 is the control the first version of this file lacked: every name in
 // it avoided the separator, so nothing here could redden a rule that fired on
-// C-Next definitions.
+// cnx definitions.
 //
 // It compiles on purpose. A control that sits beside a diagnostic cannot be
 // evaluated, because the first analyzer to report halts the step loop; this
@@ -61,7 +61,7 @@ uint32_t mallocation(const uint32_t n) {
 
 uint8_t pool[8] = {0};
 
-// Matches `_free` and is a C-Next definition, not an import.
+// Matches `_free` and is a cnx definition, not an import.
 uint32_t pool_free(const uint32_t slot) {
     pool[slot] = 0U;
     return cnx_clamp_add_u32(slot, 5U);

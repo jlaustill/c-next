@@ -2,7 +2,7 @@
 
 **Status:** Research (v2)
 **Date:** 2026-01-04
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Version:** v2
 
 ## Context

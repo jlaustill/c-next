@@ -1,9 +1,9 @@
 // test-execution
 // test-adr: 058
-// The memory row sizes an array (#1975, owner ruling A): C-Next writes
+// The memory row sizes an array (#1975, owner ruling A): cnx writes
 // sizeof for the C compiler to answer, as it leaves a header macro's
 // dimension to C. Each array then holds exactly its subject's memory, at
-// file scope, in a function, for a C-Next struct, a header struct, a header
+// file scope, in a function, for a cnx struct, a header struct, a header
 // struct holding a pointer, a string array, and in bits.
 #include "kinds-layouts.h"
 

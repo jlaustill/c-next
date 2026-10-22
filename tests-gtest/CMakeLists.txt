@@ -23,12 +23,12 @@ include(GoogleTest)
 # 1. Locally built via npm (most common during development)
 # 2. Globally installed via volta/npm
 find_program(CNEXT_COMPILER
-  NAMES cnext
+  NAMES cnx
   PATHS
     "${CMAKE_SOURCE_DIR}/../node_modules/.bin"
     "$ENV{HOME}/.volta/bin"
     "$ENV{HOME}/.npm/bin"
-  DOC "C-Next transpiler"
+  DOC "cnx transpiler"
 )
 
 if(NOT CNEXT_COMPILER)
@@ -40,7 +40,7 @@ message(STATUS "Found cnext: ${CNEXT_COMPILER}")
 # Include directory for generated headers
 set(CNEXT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../tests/include")
 
-# Function to add a C-Next test
+# Function to add a cnx test
 # Usage: add_cnext_test(test_name)
 # Expects: test_name.test.cnx and test_name_test.cpp in current directory
 function(add_cnext_test TEST_NAME)
@@ -51,7 +51,7 @@ function(add_cnext_test TEST_NAME)
 
   # Verify source files exist
   if(NOT EXISTS ${CNX_FILE})
-    message(FATAL_ERROR "C-Next source not found: ${CNX_FILE}")
+    message(FATAL_ERROR "cnx source not found: ${CNX_FILE}")
   endif()
   if(NOT EXISTS ${TEST_WRAPPER})
     message(FATAL_ERROR "GTest wrapper not found: ${TEST_WRAPPER}")

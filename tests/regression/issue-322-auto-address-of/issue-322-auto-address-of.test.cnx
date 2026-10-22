@@ -16,7 +16,7 @@ scope ConfigManager {
 
     public void loadFromStorage() {
         // Call external function expecting AppConfig* pointer
-        // C-Next code does NOT have explicit &
+        // cnx code does NOT have explicit &
         // Transpiler should automatically add & because param type is AppConfig*
         global.ConfigStorage.loadConfig(this.config);
     }

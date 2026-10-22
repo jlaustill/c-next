@@ -51,7 +51,7 @@ scope Utils {
 `;
 
 // Test directory paths
-const testDir = "/tmp/c-next-test-issue-337";
+const testDir = "/tmp/cnx-test-issue-337";
 const sourceDir = join(testDir, "src");
 const domainDir = join(sourceDir, "Domain");
 const displayDir = join(sourceDir, "Display");

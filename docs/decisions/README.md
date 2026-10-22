@@ -1,6 +1,6 @@
 # Architecture Decision Records — Numbering
 
-This folder holds every C-Next Architecture Decision Record. This file governs **how ADRs are
+This folder holds every cnx Architecture Decision Record. This file governs **how ADRs are
 numbered**; [`../architecture-decisions.md`](../architecture-decisions.md) is the companion
 index that lists them **by status**.
 
@@ -53,7 +53,7 @@ anything about the language, so it did not meet the definition of an ADR. The nu
 
 The same judgement, applied by the rewrite test rather than by eye, retired six more on
 2026-08-31 (#1403). Each described how the transpiler or its toolchain is built rather than what
-C-Next decides, so none would survive a rebuild in another stack. They were moved, not deleted:
+cnx decides, so none would survive a rebuild in another stack. They were moved, not deleted:
 
 | Retired | Moved to                                      | Was about                       |
 | ------- | --------------------------------------------- | ------------------------------- |
@@ -97,7 +97,7 @@ comments explain what each one is for and delete as you go.
 ### The rewrite test
 
 **If the transpiler were rebuilt from scratch in a different language and stack, every ADR must
-still be fully applicable.** An ADR decides something about the C-Next language; it does not
+still be fully applicable.** An ADR decides something about the cnx language; it does not
 record how today's TypeScript/ANTLR/Node implementation satisfies that decision.
 
 **This table is the single source of truth for what that admits.** CLAUDE.md, `TEMPLATE.md` and
@@ -108,7 +108,7 @@ before anyone noticed.
 
 | In an ADR                                       | Not in an ADR                                  |
 | ----------------------------------------------- | ---------------------------------------------- |
-| C-Next snippets; generated C/C++ snippets       | TypeScript/JavaScript source                   |
+| cnx snippets; generated C/C++ snippets          | TypeScript/JavaScript source                   |
 | EBNF grammar productions                        | ANTLR-only directives (`-> skip`, `channel()`) |
 | Prior art in any language, including TS and JS  | `src/**` paths; transpiler class/method names  |
 | Diagnostics, messages, the scope-context matrix | npm, `package.json`, CI config, tool commands  |

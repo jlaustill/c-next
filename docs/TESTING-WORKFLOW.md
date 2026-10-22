@@ -1,6 +1,6 @@
-# C-Next Testing Workflow
+# cnx Testing Workflow
 
-**Purpose:** Step-by-step guide for writing comprehensive, bug-finding tests in C-Next.
+**Purpose:** Step-by-step guide for writing comprehensive, bug-finding tests in cnx.
 
 This workflow was developed during the 2026-01-11 postfix chain testing session, where we created 11 comprehensive tests, found 2 bugs (1 fixed, 1 documented), and increased coverage from 60% to 62%.
 
@@ -8,7 +8,7 @@ This workflow was developed during the 2026-01-11 postfix chain testing session,
 
 ## Testing Philosophy
 
-**"We don't work around bugs in C-Next, we tackle them HEAD-ON!"**
+**"We don't work around bugs in cnx, we tackle them HEAD-ON!"**
 
 When tests expose bugs:
 

@@ -1,4 +1,4 @@
-# C-Next Project Instructions
+# cnx Project Instructions
 
 ## Starting a Task
 
@@ -10,7 +10,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### GitHub CLI Workaround
 
-`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/smeltworks/cnx/issues/<number>` instead.
 
 ## Workflow: Research First
 
@@ -127,7 +127,7 @@ the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#199
 
 **Test Commands:**
 
-- `npm test` — Run C-Next integration tests (.test.cnx files)
+- `npm test` — Run cnx integration tests (.test.cnx files)
 - `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
 - `npm test -- tests/enum/my.test.cnx` — Run single test file (multiple files: use directory pattern instead)
@@ -159,7 +159,7 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module. 
 
 ### Test File Patterns
 
-There are **two types of tests** in C-Next:
+There are **two types of tests** in cnx:
 
 #### 1. Compilation Tests (No Validation)
 
@@ -253,7 +253,7 @@ u32 main() {
 }
 ```
 
-### C-Next Test Gotchas
+### cnx Test Gotchas
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 
@@ -324,11 +324,11 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## ADR Reference Rules
 
-**Only use Implemented or Accepted ADRs as examples of C-Next syntax/patterns.**
+**Only use Implemented or Accepted ADRs as examples of cnx syntax/patterns.**
 
 - **Research** ADRs are proposals under investigation — NOT established syntax
 - **Rejected** ADRs document decisions NOT to implement something
-- Never cite Research ADRs as examples of "how C-Next does X"
+- Never cite Research ADRs as examples of "how cnx does X"
 - When exploring syntax patterns, check the ADR status first
 
 ## Generated Test Files
@@ -377,13 +377,13 @@ Quick reference for VS Code extension updates (if grammar changed):
 1. **Regenerate parser** if grammar changed: `npm run antlr`
 2. **Update VS Code extension** (`vscode-extension/`):
    - Sync `tmLanguage.json` with any new keywords, types, or syntax
-   - Sync `completionProvider.ts` keywords with actual C-Next keywords
+   - Sync `completionProvider.ts` keywords with actual cnx keywords
    - Bump version in `package.json`
 3. **Rebuild and test extension**:
    ```bash
    cd vscode-extension
    npm run compile
    npx vsce package --allow-missing-repository
-   code --install-extension c-next-*.vsix --force
+   code --install-extension vscode-cnx-*.vsix --force
    ```
 4. **Verify** syntax highlighting and autocompletion work for new features

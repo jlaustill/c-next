@@ -2,7 +2,7 @@
 
 **Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2025-12-26
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
@@ -171,7 +171,7 @@ MISRA C has extensive rules limiting pointer operations:
 
 ## Research: Static Allocation Enables Simplification
 
-Because C-Next uses static allocation (ADR-003), we have a unique opportunity:
+Because cnx uses static allocation (ADR-003), we have a unique opportunity:
 
 **In traditional C:**
 
@@ -179,13 +179,13 @@ Because C-Next uses static allocation (ADR-003), we have a unique opportunity:
 - `malloc()` returns different addresses each time
 - Pointers are passed around to track dynamically allocated memory
 
-**In C-Next:**
+**In cnx:**
 
 - All memory is allocated at compile time or startup
 - Memory addresses are fixed for the program's lifetime
 - No need to "pass ownership" via pointer reassignment
 
-This means **pointer reassignment serves no purpose** in C-Next. If you can't reallocate memory, why would you need to change what address a variable refers to?
+This means **pointer reassignment serves no purpose** in cnx. If you can't reallocate memory, why would you need to change what address a variable refers to?
 
 ---
 
@@ -221,7 +221,7 @@ Console.print(&myVar);  // Prints "0x20001234" (the address)
 
 ### What This Eliminates
 
-| C Problem                        | C-Next Solution                          |
+| C Problem                        | cnx Solution                             |
 | -------------------------------- | ---------------------------------------- |
 | Forget `&` when calling          | Always pass by reference, no `&` needed  |
 | Forget `*` when dereferencing    | No `*` needed, assignment works directly |
@@ -232,7 +232,7 @@ Console.print(&myVar);  // Prints "0x20001234" (the address)
 
 ### Transpilation to C
 
-C-Next:
+cnx:
 
 ```
 i8 myVar <- 1;
@@ -256,7 +256,7 @@ void increment(int8_t* x) {
 increment(&myVar);  // Compiler adds & automatically
 ```
 
-The C output uses standard pointer patterns — C-Next just hides the syntactic complexity.
+The C output uses standard pointer patterns — cnx just hides the syntactic complexity.
 
 ---
 
@@ -379,9 +379,9 @@ const uint32_t TICK_MS = 1000;
 LED_init(&LED_PIN);
 ```
 
-### The C-Next Way
+### The cnx Way
 
-C-Next forces the "good" pattern by making the "bad" pattern impossible:
+cnx forces the "good" pattern by making the "bad" pattern impossible:
 
 ```
 // Configuration values as const variables
@@ -423,7 +423,7 @@ register GPIOB @ GPIOB_BASE; // Works: #define for address literal
 
 `#define` is **text replacement** — it's not a value, it's a macro. Treating it as a value conflates two different concepts. The "icky" feeling of `LED_init(13)` (after macro expansion of `LED_init(LED_PIN)`) reflects this conceptual mismatch.
 
-By enforcing that every argument to a `mut` parameter must be an addressable value, C-Next creates a **"pit of success"** where the easy path is the correct path:
+By enforcing that every argument to a `mut` parameter must be an addressable value, cnx creates a **"pit of success"** where the easy path is the correct path:
 
 1. **Configuration is centralized** — all hardware constants in one place
 2. **Code is self-documenting** — `LED_init(LED_PIN)` explains intent
@@ -565,7 +565,7 @@ int value;
 if (parse("42", &value)) { ... }
 ```
 
-**C-Next:**
+**cnx:**
 
 ```
 bool parse(const char input[], i32 result) {
@@ -590,7 +590,7 @@ void swap(int* a, int* b) {
 swap(&x, &y);
 ```
 
-**C-Next:**
+**cnx:**
 
 ```
 void swap(i32 a, i32 b) {
@@ -603,7 +603,7 @@ swap(x, y);  // Just works!
 
 ### Pattern: Linked Lists / Dynamic Structures
 
-**This is intentionally unsupported.** C-Next targets static allocation. Dynamic data structures that require pointer reassignment (linked lists, trees with rebalancing) are not idiomatic C-Next.
+**This is intentionally unsupported.** cnx targets static allocation. Dynamic data structures that require pointer reassignment (linked lists, trees with rebalancing) are not idiomatic cnx.
 
 For collections, use statically-allocated alternatives:
 
@@ -615,7 +615,7 @@ For collections, use statically-allocated alternatives:
 
 ## Simplicity Check
 
-> **Can a senior C developer read C-Next code cold and understand it in 30 seconds?**
+> **Can a senior C developer read cnx code cold and understand it in 30 seconds?**
 
 Test case:
 
@@ -637,7 +637,7 @@ The key insight: **If it looks like it modifies the variable, it does.** No hidd
 
 ## Summary
 
-| Feature              | C         | C++                 | Rust       | C-Next             |
+| Feature              | C         | C++                 | Rust       | cnx                |
 | -------------------- | --------- | ------------------- | ---------- | ------------------ |
 | Pass by value        | Default   | Default             | Default    | Never              |
 | Pass by reference    | `*` + `&` | `&` in signature    | `&`/`&mut` | Default            |
@@ -645,14 +645,14 @@ The key insight: **If it looks like it modifies the variable, it does.** No hidd
 | Dereference syntax   | `*ptr`    | `*ptr` or automatic | `*ptr`     | Automatic          |
 | Address-of operator  | `&var`    | `&var`              | `&var`     | `&var` (read-only) |
 
-**C-Next's model:** Everything is a reference. Assignment updates values. Addresses are fixed. Simple.
+**cnx's model:** Everything is a reference. Assignment updates values. Addresses are fixed. Simple.
 
 ---
 
 ## Next Steps
 
 1. **Prototype transpiler** — Implement the reference model transformation
-2. **Test with real code** — Convert Arduino examples to C-Next
+2. **Test with real code** — Convert Arduino examples to cnx
 3. **Performance benchmarks** — Measure pass-by-reference overhead for small types
 4. **Survey developers** — Is this model intuitive or surprising?
 5. **Edge cases** — Document all interactions with other features

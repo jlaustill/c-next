@@ -7,9 +7,9 @@
 
 ## Context
 
-C-Next builds the C name of a scope member by joining the scope name and the member name with an underscore (ADR-016: "Members become `Scope_member` in generated C"). Enums do the same for their members (ADR-017: `Motor_State_IDLE`).
+cnx builds the C name of a scope member by joining the scope name and the member name with an underscore (ADR-016: "Members become `Scope_member` in generated C"). Enums do the same for their members (ADR-017: `Motor_State_IDLE`).
 
-Because `_` is also a legal character _inside_ an identifier, that join is **not injective** — distinct C-Next declarations can produce the same C identifier. Issue #1117 documents two independent ways this happens, both of which transpile with exit 0 and then fail in the C compiler.
+Because `_` is also a legal character _inside_ an identifier, that join is **not injective** — distinct cnx declarations can produce the same C identifier. Issue #1117 documents two independent ways this happens, both of which transpile with exit 0 and then fail in the C compiler.
 
 **Collision class 1 — a global collides with a scope member:**
 
@@ -39,7 +39,7 @@ scope A   { u8 B_c <- 2; u8 readIt() { return B_c; } }
 
 Both members become `A_B_c`. Worse than the duplicate definition, `A_readIt()` is generated as `return A_B_c;` — it silently reads the _other scope's_ variable. The duplicate definition is caught here only because both landed in one translation unit.
 
-The failure lands in the C compiler (or, in class 2, does not land at all), not in the transpiler. This directly contradicts C-Next's purpose: scopes exist precisely so that `Reg.flags` and a global `Reg_flags` can coexist as distinct things.
+The failure lands in the C compiler (or, in class 2, does not land at all), not in the transpiler. This directly contradicts cnx's purpose: scopes exist precisely so that `Reg.flags` and a global `Reg_flags` can coexist as distinct things.
 
 **Collision class 3 — a transpiler-invented name collides with a user name.** _(Added by the 2026-08-07 amendment; issues #1131, #1133.)_
 
@@ -59,7 +59,7 @@ This class is **not** addressed by the underscore rule below. That rule makes th
 
 ### Why a diagnostic is the wrong fix
 
-The obvious response — detect the collision and emit an error — was considered and rejected. It imports a C limitation into C-Next and makes the programmer responsible for working around an artifact of the code generator. A user who writes a global `Reg_flags` and an unrelated `scope Reg` has written two unambiguous, well-formed declarations; refusing them is a defect in the name generation, not in the program.
+The obvious response — detect the collision and emit an error — was considered and rejected. It imports a C limitation into cnx and makes the programmer responsible for working around an artifact of the code generator. A user who writes a global `Reg_flags` and an unrelated `scope Reg` has written two unambiguous, well-formed declarations; refusing them is a defect in the name generation, not in the program.
 
 ### Why a longer separator alone is insufficient
 
@@ -81,7 +81,7 @@ Injectivity therefore requires constraining the separator's **left** boundary �
 | Collision diagnostic only                        | n/a       | Rejects well-formed programs; punishes the user for a codegen artifact                                                          |
 | `s_` prefix on scope members                     | **No**    | Fixes class 1 only; class 2 still collides (`s_A_B_c`)                                                                          |
 | `__` separator, forbid only `__` in identifiers  | **No**    | Boundary underscores still collide (`A_`/`B` vs `A`/`_B`)                                                                       |
-| Forbid `_` in identifiers entirely               | Yes       | Breaks `SysTick_Handler` (ARM vector table), 162 corpus files, and C-Next's own `byte_length`/`safe_div` builtins               |
+| Forbid `_` in identifiers entirely               | Yes       | Breaks `SysTick_Handler` (ARM vector table), 162 corpus files, and cnx's own `byte_length`/`safe_div` builtins                  |
 | Forbid leading, trailing **and** consecutive `_` | Yes       | Correct, but needlessly strict — breaks the `_handler` private-member idiom (ADR-029) for no additional guarantee               |
 | Length-prefixed components (`s_3Reg5flags`)      | Yes       | No naming restriction, but generated C becomes unreadable — works against the generated C being a review/certification artifact |
 | **Forbid trailing and consecutive `_` (chosen)** | **Yes**   | **0 existing identifiers violate the rule**                                                                                     |
@@ -111,7 +111,7 @@ Two independent rules. **Part 1** makes the qualified-name join injective; **par
 
 ### Part 1 — the underscore rule
 
-**A C-Next identifier may not end with `_`, and may not contain two or more consecutive underscores.**
+**A cnx identifier may not end with `_`, and may not contain two or more consecutive underscores.**
 
 Stated against the existing lexer rule, which is unchanged:
 
@@ -146,7 +146,7 @@ Additionally, a plain identifier can never collide with a qualified one: a quali
 
 The proof above constrains only the **left** boundary of the separator — it needs `S` not to end with `_`, and needs neither component to contain `__`. What `M` _begins_ with never enters the argument. Forbidding a leading underscore would therefore restrict the language without buying any additional guarantee.
 
-This matters in practice: a leading underscore marking a private struct member is an established C-Next idiom, taught in `docs/language-guide.md` and used throughout ADR-029 (Function Pointers):
+This matters in practice: a leading underscore marking a private struct member is an established cnx idiom, taught in `docs/language-guide.md` and used throughout ADR-029 (Function Pointers):
 
 ```cnx
 struct Controller {
@@ -158,7 +158,7 @@ Permitting it keeps ADR-029 and the language guide correct as written, and reduc
 
 ### Part 2 — the reserved transpiler namespace
 
-**An identifier declared in C-Next source may not begin with `cnx_`, compared case-insensitively.**
+**An identifier declared in cnx source may not begin with `cnx_`, compared case-insensitively.**
 
 That reserves the entire `cnx_` / `CNX_` / `Cnx_` … space for the transpiler. Every name the transpiler invents — one that corresponds to no user declaration — is spelled with it:
 
@@ -173,7 +173,7 @@ That reserves the entire `cnx_` / `CNX_` / `Cnx_` … space for the transpiler. 
 
 **Case-insensitive**, for two reasons. Include guards are uppercase by universal C convention while identifiers are not, so a case-insensitive rule covers both with one statement instead of two. And it forecloses the confusing near-miss: `Cnx_state` would otherwise be legal, read as transpiler output to every reviewer, and be neither.
 
-**Declaration contexts only**, exactly as part 1 (see "Scope of the rule"). A C-Next file that _calls_ an external C symbol named `cnx_foo()` is untouched.
+**Declaration contexts only**, exactly as part 1 (see "Scope of the rule"). A cnx file that _calls_ an external C symbol named `cnx_foo()` is untouched.
 
 ### Why the reserved prefix does not replace the underscore rule
 
@@ -217,7 +217,7 @@ The "Why a diagnostic is the wrong fix" argument above does **not** apply here. 
 The grammar above is **specification, not implementation**. The rule is enforced semantically, as diagnostic E0201, while the `IDENTIFIER` lexer rule stays permissive. Three reasons:
 
 1. **Diagnostic quality.** A lexical rejection surfaces as a token-recognition failure followed by cascading parse errors — no error code, no source-accurate location for the identifier, and no `help:` line. An ADR that defines an error code has already implicitly chosen semantic enforcement.
-2. **The C-interop carve-out.** The analyzer checks only _declaration_ contexts. A C-Next file that _calls_ an external symbol such as `__disable_irq()` or `_exit()` is untouched, which is exactly the scope this ADR specifies. A lexer rule cannot make that distinction.
+2. **The C-interop carve-out.** The analyzer checks only _declaration_ contexts. A cnx file that _calls_ an external symbol such as `__disable_irq()` or `_exit()` is untouched, which is exactly the scope this ADR specifies. A lexer rule cannot make that distinction.
 3. **Cost.** A grammar change forces `npm run antlr:all` and re-committing the generated parser sources, for no benefit here.
 
 Preprocessor directive tokens (`#define`, `#ifdef`, `#ifndef`, `#pragma target`) embed their own identifier character classes in the grammar and are deliberately **not** covered by this rule, so include guards such as `#ifndef __MY_GUARD__` continue to work.
@@ -226,7 +226,7 @@ Preprocessor directive tokens (`#define`, `#ifdef`, `#ifndef`, `#pragma target`)
 
 Both parts have the same scope.
 
-- Applies to **identifiers declared in C-Next source**: variables, parameters, functions, scopes, structs and their fields, enums and their members, bitmaps, registers.
+- Applies to **identifiers declared in cnx source**: variables, parameters, functions, scopes, structs and their fields, enums and their members, bitmaps, registers.
 - Does **not** apply to symbols referenced from included C/C++ headers. Those names come from the C world, are emitted verbatim, and never participate in qualified-name construction (ADR-010). Calling `HAL_GPIO_Init()` or `strncpy()` is unaffected.
 
 ### What remains legal
@@ -238,8 +238,8 @@ The rule is deliberately narrow. Every one of these is still valid:
 | `tick_count`      | ordinary `snake_case`                                  |
 | `CONTROL_REG`     | register naming in the existing corpus                 |
 | `SysTick_Handler` | ARM Cortex-M vector table — the name is not negotiable |
-| `byte_length`     | C-Next's own built-in properties (ADR-058)             |
-| `safe_div`        | C-Next's own built-in functions (ADR-051)              |
+| `byte_length`     | cnx's own built-in properties (ADR-058)                |
+| `safe_div`        | cnx's own built-in functions (ADR-051)                 |
 | `_handler`        | private-member idiom taught in ADR-029                 |
 
 ### Migration cost
@@ -253,7 +253,7 @@ Every identifier token in `tests/` and `examples/` was extracted (comments and s
 | Leading `_`               | 1 (`_handler`) | **yes**               |
 | Leading `cnx_` (any case) | 0              | no                    |
 
-**No existing C-Next source requires renaming.**
+**No existing cnx source requires renaming.**
 
 The `cnx_` figure is worth stating precisely, because a grep for `cnx_` over the corpus does return hits — 7 distinct names, all of the form `cnx_clamp_<op>_<type>`. Every one of them appears only in generated `.c` output, as an overflow helper. None is declared in `.cnx` source. Part 2 therefore does not introduce a convention; it reserves one the transpiler had already adopted for its overflow helpers and failed to apply to its temporaries and guards.
 
@@ -261,7 +261,7 @@ An earlier revision of this ADR also forbade leading underscores and claimed zer
 
 ### Alignment with C and C++
 
-The forbidden patterns are already reserved or discouraged outside C-Next:
+The forbidden patterns are already reserved or discouraged outside cnx:
 
 - **C11 §7.1.3** — identifiers beginning with `_` followed by an uppercase letter or another `_` are reserved for any use. Forbidding `__` covers the `__`-prefixed half of this.
 - **C++ §lex.name/3.2** — identifiers containing `__` _anywhere_ are reserved to the implementation.
@@ -283,7 +283,7 @@ $ clang-tidy rid.c   -checks='-*,bugprone-reserved-identifier' -- -std=c99
 
 Nothing breaks and nothing miscompiles: no real toolchain collides with these names, and `npm run validate:c` does not flag it (its clang-tidy run passes no `-checks=`, and the repo has no `.clang-tidy`). It is a conformance property of the generated artifact, and it matters for MISRA C++:2008 17-0-1 / AUTOSAR M17-0-1.
 
-C is C-Next's primary target and the injectivity argument is language-independent, so the separator is not re-litigated over this. The clean long-term fix for C++ mode is to emit real `namespace Scope { }` blocks so the flat name never reaches a C++ translation unit — see Open Questions.
+C is cnx's primary target and the injectivity argument is language-independent, so the separator is not re-litigated over this. The clean long-term fix for C++ mode is to emit real `namespace Scope { }` blocks so the flat name never reaches a C++ translation unit — see Open Questions.
 
 ## Diagnostics
 
@@ -335,7 +335,7 @@ Generated C symbol names change, because the qualified-name separator becomes `_
 | `Motor_State_IDLE` | `Motor__State__IDLE` |
 | `State_IDLE`       | `State__IDLE`        |
 
-Every `.expected.c` / `.expected.h` snapshot regenerates, and any C or C++ that calls into C-Next must be updated to the new symbol names. This break is unavoidable for any fix in this area; this is the smallest form of it, since no C-Next source needs to change.
+Every `.expected.c` / `.expected.h` snapshot regenerates, and any C or C++ that calls into cnx must be updated to the new symbol names. This break is unavoidable for any fix in this area; this is the smallest form of it, since no cnx source needs to change.
 
 The 2026-08-07 amendment changes two further families of generated names:
 
@@ -348,11 +348,11 @@ The 2026-08-07 amendment changes two further families of generated names:
 
 Temporaries are function-local and guards are internal to the generated header, so neither is part of the interface a C or C++ consumer links against — unlike the separator change above, nothing downstream must be updated. Every `.expected.h` snapshot regenerates for the guard, and those `.expected.c` snapshots containing a temporary regenerate with it.
 
-A user identifier beginning with `cnx_` is newly rejected. Zero occur in the corpus (see "Migration cost"), so this breaks no existing C-Next source.
+A user identifier beginning with `cnx_` is newly rejected. Zero occur in the corpus (see "Migration cost"), so this breaks no existing cnx source.
 
 ### Non-breaking
 
-- No existing C-Next identifier requires renaming.
+- No existing cnx identifier requires renaming.
 - Both collision classes in #1117 become unrepresentable rather than diagnosed.
 - Collision class 3 becomes unrepresentable for temporaries and helpers: a user cannot declare a name in the transpiler's namespace, so a generated name cannot shadow one. The include-guard residue is the sole case that remains diagnosed rather than unrepresentable, for the reasons given in "Include guards".
 - Include resolution keys on the resolved path rather than the basename, so two `.cnx` files sharing a basename both reach the compilation (#1134). That fix is a prerequisite for the guard change, not a consequence of it: while same-basename files were silently dropped, the guard collision they cause was unreachable within a single compilation.
@@ -364,7 +364,7 @@ A user identifier beginning with `cnx_` is newly rejected. Zero occur in the cor
 - If ADR-105 (Prefixed Includes) is adopted, a **filename becomes a qualified-name component** — `Arduino.Serial.begin()` → `Arduino__Serial__begin`. Part 1's constraints would then have to apply to filenames as well as identifiers, since nothing today stops a file being named `mod__a.cnx` or `mod_.cnx`. The include-guard rule above already takes a first step by keying on the path and diagnosing the residue; ADR-105 should decide whether to extend the full underscore rule to filenames rather than invent a parallel one.
 - Should a **file-scope** identifier be permitted to begin with `_`? C11 §7.1.3 reserves those, so a leading-underscore global emits a reserved C identifier. The motivating idiom (`_handler`) is a struct member and is unaffected, so this rule does not restrict it — but a narrower "leading `_` on globals only" check could be added later without affecting injectivity.
 
-Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201 — see [jlaustill/vscode-c-next#8](https://github.com/jlaustill/vscode-c-next/issues/8). That issue also captures a prerequisite in this repo: a diagnostic's code and help text are currently dropped on the way to the editor, so `helpText` never reaches users today.
+Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201 — see [smeltworks/vscode-cnx#8](https://github.com/smeltworks/vscode-cnx/issues/8). That issue also captures a prerequisite in this repo: a diagnostic's code and help text are currently dropped on the way to the editor, so `helpText` never reaches users today.
 
 ## References
 

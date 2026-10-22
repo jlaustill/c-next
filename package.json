@@ -1,5 +1,5 @@
 {
-  "name": "c-next",
+  "name": "@smeltworks/cnx",
   "version": "0.4.0",
   "description": "A safer C for embedded systems development. Transpiles to clean, readable C.",
   "packageManager": "npm@11.9.0",

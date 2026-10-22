@@ -1,7 +1,7 @@
 // test-error
 // #1283 review: ADR-029 gives every element of a callback array its default
-// function, so C-Next must know how many elements there are. A macro whose
-// value C-Next cannot read (a sizeof) is rejected at the dimension -- with the
+// function, so cnx must know how many elements there are. A macro whose
+// value cnx cannot read (a sizeof) is rejected at the dimension -- with the
 // dimension on either side of the name, and for a scope-nested struct with a
 // default named bare (#1283 review: 2.1 and render resolve the same type).
 #include "handler_sizes.h"

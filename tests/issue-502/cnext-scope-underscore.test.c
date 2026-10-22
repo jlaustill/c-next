@@ -8,15 +8,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Tests: Issue #502 - C-Next scope types must use _ NOT ::
-// This ensures the fix doesn't incorrectly convert C-Next scope types
-// C-Next scope - Motor_State should stay as Motor_State (underscore)
+// Tests: Issue #502 - cnx scope types must use _ NOT ::
+// This ensures the fix doesn't incorrectly convert cnx scope types
+// cnx scope - Motor_State should stay as Motor_State (underscore)
 /* Scope: Motor */
 
 // Another scope to test nesting
 /* Scope: Sensor */
 
-// Test: C-Next nested types must use _ not ::
+// Test: cnx nested types must use _ not ::
 Sensor__Reading reading = { .motorState = { .position = 0, .running = false }, .value = 42 };
 
 int main(void) {

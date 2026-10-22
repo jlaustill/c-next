@@ -73,7 +73,7 @@ Expected: FAIL - Cannot find module '../CallExprUtils'
  */
 
 /**
- * Issue #304: C-Next type to C type mapping for static_cast.
+ * Issue #304: cnx type to C type mapping for static_cast.
  */
 const TYPE_MAP: Record<string, string> = {
   u8: "uint8_t",
@@ -91,8 +91,8 @@ const TYPE_MAP: Record<string, string> = {
 
 class CallExprUtils {
   /**
-   * Issue #304: Map C-Next type to C type for static_cast.
-   * Returns the input unchanged if not a known C-Next primitive type.
+   * Issue #304: Map cnx type to C type for static_cast.
+   * Returns the input unchanged if not a known cnx primitive type.
    */
   static mapTypeToCType(cnxType: string): string {
     return TYPE_MAP[cnxType] || cnxType;
@@ -292,7 +292,7 @@ Add to the test file:
 
 ```typescript
 describe("generateStaticCast", () => {
-  it("wraps code with static_cast for C-Next types", () => {
+  it("wraps code with static_cast for cnx types", () => {
     expect(CallExprUtils.generateStaticCast("MyEnum::Value", "u32")).toBe(
       "static_cast<uint32_t>(MyEnum::Value)",
     );
@@ -466,7 +466,7 @@ Body:
 - Updates CallExprGenerator to use the new utilities
 
 ## Functions Extracted
-1. `mapTypeToCType` - Issue #304: C-Next to C type mapping for static_cast
+1. `mapTypeToCType` - Issue #304: cnx to C type mapping for static_cast
 2. `isSmallPrimitiveType` - Issue #315: Pass-by-value type detection
 3. `generateSafeDivModHelperName` - ADR-051: Safe division helper names
 4. `generateStaticCast` - Issue #304: C++ static_cast generation

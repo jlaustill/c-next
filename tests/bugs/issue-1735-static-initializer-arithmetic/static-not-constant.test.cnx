@@ -3,7 +3,7 @@
 // Issues #1735 and #2018: a static-storage initializer needs a value known at
 // compile time (ADR-044), in C++ as in C. A variable or a call has none, at
 // file scope and in a scope alike, whatever the value's type: an enum or a
-// struct too. Arithmetic over a header macro C-Next cannot read has none it
+// struct too. Arithmetic over a header macro cnx cannot read has none it
 // can check, so whether it clamps or wraps is not known.
 //
 // NEGATIVE CONTROL: K reads a read-only binding, which has one, and must stay

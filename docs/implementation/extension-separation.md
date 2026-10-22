@@ -2,7 +2,7 @@
 
 > **Formerly ADR-060.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
 > test (#1403): where the extension's source lives, and how it is versioned and
-> published, is repository logistics rather than a property of C-Next. Number 060 is
+> published, is repository logistics rather than a property of cnx. Number 060 is
 > retired — see [`../decisions/README.md`](../decisions/README.md).
 
 **Status:** Research
@@ -10,7 +10,7 @@
 
 ## Context
 
-The C-Next VS Code extension currently lives in `vscode-extension/` within the main c-next repository. This creates limitations:
+The cnx VS Code extension currently lives in `vscode-extension/` within the main cnx repository. This creates limitations:
 
 1. **Versioning** - Extension versions tied to transpiler releases
 2. **CI/CD** - No dedicated pipeline for extension testing or marketplace publishing
@@ -18,7 +18,7 @@ The C-Next VS Code extension currently lives in `vscode-extension/` within the m
 
 ## Decision
 
-Separate the VS Code extension into its own repository at `github.com/jlaustill/vscode-c-next` with:
+Separate the VS Code extension into its own repository at `github.com/smeltworks/vscode-cnx` with:
 
 - Independent versioning and releases
 - Dedicated CI/CD pipeline with SonarCloud analysis
@@ -30,7 +30,7 @@ Separate the VS Code extension into its own repository at `github.com/jlaustill/
 ```
 ┌─────────────────────┐     JSON/stdin/stdout     ┌─────────────────────┐
 │   VS Code Extension │ ◄──────────────────────► │   cnext --serve     │
-│   (vscode-c-next)   │                           │   (language server) │
+│   (vscode-cnx)   │                           │   (language server) │
 └─────────────────────┘                           └─────────────────────┘
 ```
 
@@ -170,7 +170,7 @@ If server unavailable, extension still provides:
 - Snippets
 - Language configuration (brackets, comments)
 
-Show warning: "C-Next server not found. Install with: npm i -g @jlaustill/cnext"
+Show warning: "cnx server not found. Install with: npm i -g @jlaustill/cnext"
 
 #### Extension Settings
 
@@ -228,7 +228,7 @@ Only proceed after Phase 2 is stable.
 #### New Repository Structure
 
 ```
-vscode-c-next/
+vscode-cnx/
 ├── .github/workflows/
 │   ├── ci.yml           # PR checks (lint, test, build)
 │   └── publish.yml      # Marketplace publish on tags

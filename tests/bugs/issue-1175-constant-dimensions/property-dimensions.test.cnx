@@ -1,7 +1,7 @@
 // test-execution
 // Issue #1175 / ADR-058: a length property is a compile-time constant, so it
 // sizes an array. A local sized this way worked before #1175 (render folded
-// the property), while a global reached the header as the C-Next name
+// the property), while a global reached the header as the cnx name
 // `src__element_count`. Both now fold by the one rule render reads too.
 //
 // `sized` is itself sized by a const, so its property settles only after its

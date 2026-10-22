@@ -5,7 +5,7 @@
 /**
  * Issue #321: Test header for differentiating object instances vs classes
  *
- * This test verifies C-Next correctly handles:
+ * This test verifies cnx correctly handles:
  *   - Classes with static methods -> uses ::
  *   - Object instances (via extern) -> uses .
  *

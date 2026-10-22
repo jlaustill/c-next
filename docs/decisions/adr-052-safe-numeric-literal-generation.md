@@ -6,16 +6,16 @@
 
 ## Related
 
-- GitHub Issue: [#111 - Bug: Negative hex literals may generate incorrect C due to unsigned type interpretation](https://github.com/jlaustill/c-next/issues/111)
-- Discovered during: [#107 - Support negative literals in switch case labels](https://github.com/jlaustill/c-next/issues/107)
+- GitHub Issue: [#111 - Bug: Negative hex literals may generate incorrect C due to unsigned type interpretation](https://github.com/smeltworks/cnx/issues/111)
+- Discovered during: [#107 - Support negative literals in switch case labels](https://github.com/smeltworks/cnx/issues/107)
 
 ## Context
 
-When C-Next generates C code containing numeric literals, certain edge cases produce technically valid but semantically incorrect C code due to how C interprets literal types.
+When cnx generates C code containing numeric literals, certain edge cases produce technically valid but semantically incorrect C code due to how C interprets literal types.
 
 ### The Problem
 
-**C-Next source:**
+**cnx source:**
 
 ```cnx
 switch (val) {
@@ -113,11 +113,11 @@ This is why `<limits.h>` defines `INT_MIN` as:
 
 Both `2147483647` and `1` fit in `int`, so the expression has type `int` and value `-2147483648`.
 
-**Implication for C-Next:**
+**Implication for cnx:**
 
 For boundary values (type MIN values), the safest generated C is the `(-MAX - 1)` pattern:
 
-| C-Next Value                | Generated C                    |
+| cnx Value                   | Generated C                    |
 | --------------------------- | ------------------------------ |
 | `-0x80000000` (i32)         | `(-2147483647 - 1)`            |
 | `-0x8000000000000000` (i64) | `(-9223372036854775807LL - 1)` |
@@ -173,7 +173,7 @@ Rust [explicitly types all literals](https://doc.rust-lang.org/reference/tokens.
 
 **Approach:** When generating a negative hex literal, emit the decimal equivalent instead.
 
-**C-Next input:**
+**cnx input:**
 
 ```cnx
 case -0x80000000 { }
@@ -203,7 +203,7 @@ case -255: { break; }
 
 **Approach:** Append appropriate suffix to force signed interpretation.
 
-**C-Next input:**
+**cnx input:**
 
 ```cnx
 case -0x80000000 { }
@@ -216,7 +216,7 @@ case -0x80000000LL: { break; }  // LL forces long long (signed)
 ```
 
 **Suffix mapping:**
-| C-Next Type | C Suffix |
+| cnx Type | C Suffix |
 |-------------|----------|
 | i8, i16, i32 | None or `L` |
 | i64 | `LL` |
@@ -238,7 +238,7 @@ case -0x80000000LL: { break; }  // LL forces long long (signed)
 
 **Approach:** Wrap the literal in an explicit cast to the target type.
 
-**C-Next input:**
+**cnx input:**
 
 ```cnx
 i32 val <- -0x80000000;
@@ -276,7 +276,7 @@ case (int32_t)(-0x80000000): { break; }
 1. If hex value fits in target signed type without ambiguity → preserve hex
 2. If hex value would be interpreted as unsigned → convert to decimal
 
-**C-Next input:**
+**cnx input:**
 
 ```cnx
 case -0x7F { }    // Safe: 127 fits in signed int
@@ -305,7 +305,7 @@ case -4096: { break; }   // Converted to decimal (safe)
 
 **Approach:** For boundary values (TYPE_MIN and TYPE_MAX), emit a compiler error requiring explicit named constants.
 
-**C-Next input:**
+**cnx input:**
 
 ```cnx
 case -0x80000000 { }  // ❌ Error
@@ -334,20 +334,20 @@ case INT32_MAX: { break; }
 
 **Constant mapping:**
 
-| C-Next Constant | C Output (`<stdint.h>`) |
-| --------------- | ----------------------- |
-| `i8_MIN`        | `INT8_MIN`              |
-| `i8_MAX`        | `INT8_MAX`              |
-| `i16_MIN`       | `INT16_MIN`             |
-| `i16_MAX`       | `INT16_MAX`             |
-| `i32_MIN`       | `INT32_MIN`             |
-| `i32_MAX`       | `INT32_MAX`             |
-| `i64_MIN`       | `INT64_MIN`             |
-| `i64_MAX`       | `INT64_MAX`             |
-| `u8_MAX`        | `UINT8_MAX`             |
-| `u16_MAX`       | `UINT16_MAX`            |
-| `u32_MAX`       | `UINT32_MAX`            |
-| `u64_MAX`       | `UINT64_MAX`            |
+| cnx Constant | C Output (`<stdint.h>`) |
+| ------------ | ----------------------- |
+| `i8_MIN`     | `INT8_MIN`              |
+| `i8_MAX`     | `INT8_MAX`              |
+| `i16_MIN`    | `INT16_MIN`             |
+| `i16_MAX`    | `INT16_MAX`             |
+| `i32_MIN`    | `INT32_MIN`             |
+| `i32_MAX`    | `INT32_MAX`             |
+| `i64_MIN`    | `INT64_MIN`             |
+| `i64_MAX`    | `INT64_MAX`             |
+| `u8_MAX`     | `UINT8_MAX`             |
+| `u16_MAX`    | `UINT16_MAX`            |
+| `u32_MAX`    | `UINT32_MAX`            |
+| `u64_MAX`    | `UINT64_MAX`            |
 
 **Pros:**
 
@@ -480,6 +480,6 @@ This provides educational safety for the most dangerous edge cases while automat
 ### General
 
 - [ ] Verify generated C compiles without warnings
-- [ ] Verify runtime behavior matches C-Next semantics
+- [ ] Verify runtime behavior matches cnx semantics
 - [ ] Update documentation (learn-cnext-in-y-minutes.md) with MIN/MAX constants
 - [ ] Update #111 with implementation details

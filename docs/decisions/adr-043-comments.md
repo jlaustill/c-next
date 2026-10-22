@@ -6,7 +6,7 @@
 
 ## Context
 
-Comments are essential for code documentation and maintainability. C-Next currently supports C-style comments in the grammar but skips them during transpilation, meaning no comments appear in the generated C output.
+Comments are essential for code documentation and maintainability. cnx currently supports C-style comments in the grammar but skips them during transpilation, meaning no comments appear in the generated C output.
 
 For embedded systems development, comments serve critical purposes:
 
@@ -18,7 +18,7 @@ For embedded systems development, comments serve critical purposes:
 
 ## Behavior Before This Decision
 
-C-Next accepted all three comment forms and discarded two of them, so a commented
+cnx accepted all three comment forms and discarded two of them, so a commented
 source file transpiled to uncommented C:
 
 ```cnx
@@ -42,7 +42,7 @@ uint8_t prescaler = 4;
 
 ### Comment Syntax
 
-C-Next uses standard C comment syntax:
+cnx uses standard C comment syntax:
 
 ```cnx
 // Single-line comment
@@ -134,7 +134,7 @@ struct UARTConfig {
 
 ### Comment Conversion Rules
 
-| C-Next          | Generated C     | Notes                              |
+| cnx             | Generated C     | Notes                              |
 | --------------- | --------------- | ---------------------------------- |
 | `// comment`    | `/* comment */` | Single-line → block for C89 compat |
 | `/* comment */` | `/* comment */` | Passed through unchanged           |
@@ -182,15 +182,15 @@ transpilation rather than being discarded, so all three reach the generated C.
 
 ### Output Form
 
-| Written in C-Next | Emitted in C                              |
-| ----------------- | ----------------------------------------- |
-| `// text`         | `/* text */` where C89 output is required |
-| `/* text */`      | unchanged                                 |
-| `/// text`        | `/** text */` (Doxygen)                   |
+| Written in cnx | Emitted in C                              |
+| -------------- | ----------------------------------------- |
+| `// text`      | `/* text */` where C89 output is required |
+| `/* text */`   | unchanged                                 |
+| `/// text`     | `/** text */` (Doxygen)                   |
 
 A comment keeps its position relative to the construct it documents, per the
 association rules below. The generated C is a certification artifact and a reviewer
-reads it against the C-Next it came from; a comment that moved, or that survived
+reads it against the cnx it came from; a comment that moved, or that survived
 while its neighbor did not, would break that correspondence.
 
 ### Comment Association Rules
@@ -220,7 +220,7 @@ u32 bar <- 10;  // This documents bar (inline)
 
 ## MISRA C:2012 Compliance
 
-C-Next enforces MISRA comment rules at transpile time:
+cnx enforces MISRA comment rules at transpile time:
 
 ### Rule 3.1: No Nested Comment Markers (Required)
 

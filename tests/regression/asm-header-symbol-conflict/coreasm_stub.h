@@ -5,7 +5,7 @@
  * (it did when the header's own deep includes failed to preprocess), the C
  * parser error-recovered over this `.macro` body and mis-collected the `loop`
  * assembler instruction mnemonic as a C symbol named `loop` — which then
- * false-conflicted with a C-Next `loop()`. #1844: no header is read raw now.
+ * false-conflicted with a cnx `loop()`. #1844: no header is read raw now.
  *
  * Structure copied faithfully from the real header (the `floop_` macro).
  */

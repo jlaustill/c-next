@@ -67,7 +67,7 @@ u32 main() {
     }
 
     // === NOT (!) in ternary condition ===
-    // C-Next requires explicit comparison in ternary conditions
+    // cnx requires explicit comparison in ternary conditions
     u32 val1 <- (f = false) ? 100 : 200;
     if (val1 != 100) {
         return 11;

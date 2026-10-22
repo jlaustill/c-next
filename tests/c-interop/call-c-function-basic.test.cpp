@@ -5,7 +5,7 @@
 
 // test-execution
 // test-coverage: 30-call-c-function
-// Tests: Calling C functions from C-Next code
+// Tests: Calling C functions from cnx code
 // ADR-010: Unified ANTLR parsing for C interoperability
 #include "c-interop/functions.h"
 

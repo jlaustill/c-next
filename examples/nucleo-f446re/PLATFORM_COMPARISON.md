@@ -1,6 +1,6 @@
 # Platform Comparison: Teensy 4.x vs Nucleo-F446RE
 
-This document compares the initialization and hardware differences between the Teensy 4.x (i.MX RT1062) and Nucleo-F446RE (STM32F446) platforms for C-Next development.
+This document compares the initialization and hardware differences between the Teensy 4.x (i.MX RT1062) and Nucleo-F446RE (STM32F446) platforms for cnx development.
 
 ## Hardware Overview
 
@@ -163,9 +163,9 @@ STM32F446.GPIOA.PullUpDownRegister[10, 2] <- (u8)STM32F446.GPIOPull.NO_PULL;
 - Consider power consumption (disable unused peripherals)
 - For 180 MHz: configure PLL, flash wait states, voltage regulator
 
-## C-Next Abstraction Benefits
+## cnx Abstraction Benefits
 
-Both platforms use the **scoped register pattern** in C-Next:
+Both platforms use the **scoped register pattern** in cnx:
 
 ```cnx
 // Platform abstraction via scopes

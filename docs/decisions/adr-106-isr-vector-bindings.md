@@ -2,14 +2,14 @@
 
 **Status:** Research
 **Date:** 2026-01-07
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Parent ADR:** [ADR-009: ISR Safety](adr-009-isr-safety.md)
 
 ## Context
 
 When an interrupt fires on ARM Cortex-M, the CPU reads a function pointer from the **vector table** - a memory-mapped array of addresses. The key insight is that **the vector table is just another hardware register** with chip-specific addresses defined in the datasheet.
 
-C-Next's register binding system (ADR-004) is designed exactly for this: platform-specific memory-mapped definitions. This ADR explores treating ISR vector tables as register bindings.
+cnx's register binding system (ADR-004) is designed exactly for this: platform-specific memory-mapped definitions. This ADR explores treating ISR vector tables as register bindings.
 
 ### The Hardware Mechanism
 
@@ -152,7 +152,7 @@ void setup(void) {
 
 ### Flash vs RAM Vector Tables
 
-| Platform          | Vector Table     | Writable at Runtime? | C-Next Strategy               |
+| Platform          | Vector Table     | Writable at Runtime? | cnx Strategy                  |
 | ----------------- | ---------------- | -------------------- | ----------------------------- |
 | Teensy 4.x        | RAM (0x20000000) | Yes                  | Direct write via register     |
 | STM32 (default)   | Flash            | No                   | Link-time binding (see below) |
@@ -161,7 +161,7 @@ void setup(void) {
 
 ### Link-Time Binding for Flash Tables
 
-For platforms where the vector table is in Flash, C-Next could support a `link` access modifier:
+For platforms where the vector table is in Flash, cnx could support a `link` access modifier:
 
 ```cnx
 // STM32F4 - vector table in Flash
@@ -191,13 +191,13 @@ How should platform-specific register definitions be distributed?
 
 **Options:**
 
-- A) Built into C-Next compiler (requires updates for new chips)
+- A) Built into cnx compiler (requires updates for new chips)
 - B) External `.cnx` header files (community-maintained)
 - C) Generated from vendor SVD/CMSIS-SVD files (automated)
 
 ### Q2: IRQ Number Calculation
 
-Should C-Next support computed offsets?
+Should cnx support computed offsets?
 
 ```cnx
 // Option A: Explicit offset for each IRQ
@@ -241,7 +241,7 @@ VectorTable.LPUART1.priority <- 64;  // Lower = higher priority
 
 ### Q5: Link-Time vs Runtime Detection
 
-Can C-Next detect whether the vector table is writable and choose the appropriate strategy automatically?
+Can cnx detect whether the vector table is writable and choose the appropriate strategy automatically?
 
 ---
 

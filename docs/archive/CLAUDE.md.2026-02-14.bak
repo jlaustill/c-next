@@ -1,4 +1,4 @@
-# C-Next Project Instructions
+# cnx Project Instructions
 
 ## Correctness Over Convenience — ZERO EXCEPTIONS
 
@@ -46,7 +46,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### GitHub CLI Workaround
 
-`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/smeltworks/cnx/issues/<number>` instead.
 
 ### ts-morph MCP Tools
 
@@ -128,10 +128,10 @@ Check the terminal report for files you changed — any new code below 80% cover
 
 **Useful API queries:**
 
-- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
-- **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
-- **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
-- **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
+- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
+- **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
+- **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
+- **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
 
 ### CSpell (Spelling Check)
 
@@ -244,7 +244,7 @@ The codebase is organized into four layers under `src/transpiler/`:
 
 - ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/CNext.g4` → `src/transpiler/logic/parser/grammar/`
 - Grammar directories excluded from prettier/oxlint via ignore patterns
-- `npm run antlr` — C-Next grammar, `npm run antlr:all` — All grammars (C-Next, C, C++)
+- `npm run antlr` — cnx grammar, `npm run antlr:all` — All grammars (cnx, C, C++)
 
 ### After Grammar Rule Changes
 
@@ -351,7 +351,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 
 ### AST Navigation Patterns
 
-- **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the C-Next grammar uses "declaration" terminology
+- **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the cnx grammar uses "declaration" terminology
 - **Expression unwrapping**: Use `ExpressionUnwrapper` utility in `src/transpiler/output/codegen/utils/` for drilling through expression hierarchy (ternary → or → and → ... → postfix)
 
 ### Assignment Classification (ADR-109)
@@ -381,7 +381,7 @@ When adding new assignment patterns:
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
 - **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
-- **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + C-Next symbol support.
+- **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + cnx symbol support.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
   1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
@@ -413,7 +413,7 @@ When adding a new CLI flag that affects code generation, update all layers:
 
 **Test Commands:**
 
-- `npm test` — Run C-Next integration tests (.test.cnx files)
+- `npm test` — Run cnx integration tests (.test.cnx files)
 - `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
 - `npm test -- tests/enum/my.test.cnx` — Run single test file (multiple files: use directory pattern instead)
@@ -477,7 +477,7 @@ When mocking types in CodeGenerator tests:
 
 ### Test File Patterns
 
-There are **two types of tests** in C-Next:
+There are **two types of tests** in cnx:
 
 #### 1. Compilation Tests (No Validation)
 
@@ -608,7 +608,7 @@ npx tsx scripts/generate-cpp-snapshots.ts --dry-run     # Preview what would be 
 
 When compiling, tests that include C++ headers (detected by features like `class`, `namespace`, `template`) automatically use `g++` instead of `gcc`. This handles tests with `.expected.c` files that contain code including C++ headers.
 
-### C-Next Test Gotchas
+### cnx Test Gotchas
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
@@ -686,11 +686,11 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## ADR Reference Rules
 
-**Only use Implemented or Accepted ADRs as examples of C-Next syntax/patterns.**
+**Only use Implemented or Accepted ADRs as examples of cnx syntax/patterns.**
 
 - **Research** ADRs are proposals under investigation — NOT established syntax
 - **Rejected** ADRs document decisions NOT to implement something
-- Never cite Research ADRs as examples of "how C-Next does X"
+- Never cite Research ADRs as examples of "how cnx does X"
 - When exploring syntax patterns, check the ADR status first
 
 ## Generated Test Files
@@ -756,7 +756,7 @@ If implementing a feature, all documents must be current and memory must be upda
 Quick reference for VS Code extension updates (if grammar changed):
 
 1. **Regenerate parser** if grammar changed: `npm run antlr`
-2. **Update VS Code extension** (separate repo: [vscode-c-next](https://github.com/jlaustill/vscode-c-next)):
+2. **Update VS Code extension** (separate repo: [vscode-cnx](https://github.com/smeltworks/vscode-cnx)):
    - Sync `tmLanguage.json` with any new keywords, types, or syntax
-   - Sync `completionProvider.ts` keywords with actual C-Next keywords
+   - Sync `completionProvider.ts` keywords with actual cnx keywords
    - Tag a new version to publish to marketplace

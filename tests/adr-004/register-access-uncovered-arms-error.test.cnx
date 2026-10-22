@@ -6,7 +6,7 @@
 // register chain on their own: the ro-write check keyed on the FIRST TWO
 // identifiers, so `this.R.ST <- 1` looked up `R__ST` (absent) and passed,
 // emitting an assignment through a `volatile uint32_t const *` macro that the
-// C compiler rejected instead of C-Next. `R.SET +<- 1` on a wo member emitted
+// C compiler rejected instead of cnx. `R.SET +<- 1` on a wo member emitted
 // `R__SET += 1`, a read of a write-only register. Probed before #1322.
 
 scope Board {

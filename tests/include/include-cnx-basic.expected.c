@@ -5,7 +5,7 @@
 
 // test-execution
 // test-adr: 010
-// ADR-010: C Interoperability - Include C-Next files
+// ADR-010: C Interoperability - Include cnx files
 // Tests: #include <file.cnx> transpiles to #include <file.h>
 #include <helper-types.h>
 

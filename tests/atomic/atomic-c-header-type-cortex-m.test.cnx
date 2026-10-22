@@ -1,7 +1,7 @@
 #pragma target teensy41
 // test-adr: 049
 // #2155 review 8: an `atomic` of a C header integer type, which has no
-// C-Next name, is atomic all the same. Its compound and bit writes take the
+// cnx name, is atomic all the same. Its compound and bit writes take the
 // masked region: LDREX/STREX names no header type. On `main` this emitted the
 // masked region; an earlier head of #2155 wrote a plain `f += 1;`.
 
@@ -15,7 +15,7 @@ void bump(u8 n) {
     f +<- 1;
     f[2] <- true;
     f[4, 3] <- n;
-    // CONTROL -- a C-Next integer still takes LDREX/STREX
+    // CONTROL -- a cnx integer still takes LDREX/STREX
     control +<- 1;
 }
 

@@ -7,7 +7,7 @@
  * 3. The generated header has the source path marker
  */
 scope LED {
-    u8 state <- 0;
+    mut u8 state <- 0;
 
     public void on() {
         state <- 1;

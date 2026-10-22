@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Reject signed/float/non-integer types as array and bit indexes at compile time (E0850), and update ADR-054 syntax to match current C-Next conventions.
+**Goal:** Reject signed/float/non-integer types as array and bit indexes at compile time (E0850), and update ADR-054 syntax to match current cnx conventions.
 
 **Architecture:** New `ArrayIndexTypeAnalyzer` in `src/transpiler/logic/analysis/` following the two-pass `FloatModuloAnalyzer` pattern. Pass 1 collects variable type declarations, Pass 2 walks `postfixOp`/`postfixTargetOp` nodes and validates index expression types against the allowed set (unsigned integers, bool, enum, literals).
 
@@ -16,7 +16,7 @@
 
 - Modify: `docs/decisions/adr-054-array-index-overflow.md`
 
-**Step 1: Fix all C-Next syntax in the ADR**
+**Step 1: Fix all cnx syntax in the ADR**
 
 Apply these changes throughout the file:
 
@@ -58,7 +58,7 @@ All bracket subscript expressions require unsigned integer types. Signed integer
 | `i8`, `i16`, `i32`, `i64` | **Compile error** | Negative indexes are undefined behavior |
 | `f32`, `f64`              | **Compile error** | Not valid index types                   |
 
-This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using C-Next's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
+This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using cnx's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
 
 ```cnx
 u8[100] buffer;
@@ -86,7 +86,7 @@ palette[EColor.RED] <- 0xFF;   // OK: enum member
 
 ```bash
 git add docs/decisions/adr-054-array-index-overflow.md
-git commit -m "docs: update ADR-054 syntax to match C-Next conventions
+git commit -m "docs: update ADR-054 syntax to match cnx conventions
 
 Fix array declarations to type[size] name format and add
 Index Type Safety section for unsigned-only index restriction."
@@ -814,7 +814,7 @@ consistent with the new unsigned index restriction (E0850)."
 
 `tests/analysis/signed-array-index.test.cnx`:
 
-```c-next
+```cnx
 // EXPECT-ERROR: Signed integer used as array index
 void test_signed_index() {
     u8[10] buffer;
@@ -835,7 +835,7 @@ Note: The exact line:column will need to be verified by running the test and che
 
 `tests/analysis/float-array-index.test.cnx`:
 
-```c-next
+```cnx
 // EXPECT-ERROR: Float used as array index
 void test_float_index() {
     u8[10] buffer;
@@ -878,7 +878,7 @@ git commit -m "test: add integration tests for signed/float array index errors"
 
 `tests/analysis/signed-bit-index.test.cnx`:
 
-```c-next
+```cnx
 // EXPECT-ERROR: Signed integer used as bit index
 void test_signed_bit() {
     u8 flags <- 0xFF;

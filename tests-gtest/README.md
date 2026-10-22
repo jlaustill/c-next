@@ -1,6 +1,6 @@
-# C-Next Google Test Suite
+# cnx Google Test Suite
 
-This directory contains C-Next tests using Google Test framework.
+This directory contains cnx tests using Google Test framework.
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ ctest --test-dir build --output-on-failure
 
 ## Adding New Tests
 
-1. Create `mytest.test.cnx` with your C-Next code
+1. Create `mytest.test.cnx` with your cnx code
 2. Create `mytest_test.cpp` with GTest assertions:
 
 ```cpp

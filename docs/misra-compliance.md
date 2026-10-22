@@ -1,6 +1,6 @@
-# MISRA C:2012 Compliance in C-Next
+# MISRA C:2012 Compliance in cnx
 
-This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C is a set of software development guidelines for the C programming language, widely used in safety-critical embedded systems.
+This document tracks cnx's compliance with MISRA C:2012 guidelines. MISRA C is a set of software development guidelines for the C programming language, widely used in safety-critical embedded systems.
 
 ## Status Legend
 
@@ -10,7 +10,7 @@ This document tracks C-Next's compliance with MISRA C:2012 guidelines. MISRA C i
 | **By Design**    | Language design makes violation impossible                      |
 | **Partial**      | Some cases enforced, others not yet                             |
 | **Planned**      | On roadmap for future implementation                            |
-| **N/A**          | Rule not applicable to C-Next                                   |
+| **N/A**          | Rule not applicable to cnx                                      |
 | **Not Enforced** | Currently not checked                                           |
 | **Deviation**    | Documented deviation for a valid use, recorded where it applies |
 
@@ -65,7 +65,7 @@ check a silent no-op (issue #1057).
 The failure decision lives in `scripts/misra-baseline.ts`:
 
 - **Generated-only**: cppcheck also flags transitively-included third-party libs
-  and hand-written fixtures; only violations in C-Next-generated output
+  and hand-written fixtures; only violations in cnx-generated output
   (`*.test.c` / generated `*.test.h`) count.
 - **Per-rule baseline**: every rule that currently has generated violations is
   listed in `BASELINE`, each mapped to its tracking issue. Baselined rules do
@@ -79,9 +79,9 @@ The failure decision lives in `scripts/misra-baseline.ts`:
 
 ### Dir 1 - Implementation Compliance
 
-| Rule    | Description                                         | Status | Reference                       |
-| ------- | --------------------------------------------------- | ------ | ------------------------------- |
-| Dir 1.1 | Implementation-defined behavior shall be documented | N/A    | C-Next transpiles to standard C |
+| Rule    | Description                                         | Status | Reference                    |
+| ------- | --------------------------------------------------- | ------ | ---------------------------- |
+| Dir 1.1 | Implementation-defined behavior shall be documented | N/A    | cnx transpiles to standard C |
 
 ### Dir 2 - Compilation Units
 
@@ -187,16 +187,16 @@ uint8_t TemperatureSensorController__calibrationOffsetLimit = 2U;
 ```
 
 On a hosted GCC nothing happens, and `cppcheck --addon=misra` does not report it.
-On the minimal embedded toolchain that is C-Next's target audience the two
+On the minimal embedded toolchain that is cnx's target audience the two
 variables silently become one.
 
 **E0204** rejects this at transpile time, against the budget recorded in
 `ITargetCapabilities.significantExternalIdentifierChars` (31 by default) rather
 than a hardcoded constant — the limit is a property of the C target, not of the
-language. It applies only to identifiers C-Next generates with external linkage:
+language. It applies only to identifiers cnx generates with external linkage:
 `private` members are emitted `static` and get C99's 63-character internal budget
 (Rule 5.9, not yet enforced — issue #1338), types name nothing the linker
-resolves, and a C or C++ header's identifiers are not C-Next's to rename.
+resolves, and a C or C++ header's identifiers are not cnx's to rename.
 
 ### The same budget, still unenforced for types and statics
 
@@ -213,7 +213,7 @@ mechanism. Two of the three classes are still open:
 Rows 5.2, 5.6 and 5.7 previously read **By Design**, justified by "Scope prefixing" and
 "Type system enforces". Both justifications are the one #1307 discredited for 5.1:
 prefixing is what puts the budget at risk rather than what protects it, and the type
-system enforcing uniqueness of _C-Next_ names says nothing about whether the generated
+system enforcing uniqueness of _cnx_ names says nothing about whether the generated
 names survive truncation. Two structs in a 52-character scope generate typedef names and
 struct tags that are 94 characters and byte-identical for 63 — transpiling exit 0
 (reproduction in #1341). Recorded here as `Partial` rather than satisfied.
@@ -233,7 +233,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 | Rule | Description                    | Status        | Reference                                                                                     |
 | ---- | ------------------------------ | ------------- | --------------------------------------------------------------------------------------------- |
-| 7.1  | No octal constants             | **Enforced**  | E0912: C-Next has no octal literal (ADR-044)                                                  |
+| 7.1  | No octal constants             | **Enforced**  | E0912: cnx has no octal literal (ADR-044)                                                     |
 | 7.2  | U suffix on unsigned constants | Partial       | Suffixes are generated, but not on every unsigned constant: #1062                             |
 | 7.3  | Lowercase L not used in suffix | **By Design** | Generated code uses uppercase                                                                 |
 | 7.4  | String literal not modified    | Not Enforced  | A writable `char[N]` initialized from a literal is reported; fix or deviation undecided: #844 |
@@ -257,7 +257,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | 8.11 | Array size explicit when extern                 | Partial       |                                                                                                                                                                 |
 | 8.12 | Implicit enumerator values unique               | Not Enforced  |                                                                                                                                                                 |
 | 8.13 | Pointer to const if not modified                | **By Design** | ADR-071: read-only by default, so an unwritten pointer is `const`; an unwritten `mut` is E0899 (a callback's `mut` parameters excepted, the typedef fixes them) |
-| 8.14 | No restrict qualifier                           | **By Design** | Not in C-Next                                                                                                                                                   |
+| 8.14 | No restrict qualifier                           | **By Design** | Not in cnx                                                                                                                                                      |
 
 ---
 
@@ -306,26 +306,26 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 12 - Expressions
 
-| Rule | Description                           | Status        | Reference                                                                                                                     |
-| ---- | ------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 12.1 | Explicit precedence with parentheses  | Not Enforced  | Could add warning                                                                                                             |
-| 12.2 | Shift not exceeding bit width         | Partial       | E0873 checks the C-Next operand's width; a generated shift of a narrow unsigned literal (`1U << 15`) is still reported: #1065 |
-| 12.3 | No comma operator                     | **By Design** | Not in grammar                                                                                                                |
-| 12.4 | Constant expressions no unsigned wrap | Partial       | E0910 in array dimensions and enum values (ADR-044); a binding's initializer (`u32 X <- 2 - 3`) wraps unchecked: #2145        |
-| 12.5 | sizeof not on array parameters        | N/A           | No array decay                                                                                                                |
+| Rule | Description                           | Status        | Reference                                                                                                                  |
+| ---- | ------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 12.1 | Explicit precedence with parentheses  | Not Enforced  | Could add warning                                                                                                          |
+| 12.2 | Shift not exceeding bit width         | Partial       | E0873 checks the cnx operand's width; a generated shift of a narrow unsigned literal (`1U << 15`) is still reported: #1065 |
+| 12.3 | No comma operator                     | **By Design** | Not in grammar                                                                                                             |
+| 12.4 | Constant expressions no unsigned wrap | Partial       | E0910 in array dimensions and enum values (ADR-044); a binding's initializer (`u32 X <- 2 - 3`) wraps unchecked: #2145     |
+| 12.5 | sizeof not on array parameters        | N/A           | No array decay                                                                                                             |
 
 ---
 
 ## Rule 13 - Side Effects
 
-| Rule | Description                             | Status        | Reference                             |
-| ---- | --------------------------------------- | ------------- | ------------------------------------- |
-| 13.1 | Initializer lists no side effects       | Not Enforced  |                                       |
-| 13.2 | Value of expression with side effects   | Not Enforced  |                                       |
-| 13.3 | Full expression with increment          | Not Enforced  | Could add detection                   |
-| 13.4 | No assignment in condition              | **By Design** | ADR-001: `<-` vs `=`                  |
-| 13.5 | No function calls in boolean conditions | **Enforced**  | E0702 (Issue #254)                    |
-| 13.6 | sizeof operand no side effects          | **By Design** | ADR-023: C-Next has no sizeof (E0603) |
+| Rule | Description                             | Status        | Reference                          |
+| ---- | --------------------------------------- | ------------- | ---------------------------------- |
+| 13.1 | Initializer lists no side effects       | Not Enforced  |                                    |
+| 13.2 | Value of expression with side effects   | Not Enforced  |                                    |
+| 13.3 | Full expression with increment          | Not Enforced  | Could add detection                |
+| 13.4 | No assignment in condition              | **By Design** | ADR-001: `<-` vs `=`               |
+| 13.5 | No function calls in boolean conditions | **Enforced**  | E0702 (Issue #254)                 |
+| 13.6 | sizeof operand no side effects          | **By Design** | ADR-023: cnx has no sizeof (E0603) |
 
 ---
 
@@ -387,8 +387,8 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 | Rule | Description                   | Status        | Reference                                                                                                   |
 | ---- | ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| 18.1 | Pointer arithmetic in bounds  | **By Design** | No pointer arithmetic in C-Next source; premise under audit (see 18.4): #2134                               |
-| 18.2 | Subtraction on same array     | **By Design** | No pointer arithmetic in C-Next source; premise under audit (see 18.4): #2134                               |
+| 18.1 | Pointer arithmetic in bounds  | **By Design** | No pointer arithmetic in cnx source; premise under audit (see 18.4): #2134                                  |
+| 18.2 | Subtraction on same array     | **By Design** | No pointer arithmetic in cnx source; premise under audit (see 18.4): #2134                                  |
 | 18.3 | Relational on same object     | **By Design** | No pointer comparison                                                                                       |
 | 18.4 | No +, -, += , -= on pointers  | Not Enforced  | Substring copies emit `source + offset` (ADR-045), and `+` on a `c_` pointer passes through (ADR-046): #859 |
 | 18.5 | Max two levels of indirection | **By Design** | No raw pointers                                                                                             |
@@ -483,7 +483,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 - [MISRA C:2012 Guidelines](https://www.misra.org.uk/misra-c/)
 - [ADR Index](./decisions/)
-- [C-Next Error Codes](./error-codes.md)
+- [cnx Error Codes](./error-codes.md)
 
 ---
 

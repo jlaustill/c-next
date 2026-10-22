@@ -5,7 +5,7 @@
 // Include resolution keyed on basename instead of the resolved path, so the
 // second file was judged already-included and dropped from the compilation
 // entirely. The transpiler exited 0, never generated uart/config.c or
-// uart/config.h, and emitted the C-Next source form `UartConfig.baudRate()`
+// uart/config.h, and emitted the cnx source form `UartConfig.baudRate()`
 // verbatim into the C output.
 //
 // This test also covers ADR-063 include guards: with both files compiling, the

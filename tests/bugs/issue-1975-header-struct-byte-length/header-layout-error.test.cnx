@@ -1,6 +1,6 @@
 // test-error
 // test-c-only
-// #1975 review: a header struct whose fields C-Next does not all record has
+// #1975 review: a header struct whose fields cnx does not all record has
 // no length. An unnamed union or struct member was dropped, so `AnonUnion`
 // summed to 1 and `AnonStruct` to 1 -- hiding its pointer. A type named by
 // its own field overflowed the stack. All three are E0867 now.

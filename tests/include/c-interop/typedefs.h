@@ -6,7 +6,7 @@
 
 /*
  * C Interop Test Typedefs
- * Test typedef declarations for C-Next interop testing
+ * Test typedef declarations for cnx interop testing
  */
 
 /* Basic type aliases */

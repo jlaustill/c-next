@@ -425,13 +425,13 @@ DO NOT:
 
 ## Project-Specific Rules
 
-### C-Next (`.cnx` files)
+### cnx (`.cnx` files)
 
-If reviewing a PR that touches C-Next files, add these checks:
+If reviewing a PR that touches cnx files, add these checks:
 
 **Rule 1: Fix it upstream, never work around it**
-- If C-Next generates wrong/missing code, rejects valid syntax, or lacks a feature,
-  the fix must go in c-next, not in the consuming project
+- If cnx generates wrong/missing code, rejects valid syntax, or lacks a feature,
+  the fix must go in cnx, not in the consuming project
 - No C/C++ shims, no "de-facto safe" hacks, no avoiding language features
 - If a workaround is needed, the PR must include a bug report with minimal reproduction
 

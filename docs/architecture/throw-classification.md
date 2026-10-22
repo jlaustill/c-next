@@ -9,10 +9,10 @@ first line, not by a list of directories. Most of what follows is #1322's audit 
 as the record of how that directory was emptied. Buckets 1 and 2 each gain an "Outside
 `3-Render/`" section, and bucket 4 is new.
 
-Deliverable of [#1321](https://github.com/jlaustill/c-next/issues/1321). Resolves open
-question 4 of [#1313](https://github.com/jlaustill/c-next/issues/1313) — _"Does Render really
+Deliverable of [#1321](https://github.com/smeltworks/cnx/issues/1321). Resolves open
+question 4 of [#1313](https://github.com/smeltworks/cnx/issues/1313) — _"Does Render really
 own nothing?"_ — and is the input that splits
-[#1322](https://github.com/jlaustill/c-next/issues/1322) into workable pieces.
+[#1322](https://github.com/smeltworks/cnx/issues/1322) into workable pieces.
 
 [`README.md`](README.md) states the rule these sites violate:
 
@@ -156,7 +156,7 @@ Each citation row therefore carries an **`anchor`** beside its `file:line`: a ve
 substring of the throw's argument, at least eight characters, which the gate holds to the
 statement at the cited line. The line stays the key and the anchor corroborates it — two rows
 cannot trade line numbers between sites that say different things and stay green, which is the
-shape #1322's delete work produces ([#1374](https://github.com/jlaustill/c-next/issues/1374)).
+shape #1322's delete work produces ([#1374](https://github.com/smeltworks/cnx/issues/1374)).
 Sites with identical messages carry identical anchors and remain interchangeable, the limitation
 the table above records. The gate also checks the property directly: no two rows in one file may
 carry anchors that each match the other's throw, so an anchor that stops just short of the text
@@ -250,7 +250,7 @@ Each is a rejection a user can see. It is thrown rather than reported, so it rea
 **Empty.** #1844 (2026-10-07): E0507 is no longer thrown. 1.1 reports it as data, at the `.cnx`
 include through which the run reached the C++ header.
 
-#1542 (2026-10-07): E0509 is no longer thrown. A generated header that names a C-Next source that
+#1542 (2026-10-07): E0509 is no longer thrown. A generated header that names a cnx source that
 is not there is reported by 1.1's entry-point scan as data, at the header's marker line.
 
 #1669 (2026-10-03): `ExpressionEvaluator`'s `Invalid constant expression` is gone. An enum member's
@@ -281,7 +281,7 @@ Two things the relocation had to settle, both recorded because the row above cou
 - **The angle branch's search path could not be re-derived.** Codegen built its own from the
   source file's directory, where discovery had already built one that also carries the
   invocation's added include directories. The two agreed only when nothing was added, so a
-  header and its C-Next twin sitting together in an added directory transpiled at exit 0
+  header and its cnx twin sitting together in an added directory transpiled at exit 0
   while the same two files beside the source were rejected. Discovery's list is recorded per
   file now and read by the rule.
 - **The current source path is not readable from shared state at analyzer time.**
@@ -393,7 +393,7 @@ actually an undeclared identifier, rather than allocating codes that record the 
   `tests/string-array-init/string-array-init-error-mismatch.expected.error`, which had no
   `.test.cnx` and could never run. The fixture is written and
   `diagnostics:manifest:check` now fails on any orphaned assertion.
-- **#1277** — `CodeGenerator`'s `Cannot infer struct type` throw fires on valid C-Next
+- **#1277** — `CodeGenerator`'s `Cannot infer struct type` throw fires on valid cnx
   (`return { x: 1, y: 2 };` from a struct-returning function). Being fixed in this card: the
   literal types from the declared return type and the throw disappears.
 - **ADR-022's nesting rule was enforced on two of a ternary's three children.**

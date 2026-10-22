@@ -6,7 +6,7 @@
 #include "callback-assign.test.h"
 
 // test-execution
-// Test: Assigning C-Next function to C callback typedef
+// Test: Assigning cnx function to C callback typedef
 // Verifies signature compatibility in both C and C++ modes
 #include "callback_types.h"
 
@@ -14,7 +14,7 @@
 
 int32_t handler_sum = 0;
 
-// C-Next function that should be assignable to PointCallback
+// cnx function that should be assignable to PointCallback
 void my_point_handler(const Point p) {
     handler_sum = p.x + p.y;
 }

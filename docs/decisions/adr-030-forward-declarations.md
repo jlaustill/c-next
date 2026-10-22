@@ -13,23 +13,23 @@ Forward declarations are used in C for:
 - Header files (prototypes before definitions)
 - Circular dependencies
 
-This ADR investigates whether C-Next should support forward declarations or take a different approach.
+This ADR investigates whether cnx should support forward declarations or take a different approach.
 
 ## Research Findings
 
 ### Current Behavior Gap (2024-12-30)
 
-Testing revealed that C-Next currently does NOT enforce define-before-use:
+Testing revealed that cnx currently does NOT enforce define-before-use:
 
 ```cnx
 void first() {
-    second();  // Calls undefined function - no error from C-Next!
+    second();  // Calls undefined function - no error from cnx!
 }
 
 void second() { }
 ```
 
-This transpiles successfully, but the generated C fails compilation because `second()` is called before it's declared. The error is caught by the C compiler, not C-Next.
+This transpiles successfully, but the generated C fails compilation because `second()` is called before it's declared. The error is caught by the C compiler, not cnx.
 
 ### Implicit Function Declarations Are Dangerous
 
@@ -93,23 +93,23 @@ However, these are **C compiler limitations**, not fundamental language requirem
 
 ### Define-Before-Use: Zero Exceptions
 
-**C-Next enforces define-before-use with no exceptions:**
+**cnx enforces define-before-use with no exceptions:**
 
-- Calling a function before it's defined = C-Next compile error
-- No forward declaration syntax in C-Next source code
+- Calling a function before it's defined = cnx compile error
+- No forward declaration syntax in cnx source code
 - This eliminates an entire class of bugs at the source level
 
 **Rationale:**
 
-- Catches errors at C-Next compile time, not C compile time or runtime
+- Catches errors at cnx compile time, not C compile time or runtime
 - Forces logical code organization (dependencies defined first)
 - Eliminates declaration/definition mismatch bugs
 - No developer confusion about when to use forward declarations
-- Aligns with C-Next's philosophy: prevent errors by removal, not addition
+- Aligns with cnx's philosophy: prevent errors by removal, not addition
 
 ### Generated Headers Handle C Compatibility
 
-The C-Next transpiler generates `.h` files with prototypes for **public scope members and top-level functions**:
+The cnx transpiler generates `.h` files with prototypes for **public scope members and top-level functions**:
 
 ```c
 // generated: myfile.h — from `scope Api { void doWork(u32 value) { ... } }`
@@ -138,9 +138,9 @@ void Api__doWork(uint32_t* value);
 #endif /* CNX_MYFILE_H */
 ```
 
-This provides C compatibility without exposing forward declaration complexity to C-Next developers.
+This provides C compatibility without exposing forward declaration complexity to cnx developers.
 
-**Top-level (non-scope) functions get a prototype.** They are emitted with external linkage and no `static`, and ADR-016 makes functions public by default; neither `public` nor `private` parses at top level, so scopes are how C-Next expresses privacy. They were previously treated as private and so never reached the header at all; #1161 fixed that, and the default a top-level function gets is now the same one ADR-016 defines rather than a second answer to the same question.
+**Top-level (non-scope) functions get a prototype.** They are emitted with external linkage and no `static`, and ADR-016 makes functions public by default; neither `public` nor `private` parses at top level, so scopes are how cnx expresses privacy. They were previously treated as private and so never reached the header at all; #1161 fixed that, and the default a top-level function gets is now the same one ADR-016 defines rather than a second answer to the same question.
 
 **`main` is excluded.** It is called by the C runtime, never by another translation unit, so a prototype serves no consumer. MISRA C:2012 Rule 8.4 — which otherwise requires a compatible declaration wherever a function with external linkage is defined — exempts `main` for exactly this reason. This is now an implemented exclusion rather than rationale: a top-level `main` is kept out of the header. A scoped `main` is not exempt, since `Scope__main` is an ordinary cross-file callee.
 
@@ -150,10 +150,10 @@ Include guards follow ADR-063 (`CNX_`-prefixed and derived from the path relativ
 
 ### Parameters Are Always Named
 
-C-Next requires named parameters in all function definitions (per MISRA C:2012 Rule 8.2):
+cnx requires named parameters in all function definitions (per MISRA C:2012 Rule 8.2):
 
 ```cnx
-// C-Next: parameters must be named
+// cnx: parameters must be named
 void process(u8[16] data) {
     // data's length properties: ADR-058
 }
@@ -166,12 +166,12 @@ Generated prototypes in `.h` files also include parameter names.
 
 ### Recursion Prohibition
 
-**C-Next forbids all forms of recursion** per MISRA C:2012 Rule 17.2 (Required):
+**cnx forbids all forms of recursion** per MISRA C:2012 Rule 17.2 (Required):
 
 **Direct recursion** (function calls itself):
 
 ```cnx
-// FORBIDDEN in C-Next
+// FORBIDDEN in cnx
 void countdown(u32 n) {
     if (n = 0) { return; }
     Console.print(n);
@@ -182,7 +182,7 @@ void countdown(u32 n) {
 **Indirect recursion** (A calls B, B calls A):
 
 ```cnx
-// FORBIDDEN in C-Next (even if forward declarations existed)
+// FORBIDDEN in cnx (even if forward declarations existed)
 void funcA() {
     funcB();  // B calls A - circular dependency
 }
@@ -203,7 +203,7 @@ void funcB() {
 **Converting recursion to iteration:**
 
 ```cnx
-// Iterative version (correct C-Next approach)
+// Iterative version (correct cnx approach)
 void countdown(u32 n) {
     for i in (n..0) {
         Console.print(i);
@@ -247,7 +247,7 @@ Grammar already requires parameter names, and the generated prototype keeps them
 ### Forward Declaration Syntax
 
 ```cnx
-// REJECTED: No forward declarations in C-Next
+// REJECTED: No forward declarations in cnx
 void processData(u8 buffer[]);
 ```
 
@@ -256,7 +256,7 @@ void processData(u8 buffer[]);
 - Adds complexity without sufficient benefit
 - Developer confusion about when to use
 - Declaration/definition mismatch bugs
-- C-Next philosophy: remove features that cause bugs
+- cnx philosophy: remove features that cause bugs
 
 ### Auto-Generated Prototypes in .c File
 
@@ -290,13 +290,13 @@ Could generate prototypes at top of `.c` file to allow any order.
 | scope method       | imported transitive | warn     |
 
 **`same file` is where this fact is observable, which is not obvious and was got
-wrong once here.** The relationship axis counts C-Next include hops. An opaque
+wrong once here.** The relationship axis counts cnx include hops. An opaque
 type arrives from a C header — `#include "fake_lib.h"` — and a C header is not a
 hop on that axis, so a fixture using an opaque handle records at `same file` no
 matter how many headers it includes. An earlier version of this table declared
-every `same file` cell `off`, reasoning that C-Next cannot declare a type it does
+every `same file` cell `off`, reasoning that cnx cannot declare a type it does
 not define. That reasoning is true and the conclusion drawn from it was false:
-the cell is not about where the type is DECLARED, it is about how far the C-Next
+the cell is not about where the type is DECLARED, it is about how far the cnx
 program reaches to USE it, and the answer for a C header is zero.
 
 The two `error` cells are the ones the opaque-handle decision itself reaches:
@@ -305,7 +305,7 @@ method's parameter, and `tests/bugs/issue-996-array-opaque-handles/` stores an
 array of them as a scope member.
 
 Everything else is `warn`. A global variable or a top-level function can hold an
-opaque handle, and the declaring C header can arrive through a C-Next include
+opaque handle, and the declaring C header can arrive through a cnx include
 chain, so `off` would be a false claim that they cannot exist. `error` would be
 an obligation the opaque-handle decision does not meet in those cells, so `warn`
 records the obligation without asserting an occupancy that is not there.
@@ -414,19 +414,19 @@ visible at one level is not thereby visible at another.
 
 **A file that reaches a C or C++ header is exempt**, directly or through any
 `.cnx` it includes. A header supplies names through the preprocessor — a
-`#define` is not a declaration and appears in no symbol table — so C-Next
+`#define` is not a declaration and appears in no symbol table — so cnx
 cannot enumerate what is in scope and does not claim a name is undefined on
 evidence it does not have. The exemption is a promise about interop, and it
 covers every name the file does not itself declare, not only the names that
 came from the header. It does not cover a spelling that a declaration of the
 file would bind where it is written, once that declaration has closed: that is
-evidence C-Next has, so above the declaration's end it is E0427 in a file that
+evidence cnx has, so above the declaration's end it is E0427 in a file that
 reaches a header as in any other (#2019). A declaration that could not bind
 there is no such evidence. Another function's local, or a scope's member under
 a bare name outside the scope, leaves the name to the header, as
 `global.REG_BYTE` beside a scope's own `REG_BYTE` names the header's macro
 (#1688). A header macro of the same name can still redirect the file's own
-declaration, which C-Next cannot see today (#2032).
+declaration, which cnx cannot see today (#2032).
 
 The qualifier matters and an earlier draft of this passage got it wrong, saying
 a header "the transpiler does not parse". Parsing is not the criterion and

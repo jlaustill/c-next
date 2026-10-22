@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-// Test: C-Next style array declaration should generate correct C
+// Test: cnx style array declaration should generate correct C
 // Array dimension in type position: u16[8] myArray
 const uint16_t myArray[8] = {0};
 

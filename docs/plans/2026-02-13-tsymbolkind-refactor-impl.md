@@ -4,7 +4,7 @@
 
 **Goal:** Replace `ESymbolKind` enum with language-specific string union types for better type safety and zero runtime overhead.
 
-**Architecture:** Create four type files in `src/transpiler/types/symbol-kinds/` - one per language (C-Next, C, C++) plus a union type. Update all 71 files that import `ESymbolKind` to use string literals instead. Delete the enum.
+**Architecture:** Create four type files in `src/transpiler/types/symbol-kinds/` - one per language (cnx, C, C++) plus a union type. Update all 71 files that import `ESymbolKind` to use string literals instead. Delete the enum.
 
 **Tech Stack:** TypeScript, string literal union types
 
@@ -27,7 +27,7 @@ Run: `mkdir -p src/transpiler/types/symbol-kinds`
 
 ```typescript
 /**
- * Symbol kinds for C-Next language constructs.
+ * Symbol kinds for cnx language constructs.
  */
 type TSymbolKindCNext =
   | "function"
@@ -174,7 +174,7 @@ Remove import, change `kind: ESymbolKind.Register` to `kind: "register"`.
 
 **Step 7: Update IScopeSymbol.ts**
 
-Remove import, change `kind: ESymbolKind.Namespace` to `kind: "scope"` (C-Next scopes, not C++ namespaces).
+Remove import, change `kind: ESymbolKind.Namespace` to `kind: "scope"` (cnx scopes, not C++ namespaces).
 
 **Step 8: Verify TypeScript compiles**
 
@@ -279,9 +279,9 @@ git commit -m "refactor: update ISymbol and type guards to use string literals"
 
 ---
 
-## Task 4: Update C-Next Symbol Collectors
+## Task 4: Update cnx Symbol Collectors
 
-These files create C-Next symbols - all use `"scope"` for scopes.
+These files create cnx symbols - all use `"scope"` for scopes.
 
 **Files:**
 
@@ -328,12 +328,12 @@ kind: "scope",
 
 ```bash
 git add src/transpiler/logic/symbols/cnext/collectors/
-git commit -m "refactor: update C-Next collectors to use string literal kinds"
+git commit -m "refactor: update cnx collectors to use string literal kinds"
 ```
 
 ---
 
-## Task 5: Update C-Next Symbol Adapters
+## Task 5: Update cnx Symbol Adapters
 
 **Files:**
 
@@ -350,7 +350,7 @@ Remove ESymbolKind import. Update switch cases:
 - `case ESymbolKind.Function:` → `case "function":`
 - `case ESymbolKind.Variable:` → `case "variable":`
 - `case ESymbolKind.Register:` → `case "register":`
-- `case ESymbolKind.Namespace:` → `case "scope":` (C-Next scopes)
+- `case ESymbolKind.Namespace:` → `case "scope":` (cnx scopes)
 
 Also update object literals:
 
@@ -364,7 +364,7 @@ Same pattern as TSymbolAdapter.ts - remove import, update switch cases and objec
 
 ```bash
 git add src/transpiler/logic/symbols/cnext/adapters/
-git commit -m "refactor: update C-Next adapters to use string literal kinds"
+git commit -m "refactor: update cnx adapters to use string literal kinds"
 ```
 
 ---
@@ -616,7 +616,7 @@ For each file:
 
 1. Remove `import ESymbolKind from "...";`
 2. Replace all `ESymbolKind.X` with `"x"` string literals
-3. For SymbolGuards.test.ts, change `ESymbolKind.Namespace` to `"scope"` for C-Next scope tests
+3. For SymbolGuards.test.ts, change `ESymbolKind.Namespace` to `"scope"` for cnx scope tests
 
 **Step 2: Commit**
 
@@ -627,7 +627,7 @@ git commit -m "test: update symbol type tests to use string literal kinds"
 
 ---
 
-## Task 15: Update Test Files - C-Next Collectors
+## Task 15: Update Test Files - cnx Collectors
 
 **Files:**
 
@@ -648,12 +648,12 @@ For ScopeCollector.test.ts, use `"scope"` instead of `ESymbolKind.Namespace`.
 
 ```bash
 git add src/transpiler/logic/symbols/cnext/__tests__/
-git commit -m "test: update C-Next collector tests to use string literal kinds"
+git commit -m "test: update cnx collector tests to use string literal kinds"
 ```
 
 ---
 
-## Task 16: Update Test Files - C-Next Adapters
+## Task 16: Update Test Files - cnx Adapters
 
 **Files:**
 
@@ -664,13 +664,13 @@ git commit -m "test: update C-Next collector tests to use string literal kinds"
 **Step 1: Update each test file**
 
 Remove ESymbolKind imports, replace with string literals.
-Use `"scope"` for C-Next scopes.
+Use `"scope"` for cnx scopes.
 
 **Step 2: Commit**
 
 ```bash
 git add src/transpiler/logic/symbols/cnext/__tests__/
-git commit -m "test: update C-Next adapter tests to use string literal kinds"
+git commit -m "test: update cnx adapter tests to use string literal kinds"
 ```
 
 ---

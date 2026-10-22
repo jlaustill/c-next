@@ -12,11 +12,11 @@ Type aliases improve code readability and maintainability:
 - `Address` instead of `u32`
 - `Callback` instead of complex function pointer syntax
 
-C uses `typedef`, C-Next should have a cleaner syntax.
+C uses `typedef`, cnx should have a cleaner syntax.
 
 ## Decision
 
-**Rejected.** C-Next's fixed-width primitive types (`u8`, `i32`, `f64`, etc.) already solve the primary safety motivation for typedef in C. Type aliases would add complexity without a compelling use case. If a need arises in the future, this decision can be revisited.
+**Rejected.** cnx's fixed-width primitive types (`u8`, `i32`, `f64`, etc.) already solve the primary safety motivation for typedef in C. Type aliases would add complexity without a compelling use case. If a need arises in the future, this decision can be revisited.
 
 ## Decision Drivers
 
@@ -43,7 +43,7 @@ typedef uint32_t Address;
 typedef uint8_t Buffer[256];
 ```
 
-**Pros:** Consistent with C-Next assignment syntax
+**Pros:** Consistent with cnx assignment syntax
 **Cons:** `<-` might be confusing for types (not a value flow)
 
 ### Option B: `type` Keyword with Equals
@@ -76,7 +76,7 @@ alias Address <- u32;
 
 MISRA **Directive 4.6** (Advisory) states: "Typedefs that indicate size and signedness should be used in place of the basic numerical types." This encourages using `uint8_t` instead of `unsigned char`, etc.
 
-However, this guidance exists because C's basic types (`int`, `char`, `long`) have platform-dependent sizes. **C-Next already solves this problem** by using fixed-width primitives (`u8`, `i32`, `f64`) as the default types.
+However, this guidance exists because C's basic types (`int`, `char`, `long`) have platform-dependent sizes. **cnx already solves this problem** by using fixed-width primitives (`u8`, `i32`, `f64`) as the default types.
 
 Additional MISRA rules on typedef:
 
@@ -85,15 +85,15 @@ Additional MISRA rules on typedef:
 
 ### Conclusion
 
-The primary MISRA motivation for typedef is already satisfied by C-Next's type system. Type aliases would be a convenience feature, not a safety requirement.
+The primary MISRA motivation for typedef is already satisfied by cnx's type system. Type aliases would be a convenience feature, not a safety requirement.
 
 ## Resolved Questions
 
 1. **Should aliases be interchangeable?** — Moot; feature rejected.
 2. **Generic type aliases?** — Moot; feature rejected.
-3. **Does C-Next need type aliases?** — No. Fixed-width primitives solve the core problem.
+3. **Does cnx need type aliases?** — No. Fixed-width primitives solve the core problem.
 4. **Requirements that can't be met without them?** — None identified.
-5. **What does MISRA say?** — Encourages typedef for size/signedness clarity, but C-Next's primitives already provide this.
+5. **What does MISRA say?** — Encourages typedef for size/signedness clarity, but cnx's primitives already provide this.
 
 ## References
 

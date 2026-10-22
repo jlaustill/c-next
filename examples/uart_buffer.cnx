@@ -1,6 +1,6 @@
 // uart_buffer.cnx - UART with ring buffer
 // Demonstrates: structs + free functions (C-style, ADR-016)
-// This example shows the C-Next approach: data in structs, behavior in functions
+// This example shows the cnx approach: data in structs, behavior in functions
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>

@@ -1,6 +1,6 @@
 // test-error
 // test-adr: 023
-// ADR-023 (#1975, owner ruling): C-Next has no `sizeof`. A type's or a
+// ADR-023 (#1975, owner ruling): cnx has no `sizeof`. A type's or a
 // value's size in bytes is its ADR-058 `.type_byte_length`, the sum of its fields'
 // sizes with no padding, so `sizeof` is rejected with that spelling as help --
 // whatever its operand: a type, a value, or a call (once E0601/E0602's).

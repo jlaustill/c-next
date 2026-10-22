@@ -83,26 +83,26 @@ type TSymbolKind = TSymbolKindCNext | TSymbolKindC | TSymbolKindCpp;
 
 ### Change Patterns
 
-| Before                          | After                                     |
-| ------------------------------- | ----------------------------------------- |
-| `import ESymbolKind from "..."` | Remove or replace with `TSymbolKind`      |
-| `ESymbolKind.Function`          | `"function"`                              |
-| `ESymbolKind.Variable`          | `"variable"`                              |
-| `ESymbolKind.Struct`            | `"struct"`                                |
-| `ESymbolKind.Enum`              | `"enum"`                                  |
-| `ESymbolKind.EnumMember`        | `"enum_member"`                           |
-| `ESymbolKind.Bitmap`            | `"bitmap"`                                |
-| `ESymbolKind.BitmapField`       | `"bitmap_field"`                          |
-| `ESymbolKind.Register`          | `"register"`                              |
-| `ESymbolKind.RegisterMember`    | `"register_member"`                       |
-| `ESymbolKind.Namespace`         | `"scope"` (C-Next) or `"namespace"` (C++) |
-| `ESymbolKind.Type`              | `"type"`                                  |
-| `ESymbolKind.Class`             | `"class"`                                 |
+| Before                          | After                                  |
+| ------------------------------- | -------------------------------------- |
+| `import ESymbolKind from "..."` | Remove or replace with `TSymbolKind`   |
+| `ESymbolKind.Function`          | `"function"`                           |
+| `ESymbolKind.Variable`          | `"variable"`                           |
+| `ESymbolKind.Struct`            | `"struct"`                             |
+| `ESymbolKind.Enum`              | `"enum"`                               |
+| `ESymbolKind.EnumMember`        | `"enum_member"`                        |
+| `ESymbolKind.Bitmap`            | `"bitmap"`                             |
+| `ESymbolKind.BitmapField`       | `"bitmap_field"`                       |
+| `ESymbolKind.Register`          | `"register"`                           |
+| `ESymbolKind.RegisterMember`    | `"register_member"`                    |
+| `ESymbolKind.Namespace`         | `"scope"` (cnx) or `"namespace"` (C++) |
+| `ESymbolKind.Type`              | `"type"`                               |
+| `ESymbolKind.Class`             | `"class"`                              |
 
 ### Special Case: Namespace vs Scope
 
-- `ESymbolKind.Namespace` was used for both C++ namespaces and C-Next scopes
-- C-Next scopes become `"scope"` (matches `scope LED {}` syntax)
+- `ESymbolKind.Namespace` was used for both C++ namespaces and cnx scopes
+- cnx scopes become `"scope"` (matches `scope LED {}` syntax)
 - C++ namespaces remain `"namespace"`
 - Files using `ESymbolKind.Namespace` need review to determine correct replacement
 

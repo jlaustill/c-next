@@ -6,7 +6,7 @@
 #include "header-macro-dimension.test.hpp"
 
 // Issue #1175 NEGATIVE CONTROL: a dimension naming a macro from an included C
-// header is the one case where C, not C-Next, supplies the value. It keeps the
+// header is the one case where C, not cnx, supplies the value. It keeps the
 // macro for C to evaluate, written the same way in the .c and the .h, and it is
 // neither folded nor rejected.
 #include "buf-size.h"

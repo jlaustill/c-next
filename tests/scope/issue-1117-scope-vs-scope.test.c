@@ -14,7 +14,7 @@
 // Before ADR-063, `scope A_B { c }` and `scope A { B_c }` both emitted `A_B_c`.
 // That was worse than a duplicate definition: `A_readIt()` was generated as
 // `return A_B_c;`, silently returning the OTHER scope's variable. Reading the
-// wrong storage is exactly the class of bug C-Next exists to prevent.
+// wrong storage is exactly the class of bug cnx exists to prevent.
 //
 // They are now `A_B__c` and `A__B_c`. This test fails on the VALUES, so it
 // catches the silent-miscompile form, not just the non-compiling form.

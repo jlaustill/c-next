@@ -250,7 +250,7 @@ Decompose `generateAssignment` using a **classifier + handler + utils** pattern:
 
 ### Why This Pattern
 
-1. **Not visitor pattern** - C-Next has a fixed set of constructs; we don't need extensibility for new node types
+1. **Not visitor pattern** - cnx has a fixed set of constructs; we don't need extensibility for new node types
 2. **Not Roslyn-style rewriters** - our assignments don't need lowering to simpler forms
 3. **Classification is explicit** - the priority order is visible and auditable
 4. **Utils are maximally reusable** - `BitUtils.singleBitWrite()` serves 9+ handlers
@@ -261,7 +261,7 @@ Decompose `generateAssignment` using a **classifier + handler + utils** pattern:
 
 - Extracts target structure from parse tree (identifiers, subscripts, prefixes)
 - Resolves target type from registry/symbols
-- Maps C-Next operators to C operators
+- Maps cnx operators to C operators
 - Generates value expression
 - Output: immutable `AssignmentContext` object
 

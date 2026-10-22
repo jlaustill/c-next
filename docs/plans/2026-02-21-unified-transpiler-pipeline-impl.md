@@ -342,7 +342,7 @@ async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
       // File discovery from config.inputs
       const { cnextFiles, headerFiles } = await this.discoverSources();
       if (cnextFiles.length === 0) {
-        return this._finalizeResult(result, "No C-Next source files found");
+        return this._finalizeResult(result, "No cnx source files found");
       }
 
       this._ensureOutputDirectories();
@@ -451,7 +451,7 @@ async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
 
     const pipelineInput = await this.discoverIncludes(input);
     if (pipelineInput.cnextFiles.length === 0) {
-      return this._finalizeResult(result, "No C-Next source files found");
+      return this._finalizeResult(result, "No cnx source files found");
     }
 
     if (input.kind === "files") {

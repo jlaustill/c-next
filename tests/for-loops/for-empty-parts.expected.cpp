@@ -50,7 +50,7 @@ void testEmptyInitAndUpdate(void) {
 }
 
 // Test 4: Use explicit condition instead of infinite loop + break
-// C-Next doesn't have break; use structured conditions
+// cnx doesn't have break; use structured conditions
 void testExplicitCondition(void) {
     uint32_t count = 0U;
     for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
@@ -60,7 +60,7 @@ void testExplicitCondition(void) {
 }
 
 // Test 5: All parts present (structured approach)
-// C-Next doesn't have break; always use explicit loop conditions
+// cnx doesn't have break; always use explicit loop conditions
 void testStructuredLoop(void) {
     uint32_t i = 0U;
     for (; i < 3; ) {

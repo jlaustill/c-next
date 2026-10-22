@@ -1,6 +1,6 @@
 # Teensy 4.x Hardware Documentation
 
-This directory contains reference documentation for developing C-Next examples targeting Teensy 4.0 and 4.1 boards.
+This directory contains reference documentation for developing cnx examples targeting Teensy 4.0 and 4.1 boards.
 
 ## Documents
 
@@ -26,7 +26,7 @@ curl -L -o IMXRT1060RM_rev3.pdf "https://www.pjrc.com/teensy/IMXRT1060RM_rev3.pd
 
 ## Key Sections in the Reference Manual
 
-For C-Next embedded development, these sections are most useful:
+For cnx embedded development, these sections are most useful:
 
 | Section      | Page | Content                    |
 | ------------ | ---- | -------------------------- |

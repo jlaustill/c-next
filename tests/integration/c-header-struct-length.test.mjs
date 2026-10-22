@@ -12,11 +12,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "../..");
 
-// Configure project with C header and C-Next source
+// Configure project with C header and cnx source
 const config = {
   srcDirs: [join(rootDir, "tests/primitives")],
   includeDirs: [join(rootDir, "tests/include")],
-  outDir: "/tmp/c-next-test",
+  outDir: "/tmp/cnx-test",
   files: [
     join(rootDir, "tests/include/TestConfig.h"),
     join(rootDir, "tests/primitives/length-property-c-header-struct.test.cnx"),

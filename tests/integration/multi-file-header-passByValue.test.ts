@@ -7,7 +7,7 @@
  * last file's data when header generation runs.
  *
  * Test setup:
- * - Two C-Next files, each with a function that has a small unmodified struct parameter
+ * - Two cnx files, each with a function that has a small unmodified struct parameter
  * - Both should generate headers with pass-by-value (no pointer) signatures
  */
 
@@ -66,7 +66,7 @@ scope VectorUtils {
 
 // Main test function
 async function runTest() {
-  const testDir = "/tmp/c-next-test-280";
+  const testDir = "/tmp/cnx-test-280";
 
   // Clean up any previous test run
   if (existsSync(testDir)) {

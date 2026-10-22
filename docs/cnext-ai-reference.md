@@ -1,6 +1,6 @@
-# C-Next AI Reference
+# cnx AI Reference
 
-A complete reference for AI code generation. C-Next transpiles to C/C++. Every rule here maps to transpiler behavior — if you violate a rule, the transpiler will reject it.
+A complete reference for AI code generation. cnx transpiles to C/C++. Every rule here maps to transpiler behavior — if you violate a rule, the transpiler will reject it.
 
 ---
 
@@ -46,7 +46,7 @@ bool err2 <- safe_mod(result, 10, divisor, result);  // pass current value as de
 
 **Shift operators (`<<`, `>>`) require unsigned operands** (unlike C):
 
-- Shifting a **signed** value (`i8`/`i16`/`i32`/`i64`) is a compile error (`E0805`, MISRA 10.1) — left-shift of a signed value is UB and right-shift is implementation-defined in C, so C-Next forbids it. Bitwise `& | ^ ~` _are_ allowed on signed values (two's-complement, same as C).
+- Shifting a **signed** value (`i8`/`i16`/`i32`/`i64`) is a compile error (`E0805`, MISRA 10.1) — left-shift of a signed value is UB and right-shift is implementation-defined in C, so cnx forbids it. Bitwise `& | ^ ~` _are_ allowed on signed values (two's-complement, same as C).
 - The shift amount must be **non-negative** and **less than the operand's bit width** (MISRA 12.2): `x << -1` and `u8val << 8` are both compile errors. Widen first: `u16 wide <- val; u16 r <- wide << 8;`.
 
 **Binary operands must share an essential type category** (MISRA 10.4). Signed, unsigned and floating are different categories, so `u32 a + i32 b` and `u32 i * f32 k` are compile errors (`E0810`), as are a comparison that mixes them (`i < k`) and a conditional whose value arms do (`(c = true) ? i : k`). An **integer literal** takes the other operand's category, so `a + 5` and `k * 3` are fine. A **float literal** does not, so `i * 2.5` is an error. Same-category widening is allowed (`u8 + u32`). To combine integer and floating, cast the integer: `(f32)i * k`. To combine signed and unsigned, reinterpret one operand's bits with bit indexing: `a + b[0, 32]` (ADR-024 / ADR-007).
@@ -320,7 +320,7 @@ POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 
 ## sizeof (ADR-023)
 
-C-Next has no `sizeof` (#1975): writing `sizeof(...)` is `E0603`. ADR-058 names each kind of length instead — `value_` (what it holds now), `type_` (its declared, logical width) and `memory_` (C's layout) — each in bits, bytes, chars and elements:
+cnx has no `sizeof` (#1975): writing `sizeof(...)` is `E0603`. ADR-058 names each kind of length instead — `value_` (what it holds now), `type_` (its declared, logical width) and `memory_` (C's layout) — each in bits, bytes, chars and elements:
 
 ```cnx
 struct Cfg { u32 a; u8 b; }
@@ -347,7 +347,7 @@ u8[u32.type_byte_length] buf;       // usable as an array dimension
 ```
 
 - A struct's size is its fields' sizes summed, with no C padding — also for a struct from a C header (`typedef struct { uint32_t a; uint8_t b; } Cfg;` → `Cfg.type_byte_length` is 5).
-- C-Next has no pointers, so a header struct's pointer field, or a struct holding one, has no `.type_byte_length` → `E0867`.
+- cnx has no pointers, so a header struct's pointer field, or a struct holding one, has no `.type_byte_length` → `E0867`.
 - An array parameter's `.type_byte_length` is the array's, not a pointer's.
 
 ## Functions
@@ -378,7 +378,7 @@ void increment(mut u32 x) { // transpiles to: void increment(uint32_t *x)
 increment(myVar);            // transpiles to: increment(&myVar);
 ```
 
-**Arrays follow the same rule** (ADR-071 replaced c-next #986's never-const exception). A read-only array param is `const` in C (MISRA C:2012 Rule 8.13); declare it `mut` to write it, or to pass it to a C API that takes a non-const pointer:
+**Arrays follow the same rule** (ADR-071 replaced cnx #986's never-const exception). A read-only array param is `const` in C (MISRA C:2012 Rule 8.13); declare it `mut` to write it, or to pass it to a C API that takes a non-const pointer:
 
 ```cnx
 void copy(u8[8] src, mut u8[8] dst) {     // src read-only, dst written
@@ -736,7 +736,7 @@ bool en <- UART.CTRL.Enable;    // named field read
 
 ## MISRA Compliance
 
-C-Next enforces several MISRA C:2012 rules at the language level:
+cnx enforces several MISRA C:2012 rules at the language level:
 
 | Rule | Enforcement                                                |
 | ---- | ---------------------------------------------------------- |
@@ -798,7 +798,7 @@ void setup() {
 }
 ```
 
-**Passing a pointer argument to a C function warns `E0896`** ("C-Next cannot see how 'consume' uses parameter 1, so passing 'buf' to it is not memory safe"). This is expected: C-Next cannot check a body it cannot see, and the help suggests converting the function to C-Next. Where the C parameter is not `const` (`void consume(uint8_t* p)`), the argument must be `mut`. A read-only one is `E0900`, because C may write through it:
+**Passing a pointer argument to a C function warns `E0896`** ("cnx cannot see how 'consume' uses parameter 1, so passing 'buf' to it is not memory safe"). This is expected: cnx cannot check a body it cannot see, and the help suggests converting the function to cnx. Where the C parameter is not `const` (`void consume(uint8_t* p)`), the argument must be `mut`. A read-only one is `E0900`, because C may write through it:
 
 ```cnx
 #include "buffer_api.h" // void consume(uint8_t* p);  void peek(const uint8_t* p);
@@ -811,7 +811,7 @@ void send() {
 }
 ```
 
-C library **globals** are usable directly by their C name: `extern` variables (read / write / compound-assign), `const` externs, extern arrays, and `#define` macro constants from included headers — e.g. `extern_counter <- 42;`, `u32 m <- MAX_SIZE;`. (Defining a _value_ macro is still forbidden in your own C-Next code — that rule doesn't apply to C headers.)
+C library **globals** are usable directly by their C name: `extern` variables (read / write / compound-assign), `const` externs, extern arrays, and `#define` macro constants from included headers — e.g. `extern_counter <- 42;`, `u32 m <- MAX_SIZE;`. (Defining a _value_ macro is still forbidden in your own cnx code — that rule doesn't apply to C headers.)
 
 ## Using C Struct Types
 
@@ -934,7 +934,7 @@ scope Display {
 
 ## Nullable C Interop (ADR-046)
 
-C-Next types are never null. C library return values that CAN be null require `c_` prefix.
+cnx types are never null. C library return values that CAN be null require `c_` prefix.
 
 ```cnx
 #include <stdio.h>
@@ -948,7 +948,7 @@ void readData() {
         (void)fclose(c_file);
     }
 
-    // Non-nullable C-Next variable → NO c_ prefix
+    // Non-nullable cnx variable → NO c_ prefix
     string<64> buffer; // always valid
     u32 count <- 0; // always valid
 }
@@ -974,20 +974,20 @@ void readData() {
 
 ### When c\_ is NOT Needed
 
-| Returns non-pointer or C-Next type | Example                |
-| ---------------------------------- | ---------------------- |
-| Primitive return values            | `u32 len <- strlen(s)` |
-| C-Next variables                   | `u32 count <- 0`       |
-| Scope members                      | `this.value`           |
+| Returns non-pointer or cnx type | Example                |
+| ------------------------------- | ---------------------- |
+| Primitive return values         | `u32 len <- strlen(s)` |
+| cnx variables                   | `u32 count <- 0`       |
+| Scope members                   | `this.value`           |
 
 ## C Boundary Layer for void\* (ADR-061)
 
-C-Next has **no void\* type** by design. When a C function takes `void*` (e.g., `lv_image_set_src`), you MUST write a thin C boundary file. Data stays in `.cnx`, only the unsafe cast lives in `.h/.c`.
+cnx has **no void\* type** by design. When a C function takes `void*` (e.g., `lv_image_set_src`), you MUST write a thin C boundary file. Data stays in `.cnx`, only the unsafe cast lives in `.h/.c`.
 
 **Pattern:** `.cnx` (safe data) → `.h` boundary (unsafe void\* cast) → C library
 
 ```cnx
-// --- needle_img.cnx (safe data in C-Next) ---
+// --- needle_img.cnx (safe data in cnx) ---
 #include <lvgl.h>
 
 scope NeedleImg {
@@ -1109,7 +1109,7 @@ void modify(u32 x) { x <- 5; }      // modifies original
 ### 4. Using malloc/dynamic allocation
 
 ```cnx
-// WRONG — E0902. C-Next has no heap, so this cannot be imported at all.
+// WRONG — E0902. cnx has no heap, so this cannot be imported at all.
 // The rule matches a listed allocator, or a name ending `_` plus one, which is
 // why the vendor wrapper is caught and `myfree` is not.
 void c_buf <- heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
@@ -1173,7 +1173,7 @@ u8 byte <- bigValue[0, 8];
 ### 9. Increment/decrement operators
 
 ```cnx
-// WRONG — no ++ or -- in C-Next
+// WRONG — no ++ or -- in cnx
 x++;
 --y;
 
@@ -1235,10 +1235,10 @@ twai_general_config_t cfg <- { tx_io: 19, rx_io: 20 };
 twai_general_config_t cfg <- { tx_io: GPIO_NUM_19, rx_io: GPIO_NUM_20 };
 ```
 
-### 14. Trying to pass void\* in C-Next
+### 14. Trying to pass void\* in cnx
 
 ```cnx
-// WRONG — C-Next has no void* (ADR-061)
+// WRONG — cnx has no void* (ADR-061)
 global.lv_image_set_src(img, this.dsc);     // ERROR: can't convert to void*
 
 // RIGHT — use a C boundary file for void* casts
@@ -1262,7 +1262,7 @@ lv_obj_t needle <- global.create_needle_img(this.scale);
 ### 16. C-style string concatenation with macros
 
 ```cnx
-// WRONG — C-Next parser doesn't support adjacent string literal concatenation with macros
+// WRONG — cnx parser doesn't support adjacent string literal concatenation with macros
 global.lv_label_set_text_fmt(label, "%" PRId32 " C", temp);
 
 // RIGHT — use format specifier directly
@@ -1302,7 +1302,7 @@ void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const 
 
 ## Transpilation Summary
 
-| C-Next                            | Generated C                                               |
+| cnx                               | Generated C                                               |
 | --------------------------------- | --------------------------------------------------------- |
 | `x <- 5`                          | `x = 5`                                                   |
 | `if (x = 5)`                      | `if (x == 5)`                                             |

@@ -19,7 +19,7 @@
 u32 value <- 0;
 
 // NEGATIVE CONTROL -- the same switch, outside a critical block. Returning from
-// a switch case is ordinary C-Next and must stay silent; declared first, so an
+// a switch case is ordinary cnx and must stay silent; declared first, so an
 // over-broad check reports it and changes the message asserted below.
 u32 outsideCritical() {
     switch (value) {

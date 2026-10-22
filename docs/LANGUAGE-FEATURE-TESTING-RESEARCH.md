@@ -7,7 +7,7 @@
 
 ## The Challenge
 
-Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of transpiler code execute**, not **which language features are tested**. For C-Next, we need to know:
+Traditional code coverage tools (Istanbul, nyc, c8) measure **which lines of transpiler code execute**, not **which language features are tested**. For cnx, we need to know:
 
 - ✅ Are all primitive types tested in all contexts?
 - ✅ Are all operators tested with all valid type combinations?
@@ -201,7 +201,7 @@ Property-based testing is **excellent for finding bugs** but **doesn't guarantee
 - Input → Expected Output verification
 - Works with Jest, Mocha, Vitest, etc.
 
-**C-Next Parallel:** Your current test structure is very similar!
+**cnx Parallel:** Your current test structure is very similar!
 
 ### Test Structure Pattern (Common Across Projects)
 
@@ -263,7 +263,7 @@ Your `coverage.md` is **exactly how major compilers track feature coverage:**
 
 ---
 
-## Recommendations for C-Next
+## Recommendations for cnx
 
 ### Current State: Already Excellent! ✅
 

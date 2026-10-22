@@ -6,12 +6,12 @@
 
 ## Context
 
-Division by zero is a critical source of undefined behavior in C/C++ and a significant safety concern in embedded systems. C-Next currently transpiles division operations directly to C without any checks, inheriting C's undefined behavior.
+Division by zero is a critical source of undefined behavior in C/C++ and a significant safety concern in embedded systems. cnx currently transpiles division operations directly to C without any checks, inheriting C's undefined behavior.
 
 ### Current Behavior
 
 ```cnx
-// C-Next input
+// cnx input
 u32 result <- 10 / 0;
 
 // Generated C output (compiles with warning)
@@ -131,7 +131,7 @@ In safety-critical embedded systems (medical devices, automotive), this **silent
 
 ---
 
-## Options for C-Next
+## Options for cnx
 
 ### Option A: No Detection (Status Quo)
 
@@ -150,7 +150,7 @@ u32 result <- 10 / 0;  // Transpiles to: uint32_t result = 10 / 0;
 **Cons:**
 
 - ❌ Violates MISRA Rule 1.3 (undefined behavior)
-- ❌ Silent corruption on ARM Cortex-M (most C-Next target platforms)
+- ❌ Silent corruption on ARM Cortex-M (most cnx target platforms)
 - ❌ No safety improvement over C
 - ❌ Literal division by zero is trivially detectable, yet uncaught
 
@@ -204,7 +204,7 @@ u32 result <- 10 / divisor; // Undefined if divisor is 0
 Insert runtime checks for **all** division/modulo operations.
 
 ```cnx
-// C-Next input
+// cnx input
 u32 result <- numerator / denominator;
 
 // Generated C
@@ -233,7 +233,7 @@ uint32_t result = numerator / denominator;
 - ❌ Performance overhead on every division
 - ❌ Code size increase
 - ❌ May be overkill for validated inputs
-- ❌ Conflicts with C-Next's "zero-cost abstractions" philosophy
+- ❌ Conflicts with cnx's "zero-cost abstractions" philosophy
 
 **Embedded implications:** In tight control loops, division is common (PID controllers, sensor fusion). Adding checks to every division could impact real-time performance.
 
@@ -310,7 +310,7 @@ if (divisor != 0) {
 
 - ❌ Very complex to implement (flow analysis)
 - ❌ Frustrating when divisor is known safe (e.g., constant 10)
-- ❌ Overkill for C-Next's simplicity goals
+- ❌ Overkill for cnx's simplicity goals
 - ❌ Requires sophisticated compiler
 
 ---
@@ -320,7 +320,7 @@ if (divisor != 0) {
 On division by zero, return a defined sentinel value instead of undefined behavior.
 
 ```cnx
-// C-Next input
+// cnx input
 u32 result <- numerator / 0;
 
 // Generated C
@@ -348,7 +348,7 @@ uint32_t result = (denominator == 0) ? UINT32_MAX : (numerator / denominator);
 
 **Accepted: Option B (Compile-Time Detection) + safe_div() Built-in**
 
-C-Next will implement a two-tier approach to division by zero safety:
+cnx will implement a two-tier approach to division by zero safety:
 
 ### 1. Compile-Time Detection (Always Enabled)
 
@@ -384,7 +384,7 @@ u32 result <- 10 / divisor;  // Fast, programmer responsible for validation
 
 ### 3. Safe Division Built-in (Opt-in Safety)
 
-For safety-critical calculations, C-Next provides `safe_div()` and `safe_mod()` built-in functions:
+For safety-critical calculations, cnx provides `safe_div()` and `safe_mod()` built-in functions:
 
 ```cnx
 u32 speed <- 100;  // Current value
@@ -458,7 +458,7 @@ void updateMotorSpeed() {
 
 ### ARM Cortex-M Safety
 
-On ARM Cortex-M (most C-Next targets), division by zero **silently returns 0** without trapping. This means:
+On ARM Cortex-M (most cnx targets), division by zero **silently returns 0** without trapping. This means:
 
 ```c
 uint32_t speed = distance / 0;  // speed = 0 (wrong, but no crash)
@@ -622,11 +622,11 @@ void testSafeDivAllTypes() {
 
 ### 4. Floating-Point Division by Zero (Issue #1010)
 
-**Update (Issue #1010):** Floating-point division by literal zero is now also rejected, for parity with integer division. While IEEE 754 defines float division by zero (producing ±Inf/NaN), C-Next chooses to reject it at compile time because:
+**Update (Issue #1010):** Floating-point division by literal zero is now also rejected, for parity with integer division. While IEEE 754 defines float division by zero (producing ±Inf/NaN), cnx chooses to reject it at compile time because:
 
 1. **Consistency** — Integer and float division should behave the same way
 2. **Safety** — Division by zero is almost always a bug, not intentional
-3. **Embedded focus** — C-Next targets safety-critical systems where undefined/infinite values are problematic
+3. **Embedded focus** — cnx targets safety-critical systems where undefined/infinite values are problematic
 
 **File:** `tests/floats/float-division-by-literal-zero.test.cnx`
 

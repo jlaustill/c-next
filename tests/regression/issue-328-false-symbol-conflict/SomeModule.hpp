@@ -1,13 +1,13 @@
 /**
  * SomeModule.hpp - A C++ module that hasn't been migrated yet
- * This includes the generated AppData.h for interoperability
- * during incremental migration from C++ to C-Next
+ * This includes the generated AppData.hpp for interoperability
+ * during incremental migration from C++ to cnx
  */
 
 #ifndef SOMEMODULE_HPP
 #define SOMEMODULE_HPP
 
-#include "Display/AppData.h"
+#include "Display/AppData.hpp"
 
 // A C++ class that works with AppData (read-only to simplify test)
 class SomeModule {

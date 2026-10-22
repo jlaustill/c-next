@@ -7,8 +7,8 @@
 
 #include <stdint.h>
 
-// Tests: C-Next scopes still use _ separator after issue #516 fix
-// Ensures we didn't break existing C-Next scope functionality
+// Tests: cnx scopes still use _ separator after issue #516 fix
+// Ensures we didn't break existing cnx scope functionality
 /* Scope: Motor */
 uint8_t Motor__speed = 0;
 

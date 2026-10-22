@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-// C-Next defined struct with array field
+// cnx defined struct with array field
 // Nested struct
 /* Scope: GlobalStruct */
 

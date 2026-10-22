@@ -55,7 +55,7 @@
 
 ### Issue
 
-The transpiler **DOES NOT** validate shift amounts at compile time. Shifting by an amount >= type width is undefined behavior in C, but C-Next is not catching this error.
+The transpiler **DOES NOT** validate shift amounts at compile time. Shifting by an amount >= type width is undefined behavior in C, but cnx is not catching this error.
 
 ### Evidence (5 error test files)
 
@@ -106,7 +106,7 @@ All of these **SHOULD FAIL** at transpile time but currently **TRANSPILE SUCCESS
 
 ### Impact: HIGH
 
-- **Safety**: C-Next is supposed to prevent undefined behavior, but this allows it
+- **Safety**: cnx is supposed to prevent undefined behavior, but this allows it
 - **Portability**: Behavior varies by compiler (some shift modulo width, some produce garbage)
 - **Debugging**: Silent bug - code compiles but produces wrong results
 - **MISRA Violation**: MISRA C:2012 Rule 12.2 (shift by type width or more)

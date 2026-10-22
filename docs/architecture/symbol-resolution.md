@@ -1,7 +1,7 @@
 # Symbol Resolution Architecture
 
 > **Formerly ADR-055.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
-> test (#1403): this document describes how the transpiler is built, not what C-Next
+> test (#1403): this document describes how the transpiler is built, not what cnx
 > decides, and would not survive a rebuild in another language and stack. ADR number
 > 055 is retired and will not be reused — see
 > [`../decisions/README.md`](../decisions/README.md). References to ADR-055 in source
@@ -16,16 +16,16 @@
 
 ### Implementation Progress
 
-| Phase | Description                                                   | Status      | Issue                                                  |
-| ----- | ------------------------------------------------------------- | ----------- | ------------------------------------------------------ |
-| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete | -                                                      |
-| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete | -                                                      |
-| 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete | -                                                      |
-| 3     | Create Orchestrator (`CnxResolver`)                           | ✅ Complete | -                                                      |
-| 4     | Add CacheKeyGenerator                                         | ✅ Complete | -                                                      |
-| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | ✅ Complete | [#803](https://github.com/jlaustill/c-next/issues/803) |
-| 6     | Repeat for C++/C (`CResolver`, `CppResolver`)                 | ✅ Complete | [#804](https://github.com/jlaustill/c-next/issues/804) |
-| 7     | Typed Symbol Storage in SymbolTable                           | ✅ Complete | [#805](https://github.com/jlaustill/c-next/issues/805) |
+| Phase | Description                                                   | Status      | Issue                                                |
+| ----- | ------------------------------------------------------------- | ----------- | ---------------------------------------------------- |
+| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete | -                                                    |
+| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete | -                                                    |
+| 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete | -                                                    |
+| 3     | Create Orchestrator (`CnxResolver`)                           | ✅ Complete | -                                                    |
+| 4     | Add CacheKeyGenerator                                         | ✅ Complete | -                                                    |
+| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | ✅ Complete | [#803](https://github.com/smeltworks/cnx/issues/803) |
+| 6     | Repeat for C++/C (`CResolver`, `CppResolver`)                 | ✅ Complete | [#804](https://github.com/smeltworks/cnx/issues/804) |
+| 7     | Typed Symbol Storage in SymbolTable                           | ✅ Complete | [#805](https://github.com/smeltworks/cnx/issues/805) |
 
 ### Phase 7 Implementation Notes
 
@@ -81,7 +81,7 @@ from is not a property of the encoding.
 
 ## Context
 
-C-Next currently has **two separate C-Next symbol collectors** that walk the same AST to extract similar information:
+cnx currently has **two separate cnx symbol collectors** that walk the same AST to extract similar information:
 
 1. `src/codegen/SymbolCollector.ts` (758 lines) - Used by CodeGenerator during code generation
 2. `src/symbols/CNextSymbolCollector.ts` (507 lines) - Used for the unified SymbolTable
@@ -208,7 +208,7 @@ src/symbol_resolution/
 ├── SymbolTable.ts              # Central storage for all languages
 ├── types/                      # Shared types (TSymbol, ISourceSpan, etc.)
 │
-├── cnext/                      # C-Next language
+├── cnext/                      # cnx language
 │   ├── index.ts                # CnxResolver (orchestrator)
 │   ├── collectors/
 │   │   ├── ScopeCollector.ts       # ~50-80 lines each
@@ -218,7 +218,7 @@ src/symbol_resolution/
 │   │   ├── RegisterCollector.ts
 │   │   ├── FunctionCollector.ts
 │   │   └── VariableCollector.ts
-│   ├── types/                  # C-Next specific types
+│   ├── types/                  # cnx specific types
 │   └── __tests__/              # Unit tests for each collector
 │
 ├── cpp/                        # C++ language
@@ -311,7 +311,7 @@ interface IParameterInfo {
 }
 
 interface IScopeSymbol extends IBaseSymbol {
-  kind: ESymbolKind.Namespace; // Reuse existing Namespace kind for C-Next scopes
+  kind: ESymbolKind.Namespace; // Reuse existing Namespace kind for cnx scopes
   members: Set<string>;
   memberVisibility: Map<string, "public" | "private">;
 }
@@ -341,9 +341,9 @@ interface IVariableSymbol extends IBaseSymbol {
 
 ### 4. Eager Collection (Not Lazy)
 
-We use **eager collection** - all symbol data is collected upfront when a file is processed. This is simpler than lazy collection and adequate for C-Next's use case:
+We use **eager collection** - all symbol data is collected upfront when a file is processed. This is simpler than lazy collection and adequate for cnx's use case:
 
-- C-Next projects are typically small-to-medium embedded codebases
+- cnx projects are typically small-to-medium embedded codebases
 - Files are processed sequentially, not in parallel
 - No persistent server keeping state
 
@@ -351,7 +351,7 @@ Lazy collection would add complexity (tracking "have I collected this yet?" stat
 
 ### 5. Forward Declarations (C/C++ Only)
 
-C-Next does not support forward declarations. For C/C++ headers that do use them:
+cnx does not support forward declarations. For C/C++ headers that do use them:
 
 - `SymbolTable` already handles merging symbols from multiple files
 - A forward declaration in one file and definition in another both add to the table
@@ -478,7 +478,7 @@ class CnxResolver {
   // ...
 
   /**
-   * Resolve all symbols from a C-Next program.
+   * Resolve all symbols from a cnx program.
    * Returns rich symbols with full semantic information.
    */
   resolve(tree: Parser.ProgramContext, sourceFile: string): TSymbol[] {
@@ -614,7 +614,7 @@ class CodeGenerator {
 ### Positive
 
 - **Clear discoverability**: "Where are symbols resolved?" → `src/symbol_resolution/`
-- **One collector per language**: No more duplicate C-Next collectors
+- **One collector per language**: No more duplicate cnx collectors
 - **Testable units**: Each collector is 50-100 lines, easily unit tested
 - **Rich data model**: Symbols carry full semantic information (no separate maps)
 - **DRY**: CodeGenerator and HeaderGenerator query the same data
@@ -631,7 +631,7 @@ class CodeGenerator {
 
 - **More files**: Trade one 758-line file for ~7 smaller files
 - **Type complexity**: Discriminated union is more complex than flat interface
-- **Eager collection**: Collects all data upfront (adequate for C-Next project sizes)
+- **Eager collection**: Collects all data upfront (adequate for cnx project sizes)
 
 ## Test Strategy
 
@@ -769,9 +769,9 @@ it is written, not with a map the render walk fills.
 
 ### Active (Remaining Phases)
 
-- [#803](https://github.com/jlaustill/c-next/issues/803): Phase 5 - Migrate consumers to TSymbol system
-- [#804](https://github.com/jlaustill/c-next/issues/804): Phase 6 - Create CppResolver and CResolver
-- [#805](https://github.com/jlaustill/c-next/issues/805): Phase 7 - Remove legacy ISymbol type system
+- [#803](https://github.com/smeltworks/cnx/issues/803): Phase 5 - Migrate consumers to TSymbol system
+- [#804](https://github.com/smeltworks/cnx/issues/804): Phase 6 - Create CppResolver and CResolver
+- [#805](https://github.com/smeltworks/cnx/issues/805): Phase 7 - Remove legacy ISymbol type system
 
 ### Historical (Superseded)
 

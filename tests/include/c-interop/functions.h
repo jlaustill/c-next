@@ -6,7 +6,7 @@
 
 /*
  * C Interop Test Functions
- * Test function declarations with various signatures for C-Next interop testing
+ * Test function declarations with various signatures for cnx interop testing
  *
  * Functions are defined as static inline so they can be used in execution tests
  * without requiring separate compilation/linking of a .c file.

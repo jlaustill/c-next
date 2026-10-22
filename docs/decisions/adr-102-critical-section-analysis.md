@@ -2,7 +2,7 @@
 
 **Status:** Research (v2)
 **Date:** 2026-01-04
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Version:** v2
 
 ## Context
@@ -92,7 +92,7 @@ Challenges:
 
 ### Q4: Runtime Instrumentation
 
-Should C-Next support runtime critical section timing?
+Should cnx support runtime critical section timing?
 
 ```cnx
 // Debug mode: measure actual critical section duration
@@ -105,7 +105,7 @@ critical {
 
 ### Q5: Integration with Static Analysis
 
-Could C-Next integrate with external tools like:
+Could cnx integrate with external tools like:
 
 - WCET analyzers
 - MISRA checkers (LDRA, Polyspace)

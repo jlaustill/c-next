@@ -4,7 +4,7 @@
  * a compiler and knows none of them, so the MISRA pass read each call as an
  * implicit declaration (Rule 17.3). This file gives it the compiler's own
  * declarations, as documented in "Built-in Functions for Memory Model Aware
- * Atomic Operations" of the GCC manual. Only the builtins C-Next emits are
+ * Atomic Operations" of the GCC manual. Only the builtins cnx emits are
  * here; the type-generic `type *` parameters are written as `void *`.
  */
 #ifndef CNX_ANALYSIS_GNU_ATOMIC_BUILTINS_H

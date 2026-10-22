@@ -13,7 +13,7 @@ C's `++` and `--` operators are convenient but problematic:
 - Sequence point undefined behavior
 - Violation of separation of concerns (mutation + value return)
 
-Should C-Next include them?
+Should cnx include them?
 
 ## Decision Drivers
 
@@ -82,7 +82,7 @@ i--;  // OK
 
 ### Rationale: Separation of Concerns
 
-A core principle of C-Next is that **each statement should do one thing and one thing only**. The `++` and `--` operators violate this by combining two operations:
+A core principle of cnx is that **each statement should do one thing and one thing only**. The `++` and `--` operators violate this by combining two operations:
 
 1. Reading a value
 2. Mutating the variable
@@ -185,7 +185,7 @@ From the Airbnb JavaScript style guide discussion:
 
 > "`++` doesn't cause bugs. Using `++` in 'tricky' ways can lead to bugs... but that's not a problem with the operator, it's a problem with the programmer."
 
-This argument has merit for statement-only usage, but C-Next prioritizes:
+This argument has merit for statement-only usage, but cnx prioritizes:
 
 1. **Consistency** - One way to do things, not two
 2. **Simplicity** - No special-case syntax for `+= 1`

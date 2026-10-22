@@ -17,7 +17,7 @@ struct StatusReg {
 };
 ```
 
-C-Next already has register bitfields (ADR-004), but C-style bit fields in regular structs are sometimes needed for use cases like:
+cnx already has register bitfields (ADR-004), but C-style bit fields in regular structs are sometimes needed for use cases like:
 
 - **Protocol packing** - CAN messages, SPI packets, UART frames with specific bit layouts
 - **Configuration storage** - EEPROM/Flash with packed flags to minimize memory
@@ -262,7 +262,7 @@ u8 currentMode <- status.flags.Mode;
 
 **Option D: The `bitmap` Type**
 
-C-Next will introduce `bitmap8`, `bitmap16`, `bitmap24`, and `bitmap32` types for bit-packed data with guaranteed layout and clean dot-notation access.
+cnx will introduce `bitmap8`, `bitmap16`, `bitmap24`, and `bitmap32` types for bit-packed data with guaranteed layout and clean dot-notation access.
 
 ### Why Not C Bit Fields (Option A)?
 
@@ -279,13 +279,13 @@ While Option C works and requires no new syntax, it's convention-based and verbo
 
 ### Why This Is Different From C Bit Fields
 
-| C Bit Fields                   | C-Next `bitmap`                              |
+| C Bit Fields                   | cnx `bitmap`                                 |
 | ------------------------------ | -------------------------------------------- |
-| Compiler chooses bit ordering  | C-Next guarantees LSB-first                  |
+| Compiler chooses bit ordering  | cnx guarantees LSB-first                     |
 | Implementation-defined padding | Compiler enforces exact bit count            |
 | Silent truncation on overflow  | Compile error for literals, clamp at runtime |
 | Struct-level declaration only  | Standalone reusable type                     |
-| No portability                 | Fully portable (C-Next controls layout)      |
+| No portability                 | Fully portable (cnx controls layout)         |
 
 ---
 
@@ -526,7 +526,7 @@ u8 currentMode <- status.flags[EMotorFlags.MODE_START, MODE_WIDTH];
 - [Ada Representation Clauses](https://learn.adacore.com/courses/advanced-ada/parts/data_types/types_representation.html)
 - [Ada for Embedded C Developers](https://learn.adacore.com/courses/Ada_For_The_Embedded_C_Developer/chapters/04_Embedded.html)
 
-### C-Next Related ADRs
+### cnx Related ADRs
 
 - [ADR-004: Register Bindings](adr-004-register-bindings.md) - Hardware register bitfields
 - [ADR-007: Type-Aware Bit Indexing](adr-007-type-aware-bit-indexing.md) - Integer bit access
