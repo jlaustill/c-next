@@ -3,7 +3,7 @@
  *
  * Generates C code for function calls:
  * - safe_div/safe_mod built-in functions (ADR-051)
- * - C-Next function calls with pass-by-reference semantics
+ * - cnx function calls with pass-by-reference semantics
  * - C function calls with pass-by-value semantics
  * - Const-to-non-const validation (ADR-013)
  *
@@ -98,7 +98,7 @@ const generateFunctionCall = (
         return _generateCFunctionArg(arg);
       }
 
-      // C-Next function: check if target parameter should be passed by value
+      // cnx function: check if target parameter should be passed by value
       if (passing.mode === "value") {
         // Issue #872: 2.2 plans it against the parameter's type, with bare
         // enum resolution suppressed (#1991)

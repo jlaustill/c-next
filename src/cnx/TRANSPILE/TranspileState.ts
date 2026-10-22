@@ -459,7 +459,7 @@ class TranspileState {
   // SYMBOL DATA (read-only after initialization)
   // ===========================================================================
 
-  /** ADR-055: Pre-collected symbol info from CNextResolver + TSymbolInfoAdapter */
+  /** ADR-055: Pre-collected symbol info from CnxResolver + TSymbolInfoAdapter */
   symbols: ICodeGenSymbols | null = null;
 
   /** External symbol table for cross-language interop (C headers).
@@ -497,7 +497,7 @@ class TranspileState {
   // FUNCTION & CALLBACK TRACKING
   // ===========================================================================
 
-  /** Track C-Next defined functions */
+  /** Track cnx defined functions */
   knownFunctions: Set<string> = new Set();
 
   /** ADR-029: Callback types registry (function-as-type pattern) */
@@ -844,10 +844,10 @@ class TranspileState {
   }
 
   /**
-   * ADR-030: is a C-Next declaration of this type held through a pointer?
+   * ADR-030: is a cnx declaration of this type held through a pointer?
    *
    * An incomplete type can only be held through a pointer, so a declaration of
-   * one is `T*` wherever C-Next declares it -- a scope member, a file-scope or
+   * one is `T*` wherever cnx declares it -- a scope member, a file-scope or
    * local variable, a parameter, a callback typedef's parameter -- and an array
    * of them is an array of pointers (#996). This is the ONE answer each of
    * those sites reads. A declaration's own pointer-ness (`DeclaredPointer.of`,
@@ -938,8 +938,8 @@ class TranspileState {
    * `currentScopePath` silently returns a one-level name.
    *
    * Every codegen caller passes a leaf, and that is correct for every program
-   * C-Next can express: `scopeMember` admits no `scopeDeclaration`
-   * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. ADR-016 makes
+   * cnx can express: `scopeMember` admits no `scopeDeclaration`
+   * (grammar/Cnx.g4:81-89), so a scope's leaf IS its whole path. ADR-016 makes
    * that permanent, so no future grammar change retires the gap.
    *
    * #1304: what remains is that a leaf passed where a path is expected used to

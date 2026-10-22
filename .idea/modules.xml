@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/c-next.iml" filepath="$PROJECT_DIR$/.idea/c-next.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/cnx.iml" filepath="$PROJECT_DIR$/.idea/cnx.iml" />
     </modules>
   </component>
 </project>

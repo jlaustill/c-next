@@ -1,17 +1,17 @@
 ---
 name: issue-check
-description: "Review open GitHub issues for the c-next repo, detect in-flight work (open PRs, assigned issues, recent pushes), and recommend the best issue to tackle next using c-next's label taxonomy and conventions. Use when the user says /issue-check, 'what should I work on', 'check issues', 'next issue', or wants to pick their next task from the backlog."
+description: "Review open GitHub issues for the cnx repo, detect in-flight work (open PRs, assigned issues, recent pushes), and recommend the best issue to tackle next using cnx's label taxonomy and conventions. Use when the user says /issue-check, 'what should I work on', 'check issues', 'next issue', or wants to pick their next task from the backlog."
 user-invocable: true
 tools: Bash, Read, Grep, Glob, WebFetch, Task, AskUserQuestion
 ---
 
-# Issue Check — Smart Issue Triage and Recommendation (c-next)
+# Issue Check — Smart Issue Triage and Recommendation (cnx)
 
-Analyze the c-next repo's open GitHub issues, automatically detect what's already in-flight, and recommend the best issue to tackle next using a heuristic tuned to **this project's actual labels and workflow**. For bug issues, transition into the c-next TDD workflow; for features, into the ADR-first research workflow.
+Analyze the cnx repo's open GitHub issues, automatically detect what's already in-flight, and recommend the best issue to tackle next using a heuristic tuned to **this project's actual labels and workflow**. For bug issues, transition into the cnx TDD workflow; for features, into the ADR-first research workflow.
 
-> **Project-specialized skill.** The scoring rubric (Phase 3) is tailored to c-next's labels, board fields and milestone-as-sprint convention. Phase 6 hands off to the `start-issue` skill, which owns the begin-work procedure and the ADR / `.test.cnx` TDD conventions from `CLAUDE.md`.
+> **Project-specialized skill.** The scoring rubric (Phase 3) is tailored to cnx's labels, board fields and milestone-as-sprint convention. Phase 6 hands off to the `start-issue` skill, which owns the begin-work procedure and the ADR / `.test.cnx` TDD conventions from `CLAUDE.md`.
 >
-> This file previously claimed to override a personal `issue-check` of the same name. It did not: on a name collision the personal skill won, and everything below — the board query, the sprint filter, the c-next label taxonomy — never ran (#1415). Do not reintroduce a personal skill named `issue-check`; there is no override, only a shadow.
+> This file previously claimed to override a personal `issue-check` of the same name. It did not: on a name collision the personal skill won, and everything below — the board query, the sprint filter, the cnx label taxonomy — never ran (#1415). Do not reintroduce a personal skill named `issue-check`; there is no override, only a shadow.
 
 ## Execution Workflow
 
@@ -243,9 +243,9 @@ Recommend only from ACTIVE_MILESTONE. There is no flag or argument that widens i
 
 ---
 
-### Phase 3: Smart Prioritization (c-next rubric)
+### Phase 3: Smart Prioritization (cnx rubric)
 
-Score each AVAILABLE_ISSUE using a weighted heuristic tuned to c-next's label taxonomy.
+Score each AVAILABLE_ISSUE using a weighted heuristic tuned to cnx's label taxonomy.
 Higher score = recommend first.
 
 **Note:** there are no `status:` labels. Where an issue sits, what blocks it, and

@@ -14,7 +14,7 @@ import TargetResolver from "../../../../TargetResolver";
 import TTypeUtils from "../../../../../cnx/utils/TTypeUtils";
 import TCSymbol from "../../../../../cnx/types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../../../cnx/types/symbols/cpp/TCppSymbol";
-import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TVisibility from "../../../../../cnx/types/TVisibility";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import NodeFileSystem from "../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
@@ -27,7 +27,7 @@ describe("SymbolTable", () => {
   });
 
   // ========================================================================
-  // TSymbol (C-Next) Operations
+  // TSymbol (cnx) Operations
   // ========================================================================
 
   describe("addTSymbol and getTSymbol", () => {
@@ -39,7 +39,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -71,7 +71,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "first.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -89,7 +89,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "second.cnx",
           span: TestSourceSpan.at(5),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -115,7 +115,7 @@ describe("SymbolTable", () => {
             scopePath: "",
             sourceFile: "test.cnx",
             span: TestSourceSpan.at(1),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("u32"),
@@ -132,7 +132,7 @@ describe("SymbolTable", () => {
             scopePath: "",
             sourceFile: "test.cnx",
             span: TestSourceSpan.at(2),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("i32"),
@@ -214,11 +214,11 @@ describe("SymbolTable", () => {
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "variable",
-          name: "cnextVar",
+          name: "cnxVar",
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -263,7 +263,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
@@ -651,7 +651,7 @@ describe("SymbolTable", () => {
       expect(conflicts[0].column).toBe(0);
     });
 
-    it("names the C-Next names the author wrote, not the generated ones", () => {
+    it("names the cnx names the author wrote, not the generated ones", () => {
       // #1292: `TemperatureSensorController__calibrationOffsetValue` appears in
       // no source file, so pointing at it does not help anyone rename anything.
       const table = new SymbolTable();

@@ -105,7 +105,7 @@ describe("AtomicGenerator", () => {
   // ============================================================================
 
   describe("generateLdrexStrexLoop", () => {
-    // 2.2's plan for an LDREX/STREX loop on a C-Next integer
+    // 2.2's plan for an LDREX/STREX loop on a cnx integer
     const exclusivePlan = (typeName: string): IPlannedAtomic => {
       const access = {
         typeName,
@@ -353,7 +353,7 @@ describe("AtomicGenerator", () => {
       },
     );
 
-    // #2155 review 8: an atomic of a C header type has no C-Next name, and
+    // #2155 review 8: an atomic of a C header type has no cnx name, and
     // is accessed by its C type
     it("writes a C header type's compare-exchange loop in its C type", () => {
       const code = generateAtomicRMW(

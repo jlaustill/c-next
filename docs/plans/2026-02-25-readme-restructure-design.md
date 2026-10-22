@@ -11,7 +11,7 @@ The README received feedback that:
 2. "Thought exercise" tagline undersells the project's maturity
 3. Missing direct "Why not Rust?" answer
 4. No CI badge despite having GitHub Actions workflows
-5. "Projects Using C-Next" table is thin
+5. "Projects Using cnx" table is thin
 
 ## Design Decision
 
@@ -22,23 +22,23 @@ The README received feedback that:
 1. **Title + Badges** — Add GitHub Actions CI badge
 2. **One-liner + Status** — Keep current
 3. **Quick Example** — Keep current (this is the hook)
-4. **Why C-Next?** — NEW section addressing toolchain question
+4. **Why cnx?** — NEW section addressing toolchain question
 5. **Philosophy** — KEEP (TypeScript model, KISS, DRY, Simplicity table)
 6. **Installation** — Keep current
 7. **Usage** — Keep current
 8. **VS Code Extension** — Keep current
 9. **PlatformIO Integration** — Condensed with link to full docs
-10. **Projects Using C-Next** — Expanded with test-teensy
+10. **Projects Using cnx** — Expanded with test-teensy
 11. **Documentation** — NEW section with links
 12. **Development** — Keep current
 13. **Contributing + License + Acknowledgments** — Keep current
 
-## "Why C-Next?" Content
+## "Why cnx?" Content
 
 ```markdown
-## Why C-Next?
+## Why cnx?
 
-C-Next transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
+cnx transpiles to **standard C99**. Your existing toolchain — GCC, Clang, IAR, arm-none-eabi-gcc — compiles the output.
 
 This means:
 
@@ -47,7 +47,7 @@ This means:
 - **No new runtime** — the generated C is what runs on your hardware
 - **Incremental adoption** — drop a single `.cnx` file into an existing project
 
-Other memory-safe languages require adopting an entirely new toolchain, build system, and ecosystem. C-Next gives you safety improvements while keeping your investment in C infrastructure.
+Other memory-safe languages require adopting an entirely new toolchain, build system, and ecosystem. cnx gives you safety improvements while keeping your investment in C infrastructure.
 ```
 
 ## Files to Create/Modify
@@ -96,14 +96,14 @@ All ADR tables:
 ## CI Badge
 
 ```markdown
-[![CI](https://github.com/jlaustill/c-next/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/jlaustill/c-next/actions/workflows/pr-checks.yml)
+[![CI](https://github.com/smeltworks/cnx/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/smeltworks/cnx/actions/workflows/pr-checks.yml)
 ```
 
 ## Expanded Projects Table
 
 | Project                                   | Description                                                                        |
 | ----------------------------------------- | ---------------------------------------------------------------------------------- |
-| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using C-Next for safe embedded control         |
+| [OSSM](https://github.com/jlaustill/ossm) | Open-source stroke machine firmware using cnx for safe embedded control            |
 | [test-teensy](test-teensy/)               | Hardware verification project — validates transpiler output on Teensy MicroMod/4.0 |
 
 ## GitHub Repo Description
@@ -116,7 +116,7 @@ All ADR tables:
 
 - [ ] README reduced to ~200-250 lines
 - [ ] All content preserved (just reorganized)
-- [ ] New visitors can understand what C-Next is in <30 seconds
+- [ ] New visitors can understand what cnx is in <30 seconds
 - [ ] Detailed docs easily discoverable via links
 - [ ] CI badge visible
 - [ ] Repo description updated

@@ -86,7 +86,7 @@ u32 main() {
     }
 
     val <- 4294967296;
-    val *<- 4294967296; // 2^32 * 2^32 overflows - C-Next clamps to max
+    val *<- 4294967296; // 2^32 * 2^32 overflows - cnx clamps to max
     if (val != 18446744073709551615) {
         return 24; // Clamped to UINT64_MAX
     }

@@ -16,7 +16,7 @@
  * facts. That is what makes `u8[N]` one size in the .c and the .h.
  */
 import QualifiedCName from "../../utils/QualifiedCName";
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
@@ -144,7 +144,7 @@ class ConstantNames {
   }
 
   /**
-   * #1863 review: a C-Next type name as C spells it where it is written -- a
+   * #1863 review: a cnx type name as C spells it where it is written -- a
    * primitive's C type, or the scope type ADR-057 qualifies a bare name to
    * (`(P)x` inside scope S is `(S__P)x`). Through
    * `ScopeUtils.qualifyScopeType`, the rule every type position uses.
@@ -154,7 +154,7 @@ class ConstantNames {
     at: ISourcePosition,
     facts: IConstantNameFacts,
   ): string {
-    const primitive = CNEXT_TO_C_TYPE_MAP[typeName];
+    const primitive = CNX_TO_C_TYPE_MAP[typeName];
     if (primitive !== undefined) return primitive;
     const scopePath = facts.scopePathAt(at);
     const parts = typeName.split(".");
@@ -176,7 +176,7 @@ class ConstantNames {
 
   /**
    * Whether a type name that is not a primitive denotes a type where it is
-   * written: a C-Next type this file can see, or -- in a file that reaches a
+   * written: a cnx type this file can see, or -- in a file that reaches a
    * C or C++ header, which is not parsed for every name -- any name at all.
    * The same answer E0426 gives (`UndeclaredTypeAnalyzer.knowsEveryName`).
    */
@@ -313,7 +313,7 @@ class ConstantNames {
         walk,
       );
     }
-    // ADR-058: only a logical length is C-Next's to fold; a runtime one and
+    // ADR-058: only a logical length is cnx's to fold; a runtime one and
     // C's memory are written for the program and the C compiler to answer
     const rule = LengthProperty.rule(name, ConstantNames.subjectOf(current));
     if (rule.kind === "memory") {
@@ -363,7 +363,7 @@ class ConstantNames {
    * and its element's width on the run's target. A header's struct type is
    * measured as its values are (#2076): `Cfg.type_byte_length`, `Cfg.a.type_bit_length`.
    * Anything else bare -- a C enum constant -- is C's to evaluate as written;
-   * C has no spelling of `X.y` C-Next could write for the rest.
+   * C has no spelling of `X.y` cnx could write for the rest.
    */
   private static ofForeign(
     name: string,
@@ -394,7 +394,7 @@ class ConstantNames {
     );
   }
 
-  /** One element's memory as C measures it; null for a type C-Next cannot name */
+  /** One element's memory as C measures it; null for a type cnx cannot name */
   private static memoryElementC(
     current: IMeasured,
     walk: IWalk,
@@ -404,7 +404,7 @@ class ConstantNames {
       case "string":
         return `${LengthProperty.stringBufferChars(type.capacity)}U`;
       case "primitive": {
-        const cType = CNEXT_TO_C_TYPE_MAP[type.primitive];
+        const cType = CNX_TO_C_TYPE_MAP[type.primitive];
         return cType === undefined ? null : `sizeof(${cType})`;
       }
       case "struct":
@@ -463,17 +463,17 @@ class ConstantNames {
   }
 
   /**
-   * The C type a header gave a measured value; null for a C-Next type. 1.3
+   * The C type a header gave a measured value; null for a cnx type. 1.3
    * types a name it does not know as a struct (`Cfg c;`), a header's too.
    */
   private static headerType(type: TType, walk: IWalk): string | null {
     if (type.kind === "external") return type.name;
     if (type.kind !== "struct") return null;
-    const isCNext =
+    const isCnx =
       walk.facts.visibleSymbol(
         QualifiedCName.fromParts(type.name.split(".")),
       ) !== undefined;
-    return !isCNext && walk.facts.headerStructFields(type.name) !== undefined
+    return !isCnx && walk.facts.headerStructFields(type.name) !== undefined
       ? type.name
       : null;
   }
@@ -610,7 +610,7 @@ class ConstantNames {
       (root === null ? TypeHead.primitive(head) : null) ??
       TypeHead.ofSymbol(symbol, cName);
     if (named !== null) return named;
-    // #2076: a header's type, which no C-Next symbol names
+    // #2076: a header's type, which no cnx symbol names
     return root !== "this" && symbol === undefined
       ? walk.facts.headerTypeHead(head)
       : null;
@@ -631,7 +631,7 @@ class ConstantNames {
     if (!walk.facts.mayBeHeaderName(root, head, walk.at)) {
       return ConstantNames.without("unknown", walk);
     }
-    // A macro is a bare name: C has no spelling for `X.y` that C-Next could
+    // A macro is a bare name: C has no spelling for `X.y` that cnx could
     // write for it
     return rest.length === 0
       ? { kind: "foreign", spelling: walk.spelling, why: "maybeHeader" }

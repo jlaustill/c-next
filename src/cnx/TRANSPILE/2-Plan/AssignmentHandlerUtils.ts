@@ -14,7 +14,7 @@ import type IAssignmentContext from "./types/IAssignmentContext";
  * Validate that compound assignment operators are not used with bit field access.
  *
  * @param isCompound - Whether this is a compound assignment
- * @param cnextOp - The C-Next operator being used
+ * @param cnxOp - The cnx operator being used
  * @throws Error if compound operator is used with bit fields
  */
 // #1322: `validateNoCompoundForBitAccess` is gone. Compound assignment on a

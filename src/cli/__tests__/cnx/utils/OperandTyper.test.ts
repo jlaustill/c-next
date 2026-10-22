@@ -5,8 +5,8 @@
 import SyntaxLowering from "../../../../cnx/PARSE/2-Parse/SyntaxLowering";
 import { describe, it, expect } from "vitest";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import OperandTyper from "../../../../cnx/utils/OperandTyper";
 import QualifiedCName from "../../../../cnx/utils/QualifiedCName";
@@ -66,7 +66,7 @@ function initializerOf(
   });
   let found: Parser.ExpressionContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterVariableDeclaration = (
         ctx: Parser.VariableDeclarationContext,
       ): void => {
@@ -819,7 +819,7 @@ describe("OperandTyper.chainOf", () => {
     });
     let found: Parser.AssignmentTargetContext | null = null;
     ParseTreeWalker.DEFAULT.walk(
-      new (class extends CNextListener {
+      new (class extends CnxListener {
         override enterAssignmentTarget = (
           ctx: Parser.AssignmentTargetContext,
         ): void => {
@@ -1039,8 +1039,8 @@ extern Frame frame;`,
       ).toMatchObject({ category: "character" });
     });
 
-    it("keeps a C-Next scalar's subscript a bit", () => {
-      // The control: the header rule does not reach C-Next's own values
+    it("keeps a cnx scalar's subscript a bit", () => {
+      // The control: the header rule does not reach cnx's own values
       expect(
         subscriptOf("u32 w <- 16;\nbool r <- w[4];", new SymbolTable()),
       ).toBe("bit_single");
@@ -1074,7 +1074,7 @@ describe("OperandTyper.chainOf: a field named like a property", () => {
     ).steps.at(-1);
   }
 
-  it("types a C-Next struct's field as the field", () => {
+  it("types a cnx struct's field as the field", () => {
     const step = lastStep(
       "u32 r <- b.length;",
       new SymbolTable(),

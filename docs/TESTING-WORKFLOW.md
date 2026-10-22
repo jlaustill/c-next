@@ -1,6 +1,6 @@
-# C-Next Testing Workflow
+# cnx Testing Workflow
 
-**Purpose:** Step-by-step guide for writing comprehensive, bug-finding tests in C-Next.
+**Purpose:** Step-by-step guide for writing comprehensive, bug-finding tests in cnx.
 
 This workflow was developed during the 2026-01-11 postfix chain testing session, where we created 11 comprehensive tests, found 2 bugs (1 fixed, 1 documented), and increased coverage from 60% to 62%.
 
@@ -8,7 +8,7 @@ This workflow was developed during the 2026-01-11 postfix chain testing session,
 
 ## Testing Philosophy
 
-**"We don't work around bugs in C-Next, we tackle them HEAD-ON!"**
+**"We don't work around bugs in cnx, we tackle them HEAD-ON!"**
 
 When tests expose bugs:
 
@@ -245,7 +245,7 @@ touch BUG-DISCOVERED-[feature].md
 **Grammar Bugs:**
 ```bash
 # Edit grammar
-vim grammar/CNext.g4
+vim grammar/Cnx.g4
 
 # Rebuild parser
 npm run antlr
@@ -254,7 +254,7 @@ npm run antlr
 npm run typecheck
 
 # Test fix (every program names its target, ADR-049)
-cnext [test-file].cnx --target host
+cnx [test-file].cnx --target host
 ````
 
 **Code Generator Bugs:**
@@ -267,7 +267,7 @@ vim src/cnx/TRANSPILE/3-Render/codegen/CodeGenerator.ts
 npm run typecheck
 
 # Test fix
-cnext [test-file].cnx --target host
+cnx [test-file].cnx --target host
 
 # Compare output
 diff [test].test.c [test].expected.c
@@ -335,7 +335,7 @@ touch tests/[feature]/README.md
 
 - **Bug Report:** `/BUG-DISCOVERED-[feature].md`
 - **Coverage:** `/docs/coverage.md` (Section X.Y)
-- **Grammar:** `grammar/CNext.g4` lines X-Y
+- **Grammar:** `grammar/Cnx.g4` lines X-Y
 - **Code:** `src/codegen/FileName.ts` lines X-Y
 ```
 
@@ -439,7 +439,7 @@ Coverage:
 - [Feature] coverage: ~[%]
 
 Files:
-- Modified: grammar/CNext.g4 (lines X-Y)
+- Modified: grammar/Cnx.g4 (lines X-Y)
 - Modified: src/codegen/FileName.ts (explanation)
 - Modified: docs/coverage.md (sections + stats)
 - Added: tests/[feature]/ (N tests + 3 expected + README)
@@ -580,7 +580,7 @@ vim tests/[feature]/basic.test.cnx     # Write tests
 npm test                               # Run tests
 
 # Phase 3: Bug Resolution
-vim grammar/CNext.g4                   # Fix grammar
+vim grammar/Cnx.g4                     # Fix grammar
 vim BUG-DISCOVERED-[feature].md       # Document bugs
 
 # Phase 4: Documentation

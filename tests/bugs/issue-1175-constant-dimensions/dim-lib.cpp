@@ -9,5 +9,5 @@
 
 // Helper for the cross-file dimension fixtures (#1175). LIB_N is declared HERE.
 // A fold that consulted only the file it was reading would find no value for it,
-// and the dimension would reach C as the C-Next name `LIB_N`.
+// and the dimension would reach C as the cnx name `LIB_N`.
 extern const uint32_t LIB_N = 4U;

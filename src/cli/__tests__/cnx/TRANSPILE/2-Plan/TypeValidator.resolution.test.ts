@@ -8,8 +8,8 @@
  */
 import { describe, it, expect } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import TypeValidator from "../../../../../cnx/TRANSPILE/2-Plan/TypeValidator";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import ParserUtils from "../../../../../cnx/utils/ParserUtils";
@@ -59,7 +59,7 @@ function setUp(
 
   const positions = new Map<number, ISourcePosition>();
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterAssignmentStatement = (
         ctx: Parser.AssignmentStatementContext,
       ): void => {

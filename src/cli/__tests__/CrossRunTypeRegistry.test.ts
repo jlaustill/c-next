@@ -59,7 +59,7 @@ describe("the type registry does not survive a run (#1432)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-1432-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-1432-"));
     writeFileSync(join(dir, "signed.cnx"), DECLARES_IDX_AS_I32);
   });
 

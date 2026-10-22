@@ -23,7 +23,7 @@
  * README §1 records.
  *
  * One edge into a later place is ruled, and `mayRead` names it. 1.1 lexes a
- * `.cnx` file to find its includes with 1.2's `CNextLexer`, so it and the
+ * `.cnx` file to find its includes with 1.2's `CnxLexer`, so it and the
  * parser agree on what a comment hides (#1745, owner ruling 2026-09-30,
  * option A: discovery decides which files get parsed, so no `ParsedFile`
  * exists yet when it asks). The lexer only: the parser stays forbidden, and
@@ -45,7 +45,7 @@ const PASS_ORDER = [
   {
     rule: "1-1-discover",
     path: "^src/cnx/PARSE/1-Discover/",
-    mayRead: "^src/cnx/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+    mayRead: "^src/cnx/PARSE/2-Parse/grammar/CnxLexer\\.ts$",
   },
   { rule: "1-2-parse", path: "^src/cnx/PARSE/2-Parse/" },
   { rule: "1-3-declare", path: "^src/cnx/PARSE/3-Declare/" },
@@ -99,10 +99,10 @@ const PARSE_TREE_TYPES = [
   // the re-export.
   "^src/cnx/PARSE/2-Parse/types/IParsedFile\\.ts$",
   // #1957: the 1.2 parser that RETURNS a tree. A module calling it holds the
-  // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
+  // tree as a value -- `CnxSourceParser.parse(src).tree` -- while naming no
   // grammar type, so without this it was counted by neither rule. #1991:
   // `HeaderParser` left the list when it began returning lowered syntax.
-  "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
+  "^src/cnx/PARSE/2-Parse/CnxSourceParser\\.ts$",
 ];
 
 /**
@@ -138,7 +138,7 @@ module.exports = {
       severity: "error",
       from: {
         path: [
-          "^src/cnx/PARSE/3-Declare/cnext/collectors/",
+          "^src/cnx/PARSE/3-Declare/cnx/collectors/",
           "^src/cnx/PARSE/2-Parse/",
           "^src/cnx/PARSE/1-Discover/",
         ],
@@ -490,7 +490,7 @@ module.exports = {
         "nodes is how a diagnostic can originate there at all. " +
         "`antlr4ng` is named alongside the generated grammars because " +
         "ParserRuleContext is the BASE CLASS of every generated context: " +
-        "seven modules hold one without importing CNextParser, so a gate on " +
+        "seven modules hold one without importing CnxParser, so a gate on " +
         "the grammar path alone is satisfied by rewriting an import rather " +
         "than removing the coupling. The C and C++ grammars are named for the " +
         "same reason -- a foreign parse tree is still a parse tree. " +
@@ -538,7 +538,7 @@ module.exports = {
         "what 1.3 needs, and so on down the chain. Source text enters at 1.1, " +
         "and only 1.2 and `TreePasses` hand it to a parser, so no pass -- 1.3 included " +
         "-- can take text and parse it again. The old routes " +
-        "(`CNextResolver.resolveSource`, `HeaderDeclarations.resolveC`, " +
+        "(`CnxResolver.resolveSource`, `HeaderDeclarations.resolveC`, " +
         "`declare(text, ...)`) are deleted; this keeps them from coming back.",
       severity: "error",
       from: {
@@ -553,7 +553,7 @@ module.exports = {
       },
       to: {
         path: [
-          "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
+          "^src/cnx/PARSE/2-Parse/CnxSourceParser\\.ts$",
           "^src/cnx/PARSE/2-Parse/HeaderParser\\.ts$",
           "^src/cnx/PARSE/2-Parse/SourceSyntax\\.ts$",
         ],
@@ -589,7 +589,7 @@ module.exports = {
         "Render or Write, and not a helper any of them calls. Also exempt: the " +
         "helpers in PARSE_TREE_HELPERS, which are `to` targets too, so only 1.2 " +
         "can call one; " +
-        "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
+        "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CnxLexer` and " +
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
         "The library entry points in `lib/` start at 1.1 and go through " +
         "`TreePasses`, so they hold no tree and are not exempt (#1957). " +

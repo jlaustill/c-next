@@ -186,10 +186,10 @@ describe.each([
       ["16-bit", "u16", "uint16_t"],
       ["32-bit", "u32", "uint32_t"],
       ["64-bit", "u64", "uint64_t"],
-    ])("generates %s register members", (_case, cnextType, cType) => {
+    ])("generates %s register members", (_case, cnxType, cType) => {
       const result = generate(
         scopePath,
-        planned("REG", "0x40000000", [member("DATA", cnextType, "rw", "0x00")]),
+        planned("REG", "0x40000000", [member("DATA", cnxType, "rw", "0x00")]),
       );
 
       expect(result.code).toContain(`volatile ${cType}*`);

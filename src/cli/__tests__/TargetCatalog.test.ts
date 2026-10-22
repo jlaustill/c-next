@@ -1,5 +1,5 @@
 /**
- * ADR-049: the target catalog is a C-Next program. Any conforming compiler
+ * ADR-049: the target catalog is a cnx program. Any conforming compiler
  * reads it as one, so it must transpile, and its C must compile.
  */
 import { describe, it, expect } from "vitest";
@@ -19,8 +19,8 @@ const SHIPPED = readFileSync(
 );
 
 describe("the shipped target catalog", () => {
-  it("is a C-Next program whose C a compiler accepts", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "cnext-catalog-"));
+  it("is a cnx program whose C a compiler accepts", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "cnx-catalog-"));
     try {
       const sourcePath = join(dir, "targets.cnx");
       writeFileSync(sourcePath, SHIPPED);

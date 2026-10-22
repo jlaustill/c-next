@@ -1,7 +1,7 @@
 // test-error
 // Issue #1183 review: the array-element path had no test -- removing its guard
 // left every suite green. The diagnostic must also name the ELEMENT, since
-// `flags <- !flags` (the old suggestion) is not valid C-Next.
+// `flags <- !flags` (the old suggestion) is not valid cnx.
 bool[2] flags;
 
 void main() {

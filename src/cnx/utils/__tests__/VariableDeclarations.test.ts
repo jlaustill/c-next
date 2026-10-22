@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import VariableDeclarations from "../VariableDeclarations";
 
 const SOURCE = [
@@ -24,7 +24,7 @@ const SOURCE = [
 const sites = (
   pick: typeof VariableDeclarations.in,
 ): ReadonlyArray<readonly [string, string]> =>
-  pick(CNextSourceParser.parse(SOURCE).program).map(
+  pick(CnxSourceParser.parse(SOURCE).program).map(
     (entry) => [entry.declaration.name, entry.site] as const,
   );
 

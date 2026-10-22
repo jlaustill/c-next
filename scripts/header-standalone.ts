@@ -59,14 +59,10 @@ const testsDir = join(rootDir, "tests");
  * shrink. A bare exclusion list would let a fix go unnoticed and the reason rot
  * in place.
  */
-const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map([
-  [
-    "tests/bugs/issue-1312-undefined-type-position/sibling-consumer.h",
-    "the source deliberately names an undefined `Mode` -- it is the negative " +
-      "control for #1312's diagnostic, so its header cannot compile and a " +
-      "version that did would mean the fixture had stopped testing anything",
-  ],
-]);
+const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>();
 
 interface IOutcome {
   readonly path: string;

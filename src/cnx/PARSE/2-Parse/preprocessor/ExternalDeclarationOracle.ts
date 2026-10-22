@@ -1,6 +1,6 @@
 /**
  * ExternalDeclarationOracle — recover FULL external symbols (function signatures,
- * typedefs, opaque structs) from a set of C/C++ headers that cnext's normal,
+ * typedefs, opaque structs) from a set of C/C++ headers that cnx's normal,
  * per-header-standalone symbol collection could not resolve.
  *
  * Two things defeat standalone collection of framework headers:
@@ -19,7 +19,7 @@
  * first) while KEEPING `#line` directives, then bucket the output BY SOURCE FILE.
  * Each header's own slice is macro-expanded (PRIVILEGED_FUNCTION is gone) yet
  * small (no inlined tree), so parsing it robustly yields full signatures. The
- * caller parses each slice with cnext's real header parser, so recovered symbols
+ * caller parses each slice with cnx's real header parser, so recovered symbols
  * carry their full types — codegen needs these to pass structs by address
  * (`twai_driver_install(&cfg)`) and treat opaque types as pointers
  * (`lv_obj_t` -> `lv_obj_t *`).
@@ -42,7 +42,7 @@ const FUNCTION_MACRO = /^#define\s+([A-Za-z_]\w*)\(/gm;
 const LINE_MARKER = /^#\s+(\d+)\s+"([^"]+)"(.*)$/;
 // Synthetic TU filename (appears in preprocessor errors, keyed on to locate a
 // failing include by its line number).
-const TU_NAME = "cnext-external-decl-oracle.c";
+const TU_NAME = "cnx-external-decl-oracle.c";
 
 interface IExternalRecovery {
   /**

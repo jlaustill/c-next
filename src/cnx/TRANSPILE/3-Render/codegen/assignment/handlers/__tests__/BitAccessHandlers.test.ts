@@ -26,7 +26,7 @@ function createMockContext(
     identifiers,
     ...HandlerTestUtils.subscriptsOf([{ mockValue: "3" } as never]),
     isCompound: false,
-    cnextOp: "<-",
+    cnxOp: "<-",
     cOp: "=",
     generatedValue: "true",
     // #1445: renders, not nodes -- each delegates to the mocked generator the
@@ -522,9 +522,9 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("~((uint64_t)1U << 40)");
     });
 
-    it("writes the element's bit when no C-Next declaration gives the array's dimensions", () => {
+    it("writes the element's bit when no cnx declaration gives the array's dimensions", () => {
       // #1668 review: a C header's array (`extern uint8_t bytes[4]`) has none.
-      // The handler asserted the root's C-Next dimensions and was an
+      // The handler asserted the root's cnx dimensions and was an
       // internal error on `bytes[1][3] <- true`.
       HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi

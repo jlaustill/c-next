@@ -9,14 +9,14 @@
 
 // test-cpp-only
 // test-transpile-only
-// Tests: Issue #522 - Mixed C-Next scopes and C++ namespaces
-// C-Next scope types should appear in header, C++ namespace types should not
+// Tests: Issue #522 - Mixed cnx scopes and C++ namespaces
+// cnx scope types should appear in header, C++ namespace types should not
 #include "Lib.hpp"
 
 #include <stdint.h>
 #include <stdbool.h>
 
-// C-Next scope with public variable - should appear in header
+// cnx scope with public variable - should appear in header
 /* Scope: MyScope */
 const int32_t MyScope__scopeVar = 10;
 

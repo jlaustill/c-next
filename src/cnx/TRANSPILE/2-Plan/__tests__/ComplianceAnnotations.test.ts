@@ -6,7 +6,7 @@
  * a nested `/*` inside the text (MISRA C:2012 Rule 3.1 -- an annotation that
  * violated a rule while citing one). Three sites used to build these strings by
  * hand and one had drifted: `forever` emitted no trailing period, and its
- * parenthetical named the C-Next construct instead of what the naive C would
+ * parenthetical named the cnx construct instead of what the naive C would
  * have done. A convention in prose could not catch that; this can.
  */
 

@@ -5,8 +5,8 @@
 import SyntaxLowering from "../../../../../cnx/PARSE/2-Parse/SyntaxLowering";
 import { describe, expect, it } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import DeclaredTypeInfo from "../../../../../cnx/PARSE/3-Declare/DeclaredTypeInfo";
 import HeaderParser from "../../../../../cnx/PARSE/2-Parse/HeaderParser";
@@ -21,7 +21,7 @@ function declaredAtR(source: string, name: string, root: "this" | null = null) {
   const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   let at: { line: number; column: number } | null = null;
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterVariableDeclaration = (
         ctx: Parser.VariableDeclarationContext,
       ): void => {
@@ -42,7 +42,7 @@ function targetOf(source: string) {
   const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   let target: Parser.AssignmentTargetContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterAssignmentTarget = (
         ctx: Parser.AssignmentTargetContext,
       ): void => {
@@ -181,7 +181,7 @@ extern int n;
     });
   });
 
-  // #1760 review: the foreign arm asked a bare-name C-Next lookup first, so a
+  // #1760 review: the foreign arm asked a bare-name cnx lookup first, so a
   // scope member of the same name answered for the header's variable
   it("types a header global by the header, not a same-named scope member", () => {
     const table = new SymbolTable();
@@ -263,7 +263,7 @@ extern Dev cDevice;`;
     expect(typeAt("cfgTable")).toBeUndefined();
   });
 
-  it("holds a C-Next variable of a handle type through a pointer (ADR-030)", () => {
+  it("holds a cnx variable of a handle type through a pointer (ADR-030)", () => {
     expect(typeAt("shared")).toMatchObject({
       baseType: "Dev",
       isPointer: true,
@@ -271,7 +271,7 @@ extern Dev cDevice;`;
   });
 
   it("leaves a C header's global of the handle type as C declared it", () => {
-    // C declared it, not C-Next, so it keeps its own type and still takes `&`
+    // C declared it, not cnx, so it keeps its own type and still takes `&`
     expect(typeAt("cDevice")).toMatchObject({
       baseType: "Dev",
       isPointer: false,

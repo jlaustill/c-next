@@ -5,7 +5,7 @@
 
 ## Problem
 
-The CLI accepts directories (`cnext src/`) which triggers recursive filesystem scanning for all `.cnx` files. This is redundant because the transpiler already discovers all needed files by walking `#include` directives from the entry point. The directory mode also causes bugs: `PathResolver` can't compute correct `sourceRelativePath` for single-file inputs that were discovered via directory scanning, leading to flat self-includes (`#include "Foo.h"` instead of `#include "Data/Foo.h"`) that force users to add every subdirectory as a separate `-I` flag.
+The CLI accepts directories (`cnx src/`) which triggers recursive filesystem scanning for all `.cnx` files. This is redundant because the transpiler already discovers all needed files by walking `#include` directives from the entry point. The directory mode also causes bugs: `PathResolver` can't compute correct `sourceRelativePath` for single-file inputs that were discovered via directory scanning, leading to flat self-includes (`#include "Foo.h"` instead of `#include "Data/Foo.h"`) that force users to add every subdirectory as a separate `-I` flag.
 
 ## Solution
 
@@ -18,7 +18,7 @@ Accept exactly one `.cnx` entry point file. All other files are discovered via i
 **Cli.ts:**
 
 - Validate exactly one input file (not zero, not multiple, not a directory)
-- Error message for directories: "Directory input not supported. Specify an entry point file: cnext src/main.cnx"
+- Error message for directories: "Directory input not supported. Specify an entry point file: cnx src/main.cnx"
 
 **Runner.ts:**
 
@@ -40,12 +40,12 @@ Accept exactly one `.cnx` entry point file. All other files are discovered via i
 **Transpiler.ts:**
 
 - `_discoverFromFiles()`: start with single entry file, walk includes (already works via `_processFileIncludes` array mutation loop)
-- Remove directory branch from `_discoverCNextFromInput()` (or inline the single-file logic)
+- Remove directory branch from `_discoverCnxFromInput()` (or inline the single-file logic)
 - `PathResolver` config: `inputs` derived from `dirname(config.input)`
 
 ### Dead Code Removal
 
-- `InputExpansion.findCNextFiles()` and directory scanning in `expandInputs()`
+- `InputExpansion.findCnxFiles()` and directory scanning in `expandInputs()`
 - `FileDiscovery.discover()` (directory glob) — keep `discoverFile()` and `discoverFiles()`
 - `Runner._categorizeInputs()`, `Runner._expandInputFiles()`
 - Related unit tests for directory scanning
@@ -57,13 +57,13 @@ Accept exactly one `.cnx` entry point file. All other files are discovered via i
 
 ### Config Impact
 
-- `cnext.config.json`: `basePath` becomes optional (inferred from entry file parent dir, overridable)
-- OSSM `cnext_build.py`: change `cnext src` → `cnext src/main.cnx`
-- OGauge `cnext_build.py`: already uses `cnext src/main.cnx` — no change
+- `cnx.config.json`: `basePath` becomes optional (inferred from entry file parent dir, overridable)
+- OSSM `cnx_build.py`: change `cnx src` → `cnx src/main.cnx`
+- OGauge `cnx_build.py`: already uses `cnx src/main.cnx` — no change
 
 ### What Stays the Same
 
-- `_processFileIncludes` / `_processCnextIncludes` — already recursive
+- `_processFileIncludes` / `_processCnxIncludes` — already recursive
 - `IncludeResolver` — unchanged
 - `DependencyGraph` / topological sort — unchanged
 - Source mode (`{ kind: 'source' }`) — unchanged

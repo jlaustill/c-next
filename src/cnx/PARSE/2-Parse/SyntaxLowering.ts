@@ -12,7 +12,7 @@
  */
 import { TerminalNode } from "antlr4ng";
 import type { ParserRuleContext, ParseTree, Token } from "antlr4ng";
-import * as Parser from "./grammar/CNextParser";
+import * as Parser from "./grammar/CnxParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ChainRoot from "./ChainRoot";
 import SourceSpelling from "./SourceSpelling";
@@ -301,7 +301,7 @@ class SyntaxLowering {
 
   /**
    * ADR-058: `u32.type_byte_length`, a primitive type's length property. The type
-   * keyword is the chain's head name, as a C-Next type's name is in
+   * keyword is the chain's head name, as a cnx type's name is in
    * `Point.type_byte_length`; no value can be named `u32`.
    */
   private static typeProperty(

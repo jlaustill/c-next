@@ -1,7 +1,7 @@
 // test-error
 // #1977, owner rulings. A C function's pointer parameter takes an object of
 // the type it points to: E0895. The C was `send_u8(&r, 12U)` and
-// `send_u8(w, 4U)`, exit 0. C-Next cannot see how the C function uses the
+// `send_u8(w, 4U)`, exit 0. cnx cannot see how the C function uses the
 // pointer -- one byte or n of them -- so a `u8` and a `u8[]` are both accepted,
 // with warning E0896 that the call is not memory safe.
 

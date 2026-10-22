@@ -1,8 +1,8 @@
 /**
- * #1735: a value in a static-storage initializer that C-Next cannot fix at
+ * #1735: a value in a static-storage initializer that cnx cannot fix at
  * compile time (E0909), or whose arithmetic would clamp or wrap there
  * (E0910, ADR-044 "Values fixed at compile time"). A file-scope or scope
- * variable's initializer is such a value, in C++ as in C: C-Next settles it
+ * variable's initializer is such a value, in C++ as in C: cnx settles it
  * before the program runs. C would reject one it could not settle (C11
  * 6.7.9p4); C++ would initialize it at run time.
  */
@@ -51,9 +51,9 @@ class StaticInitializerAnalyzer {
         errors.push({
           code: "E0909",
           ...at,
-          message: `Static initializer must be known at compile time: ${ConstantDiagnostics.why(settled)}, and C-Next cannot read its value to check the arithmetic does not clamp or wrap (ADR-044)`,
+          message: `Static initializer must be known at compile time: ${ConstantDiagnostics.why(settled)}, and cnx cannot read its value to check the arithmetic does not clamp or wrap (ADR-044)`,
           helpText:
-            "Declare the value in C-Next, or #define it as an integer literal C-Next can read",
+            "Declare the value in cnx, or #define it as an integer literal cnx can read",
         });
       } else if (
         settled !== null &&

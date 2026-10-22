@@ -1,7 +1,7 @@
 import type TBinaryLevel from "../../../types/syntax/TBinaryLevel";
 
 /**
- * The binary-operator levels of the C-Next expression grammar whose operands
+ * The binary-operator levels of the cnx expression grammar whose operands
  * pair up (`TBinaryLevel` minus the logical `or` and `and`).
  *
  * An analyzer that inspects operand pairs selects the levels its rule governs:

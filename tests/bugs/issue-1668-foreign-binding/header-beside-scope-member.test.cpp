@@ -7,7 +7,7 @@
 
 // test-execution
 // #1760 review: a header variable is typed by the header alone. Its type was
-// asked of a bare-name C-Next lookup first, so a scope member of the same name
+// asked of a bare-name cnx lookup first, so a scope member of the same name
 // answered: `speed +<- 300` on the header's `uint32_t speed` was clamped at the
 // scope's u8 width, 255 instead of 1300.
 #include "motor_speed.h"

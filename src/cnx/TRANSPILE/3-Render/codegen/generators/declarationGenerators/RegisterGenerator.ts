@@ -1,7 +1,7 @@
 /**
  * RegisterGenerator - ADR-004 Register Binding Generation
  *
- * Generates C #define macros from C-Next register declarations, at file scope
+ * Generates C #define macros from cnx register declarations, at file scope
  * or inside a scope.
  *
  * Example:

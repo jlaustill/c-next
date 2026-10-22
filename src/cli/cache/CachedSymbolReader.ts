@@ -159,7 +159,7 @@ class CachedSymbolReader {
    * Does this decoded value carry the fields every C/C++ symbol has, with a
    * discriminant its language actually defines?
    *
-   * C-Next symbols are rejected: they are never written to the cache (they are
+   * cnx symbols are rejected: they are never written to the cache (they are
    * re-parsed from source every run), so one appearing here means the entry is
    * not what it claims to be.
    */

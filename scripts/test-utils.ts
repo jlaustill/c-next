@@ -29,7 +29,7 @@ import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/cnx/PARSE/2-Parse/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
-import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import ExecFailure from "../src/cnx/utils/ExecFailure";
 import TargetResolver from "../src/cli/TargetResolver";
 import type IGccToolchain from "../src/cnx/utils/types/IGccToolchain";
@@ -77,7 +77,7 @@ function isDistFresh(): boolean {
 // Only the main process should rebuild — workers (created via fork()) have
 // process.send, so we skip the build check in them to avoid 24 concurrent builds.
 //
-// CNEXT_SKIP_DIST_REBUILD is the same exemption for a child that is NOT a fork
+// CNX_SKIP_DIST_REBUILD is the same exemption for a child that is NOT a fork
 // and so has no process.send: a test that spawns this harness to observe how it
 // REPORTS would otherwise make its own suite build the project as a side effect,
 // and a concurrent `npm test` would have dist/index.js rewritten underneath it
@@ -85,7 +85,7 @@ function isDistFresh(): boolean {
 // not asserting on transpiler output -- and every gate builds before it runs.
 if (
   !process.send &&
-  !process.env.CNEXT_SKIP_DIST_REBUILD &&
+  !process.env.CNX_SKIP_DIST_REBUILD &&
   existsSync(DIST_ENTRY) &&
   !isDistFresh()
 ) {
@@ -174,7 +174,7 @@ function renderDiagnostic(
 }
 
 /**
- * Transpile a C-Next file using the CLI (not library imports).
+ * Transpile a cnx file using the CLI (not library imports).
  *
  * This ensures tests exercise the exact same code path as real users.
  * Previously tests imported Transpiler directly, which bypassed conflict
@@ -434,7 +434,7 @@ class TestUtils {
     if (!target) {
       return "the CLI printed no Target: line (ADR-049)";
     }
-    const pin = CNextSourceParser.parse(source).targetDirectives.find(
+    const pin = CnxSourceParser.parse(source).targetDirectives.find(
       (directive) => directive.key === "target",
     )?.values[0];
     // The run reports the ENTRY's declaration by name (#1760 review), and the
@@ -630,7 +630,7 @@ class TestUtils {
     }
 
     // Issue #291: Check for C++ template types (Type<Args>)
-    // Excludes string<N> which is C-Next bounded string syntax
+    // Excludes string<N> which is cnx bounded string syntax
     if (/\b(?!string\b)\w+<[^;=<>]+>/.test(cCode)) {
       return true;
     }

@@ -303,7 +303,7 @@ relocate rather than Stage 3b to grow.
 Three further defects surfaced while validating those fixes: a dropped dimension
 shifted every later one so subscript 0 was checked against dimension 2's bound; a
 const parameter dimension emitted a VLA (`uint8_t buf[SIZE]`) while the matching
-local folded; and the variable path put a C-Next type name into a C header
+local folded; and the variable path put a cnx type name into a C header
 (`extern uint8_t sz[sizeof(u32)]`), which did not compile.
 
 ### Deliberately not done

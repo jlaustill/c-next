@@ -11,12 +11,12 @@
 
 ## Context
 
-C-Next has no dedicated construct for an intentionally infinite loop. Because loop
+cnx has no dedicated construct for an intentionally infinite loop. Because loop
 conditions must be explicit comparisons (E0701 — bare booleans and bare constants are
 rejected), the only ways to write "loop forever" today are hacks:
 
 ```cnx
-while (1 = 1) {   // `1 = 1` is equality in C-Next, i.e. `1 == 1`
+while (1 = 1) {   // `1 = 1` is equality in cnx, i.e. `1 == 1`
     loop();
 }
 ```
@@ -95,7 +95,7 @@ enclosing function's return type.** They split into two camps:
 - Verilog is the only surveyed language that uses the **keyword `forever`** — it confirms the
   word reads naturally, but offers no guidance on return types (hardware has none).
 
-The proposed C-Next rule below (`forever` only in `void` functions) is therefore **novel**.
+The proposed cnx rule below (`forever` only in `void` functions) is therefore **novel**.
 The justification is that it is the _simplest sound_ option and, per the repo audit, costs
 nothing today (see "Migration Impact").
 
@@ -119,10 +119,10 @@ The keyword is **`forever`** (decided 2026-06-26). It reads as plain English —
 book" — and a C developer grasps its intent instantly. `loop` (Rust) was rejected as ambiguous
 with labels/calls and less recognizable to C developers; `for (;;)` and `while (1 = 1)` are
 treated as **hacks** to be forbidden in source (see "Forbidding the Disguised Infinite Loop"), so
-`forever` is the **single** way to write an infinite loop in C-Next.
+`forever` is the **single** way to write an infinite loop in cnx.
 
 **Braces are always required** — `forever { … }`, never a single-statement form — matching
-C-Next's brace-always style (`switch`, `scope`, `critical`).
+cnx's brace-always style (`switch`, `scope`, `critical`).
 
 **Source vs. generated C.** `forever` is the _source_ form; the transpiler still _emits_ the
 canonical `for (;;)` in the generated `.c`. The "hack" objection is about what a human authors in
@@ -134,13 +134,13 @@ generate.
 1. **Lowering.** `forever { … }` transpiles to `for (;;) { … }` — the idiom MISRA C:2012
    explicitly permits as an infinite loop (Rule 14.3 carve-out), with no controlling
    expression to be flagged as invariant. The lowered for statement will include a detailed comment specifying the MISRA 14.3 rule etc.
-2. **Divergent.** Because C-Next has no `break`/`continue` (ADR-026), `forever` never completes.
+2. **Divergent.** Because cnx has no `break`/`continue` (ADR-026), `forever` never completes.
    The all-paths-return analyzer (ADR-067) treats it as a **divergent statement** — a terminal
    path, like an unconditional `return`. A function whose every path either returns a value or
    diverges via `forever` satisfies E0704 with **no dead trailing return**.
 3. **`void`-only.** A `forever` loop may appear **only in a function with a `void` return
    type** (proposed **E0705**). A value-returning function that loops forever can never honor
-   its return type; rather than silently accept it (Rust) or force dead code (today), C-Next
+   its return type; rather than silently accept it (Rust) or force dead code (today), cnx
    rejects the combination outright. Functions that "loop until they have a value to return"
    are _not_ forever loops — by ADR-026's own philosophy they express the exit as a `while`
    condition:
@@ -226,7 +226,7 @@ transpiles correctly.)
 ## Forbidding the Disguised Infinite Loop (follow-on)
 
 Once `forever` exists, the disguised infinite-loop forms — `while (1 = 1)` **and** `for (;;)` in
-source — have **zero** legitimate use. Both are forbidden in C-Next source and steered to
+source — have **zero** legitimate use. Both are forbidden in cnx source and steered to
 `forever` (decided 2026-06-26), so there is exactly one source form. Note `for (;;)` compiles
 today, so forbidding it is a deliberate (tiny) breaking change — the repo audit found **zero**
 occurrences (see "Migration Impact"). The error reads, e.g.:
@@ -263,18 +263,18 @@ There is also a recurring _semantic_ payoff: Rust's `loop {}` and Go's `for {}` 
 the compiler as diverging/terminating, improving flow analysis — exactly the divergence primitive
 this ADR introduces.
 
-### Why C-Next can make it a single-tier error
+### Why cnx can make it a single-tier error
 
-Every other tool needs a _two-tier_ rule (bless `while(true)`, flag `while(1==1)`). **C-Next does
+Every other tool needs a _two-tier_ rule (bless `while(true)`, flag `while(1==1)`). **cnx does
 not** — `E0701` already forbids bare booleans/constants as conditions, so `while (true)` is not
-even writable today. C-Next's _only_ infinite-loop form is `while (1 = 1)` — precisely the
+even writable today. cnx's _only_ infinite-loop form is `while (1 = 1)` — precisely the
 constant-_comparison_ form that ESLint and MISRA flag as the suspicious case. With no literal-true
 idiom to protect, the two tiers collapse into one rule: **an always-true loop condition is an
 error; if you meant to loop forever, use `forever`.**
 
-That rule is exactly **MISRA Rule 14.3**, which C-Next currently marks **"Not Enforced"**
+That rule is exactly **MISRA Rule 14.3**, which cnx currently marks **"Not Enforced"**
 (`docs/misra-compliance.md`). So the `forever` steering is the loop-true _facet_ of 14.3. A
-hard error here is stricter than any precedent, but defensible for C-Next: the language is
+hard error here is stricter than any precedent, but defensible for cnx: the language is
 hard-error-first, `E0701` already hard-errors the adjacent case, MISRA 14.3 is Required, and
 post-`forever` the form has no legitimate use.
 
@@ -312,8 +312,8 @@ post-`forever` the form has no legitimate use.
 - **Single source form:** `for (;;)` and always-true `while` are forbidden, steered to `forever`.
 - **Diagnostics:** E0705 (`forever` in non-void) and E0707 (disguised loop) — wording in the
   _Proposed error codes_ table; grammar in the _Grammar_ subsection.
-- **Steering is a hard error**, not a warning — consistent with C-Next's hard-error-first stance
-  (prior art warns, but C-Next already hard-errors the adjacent E0701, and the form has no
+- **Steering is a hard error**, not a warning — consistent with cnx's hard-error-first stance
+  (prior art warns, but cnx already hard-errors the adjacent E0701, and the form has no
   legitimate use post-`forever`).
 - **v0.2.18 scope / sequencing:** `forever` ships _with_ the syntactic disguised-loop slice (`for (;;)`
   - literal-operand always-true comparisons); general-invariant detection is deferred — see

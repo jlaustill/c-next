@@ -171,7 +171,7 @@ describe("IncludeGenerator", () => {
       expect(result).toBe('#include "file.h"');
     });
 
-    // #1322: three cases pinning the `Included C-Next file not found` throw
+    // #1322: three cases pinning the `Included cnx file not found` throw
     // stood here. It is E0506 in pass 2.1 now, reported at the directive rather
     // than as `1:0 Code generation failed: Error: …` with no code, and its
     // cases live in `1-Analyze/__tests__/IncludeDirectiveAnalyzer.test.ts`.
@@ -271,7 +271,7 @@ describe("IncludeGenerator", () => {
   // ==========================================================================
 
   describe("transformIncludeDirective - 1.1 Discover's kind (#1444)", () => {
-    // Owner ruling 1: whether a directive names C-Next source is 1.1's answer,
+    // Owner ruling 1: whether a directive names cnx source is 1.1's answer,
     // recorded per directive. These hand render an answer its extension would
     // not give, so a render that classified the spelling itself goes red.
     const options = (kind: EFileType, directive: string) => ({
@@ -281,17 +281,17 @@ describe("IncludeGenerator", () => {
       kinds: new Map([[directive, kind]]),
     });
 
-    // #1833: only a lowercase `.cnx`/`.cnext` is C-Next; `Utils.CNX` is E0518.
-    it("rewrites a directive 1.1 classified as C-Next", () => {
+    // #1833: only a lowercase `.cnx` is cnx source; `Utils.CNX` is E0518.
+    it("rewrites a directive 1.1 classified as cnx", () => {
       expect(
         transformIncludeDirective(
-          '#include "Utils.cnext"',
-          options(EFileType.CNext, '#include "Utils.cnext"'),
+          '#include "Utils.cnx"',
+          options(EFileType.Cnx, '#include "Utils.cnx"'),
         ),
       ).toBe('#include "Utils.h"');
     });
 
-    it("leaves a .cnx spelling alone when 1.1 did not classify it as C-Next", () => {
+    it("leaves a .cnx spelling alone when 1.1 did not classify it as cnx", () => {
       expect(
         transformIncludeDirective(
           '#include "utils.cnx"',

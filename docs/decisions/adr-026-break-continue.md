@@ -11,7 +11,7 @@
 - `break` - exit loop early
 - `continue` - skip to next iteration
 
-However, these statements introduce complexity and ambiguity that conflicts with C-Next's safety-first design philosophy.
+However, these statements introduce complexity and ambiguity that conflicts with cnx's safety-first design philosophy.
 
 ## Decision Drivers
 
@@ -95,7 +95,7 @@ Reject both statements. Require explicit loop conditions.
 
 **Option C: Reject break and continue for v1**
 
-C-Next does not support `break` or `continue` statements. All loop exit conditions must be expressed in the loop header. This aligns with:
+cnx does not support `break` or `continue` statements. All loop exit conditions must be expressed in the loop header. This aligns with:
 
 1. **Pascal's original design** - The canonical structured programming language had no internal loop exits
 2. **MISRA's single-exit philosophy** - Reduces complexity and improves code analysis
@@ -151,7 +151,7 @@ for (int i = 0; i < 100; i++) {
 }
 ```
 
-**C-Next (exit condition in header):**
+**cnx (exit condition in header):**
 
 ```cnx
 u8[100] buffer;  // unsigned, so != 0 is correct
@@ -188,7 +188,7 @@ for (int i = 0; i < 100; i++) {
 }
 ```
 
-**C-Next (inverted condition):**
+**cnx (inverted condition):**
 
 ```cnx
 for (u32 i <- 0; i < 100; i +<- 1) {
@@ -217,7 +217,7 @@ while (hasData()) {
 }
 ```
 
-**C-Next (structured):**
+**cnx (structured):**
 
 ```cnx
 u8 byte <- 0;
@@ -246,7 +246,7 @@ while (1) {
 }
 ```
 
-**C-Next (proper structure):**
+**cnx (proper structure):**
 
 ```cnx
 TResult result <- tryOperation();
@@ -283,7 +283,7 @@ for (int row = 0; row < rowCount && !found; row++) {
 }
 ```
 
-**C-Next (same pattern, but idiomatic):**
+**cnx (same pattern, but idiomatic):**
 
 ```cnx
 bool found <- false;
@@ -330,7 +330,7 @@ Early return from functions is permitted and encouraged for search operations.
 
 ### No Ambiguity
 
-In C-Next, there is no `break` statement. You never have to wonder "does this exit the switch or the loop?" because:
+In cnx, there is no `break` statement. You never have to wonder "does this exit the switch or the loop?" because:
 
 - Switches have implicit break (ADR-025)
 - Loops require explicit exit conditions in the header
@@ -372,7 +372,7 @@ The generated C will use structured loops that may include flag variables when n
 
 1. The C code is generated, not hand-written
 2. The flag pattern is well-understood and analyzable
-3. The source C-Next code remains clean
+3. The source cnx code remains clean
 
 ## Open Questions
 

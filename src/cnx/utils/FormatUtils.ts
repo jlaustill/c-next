@@ -13,7 +13,7 @@ class FormatUtils {
 
   /**
    * Generate indentation string for the given level.
-   * Uses 4 spaces per level, matching C-Next coding style.
+   * Uses 4 spaces per level, matching cnx coding style.
    *
    * @param level - The indentation level (0 = no indent)
    * @returns String of spaces for indentation
@@ -38,13 +38,13 @@ class FormatUtils {
   }
 
   /**
-   * Get the appropriate scope separator for C++ vs C/C-Next.
+   * Get the appropriate scope separator for C++ vs C/cnx.
    *
-   * C++ namespace qualification uses `::`; C output uses the C-Next
+   * C++ namespace qualification uses `::`; C output uses the cnx
    * qualified-name separator, which QualifiedCName owns (ADR-063).
    *
    * @param isCppContext - Whether generating C++ code
-   * @returns "::" for C++ or the qualified-name separator for C/C-Next
+   * @returns "::" for C++ or the qualified-name separator for C/cnx
    */
   static getScopeSeparator(isCppContext: boolean): string {
     return isCppContext ? "::" : QualifiedCName.SEPARATOR;

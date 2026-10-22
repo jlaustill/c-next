@@ -1,4 +1,4 @@
-/** 1.2 `Parse`: the run's C-Next files from 1.1, as plain syntax (#1991) */
+/** 1.2 `Parse`: the run's cnx files from 1.1, as plain syntax (#1991) */
 import { describe, expect, it } from "vitest";
 
 import Parse from "../Parse";

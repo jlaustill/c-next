@@ -35,7 +35,7 @@ function runHarness(args: string[]) {
         ...process.env,
         FORCE_COLOR: "0",
         NO_COLOR: "1",
-        CNEXT_SKIP_DIST_REBUILD: "1",
+        CNX_SKIP_DIST_REBUILD: "1",
       },
     },
   );

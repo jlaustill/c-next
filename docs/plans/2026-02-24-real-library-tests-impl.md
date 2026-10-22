@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Set up FreeRTOS-Kernel integration tests to discover C-Next interop limitations, particularly around void\* handling.
+**Goal:** Set up FreeRTOS-Kernel integration tests to discover cnx interop limitations, particularly around void\* handling.
 
-**Architecture:** Vendor real FreeRTOS headers into `tests/libs/`, write C-Next tests that include them, use `// test-no-exec` marker for compile-only verification. Document discoveries in findings.md, create ADR when void\* blocks us.
+**Architecture:** Vendor real FreeRTOS headers into `tests/libs/`, write cnx tests that include them, use `// test-no-exec` marker for compile-only verification. Document discoveries in findings.md, create ADR when void\* blocks us.
 
-**Tech Stack:** FreeRTOS-Kernel V11.2.0, C-Next transpiler, GCC (Posix port)
+**Tech Stack:** FreeRTOS-Kernel V11.2.0, cnx transpiler, GCC (Posix port)
 
 ---
 
@@ -78,7 +78,7 @@ Create `tests/real-libraries/README.md`:
 ````markdown
 # Real-World Library Integration Tests
 
-Tests C-Next interop against real C/C++ library headers (not stubs).
+Tests cnx interop against real C/C++ library headers (not stubs).
 
 ## Purpose
 
@@ -206,8 +206,8 @@ Update `findings.md` with the list of required `config*` macros discovered.
 
 Create `tests/real-libraries/freertos/FreeRTOSConfig.cnx`:
 
-```c-next
-// Minimal FreeRTOS configuration for C-Next interop testing
+```cnx
+// Minimal FreeRTOS configuration for cnx interop testing
 // This file transpiles to FreeRTOSConfig.h which FreeRTOS includes
 
 #define configUSE_PREEMPTION 1
@@ -300,9 +300,9 @@ git commit -m "test: add FreeRTOSConfig.cnx for FreeRTOS interop (Issue #931)"
 
 Create `tests/real-libraries/freertos/task-handle.test.cnx`:
 
-```c-next
+```cnx
 // test-no-exec
-// Tests: Can C-Next parse FreeRTOS typedefs and use handle types?
+// Tests: Can cnx parse FreeRTOS typedefs and use handle types?
 // Issue #931: Real-world library integration tests
 
 #include "FreeRTOSConfig.cnx"
@@ -362,9 +362,9 @@ Document whether type resolution works and any issues found.
 
 Create `tests/real-libraries/freertos/task-create.test.cnx`:
 
-```c-next
+```cnx
 // test-no-exec
-// Tests: Can C-Next handle void* callback parameters in xTaskCreate?
+// Tests: Can cnx handle void* callback parameters in xTaskCreate?
 // Issue #931: Real-world library integration tests
 // Expected: This test will likely FAIL and trigger ADR research
 
@@ -378,7 +378,7 @@ struct TaskData {
 }
 
 // Task function - FreeRTOS expects: void TaskFunction(void* pvParameters)
-// C-Next doesn't have void* - what type should we use here?
+// cnx doesn't have void* - what type should we use here?
 // This is the core question for the void* interop ADR
 void myTaskFunction(TaskData params) {
     params.counter <- params.counter + 1;
@@ -415,7 +415,7 @@ npx tsx src/index.ts tests/real-libraries/freertos/task-create.test.cnx \
 
 Expected failure modes:
 
-- Callback signature mismatch (C-Next func vs void(_)(void_))
+- Callback signature mismatch (cnx func vs void(_)(void_))
 - void\* parameter type error
 - Type coercion failure
 
@@ -434,8 +434,8 @@ If blocked by void\*, create `docs/decisions/adr-XXX-void-pointer-interop.md`:
 
 ## Context
 
-When testing C-Next interop with FreeRTOS (Issue #931), we discovered that
-C libraries commonly use `void*` for generic/opaque parameters. C-Next
+When testing cnx interop with FreeRTOS (Issue #931), we discovered that
+C libraries commonly use `void*` for generic/opaque parameters. cnx
 intentionally does not support `void*` as it's memory-unsafe.
 
 ## Problem
@@ -445,7 +445,7 @@ FreeRTOS `xTaskCreate` expects:
 - Callback: `void (*TaskFunction_t)(void* pvParameters)`
 - Parameter: `void* pvParameters`
 
-C-Next cannot directly express either of these.
+cnx cannot directly express either of these.
 
 ## Error Encountered
 

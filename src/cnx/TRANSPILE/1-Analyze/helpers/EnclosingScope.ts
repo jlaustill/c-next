@@ -6,7 +6,7 @@
  * `ctx.IDENTIFIER().getText()`, then qualified members with
  * `QualifiedCName.fromParts([thatLeaf, member])`. That drops every outer scope,
  * which stays invisible because `scopeMember` admits no `scopeDeclaration`
- * (`grammar/CNext.g4`). ADR-016 makes that a permanent decision rather than the
+ * (`grammar/Cnx.g4`). ADR-016 makes that a permanent decision rather than the
  * coincidence #1357 recorded, so the leaf really is the whole path in source. The
  * stack stays anyway: five sites each deciding that separately is the duplicate-path
  * shape this project forbids, and the assumption is wrong at the registry's API,

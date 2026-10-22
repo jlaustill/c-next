@@ -9,7 +9,7 @@
  * #1444: it lived on `IncludeDiscovery`, so every pass that read include text
  * reached a discovery primitive to do it. Splitting text decides nothing about
  * which files exist, and three passes need it, which is `utils/`' admission
- * test. Whether a spelling names C-Next source is a decision, and stays with
+ * test. Whether a spelling names cnx source is a decision, and stays with
  * 1.1 Discover, which records its answer per directive.
  */
 class IncludeDirectiveText {

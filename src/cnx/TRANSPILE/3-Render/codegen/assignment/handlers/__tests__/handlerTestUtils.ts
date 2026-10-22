@@ -258,12 +258,12 @@ function writtenOf(target: IChainBase): IOperandType | null {
 
 /** #1991: 2.2's clamp decision for a case, made by the call 2.2 makes */
 function plannedClampOf(
-  ctx: Pick<IAssignmentContext, "cnextOp" | "valueHasFloatingOperand">,
+  ctx: Pick<IAssignmentContext, "cnxOp" | "valueHasFloatingOperand">,
   target: IChainBase,
 ): { operation: string; cnxType: string } | null {
   return AssignmentClassifier.clampOfWrite(
     writtenOf(target),
-    ctx.cnextOp,
+    ctx.cnxOp,
     ctx.valueHasFloatingOperand,
   );
 }

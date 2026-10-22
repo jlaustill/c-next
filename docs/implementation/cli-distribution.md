@@ -2,18 +2,18 @@
 
 > **Formerly ADR-048.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
 > test (#1403): npm packaging, the `npx` entry point and the published binary's name are
-> how this implementation ships, not anything C-Next promises. A transpiler rebuilt in
+> how this implementation ships, not anything cnx promises. A transpiler rebuilt in
 > another stack would distribute differently and owe this document nothing. Number 048
 > is retired — see [`../decisions/README.md`](../decisions/README.md).
 
 **Status:** Implemented
 **Date:** 2026-01-01
 **Date Implemented:** 2026-01-03
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-Currently, running the C-Next transpiler requires:
+Currently, running the cnx transpiler requires:
 
 ```bash
 node dist/index.js tests/basics/hello-world.cnx -o hello-world.c
@@ -22,14 +22,14 @@ node dist/index.js tests/basics/hello-world.cnx -o hello-world.c
 This is cumbersome. We want:
 
 ```bash
-cnext tests/basics/hello-world.cnx
+cnx tests/basics/hello-world.cnx
 ```
 
 With the `.c` file automatically output alongside the `.cnx` file (same directory, same base name).
 
 ### Goals
 
-1. **Simple invocation** - `cnext file.cnx` instead of `node dist/index.js file.cnx`
+1. **Simple invocation** - `cnx file.cnx` instead of `node dist/index.js file.cnx`
 2. **Smart defaults** - Output `.c` file next to `.cnx` file by default
 3. **Optional override** - `-o` flag when you want different output location
 4. **Global installation** - `npm install -g` or similar for system-wide access
@@ -45,7 +45,7 @@ Add a `bin` field to `package.json`:
 ```json
 {
   "bin": {
-    "cnext": "./dist/index.js"
+    "cnx": "./dist/index.js"
   }
 }
 ```
@@ -59,7 +59,7 @@ Add shebang to `dist/index.js`:
 **Installation:**
 
 ```bash
-npm install -g c-next
+npm install -g @smeltworks/cnx
 # or locally
 npm link
 ```
@@ -98,7 +98,7 @@ Produces a standalone binary with Node.js bundled.
 - Complex build process
 - **CommonJS only** — ESM must be bundled first (e.g., with esbuild)
 
-**Note:** C-Next uses `"type": "module"` (ESM). For SEA, would need:
+**Note:** cnx uses `"type": "module"` (ESM). For SEA, would need:
 
 ```bash
 npx esbuild dist/index.js --bundle --platform=node --outfile=bundle.cjs
@@ -110,7 +110,7 @@ npx esbuild dist/index.js --bundle --platform=node --outfile=bundle.cjs
 If using Bun instead of Node:
 
 ```bash
-bun build ./dist/index.js --compile --outfile cnext
+bun build ./dist/index.js --compile --outfile cnx
 ```
 
 **Pros:**
@@ -129,7 +129,7 @@ bun build ./dist/index.js --compile --outfile cnext
 The `pkg` npm package (now deprecated):
 
 ```bash
-npx pkg dist/index.js -o cnext
+npx pkg dist/index.js -o cnx
 ```
 
 **Pros:**
@@ -146,7 +146,7 @@ npx pkg dist/index.js -o cnext
 Still-maintained alternative to pkg (13.5k GitHub stars):
 
 ```bash
-npx nexe dist/index.js -o cnext
+npx nexe dist/index.js -o cnx
 ```
 
 **Pros:**
@@ -167,19 +167,18 @@ npx nexe dist/index.js -o cnext
 
 Package and binary name availability (checked 2026-01-02):
 
-| Name     | npm Package  | Binary Name  | Status                                              |
-| -------- | ------------ | ------------ | --------------------------------------------------- |
-| `cnx`    | —            | ❌ Taken     | Existing package: "work context management utility" |
-| `cnext`  | ✅ Available | ✅ Available | Clean, memorable                                    |
-| `c-next` | ✅ Available | ✅ Available | Matches repo/project name                           |
+| Name              | npm Package  | Binary Name | Status                                              |
+| ----------------- | ------------ | ----------- | --------------------------------------------------- |
+| `cnx`             | —            | ❌ Taken    | Existing package: "work context management utility" |
+| `@smeltworks/cnx` | ✅ Available | —           | Scoped to the smeltworks organization               |
 
-**Recommendation:** Use `c-next` as package name (consistency with repo), `cnext` as binary name (shorter to type):
+**Recommendation:** Use `@smeltworks/cnx` as the package name, since the unscoped `cnx` is taken, and `cnx` as the binary name, which a scoped package still installs (#2164, #2181):
 
 ```json
 {
-  "name": "c-next",
+  "name": "@smeltworks/cnx",
   "bin": {
-    "cnext": "./dist/index.js"
+    "cnx": "./bin/cnx.js"
   }
 }
 ```
@@ -187,9 +186,9 @@ Package and binary name availability (checked 2026-01-02):
 This allows:
 
 ```bash
-npm install -g c-next    # Package name
-cnext file.cnx           # Binary name
-npx c-next file.cnx      # npx uses package name
+npm install -g @smeltworks/cnx    # Package name
+cnx file.cnx                      # Binary name
+npx @smeltworks/cnx file.cnx      # npx uses package name
 ```
 
 ---
@@ -205,8 +204,8 @@ node dist/index.js input.cnx -o output.c
 Proposed behavior:
 
 ```bash
-cnext src/main.cnx        # Entry point (follows includes)
-cnext input.cnx -o out.c  # Outputs to specified path
+cnx src/main.cnx        # Entry point (follows includes)
+cnx input.cnx -o out.c  # Outputs to specified path
 ```
 
 ### Implementation
@@ -224,8 +223,8 @@ if (!outputPath && inputFiles.length === 1) {
 
 **Phase 1: npm bin (Option A)**
 
-- Package name: `c-next` (matches repo)
-- Binary name: `cnext` (shorter to type)
+- Package name: `@smeltworks/cnx` (the unscoped `cnx` is taken)
+- Binary name: `cnx`
 - Add `bin` field to package.json
 - Update CLI to default output alongside input
 - Publish to npm registry
@@ -242,7 +241,7 @@ if (!outputPath && inputFiles.length === 1) {
 
 **Implemented Phase 1: npm bin (Option A)**
 
-The `cnext` CLI command is available via npm's bin mechanism. Use `npm link` for local development or `npm install -g c-next` when published.
+The `cnx` CLI command is available via npm's bin mechanism. Use `npm link` for local development or `npm install -g @smeltworks/cnx` when published.
 
 ---
 
@@ -251,7 +250,7 @@ The `cnext` CLI command is available via npm's bin mechanism. Use `npm link` for
 ### Phase 1: npm bin
 
 - [x] Add shebang (`#!/usr/bin/env node`) to src/index.ts
-- [x] Add `bin` field to package.json: `"bin": { "cnext": "./dist/index.js" }`
+- [x] Add `bin` field to package.json: `"bin": { "cnx": "./dist/index.js" }`
 - [x] Update CLI to default output path (same dir as input, `.cnx` → `.c`)
 - [x] Add `--version` / `-v` flag (read from package.json)
 - [x] Add `--help` / `-h` flag
@@ -259,7 +258,7 @@ The `cnext` CLI command is available via npm's bin mechanism. Use `npm link` for
 - [x] Add CLI integration tests (`npm run test:cli`)
 - [ ] Test cross-platform path handling (Windows backslashes)
 - [x] Test `npm link` for local development
-- [ ] Test `npx c-next file.cnx` usage
+- [ ] Test `npx @smeltworks/cnx file.cnx` usage
 - [ ] Publish to npm registry
 - [x] Update README with installation instructions
 

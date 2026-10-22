@@ -1,6 +1,6 @@
 # Nucleo-F446RE Hardware Documentation
 
-This directory contains reference documentation for developing C-Next examples targeting the Nucleo-F446RE board.
+This directory contains reference documentation for developing cnx examples targeting the Nucleo-F446RE board.
 
 ## Documents
 
@@ -34,7 +34,7 @@ curl -L -o UM1724-Nucleo64-User-Manual.pdf \
 
 ## Key Sections in the Reference Manual (RM0390)
 
-For C-Next embedded development, these sections are most useful:
+For cnx embedded development, these sections are most useful:
 
 | Section     | Page | Content                       |
 | ----------- | ---- | ----------------------------- |

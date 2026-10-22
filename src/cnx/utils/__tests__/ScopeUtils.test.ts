@@ -198,7 +198,7 @@ describe("IScopeSymbol", () => {
       // which is what the leaf-only encoders did, agreeing with the chain-walking
       // one only because the grammar admits no nested scopes today.
       //
-      // Nested scopes are unreachable from .cnx source (grammar/CNext.g4:81-89),
+      // Nested scopes are unreachable from .cnx source (grammar/Cnx.g4:81-89),
       // so this unit test is the ONLY thing that can hold the property. It must
       // not be deleted as "testing an impossible case".
 

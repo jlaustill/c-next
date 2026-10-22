@@ -13,7 +13,7 @@ import StringLengthCounter from "../../../../../cnx/TRANSPILE/2-Plan/StringLengt
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import SyntaxLowering from "../../../../../cnx/PARSE/2-Parse/SyntaxLowering";
 import testAnalysisContextFor from "../1-Analyze/testAnalysisContextFor";
-import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 
 /** A state whose program is `source`'s, as 2.2 has it */
 function stateFor(source: string): {

@@ -1,5 +1,5 @@
 /* Helper (not a test): C declarations the #1668 foreign-operand fixture
- * combines with a C-Next integer. None of them is defined -- the fixture is a
+ * combines with a cnx integer. None of them is defined -- the fixture is a
  * test-error and never links. */
 #ifndef FLOAT_API_H
 #define FLOAT_API_H

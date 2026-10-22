@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * C-Next Grammar Coverage Tracker (Issue #35)
+ * cnx Grammar Coverage Tracker (Issue #35)
  *
  * Tracks which ANTLR grammar rules are executed during test runs
  * to identify dead grammar code and untested language constructs.
@@ -15,12 +15,12 @@ import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ParseTreeWalker } from "antlr4ng";
-import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import IGrammarCoverageReport from "../src/cnx/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "../src/cnx/PARSE/2-Parse/types/GrammarCoverageReportBuilder";
 import GrammarCoverageListener from "../src/cnx/PARSE/2-Parse/GrammarCoverageListener";
-import { CNextLexer } from "../src/cnx/PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../src/cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../src/cnx/PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../src/cnx/PARSE/2-Parse/grammar/CnxParser";
 import chalk from "chalk";
 import FileScanner from "./utils/FileScanner";
 
@@ -49,11 +49,11 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
   for (const file of testFiles) {
     try {
       const source = readFileSync(file, "utf-8");
-      const { tree } = CNextSourceParser.parse(source);
+      const { tree } = CnxSourceParser.parse(source);
 
       const coverageListener = new GrammarCoverageListener(
-        CNextParser.ruleNames,
-        CNextLexer.ruleNames,
+        CnxParser.ruleNames,
+        CnxLexer.ruleNames,
       );
       ParseTreeWalker.DEFAULT.walk(coverageListener, tree);
       const report = coverageListener.getReport();
@@ -72,8 +72,8 @@ function aggregateCoverage(testsDir: string): IGrammarCoverageReport {
   }
 
   return GrammarCoverageReportBuilder.build({
-    parserRuleNames: CNextParser.ruleNames as string[],
-    lexerRuleNames: CNextLexer.ruleNames as string[],
+    parserRuleNames: CnxParser.ruleNames as string[],
+    lexerRuleNames: CnxLexer.ruleNames as string[],
     parserRuleVisits: parserVisits,
     lexerRuleVisits: lexerVisits,
   });

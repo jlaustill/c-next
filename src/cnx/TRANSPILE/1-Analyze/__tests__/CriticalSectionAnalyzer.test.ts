@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import CriticalSectionAnalyzer from "../CriticalSectionAnalyzer";
 import type ITargetDescription from "../../../types/ITargetDescription";
 
@@ -26,7 +26,7 @@ const errors = (
   description: ITargetDescription | null = target("cortex-m7", true),
 ) => {
   return new CriticalSectionAnalyzer(description).analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
   );
 };
 

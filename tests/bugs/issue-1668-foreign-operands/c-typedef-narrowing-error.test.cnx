@@ -1,6 +1,6 @@
 // test-error
 // test-adr: 024
-// #1668 review: a C-Next declaration typed by a header's integer type is
+// #1668 review: a cnx declaration typed by a header's integer type is
 // typed by it, so a conversion from it is checked like any other. A
 // `uint32_t` parameter stored into a `u8`, and an `int32_t` into a `u32`,
 // compiled with no E0869: the parameter had no type.

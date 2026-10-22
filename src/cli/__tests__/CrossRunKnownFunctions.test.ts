@@ -54,7 +54,7 @@ describe("knownFunctions does not survive a run (#1430)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-1430-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-1430-"));
   });
 
   afterEach(() => {

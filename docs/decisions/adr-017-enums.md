@@ -8,7 +8,7 @@
 
 > **Amended by ADR-063 (Issue #1117).** Enum members join their components with
 > `__`: `State__IDLE` globally, `Motor__State__IDLE` inside a scope. ADR-063
-> forbids a C-Next identifier from containing `__`, so a generated member name
+> forbids a cnx identifier from containing `__`, so a generated member name
 > can no longer collide with a plain identifier such as `u8 State_IDLE`.
 
 ## Context
@@ -21,7 +21,7 @@ Enums are fundamental to embedded C programming:
 - Configuration options (BAUD_9600, BAUD_115200)
 - Bit flags ({ A <- 1, B <- 2, C <- 4 })
 
-C-Next currently has no enum support. This is a critical gap for v1.
+cnx currently has no enum support. This is a critical gap for v1.
 
 ## Research Summary
 
@@ -101,7 +101,7 @@ Holder h;   // h.inner.m, h.modes[0] and h.modes[1] are Mode.IDLE
 
 So a struct with an enum field has a non-zero default (and a
 `<Struct>_init()`), and an enum array lists every element, which is why its
-size must be one C-Next can read (E0359).
+size must be one cnx can read (E0359).
 
 The zero enumerator is the value, not an initialization: a local enum, an enum
 field of a local, or an element of a local enum array read before it is
@@ -163,7 +163,7 @@ Some things are not a member value, and each is an error at the member:
 - the member itself, or a member declared below it. Neither has a value yet;
 - a variable;
 - a function call;
-- a name that an included C or C++ header defines, such as a macro. C-Next needs the value
+- a name that an included C or C++ header defines, such as a macro. cnx needs the value
   itself: auto-increment continues from it, E0894 checks its sign, and #1862 checks its range.
   Owner ruling, 2026-10-03: a header name is rejected for now. Accepting it later breaks no
   program.

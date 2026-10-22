@@ -66,7 +66,7 @@ type TExpression = ISyntaxNode &
         readonly operand: TExpression;
       }
     /**
-     * ADR-023: C's `sizeof`, which C-Next does not have; parsed so that E0603
+     * ADR-023: C's `sizeof`, which cnx does not have; parsed so that E0603
      * rejects it with a code. A size is ADR-058's `.type_byte_length`.
      */
     | { readonly kind: "sizeof" }

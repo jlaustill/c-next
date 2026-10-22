@@ -60,19 +60,6 @@ describe("InputExpansion", () => {
       expect(result[0]).toBe(resolve(filePath));
     });
 
-    it("expands single .cnext file", () => {
-      const filePath = "/project/main.cnext";
-      mockFile(filePath);
-
-      const result = InputExpansion.expandInputs(
-        [filePath],
-        NodeFileSystem.instance,
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toBe(resolve(filePath));
-    });
-
     it("throws error for non-existent file", () => {
       mockExistsSync.mockReturnValue(false);
 
@@ -119,12 +106,6 @@ describe("InputExpansion", () => {
       ).not.toThrow();
     });
 
-    it("accepts .cnext files", () => {
-      expect(() =>
-        InputExpansion.validateFileExtension("/path/to/file.cnext"),
-      ).not.toThrow();
-    });
-
     it("accepts .c files as entry points", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/main.c"),
@@ -161,12 +142,12 @@ describe("InputExpansion", () => {
       ).toThrow("Invalid file extension '.txt'");
     });
 
-    // #1833: C-Next in any case but lowercase is E0518, as in compile mode.
-    it("rejects a miscased C-Next extension with E0518", () => {
+    // #1833: `.cnx` in any case but lowercase is E0518, as in compile mode.
+    it("rejects a miscased cnx extension with E0518", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/Colors.CNX"),
       ).toThrow(
-        "error[E0518]: C-Next source extension must be lowercase: Colors.CNX",
+        "error[E0518]: cnx source extension must be lowercase: Colors.CNX",
       );
     });
 
@@ -179,9 +160,7 @@ describe("InputExpansion", () => {
     it("provides helpful message for unknown extensions", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/file.js"),
-      ).toThrow(
-        "cnx only accepts .cnx, .cnext, .c, .cpp, .cc, .cxx, or .c++ files",
-      );
+      ).toThrow("cnx only accepts .cnx, .c, .cpp, .cc, .cxx, or .c++ files");
     });
   });
 
@@ -208,10 +187,6 @@ describe("InputExpansion", () => {
 
     it("returns false for .cnx files", () => {
       expect(InputExpansion.isCppEntryPoint("/path/to/file.cnx")).toBe(false);
-    });
-
-    it("returns false for .cnext files", () => {
-      expect(InputExpansion.isCppEntryPoint("/path/to/file.cnext")).toBe(false);
     });
   });
 });

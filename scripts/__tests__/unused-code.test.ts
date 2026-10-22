@@ -10,7 +10,7 @@ import UnusedCode from "../unused-code/UnusedCode";
 
 /** The real shape: three distinct `-o` roots across four antlr scripts. */
 const SCRIPTS: Record<string, string> = {
-  antlr: "antlr4ng -o src/cnx/PARSE/2-Parse grammar/CNext.g4",
+  antlr: "antlr4ng -o src/cnx/PARSE/2-Parse grammar/Cnx.g4",
   "antlr:c": "antlr4ng -o src/cnx/PARSE/2-Parse/c grammar/C.g4",
   "antlr:cpp:lexer":
     "antlr4ng -o src/cnx/PARSE/2-Parse/cpp grammar/CPP14Lexer.g4",
@@ -20,7 +20,7 @@ const SCRIPTS: Record<string, string> = {
 
 describe("UnusedCode.generatedRoots (#1556)", () => {
   it("collects EVERY antlr script's -o, not just the first", () => {
-    // The C and C++ roots nest under the C-Next one, so reading only `antlr`
+    // The C and C++ roots nest under the cnx one, so reading only `antlr`
     // covered them by accident. Move either out and the accident stops
     // holding -- a dozen generated findings become "authored dead code" with
     // nothing pointing at the cause (#1580 review).
@@ -78,7 +78,7 @@ describe("UnusedCode.isGenerated (#1556)", () => {
   const root = UnusedCode.generatedRoots(SCRIPTS);
 
   it.each([
-    ["src/cnx/PARSE/2-Parse/grammar/CNextParser.ts", true],
+    ["src/cnx/PARSE/2-Parse/grammar/CnxParser.ts", true],
     ["src/cnx/PARSE/2-Parse/c/grammar/CLexer.ts", true],
     ["src/cnx/PARSE/2-Parse/cpp/grammar/CPP14Parser.ts", true],
   ])("treats %s as generated", (file, expected) => {
@@ -88,7 +88,7 @@ describe("UnusedCode.isGenerated (#1556)", () => {
   it.each([
     // authored code INSIDE the generated root -- the case a bare prefix test
     // would wrongly exempt
-    ["src/cnx/PARSE/2-Parse/CNextSourceParser.ts", false],
+    ["src/cnx/PARSE/2-Parse/CnxSourceParser.ts", false],
     // a grammar directory OUTSIDE the root -- the case a bare "/grammar/" test
     // would wrongly exempt
     ["src/elsewhere/grammar/Handwritten.ts", false],

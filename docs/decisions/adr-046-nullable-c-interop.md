@@ -7,7 +7,7 @@
 
 ## Context
 
-C-Next eliminates null bugs by design for native types through:
+cnx eliminates null bugs by design for native types through:
 
 - ADR-003: No dynamic allocation (no malloc/free)
 - ADR-006: No pointer arithmetic or reassignment
@@ -31,7 +31,7 @@ The `c_` prefix signals to both compiler and reader: "this variable holds a C po
 
 1. Variables storing nullable C pointer returns must use the `c_` prefix
 2. NULL comparisons are allowed only for `c_` prefixed variables
-3. C-Next native types (`string`, `u32`, arrays, structs) remain non-nullable
+3. cnx native types (`string`, `u32`, arrays, structs) remain non-nullable
 4. Compiler enforces correct prefix usage and NULL checks before use
 
 ### Valid Code
@@ -49,7 +49,7 @@ if (c_file != NULL) {
     fclose(c_file);
 }
 
-// Non-nullable C-Next variable - no prefix, no NULL
+// Non-nullable cnx variable - no prefix, no NULL
 string<64> buffer;  // Always valid, zero-initialized
 ```
 
@@ -61,7 +61,7 @@ string<64> buffer;  // Always valid, zero-initialized
 | C function returning int/value   | No               |
 | C struct with pointer members    | Yes              |
 | C struct with only value members | No               |
-| C-Next native types              | No (forbidden)   |
+| cnx native types                 | No (forbidden)   |
 
 ### Struct Member Access
 
@@ -93,9 +93,9 @@ if (c_customer != NULL) {
 - E0902 → Retained, and re-scoped: the stream and lookup functions this ADR
   allows no longer trigger it, but importing a dynamic memory function still
   does (see _Functions Still Forbidden_ below). It reads "importing X from
-  C/C++ is forbidden" rather than naming X as a C-Next function
+  C/C++ is forbidden" rather than naming X as a cnx function
 - E0904 → Removed (storage allowed with `c_` prefix)
-- E0903 → Retained (NULL invalid for C-Next types)
+- E0903 → Retained (NULL invalid for cnx types)
 
 ## Functions Now Usable
 
@@ -122,7 +122,7 @@ What belongs here is the interop consequence: a header that declares these
 functions can still be included, and every other function it declares remains
 usable under this ADR's `c_` rules. Only a call to a forbidden name from a `.cnx`
 file is rejected, and the diagnostic names the **import** as what is forbidden
-rather than describing the function as a C-Next one.
+rather than describing the function as a cnx one.
 
 ## Compiler Enforcement
 
@@ -134,7 +134,7 @@ The compiler determines nullability via:
 ## Benefits
 
 1. **Self-documenting** — `c_` prefix tells readers "nullable C territory"
-2. **Maintains null safety** — C-Next native types remain non-nullable
+2. **Maintains null safety** — cnx native types remain non-nullable
 3. **Unlocks practical I/O** — File handling, environment variables now usable
 4. **Simpler rules** — No special exemptions needed (removes E0702 workaround)
 5. **Clear errors** — Compiler guides correct usage
@@ -151,7 +151,7 @@ The compiler determines nullability via:
 ## Related ADRs
 
 - **ADR-003**: Static Allocation - malloc/free remain forbidden
-- **ADR-006**: Simplified References - No raw pointers in C-Next
+- **ADR-006**: Simplified References - No raw pointers in cnx
 - **ADR-039**: Null Safety - Native types remain non-nullable
 - **ADR-047**: Superseded by this ADR
 - **ADR-103**: Stream Handling - FILE\* now usable with c\_ prefix

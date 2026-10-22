@@ -5,7 +5,7 @@
  * xtensa `coreasm.h` (a GNU-assembler `.h`, pulled in transitively by FreeRTOS
  * port headers) `#define`s `_ASMLANGUAGE` and defines a `.macro` whose body uses
  * the `loop` instruction mnemonic. The C symbol collector used to mis-collect
- * `loop` as a C symbol, which then false-conflicted with a C-Next `loop()`
+ * `loop` as a C symbol, which then false-conflicted with a cnx `loop()`
  * (e.g. an Arduino sketch) — aborting the build with
  * "Symbol conflict: 'loop' is defined in multiple languages".
  *
@@ -59,7 +59,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log("  PASS: assembler `loop` did not conflict with C-Next loop()");
+  console.log("  PASS: assembler `loop` did not conflict with cnx loop()");
   process.exit(0);
 }
 

@@ -6,8 +6,8 @@
 import TestSymbolTable from "../../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { describe, expect, it, beforeEach } from "vitest";
-import { CNextLexer } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import InitializationAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/InitializationAnalyzer";
 import ProgramLowering from "../../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
@@ -19,13 +19,13 @@ import type IProgram from "../../../../../cnx/types/IProgram";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
- * Parse C-Next source code into an AST
+ * Parse cnx source code into an AST
  */
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   return parser.program();
 }
 
@@ -85,7 +85,7 @@ describe("InitializationAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should still flag C-Next structs as uninitialized", () => {
+    it("should still flag cnx structs as uninitialized", () => {
       const code = `
         struct MyStruct {
           u16 value;
@@ -97,7 +97,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // No C++ symbols in symbol table - MyStruct is a C-Next struct
+      // No C++ symbols in symbol table - MyStruct is a cnx struct
       const symbolTable = new SymbolTable();
 
       const analyzer = new InitializationAnalyzer(
@@ -105,7 +105,7 @@ describe("InitializationAnalyzer", () => {
       );
       const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
-      // SHOULD have an error - C-Next struct is NOT initialized
+      // SHOULD have an error - cnx struct is NOT initialized
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].code).toBe("E0381");
       expect(errors[0].variable).toContain("value");

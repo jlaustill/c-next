@@ -5,7 +5,7 @@
  * - Left-shifting negative signed values is undefined behavior in C
  * - Right-shifting negative signed values is implementation-defined in C
  *
- * C-Next rejects all shift operations on signed types (i8, i16, i32, i64) at
+ * cnx rejects all shift operations on signed types (i8, i16, i32, i64) at
  * compile time to ensure defined, portable behavior.
  *
  * MISRA C:2012 Rule 12.2: the right operand of a shift shall lie in the range

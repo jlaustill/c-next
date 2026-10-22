@@ -43,7 +43,7 @@ const at = (body: string[]): string[] => {
 };
 
 describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
-  it("warns that C-Next cannot see what a C function does with a pointer", () => {
+  it("warns that cnx cannot see what a C function does with a pointer", () => {
     expect(at(["mut u8 b <- 1;", "take(b);", "any(b);"])).toEqual([
       "E0896@3:9 cnx cannot see how 'take' uses parameter 1, so passing 'b' to it is not memory safe",
       "E0896@4:8 cnx cannot see how 'any' uses parameter 1, so passing 'b' to it is not memory safe",

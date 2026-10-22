@@ -1,4 +1,4 @@
-# C-Next Transpiler Architecture
+# cnx Transpiler Architecture
 
 How the transpiler is structured: three layers, eight passes, and a symbol model in which
 every fact is authored exactly once.
@@ -316,7 +316,7 @@ pass holds, so a dependency rule is a backstop rather than the primary guard.
 The backstop now exists (#1317), and since #1932 it is enforced. Two rules in
 `.dependency-cruiser.cjs` share one definition of what counts as holding a tree: importing
 a generated context, the `antlr4ng` runtime, a carrier of 1.2's artifact, or a 1.2 parser
-that returns a tree (`CNextSourceParser`, `HeaderParser`), since a caller holds what it
+that returns a tree (`CnxSourceParser`, `HeaderParser`), since a caller holds what it
 returns without naming its type (#1957).
 
 - `parse-tree-sites` (`info`) is the inventory: every module outside the parser that holds
@@ -331,7 +331,7 @@ returns without naming its type (#1957).
   `TreePasses`, so they hold no tree (#1957). Each named helper is a target of the rule too,
   so a pass after 1.2 that imports one fails as if it had imported the grammar.
 - `only-tree-passes-parse` (`error`): source text enters at 1.1, and only 1.2 (whose `Parse`
-  takes the run's C-Next files, #1991) and `TreePasses` (headers, and `src/lib/`'s one-file
+  takes the run's cnx files, #1991) and `TreePasses` (headers, and `src/lib/`'s one-file
   entries) hand it to a parser (`SourceSyntax`, `HeaderParser`). 1.3 takes 1.2's plain data and
   never text, so no pass can parse again; `tree-passes-called-by-hosts-only` (`error`)
   lets only `src/cli/Transpiler.ts` and `src/lib/` call `TreePasses` (#1932, owner
@@ -360,7 +360,7 @@ document, not quoted here -- a number in prose is an ungated reading and rots.
 | `cnxScopedName`                                  | the name the author wrote; what a diagnostic quotes                                                                                                                       |
 | scope reference                                  | a path or id, never a live object                                                                                                                                         |
 | `sourceFile`, `span`                             | a symbol-level diagnostic can point as precisely as any other                                                                                                             |
-| `sourceLanguage`                                 | C-Next, C or C++                                                                                                                                                          |
+| `sourceLanguage`                                 | cnx, C or C++                                                                                                                                                             |
 | `visibility`                                     | public or private, as declared                                                                                                                                            |
 | declared type                                    | structured, never flattened to a string at a boundary                                                                                                                     |
 | array dimensions                                 | as written; `(number \| string)[]`                                                                                                                                        |
@@ -426,5 +426,5 @@ So the bound is a property of the **C target**, not of the language:
   it regardless, since C++ namespaces genuinely nest;
 - a **rule in 2.1 Analyze** bounds it, with the threshold read from the target's
   capabilities;
-- if C-Next ever becomes a compiler rather than a transpiler, you change a target
+- if cnx ever becomes a compiler rather than a transpiler, you change a target
   capability, **not the model**.

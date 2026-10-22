@@ -13,7 +13,7 @@ function testSourceGraph(
   files: readonly IPipelineFile[],
 ): Pick<
   ISourceGraph,
-  | "cnextFiles"
+  | "cnxFiles"
   | "anchor"
   | "includes"
   | "outputs"
@@ -29,7 +29,7 @@ function testSourceGraph(
   const catalog = Installation.catalog(NodeFileSystem.instance);
   const includes = new Map(files.map((file) => [file.path, noIncludes()]));
   return {
-    cnextFiles: files,
+    cnxFiles: files,
     anchor: {
       directory: "/p",
       projectRoot: undefined,

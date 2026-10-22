@@ -7,21 +7,21 @@
 > only the name and the path are. Left as written rather than rewritten, because
 > this document records what was measured when it was measured.
 
-How C-Next's symbol and type facts are stored today, which of those stores are views of one
+How cnx's symbol and type facts are stored today, which of those stores are views of one
 fact set, whether they agree, and what to do about it.
 
 Its companion, [`symbol-store-prior-art.md`](symbol-store-prior-art.md), records how other
 compilers solve the same problem — read that one before proposing a database, a query engine or
 a state-management library for the symbol layer.
 
-This is the write-up of the [#1431](https://github.com/jlaustill/c-next/issues/1431) spike. The
+This is the write-up of the [#1431](https://github.com/smeltworks/cnx/issues/1431) spike. The
 probe that produced the numbers was throwaway and is not in the tree; it is recoverable from
 that branch's history, and the method below is described in enough detail to rebuild it. Where
 a figure came from a command rather than from the probe, the command is given.
 
 ## The question
 
-[#1313](https://github.com/jlaustill/c-next/issues/1313) describes Cause 1 as four
+[#1313](https://github.com/smeltworks/cnx/issues/1313) describes Cause 1 as four
 representations of the same symbols that "agree only by coincidence". #1431 restated that as a
 falsifiable claim: the stores are **denormalized materializations of one fact set with no
 integrity constraint**, and the apparent "scopes" are one query with different predicates.
@@ -45,14 +45,14 @@ Five tables were enough to express every view that could be expressed at all.
 Two shapes are load-bearing rather than stylistic.
 
 **A scope is a row, not an object.** `parentId` is a foreign key.
-[#1298](https://github.com/jlaustill/c-next/issues/1298) is a cycle guard that cannot fire,
+[#1298](https://github.com/smeltworks/cnx/issues/1298) is a cycle guard that cannot fire,
 because successive `.parent` reads can return non-identical objects for the same scope. Under a
 key, a cycle is a constraint violation on insert and the guard has nothing left to guard. This
 is what `docs/architecture/README.md` means by "an entry in a table that symbols point at, not
 a live object graph they hang off".
 
 **The include closure is a query, not a stored set.** It is the join
-[#1398](https://github.com/jlaustill/c-next/issues/1398) says nobody wrote.
+[#1398](https://github.com/smeltworks/cnx/issues/1398) says nobody wrote.
 
 ### The six scopes are one query with different predicates
 
@@ -72,7 +72,7 @@ not only recomputing, it was **repairing**."
 
 `per-generate-call` cannot be written as a predicate over these tables at all, because it is
 "which pass has run", not "which symbols are in view".
-[#1430](https://github.com/jlaustill/c-next/issues/1430) is what confusing the two produces.
+[#1430](https://github.com/smeltworks/cnx/issues/1430) is what confusing the two produces.
 
 ## The partition
 
@@ -153,7 +153,7 @@ one of the collections that never crosses an include boundary, while `knownStruc
 included struct has a **known name and unknown fields**.
 
 `TSymbolInfoAdapter`'s own comment, twenty lines above the merge list, records
-[#1333](https://github.com/jlaustill/c-next/issues/1333) fixing this asymmetry for type _names_
+[#1333](https://github.com/smeltworks/cnx/issues/1333) fixing this asymmetry for type _names_
 and then says: _"A type's NAME is not enough; its detail travels with it."_ It merges enum
 members and bitmap fields. It does not merge struct fields. The same bug, one kind over.
 
@@ -273,17 +273,17 @@ measures nothing. Three were more serious than the reading that prompted them, w
 argument for requiring a reproduction rather than a confident note. Dispositions since are
 noted in the table; the rows otherwise stand as they were measured.
 
-| issue                                                    | what                                                                                                                                |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [#1432](https://github.com/jlaustill/c-next/issues/1432) | an analyzer reads the previous file's `typeRegistry`; E0850 is order-dependent and a signed subscript reaches generated C at exit 0 |
-| [#1433](https://github.com/jlaustill/c-next/issues/1433) | `collectDependentsOf` memoizes a cycle-cut `false`, so E0427 falsely rejects                                                        |
-| [#1434](https://github.com/jlaustill/c-next/issues/1434) | no `.cnx → header` edge exists, so E0426 is wrong in both directions                                                                |
-| [#1435](https://github.com/jlaustill/c-next/issues/1435) | three derivations answer "what can this file see?", with different search paths and opposite cycle rules                            |
-| [#1436](https://github.com/jlaustill/c-next/issues/1436) | cross-file struct fields never reach `structFields`; E0805/E0806/E0850 go silent                                                    |
-| [#1437](https://github.com/jlaustill/c-next/issues/1437) | init-completeness is off for every qualified type form and every cross-file struct                                                  |
-| [#1438](https://github.com/jlaustill/c-next/issues/1438) | `scopeVariableUsage` never written — leftover scaffolding, not a missing optimization; deleted in #1394                             |
-| [#1439](https://github.com/jlaustill/c-next/issues/1439) | `collectGrammarCoverage` stored and never read                                                                                      |
-| [#1440](https://github.com/jlaustill/c-next/issues/1440) | dead accessors `knip` cannot see; two stale ignore globs                                                                            |
+| issue                                                  | what                                                                                                                                |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [#1432](https://github.com/smeltworks/cnx/issues/1432) | an analyzer reads the previous file's `typeRegistry`; E0850 is order-dependent and a signed subscript reaches generated C at exit 0 |
+| [#1433](https://github.com/smeltworks/cnx/issues/1433) | `collectDependentsOf` memoizes a cycle-cut `false`, so E0427 falsely rejects                                                        |
+| [#1434](https://github.com/smeltworks/cnx/issues/1434) | no `.cnx → header` edge exists, so E0426 is wrong in both directions                                                                |
+| [#1435](https://github.com/smeltworks/cnx/issues/1435) | three derivations answer "what can this file see?", with different search paths and opposite cycle rules                            |
+| [#1436](https://github.com/smeltworks/cnx/issues/1436) | cross-file struct fields never reach `structFields`; E0805/E0806/E0850 go silent                                                    |
+| [#1437](https://github.com/smeltworks/cnx/issues/1437) | init-completeness is off for every qualified type form and every cross-file struct                                                  |
+| [#1438](https://github.com/smeltworks/cnx/issues/1438) | `scopeVariableUsage` never written — leftover scaffolding, not a missing optimization; deleted in #1394                             |
+| [#1439](https://github.com/smeltworks/cnx/issues/1439) | `collectGrammarCoverage` stored and never read                                                                                      |
+| [#1440](https://github.com/smeltworks/cnx/issues/1440) | dead accessors `knip` cannot see; two stale ignore globs                                                                            |
 
 [^ql]:
     The 0/4 is about **SQL specifically**, not query languages generally. CodeQL's QL, Glean's
@@ -316,11 +316,11 @@ noted in the table; the rows otherwise stand as they were measured.
 
 **Do not adopt an in-memory SQL engine.** It is rejected on criterion 3 and independently
 confirmed by criterion 2, before its dependency cost is even considered — and that cost is not
-small: C-Next has eight runtime dependencies, all pure JavaScript, so `better-sqlite3` would be
+small: cnx has eight runtime dependencies, all pure JavaScript, so `better-sqlite3` would be
 the first native build in a toolchain that embedded developers install.
 
 Because the engine is rejected, #1431's flag for #1313 resolves: an engine will not subsume
-[#1323](https://github.com/jlaustill/c-next/issues/1323), and the Cause 1 taxonomy cards are not
+[#1323](https://github.com/smeltworks/cnx/issues/1323), and the Cause 1 taxonomy cards are not
 blocked on that question.
 
 #### Two techniques worth naming, and one card available today
@@ -334,7 +334,7 @@ into a per-question cost most questions never pay.
 
 **Never memoize a value computed inside an unresolved cycle.** TypeScript threads an explicit
 resolution stack and, on a real cycle, emits a circularity error rather than caching garbage.
-That is exactly [#1433](https://github.com/jlaustill/c-next/issues/1433), where
+That is exactly [#1433](https://github.com/smeltworks/cnx/issues/1433), where
 `collectDependentsOf` memoizes a cycle-cut `false` and E0427 then falsely rejects. The fix is
 the general property, not a patch to one walk.
 

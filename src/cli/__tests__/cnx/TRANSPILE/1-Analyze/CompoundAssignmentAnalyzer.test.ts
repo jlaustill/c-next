@@ -5,7 +5,7 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * #1322. A compound operator (`+<-`, `|<-`, …) is a read-modify-write, and
- * C-Next only implements it where the target is a whole storage location. On a
+ * cnx only implements it where the target is a whole storage location. On a
  * bit index, a bit range, a slice, a bitmap field or a string it is rejected.
  *
  * This was **six** throws with four message variants -- `AccessPatternHandlers`,
@@ -43,7 +43,7 @@ describe("CompoundAssignmentAnalyzer", () => {
   it("accepts the same syntax on an array element", () => {
     // THE control the whole rule turns on. `arr[0]` and `flags[0]` are the same
     // production; only the declaration tells them apart. A check that keyed on
-    // syntax alone would reject this, and it is ordinary C-Next.
+    // syntax alone would reject this, and it is ordinary cnx.
     expect(errors(inMain("    u32[4] arr;\n    arr[0] +<- 2;"))).toEqual([]);
   });
 

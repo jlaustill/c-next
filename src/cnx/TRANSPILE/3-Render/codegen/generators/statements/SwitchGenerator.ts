@@ -1,7 +1,7 @@
 /**
  * Switch Statement Generator (ADR-025)
  *
- * Generates C switch statements from C-Next switch syntax, expanding `||`
+ * Generates C switch statements from cnx switch syntax, expanding `||`
  * labels into consecutive C case labels and guaranteeing a `default`.
  *
  * #1445 box 3: takes `IPlannedSwitch`, not the node. The six-way case-label

@@ -12,7 +12,7 @@ Interrupt Service Routines (ISRs) are critical for embedded:
 - Exception handlers (HardFault, NMI)
 - System tick handlers
 
-C uses platform-specific syntax and attributes. C-Next needs a simple, portable way to declare and pass ISRs.
+C uses platform-specific syntax and attributes. cnx needs a simple, portable way to declare and pass ISRs.
 
 ## Decision Drivers
 
@@ -30,7 +30,7 @@ C uses platform-specific syntax and attributes. C-Next needs a simple, portable 
 1. ISRs are defined as regular `void()` functions
 2. `ISR` is a built-in type (like `u8`, `i32`) for `void(void)` function pointers
 3. Any `void()` function is compatible with `ISR` (structural typing)
-4. Vector table setup is handled by platform startup code, not C-Next syntax
+4. Vector table setup is handled by platform startup code, not cnx syntax
 
 ## Syntax
 
@@ -127,7 +127,7 @@ Vector table placement is handled by:
 - Platform startup code (weak handlers)
 - Vendor HALs
 
-C-Next does not provide `@section` attributes. Placement is the linker script's job, and the `ISR` type enables passing handlers to platform setup code.
+cnx does not provide `@section` attributes. Placement is the linker script's job, and the `ISR` type enables passing handlers to platform setup code.
 
 ## ISR Constraints
 

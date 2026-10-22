@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 /*
- * #1668: a C++ type with its own operator[], which C-Next must leave to C++.
+ * #1668: a C++ type with its own operator[], which cnx must leave to C++.
  * Defined static so the execution fixture needs no companion source file.
  */
 struct SBuf {

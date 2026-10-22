@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import ConstExprPrinter from "../ConstExprPrinter";
 import type TConstExpr from "../../types/TConstExpr";
 import type IConstantEnvironment from "../types/IConstantEnvironment";
-import CNEXT_TO_C_TYPE_MAP from "../constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../constants/TypeMappings";
 import QualifiedCName from "../QualifiedCName";
 
 const AT = { line: 1, column: 0 };
@@ -24,7 +24,7 @@ const bin = (
   right: TConstExpr,
 ): TConstExpr => ({ kind: "binary", op, left, right });
 
-/** BUF_SIZE is a header macro; LOCAL a C-Next const C cannot see */
+/** BUF_SIZE is a header macro; LOCAL a cnx const C cannot see */
 const ENV: IConstantEnvironment = {
   valueOf: (n) => {
     if (n.path[0] === "LOCAL")
@@ -43,14 +43,14 @@ const ENV: IConstantEnvironment = {
   // is the rule (ConstantNames.test.ts)
   isTypeName: () => true,
   cTypeName: (t) =>
-    CNEXT_TO_C_TYPE_MAP[t] ?? QualifiedCName.fromParts(t.split(".")),
+    CNX_TO_C_TYPE_MAP[t] ?? QualifiedCName.fromParts(t.split(".")),
 };
 
 describe("ConstExprPrinter (#1175)", () => {
   it.each<[string, TConstExpr, string]>([
     ["a value is its number", bin("+", lit("1"), lit("2")), "3"],
     [
-      "a memory size is C's sizeof, never its C-Next name (ADR-058)",
+      "a memory size is C's sizeof, never its cnx name (ADR-058)",
       bin(
         "+",
         {
@@ -69,7 +69,7 @@ describe("ConstExprPrinter (#1175)", () => {
       "BUF_SIZE + 1",
     ],
     [
-      "a C-Next const is written as its value, never its name",
+      "a cnx const is written as its value, never its name",
       bin("*", name("BUF_SIZE"), name("LOCAL")),
       "BUF_SIZE * 8",
     ],
@@ -84,7 +84,7 @@ describe("ConstExprPrinter (#1175)", () => {
       "(BUF_SIZE + 1) * 2",
     ],
     [
-      "C-Next's `=` is C's `==`",
+      "cnx's `=` is C's `==`",
       {
         kind: "ternary",
         condition: bin("=", name("BUF_SIZE"), lit("4")),

@@ -1,6 +1,6 @@
 // test-error
 // #1975 review: a length is a case label's number, so two lengths that are
-// one number are one value (E0713), and a length C-Next has none of is no
+// one number are one value (E0713), and a length cnx has none of is no
 // constant (E0717). `case Point.type_byte_length` reached the C as
 // `case Point__byte_length:`.
 //

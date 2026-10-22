@@ -30,7 +30,7 @@
 //
 // See docs/README.md for GPIO7 pin mapping and register documentation.
 // =============================================================================
-// Includes - C-Next passes these through to generated C
+// Includes - cnx passes these through to generated C
 // =============================================================================
 #include <Arduino.h>
 #include <stdint.h>

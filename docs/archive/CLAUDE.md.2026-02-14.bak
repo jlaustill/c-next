@@ -1,4 +1,4 @@
-# C-Next Project Instructions
+# cnx Project Instructions
 
 ## Correctness Over Convenience — ZERO EXCEPTIONS
 
@@ -46,7 +46,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### GitHub CLI Workaround
 
-`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+`gh issue view` may fail with Projects Classic deprecation error. Use `gh api repos/smeltworks/cnx/issues/<number>` instead.
 
 ### ts-morph MCP Tools
 
@@ -128,10 +128,10 @@ Check the terminal report for files you changed — any new code below 80% cover
 
 **Useful API queries:**
 
-- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
-- **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
-- **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
-- **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
+- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
+- **Get open issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&ps=100" | jq '.issues[] | {rule, message, component}'`
+- **Get cognitive complexity issues**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '.issues[] | {message, component, line}'`
+- **Get complexity sorted by severity**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&rules=typescript:S3776&ps=100" | jq '[.issues[] | {file: (.component | split(":")[1]), line, complexity: (.message | capture("from (?<from>[0-9]+)") | .from | tonumber)}] | sort_by(.complexity) | reverse'`
 
 ### CSpell (Spelling Check)
 
@@ -242,9 +242,9 @@ The codebase is organized into four layers under `src/transpiler/`:
 
 ### ANTLR Parser Generation
 
-- ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/CNext.g4` → `src/transpiler/logic/parser/grammar/`
+- ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/Cnx.g4` → `src/transpiler/logic/parser/grammar/`
 - Grammar directories excluded from prettier/oxlint via ignore patterns
-- `npm run antlr` — C-Next grammar, `npm run antlr:all` — All grammars (C-Next, C, C++)
+- `npm run antlr` — cnx grammar, `npm run antlr:all` — All grammars (cnx, C, C++)
 
 ### After Grammar Rule Changes
 
@@ -297,22 +297,22 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 - `SwitchGenerator.rejectUnqualifiedEnumMember()` — switch cases with non-enum switch type
 - `CodeGenerator._resolveUnqualifiedEnumMember()` — all other contexts (comparisons, args, etc.)
 
-**Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
+**Use the composable collectors** in `src/transpiler/logic/symbols/cnx/`:
 
-- `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
+- `CnxResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
 - `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
 - `TSymbolInfoAdapter.convert(tSymbols)` → `ISymbolInfo` (for CodeGenerator)
 
 **Do NOT use** the deleted legacy collectors:
 
 - ~~`SymbolCollector`~~ (was in transpiler/output/codegen/)
-- ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
+- ~~`CnxSymbolCollector`~~ (was in transpiler/logic/symbols/)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
 ### Test Isolation with SymbolRegistry
 
-- **CNextResolver tests need SymbolRegistry.reset()**: Tests using `CNextResolver.resolve()` must call `SymbolRegistry.reset()` in `beforeEach` - SymbolRegistry is static and scopes persist across parallel tests
+- **CnxResolver tests need SymbolRegistry.reset()**: Tests using `CnxResolver.resolve()` must call `SymbolRegistry.reset()` in `beforeEach` - SymbolRegistry is static and scopes persist across parallel tests
 - **Symptom of state pollution**: Tests pass individually (`npm run unit -- -t "test name"`) but fail when run together
 
 ### TSymbol Naming Convention
@@ -325,7 +325,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 
 - **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`
 - **runAnalyzers() state**: Reads `symbolTable` and `externalStructFields` from CodeGenState by default - no need to pass options
-- **InitializationAnalyzer**: Uses `cnextStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
+- **InitializationAnalyzer**: Uses `cnxStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
 - **Scope member checks**: Use `CodeGenState.getScopeMembers(scope)` or `CodeGenState.isCurrentScopeMember(id)` - `scopeMembers` is private
 
 ### Symbol Resolution Type Patterns
@@ -351,7 +351,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 
 ### AST Navigation Patterns
 
-- **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the C-Next grammar uses "declaration" terminology
+- **Function declarations**: Use `functionDeclaration()` not `functionDefinition()` — the cnx grammar uses "declaration" terminology
 - **Expression unwrapping**: Use `ExpressionUnwrapper` utility in `src/transpiler/output/codegen/utils/` for drilling through expression hierarchy (ternary → or → and → ... → postfix)
 
 ### Assignment Classification (ADR-109)
@@ -381,7 +381,7 @@ When adding new assignment patterns:
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
 - **C++ mode struct params**: Changes to `cppMode` parameter handling require coordinated updates in THREE places: (1) `generateParameter()` for signature, (2) member access for `->` vs `.`, (3) `_generateFunctionArg()` for `&` prefix. Also update HeaderGenerator via IHeaderOptions.cppMode.
 - **Struct param access helpers**: Use `memberAccessChain.ts` helpers for all struct parameter access patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for member chains. Never inline these patterns in CodeGenerator.
-- **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + C-Next symbol support.
+- **Handler state access**: Assignment handlers access state via `CodeGenState` (for properties like `typeRegistry`, `symbols`, `currentScope`) and `CodeGenState.generator!` (for methods like `generateExpression()`, `isKnownScope()`). Always use canonical CodeGenerator methods rather than hand-rolling lookups to get full SymbolTable + cnx symbol support.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
   1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
@@ -413,7 +413,7 @@ When adding a new CLI flag that affects code generation, update all layers:
 
 **Test Commands:**
 
-- `npm test` — Run C-Next integration tests (.test.cnx files)
+- `npm test` — Run cnx integration tests (.test.cnx files)
 - `npm run test:q` — Quiet mode (errors + summary only, ideal for AI)
 - `npm test -- tests/enum` — Run specific directory
 - `npm test -- tests/enum/my.test.cnx` — Run single test file (multiple files: use directory pattern instead)
@@ -440,9 +440,9 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 ### Unit Test Parser Imports
 
-- **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
-- **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
-- **Parser result structure**: `CNextSourceParser.parse(source)` returns `{ tree, ... }` - access AST via `result.tree.declaration(0)`, not `tree as Parser.ProgramContext`
+- **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CnxParser.js"` to access types like `Parser.StatementContext`
+- **Direct parsing in tests**: Use `CnxSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
+- **Parser result structure**: `CnxSourceParser.parse(source)` returns `{ tree, ... }` - access AST via `result.tree.declaration(0)`, not `tree as Parser.ProgramContext`
 
 ### Assignment Handler Test Patterns
 
@@ -477,7 +477,7 @@ When mocking types in CodeGenerator tests:
 
 ### Test File Patterns
 
-There are **two types of tests** in C-Next:
+There are **two types of tests** in cnx:
 
 #### 1. Compilation Tests (No Validation)
 
@@ -608,7 +608,7 @@ npx tsx scripts/generate-cpp-snapshots.ts --dry-run     # Preview what would be 
 
 When compiling, tests that include C++ headers (detected by features like `class`, `namespace`, `template`) automatically use `g++` instead of `gcc`. This handles tests with `.expected.c` files that contain code including C++ headers.
 
-### C-Next Test Gotchas
+### cnx Test Gotchas
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
 - **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
@@ -662,7 +662,7 @@ When `run()` calls `transpileSource()` with a context, it passes a pre-populated
 
 - `README.md` — Must reflect any new features, syntax, or ADR status changes
 - `docs/decisions/adr-*.md` — Relevant ADR must be created/updated
-- `docs/learn-cnext-in-y-minutes.md` — Must include examples of new syntax/features
+- `docs/learn-cnx-in-y-minutes.md` — Must include examples of new syntax/features
 - Memory bank is updated
 
 If implementing a feature, all documents must be current and memory must be updated before the task is done.
@@ -686,11 +686,11 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## ADR Reference Rules
 
-**Only use Implemented or Accepted ADRs as examples of C-Next syntax/patterns.**
+**Only use Implemented or Accepted ADRs as examples of cnx syntax/patterns.**
 
 - **Research** ADRs are proposals under investigation — NOT established syntax
 - **Rejected** ADRs document decisions NOT to implement something
-- Never cite Research ADRs as examples of "how C-Next does X"
+- Never cite Research ADRs as examples of "how cnx does X"
 - When exploring syntax patterns, check the ADR status first
 
 ## Generated Test Files
@@ -717,7 +717,7 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## Development Tips
 
-**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnext` binary to test uncommitted transpiler changes.
+**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnx` binary to test uncommitted transpiler changes.
 
 **Testing C++ mode**: Use `npx tsx src/index.ts <file.cnx> --cpp` to test C++ output mode (generates `.cpp` files with reference semantics for struct params).
 
@@ -756,7 +756,7 @@ If implementing a feature, all documents must be current and memory must be upda
 Quick reference for VS Code extension updates (if grammar changed):
 
 1. **Regenerate parser** if grammar changed: `npm run antlr`
-2. **Update VS Code extension** (separate repo: [vscode-c-next](https://github.com/jlaustill/vscode-c-next)):
+2. **Update VS Code extension** (separate repo: [vscode-cnx](https://github.com/smeltworks/vscode-cnx)):
    - Sync `tmLanguage.json` with any new keywords, types, or syntax
-   - Sync `completionProvider.ts` keywords with actual C-Next keywords
+   - Sync `completionProvider.ts` keywords with actual cnx keywords
    - Tag a new version to publish to marketplace

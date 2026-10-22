@@ -10,7 +10,7 @@
 
 ## Context
 
-C-Next currently enforces MISRA C:2012 compliance through a combination of:
+cnx currently enforces MISRA C:2012 compliance through a combination of:
 
 - **Enforced** rules, each rejected at compile time or by the check over generated C, rather than reported
 - **By Design** rules, which language features make impossible to violate
@@ -76,7 +76,7 @@ Aviation software requires DO-178C certification. This ADR captures initial rese
 
 1. What subset of DO-178C objectives can a transpiler reasonably support?
 2. How do existing DO-178C toolchains (LDRA, VectorCAST, Parasoft) handle instrumentation?
-3. Should C-Next generate gcov-compatible instrumentation or define its own format?
+3. Should cnx generate gcov-compatible instrumentation or define its own format?
 4. What's the minimum viable feature set that provides value for avionics developers?
 
 ## References

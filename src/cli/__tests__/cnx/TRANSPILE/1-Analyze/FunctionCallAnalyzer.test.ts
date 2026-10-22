@@ -8,7 +8,7 @@ import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../cnx/utils/TTypeUtils";
 import type IFunctionSymbol from "../../../../../cnx/types/symbols/IFunctionSymbol";
-import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../../cnx/PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
@@ -654,21 +654,21 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("allows cross-file C-Next functions from SymbolTable (Issue #786)", () => {
+    it("allows cross-file cnx functions from SymbolTable (Issue #786)", () => {
       const code = `
         void main() {
-          cnextFunc();
+          cnxFunc();
         }
       `;
       const symbolTable = new SymbolTable();
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "function",
-          name: "cnextFunc",
+          name: "cnxFunc",
           scopePath: "",
           sourceFile: "module.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
@@ -679,7 +679,7 @@ describe("FunctionCallAnalyzer", () => {
       const { syntax, analyzer } = analyzerFor(code, symbolTable);
       const errors = analyzer.analyze(syntax);
 
-      // Issue #786: Cross-file C-Next functions from includes are now allowed
+      // Issue #786: Cross-file cnx functions from includes are now allowed
       // without E0422 since they're defined in an included file
       expect(errors).toHaveLength(0);
     });
@@ -928,7 +928,7 @@ describe("FunctionCallAnalyzer", () => {
   // E0902: dynamic memory imported from C/C++ (ADR-003)
   //
   // Decided here, and only here, because ADR-003 forbids the IMPORT: answering
-  // it needs to know whether the callee resolved to a C-Next definition, a
+  // it needs to know whether the callee resolved to a cnx definition, a
   // header symbol, or nothing. NullCheckAnalyzer used to answer it too, from a
   // listener that sees only the name -- which is how `pool_free` came to be
   // told it was imported from C/C++ (#1306 review).
@@ -1000,13 +1000,13 @@ describe("FunctionCallAnalyzer", () => {
     });
 
     // The regression this block exists for. Both names match the underscore
-    // rule and both are written in C-Next, so neither was imported from
+    // rule and both are written in cnx, so neither was imported from
     // anywhere -- and a static pool with a `pool_free` is what ADR-003's own
     // Memory Pools section points authors toward.
     it.each([
       ["a pool release function", "pool_free"],
       ["a predicate that releases nothing", "slot_is_free"],
-    ])("does not report %s defined in C-Next", (_label, name) => {
+    ])("does not report %s defined in cnx", (_label, name) => {
       const code = `
         u32 ${name}(u32 slot) {
           return slot;

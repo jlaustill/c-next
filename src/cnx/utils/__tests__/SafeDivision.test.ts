@@ -4,11 +4,11 @@
  */
 import { describe, it, expect } from "vitest";
 import SafeDivision from "../SafeDivision";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 
 const lowered = (exprSource: string) => {
-  const { tree, parseErrors } = CNextSourceParser.parse(
+  const { tree, parseErrors } = CnxSourceParser.parse(
     `void main() { u32 x <- ${exprSource}; }`,
   );
   expect(parseErrors).toEqual([]);

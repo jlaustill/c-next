@@ -24,7 +24,7 @@ describe("header macros a file's preprocessing could not read (#1688)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-1688-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-1688-"));
     writeFileSync(join(dir, "m.h"), HEADER);
   });
 

@@ -7,7 +7,7 @@
  * codegen was left blind: a struct passed to a pointer parameter came out BY
  * VALUE (`twai_driver_install(g_config)` instead of `&g_config`) and an opaque
  * handle came out by value (`lv_obj_t` instead of `lv_obj_t *`). Neither
- * compiles. The real defeat is cnext parsing framework headers:
+ * compiles. The real defeat is cnx parsing framework headers:
  *   - RAW, a trailing attribute macro (FreeRTOS `PRIVILEGED_FUNCTION`) breaks the
  *     declaration so the function is never collected.
  *   - FULLY preprocessed, the header's transitive tree inlines into a huge blob

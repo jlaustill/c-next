@@ -1,6 +1,6 @@
 import type { CommonTokenStream } from "antlr4ng";
 
-import type * as Parser from "../grammar/CNextParser";
+import type * as Parser from "../grammar/CnxParser";
 import type ISourceSyntax from "../../../types/ISourceSyntax";
 
 /**
@@ -40,7 +40,7 @@ import type ISourceSyntax from "../../../types/ISourceSyntax";
  * were previously returned in a second channel, which meant the artifact only
  * existed on the success path and a caller could not be handed "the parse"
  * without also being handed its errors separately. Carrying them is what lets
- * `CNextSourceParser.parse` return this type directly and retires the private
+ * `CnxSourceParser.parse` return this type directly and retires the private
  * `IParseResult` that restated the other three fields (#1445).
  *
  * A non-empty `parseErrors` means the tree is a RECOVERY tree: ANTLR still

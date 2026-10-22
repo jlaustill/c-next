@@ -2,7 +2,7 @@
 
 **Status:** Implemented
 **Date:** 2025-12-26
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Superseded By:** ADR-111 (Safe Hardware Abstraction Primitives — `Research`; the supersession takes effect when ADR-111 is Accepted, not before)
 
 > **What is implemented, and what is not.** The register syntax this ADR defines —
@@ -194,7 +194,7 @@ GPIOA->DR = 0x0001;
 
 ## Initial Design Direction
 
-C-Next can provide a register binding syntax that is:
+cnx can provide a register binding syntax that is:
 
 - Human-readable with inline documentation
 - Type-safe with compile-time checks
@@ -204,7 +204,7 @@ C-Next can provide a register binding syntax that is:
 ### Proposed Syntax
 
 ```
-// C-Next register definition
+// cnx register definition
 register GPIOA @ 0x40020000 {
     /// Data Register - Read/Write
     /// Each bit corresponds to a GPIO pin output value
@@ -287,7 +287,7 @@ write-only data or command register takes zero as a value.
 #### 2. Bitfield Safety
 
 ```
-// C-Next
+// cnx
 GPIOA.ICR1.ICR0 <- 0b11;  // OK: 2 bits, value fits
 GPIOA.ICR1.ICR0 <- 5;     // ERROR: Value 5 doesn't fit in 2 bits
 ```
@@ -302,7 +302,7 @@ Triple-slash comments become accessible to:
 
 #### 4. SVD Import
 
-C-Next could import SVD files directly:
+cnx could import SVD files directly:
 
 ```
 import svd "STM32F407.svd";
@@ -348,7 +348,7 @@ Some registers have different bit meanings depending on chip configuration:
 - b) Runtime checking
 - c) Document only, don't enforce
 
-### Q5: Should C-Next ship with register definitions?
+### Q5: Should cnx ship with register definitions?
 
 Options:
 
@@ -383,9 +383,9 @@ register UART @ 0x40000000 {
 
 ## Potential Impact
 
-If done right, this could be C-Next's standout feature:
+If done right, this could be cnx's standout feature:
 
-| Current C                         | C-Next                      |
+| Current C                         | cnx                         |
 | --------------------------------- | --------------------------- |
 | `GPIO1_DR = 0x01;`                | `GPIOA.DR <- 0x01;`         |
 | Magic hex address                 | Named, documented register  |
@@ -419,7 +419,7 @@ Each rule applies to every spelling of the member: `R.M`, `this.R.M`,
 same rule answers for all of them. Until #1322 the three rules each resolved the
 spelling on their own, and the scoped forms of a write to an `ro` member were
 accepted -- the generated C then assigned through a `const` qualified access,
-which the C compiler rejected instead of C-Next. `E0871` is the register half of
+which the C compiler rejected instead of cnx. `E0871` is the register half of
 ADR-013's "read-only register members are implicitly const".
 
 Every offense in a file is reported, each at the position of the access that

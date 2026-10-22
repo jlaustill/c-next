@@ -21,7 +21,7 @@ describe("Header/implementation agreement (#1164)", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-agree-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-agree-"));
   });
 
   afterEach(() => {
@@ -67,7 +67,7 @@ u32 readFlag() { return statusFlag; }
     expect(headerCode).toContain("volatile");
   });
 
-  it("declares a string constant with its C type, not the C-Next type", async () => {
+  it("declares a string constant with its C type, not the cnx type", async () => {
     const { code, headerCode } = await transpileSource(`
 string VERSION <- "1.0.0";
 u8 firstChar() { return VERSION[0]; }

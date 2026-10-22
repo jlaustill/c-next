@@ -1,7 +1,7 @@
 // test-error
 // test-adr: 035
 // test-adr: 014
-// #2196: a fill-all other than zero needs a size C-Next can fold, wherever a
+// #2196: a fill-all other than zero needs a size cnx can fold, wherever a
 // whole array is taken (ADR-014): an assignment target, a scope member through
 // this, a field and an argument, as well as a declaration
 // (fill-declaration-error.test.cnx). The struct and the callee are declared in

@@ -13,7 +13,7 @@ interface IGeneratorInput {
   /** Symbol table from parsed C/C++ headers (may be null for single-file transpilation) */
   readonly symbolTable: IResolvedSymbols | null;
 
-  /** C-Next symbols collected from the parse tree (enums, structs, scopes, etc.) */
+  /** cnx symbols collected from the parse tree (enums, structs, scopes, etc.) */
   readonly symbols: ICodeGenSymbols | null;
 
   /** Variable type information indexed by scoped name */
@@ -21,7 +21,7 @@ interface IGeneratorInput {
   /** Function signatures for parameter validation */
   readonly functionSignatures: ReadonlyMap<string, IFunctionSignature>;
 
-  /** Set of C-Next defined function names */
+  /** Set of cnx defined function names */
   readonly knownFunctions: ReadonlySet<string>;
 
   /** Set of known struct type names */

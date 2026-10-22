@@ -1,6 +1,6 @@
 import { CharStream, Token } from "antlr4ng";
 import type { ANTLRErrorListener } from "antlr4ng";
-import { CNextLexer } from "./grammar/CNextLexer";
+import { CnxLexer } from "./grammar/CnxLexer";
 
 /**
  * How a node is spelled for a message or an emitted value (#1991 review): its
@@ -17,7 +17,7 @@ class SourceSpelling {
   static of(stream: CharStream, start: number, stop: number): string {
     const slice = stream.getTextFromRange(start, stop);
     if (!SourceSpelling.mayHoldGap(slice)) return slice;
-    const lexer = new CNextLexer(CharStream.fromString(slice));
+    const lexer = new CnxLexer(CharStream.fromString(slice));
     let failed = false;
     const listener: ANTLRErrorListener = {
       syntaxError: () => {

@@ -16,7 +16,7 @@ const violation = (from: string, to: string, rule = ParseTreeSites.RULE) => ({
   rule: { name: rule },
 });
 
-const GRAMMAR = "src/cnx/PARSE/2-Parse/grammar/CNextParser.ts";
+const GRAMMAR = "src/cnx/PARSE/2-Parse/grammar/CnxParser.ts";
 const RUNTIME = "node_modules/antlr4ng/dist/index.cjs";
 
 describe("ParseTreeSites.sites", () => {

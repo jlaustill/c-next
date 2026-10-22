@@ -1,6 +1,6 @@
 // test-error
 // test-adr: 016
-// Issue #1358: C-Next has no function overloads, and the declare step's
+// Issue #1358: cnx has no function overloads, and the declare step's
 // idempotence DEPENDS on that.
 //
 // `SymbolRegistry.registerFunction` suppresses a re-registration keyed on

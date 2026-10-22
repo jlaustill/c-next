@@ -7,7 +7,7 @@ u32 main() {
     u32 b <- 20;
     u32 c <- 10;
 
-    // Equality (note: = is equality in C-Next, not ==)
+    // Equality (note: = is equality in cnx, not ==)
     mut bool equal <- (a = c);
     if (equal != true) {
         return 1;

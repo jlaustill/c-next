@@ -18,7 +18,7 @@
  * - `this.R.ST <- 1`, `Board.R.ST <- 1` from `main`, `global.Board.R.ST <- 1`
  *   and `this.R.ST[3] <- true` on an `ro` member of a SCOPED register were
  *   accepted. The emitted C assigns through a `volatile uint32_t const *`
- *   macro, which the C compiler rejects; C-Next said nothing.
+ *   macro, which the C compiler rejects; cnx said nothing.
  * - `R.SET +<- 1` on a `wo` member was accepted and emitted `R__SET += 1`,
  *   a read of a write-only register. A compound operator reads its target.
  * - `R.SET[3] <- 0x0`, `<- 0b0`, `<- 00` and `<- OFF` with `const u32 OFF <- 0`

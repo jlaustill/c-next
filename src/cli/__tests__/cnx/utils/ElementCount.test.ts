@@ -49,7 +49,7 @@ describe("ElementCount (#1283)", () => {
 
   it.each([
     ["a literal", lit("4"), 4],
-    ["a C-Next const", name("SIX"), 6],
+    ["a cnx const", name("SIX"), 6],
     ["a readable header macro", name("N"), 3],
     [
       "arithmetic over a macro and a const",

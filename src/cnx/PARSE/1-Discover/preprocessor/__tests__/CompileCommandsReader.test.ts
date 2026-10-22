@@ -1,11 +1,11 @@
 /**
  * Unit tests for CompileCommandsReader.
  *
- * cnext must resolve external C/C++ headers exactly as the compiler will. Every
+ * cnx must resolve external C/C++ headers exactly as the compiler will. Every
  * build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped Make) converges
  * on the same artifact — a `compile_commands.json` compilation database listing,
  * per translation unit, the compiler binary and its `-I` / `-D` flags. Reading
- * that database is how clangd/clang-tidy stay build-system-agnostic; cnext reads
+ * that database is how clangd/clang-tidy stay build-system-agnostic; cnx reads
  * it for the same reason. This is the pure parse layer (no filesystem): a DB
  * string in, `{ includePaths, defines, compiler }` out.
  */
@@ -171,7 +171,7 @@ describe("CompileCommandsReader.parse", () => {
 
 describe("CompileCommandsReader.load", () => {
   it("reads and parses a compile_commands.json file from disk", () => {
-    const dir = mkdtempSync(join(tmpdir(), "cnext-cc-"));
+    const dir = mkdtempSync(join(tmpdir(), "cnx-cc-"));
     try {
       writeFileSync(
         join(dir, "compile_commands.json"),
@@ -208,7 +208,7 @@ describe("CompileCommandsReader.load", () => {
   });
 
   it("returns null for malformed JSON rather than throwing", () => {
-    const dir = mkdtempSync(join(tmpdir(), "cnext-cc-"));
+    const dir = mkdtempSync(join(tmpdir(), "cnx-cc-"));
     try {
       writeFileSync(join(dir, "compile_commands.json"), "{ not valid json ");
       expect(

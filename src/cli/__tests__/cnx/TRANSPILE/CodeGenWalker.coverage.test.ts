@@ -18,19 +18,19 @@ import ProgramGeneration from "./ProgramGeneration";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
-import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import CnxSourceParser from "../../../../cnx/PARSE/2-Parse/CnxSourceParser";
+import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
-import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
+import CnxResolver from "../../../../cnx/PARSE/3-Declare/cnx/index";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
-import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import CallbackTypedefFormatter from "../../../../cnx/TRANSPILE/3-Render/codegen/helpers/CallbackTypedefFormatter";
 import ESourceLanguage from "../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../cnx/types/__testUtils__/testSourceSpan";
 
 /**
- * Helper to parse C-Next source and return tree + generator ready for testing.
+ * Helper to parse cnx source and return tree + generator ready for testing.
  */
 function setupGenerator(
   source: string,
@@ -41,11 +41,7 @@ function setupGenerator(
   host: CodeGenerator;
   code: string;
 } {
-  const {
-    tree,
-    parseErrors: errors,
-    program,
-  } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors, program } = CnxSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }
@@ -56,7 +52,7 @@ function setupGenerator(
   const tSymbols = [
     ...Program.build(
       [
-        CNextResolver.resolve(
+        CnxResolver.resolve(
           ProgramLowering.program(tree, null),
           "test.cnx",
           registry,
@@ -542,7 +538,7 @@ describe("CodeGenWalker Coverage Tests", () => {
   // Lines 4772-4800: _generateScopeVariable with arrays
   // ==========================================================================
   describe("_generateScopeVariable() with arrays", () => {
-    it("should generate scope variable with C-Next style array", () => {
+    it("should generate scope variable with cnx style array", () => {
       const source = `
         scope Buffer {
           public u8[16] data;
@@ -635,7 +631,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 10, y: 20};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
@@ -644,7 +640,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -693,7 +689,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 1, y: 2};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
@@ -701,7 +697,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -741,7 +737,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           p <- {x: 5, y: 10};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("CppPoint");
@@ -749,7 +745,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1165,7 +1161,7 @@ describe("CodeGenWalker Coverage Tests", () => {
             pokeBoth onBoth;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
         symbolTable.markOpaqueType("Dev");
@@ -1174,7 +1170,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         const tSymbols = [
           ...Program.build(
             [
-              CNextResolver.resolve(
+              CnxResolver.resolve(
                 ProgramLowering.program(tree, null),
                 "test.cnx",
                 registry,
@@ -1314,13 +1310,13 @@ describe("CodeGenWalker Coverage Tests", () => {
         sourceFile: string;
       }>,
     ): string {
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1410,7 +1406,7 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("should not infer pointer when function is not a C function", () => {
-      // No C symbols registered - create_widget is a C-Next function
+      // No C symbols registered - create_widget is a cnx function
       const source = `
         struct widget_t { i32 x; }
         widget_t create_widget() {
@@ -1424,7 +1420,7 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const { code } = setupGenerator(source, { cppMode: false });
 
-      // Should NOT generate pointer since create_widget is a C-Next function
+      // Should NOT generate pointer since create_widget is a cnx function
       expect(code).not.toContain("widget_t* w");
     });
 
@@ -1523,13 +1519,13 @@ describe("CodeGenWalker Coverage Tests", () => {
           Outer o <- {dummy: 1};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1581,13 +1577,13 @@ describe("CodeGenWalker Coverage Tests", () => {
           Data d <- {value: 42};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
         ...Program.build(
           [
-            CNextResolver.resolve(
+            CnxResolver.resolve(
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -2081,7 +2077,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       expect(code).toContain("float x = (float)n;");
     });
 
-    it("plans a C-Next array and puts its dimensions in the declarator", () => {
+    it("plans a cnx array and puts its dimensions in the declarator", () => {
       const { code } = setupGenerator(
         `
         u8 main() {

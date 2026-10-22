@@ -18,7 +18,7 @@ interface IPlannedParameter {
   /** An explicit `const` modifier in the source. */
   readonly isConst: boolean;
 
-  /** The C-Next type name -- `u32`, `string<32>`, `Point`, `Motor__State`. */
+  /** The cnx type name -- `u32`, `string<32>`, `Point`, `Motor__State`. */
   readonly typeName: string;
 
   /** The mapped C type. */

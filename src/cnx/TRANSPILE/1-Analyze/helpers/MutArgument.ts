@@ -43,12 +43,12 @@ class MutArgument {
       : target.name;
   }
 
-  /** Not a C-Next declaration: a header's name, or one nothing declares */
+  /** Not a cnx declaration: a header's name, or one nothing declares */
   private static isForeign(target: IWrittenBinding): boolean {
     return target.binding === null || target.binding.kind === "foreign";
   }
 
-  /** A C-Next declaration that is not a function, or a header's variable */
+  /** A cnx declaration that is not a function, or a header's variable */
   private static namesObject(
     target: IWrittenBinding,
     context: ITypingContext,

@@ -1,6 +1,6 @@
-# Releasing C-Next
+# Releasing cnx
 
-This document describes the release process for C-Next.
+This document describes the release process for cnx.
 
 **A release is work, so it gets managed as work.** Open a release issue from the
 **Release** issue template, set its milestone to the version being released, and
@@ -15,14 +15,14 @@ checklist; this document carries the reasoning behind each step. See
 - [ ] CHANGELOG.md has entry for new version with date
 - [ ] ADR files have correct status (Accepted → Implemented when code is complete)
 - [ ] `docs/architecture-decisions.md` ADR table matches ADR file statuses
-- [ ] `docs/learn-cnext-in-y-minutes.md` reflects new features (if applicable)
+- [ ] `docs/learn-cnx-in-y-minutes.md` reflects new features (if applicable)
 
 ### 2. VS Code Extension (if grammar changed)
 
-The VS Code extension is in a separate repo: [vscode-c-next](https://github.com/jlaustill/vscode-c-next)
+The VS Code extension is in a separate repo: [vscode-cnx](https://github.com/smeltworks/vscode-cnx)
 
 - [ ] Sync `tmLanguage.json` with new keywords/types/syntax
-- [ ] Sync `completionProvider.ts` keywords with actual C-Next keywords
+- [ ] Sync `completionProvider.ts` keywords with actual cnx keywords
 - [ ] Tag a new version to publish to marketplace
 
 ### 3. Version Bump
@@ -114,7 +114,7 @@ Each version should have a date in format `YYYY-MM-DD`:
 At the bottom, add comparison links:
 
 ```markdown
-[0.1.19]: https://github.com/jlaustill/c-next/compare/v0.1.18...v0.1.19
+[0.1.19]: https://github.com/smeltworks/cnx/compare/v0.1.18...v0.1.19
 ```
 
 ## ADR Status Transitions
@@ -130,7 +130,7 @@ At the bottom, add comparison links:
 
 ## Version Numbering
 
-C-Next follows [Semantic Versioning](https://semver.org/):
+cnx follows [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** (x.0.0): Breaking changes to language syntax or transpiler output
 - **MINOR** (0.x.0): New features, ADR implementations
@@ -150,6 +150,6 @@ For urgent fixes:
 
 ## Post-Release
 
-1. Verify npm package published: `npm view c-next versions`
+1. Verify npm package published: `npm view @smeltworks/cnx versions`
 2. Verify GitHub release created with correct tag
-3. Test installation: `npm install -g c-next@latest && cnext --version`
+3. Test installation: `npm install -g @smeltworks/cnx@latest && cnx --version`

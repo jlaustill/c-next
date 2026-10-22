@@ -4,8 +4,8 @@
 // Issue #931: Real-world library integration tests
 //
 // This test validates the ADR-061 pattern:
-// - C-Next code is pure and type-safe (no void*)
-// - C-Next includes shared types header
+// - cnx code is pure and type-safe (no void*)
+// - cnx includes shared types header
 // - C wrapper (separate file) handles void* casting
 
 #include "task_types.h"

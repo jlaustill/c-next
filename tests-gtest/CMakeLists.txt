@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(cnext_gtest VERSION 1.0.0 LANGUAGES C CXX)
+project(cnx_gtest VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,31 +19,31 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-# Find cnext - check multiple locations
+# Find cnx - check multiple locations
 # 1. Locally built via npm (most common during development)
 # 2. Globally installed via volta/npm
-find_program(CNEXT_COMPILER
-  NAMES cnext
+find_program(CNX_COMPILER
+  NAMES cnx
   PATHS
     "${CMAKE_SOURCE_DIR}/../node_modules/.bin"
     "$ENV{HOME}/.volta/bin"
     "$ENV{HOME}/.npm/bin"
-  DOC "C-Next transpiler"
+  DOC "cnx transpiler"
 )
 
-if(NOT CNEXT_COMPILER)
-  message(FATAL_ERROR "cnext compiler not found. Run 'npm install' in the project root first.")
+if(NOT CNX_COMPILER)
+  message(FATAL_ERROR "cnx compiler not found. Run 'npm install' in the project root first.")
 endif()
 
-message(STATUS "Found cnext: ${CNEXT_COMPILER}")
+message(STATUS "Found cnx: ${CNX_COMPILER}")
 
 # Include directory for generated headers
-set(CNEXT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../tests/include")
+set(CNX_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../tests/include")
 
-# Function to add a C-Next test
-# Usage: add_cnext_test(test_name)
+# Function to add a cnx test
+# Usage: add_cnx_test(test_name)
 # Expects: test_name.test.cnx and test_name_test.cpp in current directory
-function(add_cnext_test TEST_NAME)
+function(add_cnx_test TEST_NAME)
   set(CNX_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.cnx")
   set(GENERATED_C "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.c")
   set(GENERATED_H "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.h")
@@ -51,7 +51,7 @@ function(add_cnext_test TEST_NAME)
 
   # Verify source files exist
   if(NOT EXISTS ${CNX_FILE})
-    message(FATAL_ERROR "C-Next source not found: ${CNX_FILE}")
+    message(FATAL_ERROR "cnx source not found: ${CNX_FILE}")
   endif()
   if(NOT EXISTS ${TEST_WRAPPER})
     message(FATAL_ERROR "GTest wrapper not found: ${TEST_WRAPPER}")
@@ -60,7 +60,7 @@ function(add_cnext_test TEST_NAME)
   # Custom command: transpile .cnx -> .c/.h
   add_custom_command(
     OUTPUT ${GENERATED_C} ${GENERATED_H}
-    COMMAND ${CNEXT_COMPILER} ${CNX_FILE} --target host
+    COMMAND ${CNX_COMPILER} ${CNX_FILE} --target host
     DEPENDS ${CNX_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Transpiling ${TEST_NAME}.test.cnx"
@@ -75,7 +75,7 @@ function(add_cnext_test TEST_NAME)
 
   target_include_directories(${TEST_NAME}_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CNEXT_INCLUDE_DIR}
+    ${CNX_INCLUDE_DIR}
   )
 
   target_link_libraries(${TEST_NAME}_test GTest::gtest_main)
@@ -87,7 +87,7 @@ function(add_cnext_test TEST_NAME)
 endfunction()
 
 # Function for C++ mode tests
-function(add_cnext_cpp_test TEST_NAME)
+function(add_cnx_cpp_test TEST_NAME)
   set(CNX_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.cnx")
   set(GENERATED_CPP "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.cpp")
   set(GENERATED_HPP "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.hpp")
@@ -96,7 +96,7 @@ function(add_cnext_cpp_test TEST_NAME)
   # Custom command: transpile .cnx -> .cpp/.hpp (C++ mode)
   add_custom_command(
     OUTPUT ${GENERATED_CPP} ${GENERATED_HPP}
-    COMMAND ${CNEXT_COMPILER} ${CNX_FILE} --cpp --target host
+    COMMAND ${CNX_COMPILER} ${CNX_FILE} --cpp --target host
     DEPENDS ${CNX_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Transpiling ${TEST_NAME}.test.cnx (C++ mode)"
@@ -110,7 +110,7 @@ function(add_cnext_cpp_test TEST_NAME)
 
   target_include_directories(${TEST_NAME}_cpp_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CNEXT_INCLUDE_DIR}
+    ${CNX_INCLUDE_DIR}
   )
 
   target_link_libraries(${TEST_NAME}_cpp_test GTest::gtest_main)

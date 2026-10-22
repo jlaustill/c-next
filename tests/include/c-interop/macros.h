@@ -3,7 +3,7 @@
 
 /*
  * C Interop Test Macros
- * Test #define constants for C-Next interop testing
+ * Test #define constants for cnx interop testing
  * Note: Only constant macros, not function-like macros
  */
 

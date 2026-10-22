@@ -20,12 +20,12 @@ This inconsistency exists because bit indexing on floats gives raw IEEE 754 bits
 Float-to-integer casts now generate clamping code:
 
 ```c
-// C-Next: u8 result <- (u8)scaled;
+// cnx: u8 result <- (u8)scaled;
 // Generated C:
 uint8_t result = ((scaled) > ((float)UINT8_MAX) ? UINT8_MAX : (scaled) < 0.0f ? 0 : (uint8_t)(scaled));
 ```
 
-This matches C-Next's default `clamp` overflow semantics for arithmetic operations.
+This matches cnx's default `clamp` overflow semantics for arithmetic operations.
 
 ## Questions to Research
 

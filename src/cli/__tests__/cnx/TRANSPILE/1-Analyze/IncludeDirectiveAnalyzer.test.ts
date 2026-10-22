@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../../../cnx/PARSE/2-Parse/CnxSourceParser";
 import IncludeResolver from "../../../../../cnx/PARSE/1-Discover/IncludeResolver";
 import MockFileSystem from "../../../MockFileSystem";
 import IncludeDirectiveAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer";
@@ -35,7 +35,7 @@ const analyze = (
     "/project/src",
   ).resolve(source);
   return new IncludeDirectiveAnalyzer().analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
     discovered,
   );
 };
@@ -67,7 +67,7 @@ describe("IncludeDirectiveAnalyzer (E0503)", () => {
     ).toEqual(["E0503"]);
   });
 
-  it("accepts headers and C-Next sources", () => {
+  it("accepts headers and cnx sources", () => {
     const source = [
       "#include <stdint.h>",
       '#include "sensors/imu.hpp"',
@@ -82,7 +82,7 @@ describe("IncludeDirectiveAnalyzer (E0503)", () => {
 });
 
 describe("IncludeDirectiveAnalyzer (E0506)", () => {
-  it("rejects a quoted C-Next include that is not there", () => {
+  it("rejects a quoted cnx include that is not there", () => {
     const [found] = analyze(
       '#include "missing.cnx"\n\nu8 main() {\n    return 0;\n}',
     );
@@ -101,15 +101,7 @@ describe("IncludeDirectiveAnalyzer (E0506)", () => {
     ).toEqual([]);
   });
 
-  it("accepts the .cnext spelling", () => {
-    expect(
-      analyze('#include "helper.cnext"\n\nu8 main() {\n    return 0;\n}', [
-        "/project/src/helper.cnext",
-      ]),
-    ).toEqual([]);
-  });
-
-  it("stays silent on an angle C-Next include, whose search is discovery's", () => {
+  it("stays silent on an angle cnx include, whose search is discovery's", () => {
     expect(
       analyze("#include <missing.cnx>\n\nu8 main() {\n    return 0;\n}"),
     ).toEqual([]);
@@ -117,7 +109,7 @@ describe("IncludeDirectiveAnalyzer (E0506)", () => {
 });
 
 describe("IncludeDirectiveAnalyzer (E0504)", () => {
-  it("names the quoted C-Next twin beside the including file", () => {
+  it("names the quoted cnx twin beside the including file", () => {
     const [found] = analyze(
       '#include <stdint.h>\n#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
       ["/project/src/helper.cnx"],
@@ -196,26 +188,26 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
     // An answer missing here means 1.1 and 1.2 disagree on which lines are
     // directives (#1745). Re-deriving it would hide that behind a second
     // decision, which is what #1672 removed.
-    const { program } = CNextSourceParser.parse(
+    const { program } = CnxSourceParser.parse(
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
       new IncludeDirectiveAnalyzer().analyze(program, {
         resolutions: new Map(),
-        cnextAlternatives: new Map(),
+        cnxAlternatives: new Map(),
         kinds: new Map([['#include "helper.h"', EFileType.CHeader]]),
       }),
     ).toThrow("1.1 Discover resolved every directive 1.2 parsed");
   });
 
   it("never classifies a directive discovery did not classify (#1444)", () => {
-    const { program } = CNextSourceParser.parse(
+    const { program } = CnxSourceParser.parse(
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
       new IncludeDirectiveAnalyzer().analyze(program, {
         resolutions: new Map([['#include "helper.h"', null]]),
-        cnextAlternatives: new Map(),
+        cnxAlternatives: new Map(),
         kinds: new Map(),
       }),
     ).toThrow("1.1 Discover classified every directive 1.2 parsed");
@@ -226,23 +218,23 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
   // classified the spelling itself goes red.
   const answer = (directive: string, kind: EFileType) => ({
     resolutions: new Map([[directive, null]]),
-    cnextAlternatives: new Map<string, string>(),
+    cnxAlternatives: new Map<string, string>(),
     kinds: new Map([[directive, kind]]),
   });
   const reported = (directive: string, kind: EFileType): string[] =>
     new IncludeDirectiveAnalyzer()
       .analyze(
-        CNextSourceParser.parse(`${directive}\n\nu8 main() {\n    return 0;\n}`)
+        CnxSourceParser.parse(`${directive}\n\nu8 main() {\n    return 0;\n}`)
           .program,
         answer(directive, kind),
       )
       .map((e) => e.code);
 
-  it("reports E0506 for a missing quoted include 1.1 classified as C-Next", () => {
-    expect(reported('#include "Gen.CNX"', EFileType.CNext)).toEqual(["E0506"]);
+  it("reports E0506 for a missing quoted include 1.1 classified as cnx", () => {
+    expect(reported('#include "Gen.CNX"', EFileType.Cnx)).toEqual(["E0506"]);
   });
 
-  it("does not report E0506 when 1.1 did not classify the spelling as C-Next", () => {
+  it("does not report E0506 when 1.1 did not classify the spelling as cnx", () => {
     expect(reported('#include "gen.cnx"', EFileType.CHeader)).toEqual([]);
   });
 

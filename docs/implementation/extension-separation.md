@@ -2,7 +2,7 @@
 
 > **Formerly ADR-060.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
 > test (#1403): where the extension's source lives, and how it is versioned and
-> published, is repository logistics rather than a property of C-Next. Number 060 is
+> published, is repository logistics rather than a property of cnx. Number 060 is
 > retired — see [`../decisions/README.md`](../decisions/README.md).
 
 **Status:** Research
@@ -10,7 +10,7 @@
 
 ## Context
 
-The C-Next VS Code extension currently lives in `vscode-extension/` within the main c-next repository. This creates limitations:
+The cnx VS Code extension currently lives in `vscode-extension/` within the main cnx repository. This creates limitations:
 
 1. **Versioning** - Extension versions tied to transpiler releases
 2. **CI/CD** - No dedicated pipeline for extension testing or marketplace publishing
@@ -18,7 +18,7 @@ The C-Next VS Code extension currently lives in `vscode-extension/` within the m
 
 ## Decision
 
-Separate the VS Code extension into its own repository at `github.com/jlaustill/vscode-c-next` with:
+Separate the VS Code extension into its own repository at `github.com/smeltworks/vscode-cnx` with:
 
 - Independent versioning and releases
 - Dedicated CI/CD pipeline with SonarCloud analysis
@@ -29,8 +29,8 @@ Separate the VS Code extension into its own repository at `github.com/jlaustill/
 
 ```
 ┌─────────────────────┐     JSON/stdin/stdout     ┌─────────────────────┐
-│   VS Code Extension │ ◄──────────────────────► │   cnext --serve     │
-│   (vscode-c-next)   │                           │   (language server) │
+│   VS Code Extension │ ◄──────────────────────► │   cnx --serve     │
+│   (vscode-cnx)   │                           │   (language server) │
 └─────────────────────┘                           └─────────────────────┘
 ```
 
@@ -48,10 +48,10 @@ Separate the VS Code extension into its own repository at `github.com/jlaustill/
 
 ### Phase 1: Server Mode in Main Repo
 
-Add `--serve` flag to `cnext` that runs a JSON-RPC server on stdin/stdout.
+Add `--serve` flag to `cnx` that runs a JSON-RPC server on stdin/stdout.
 
 ```bash
-cnext --serve    # Start server mode
+cnx --serve    # Start server mode
 ```
 
 #### Server Protocol
@@ -111,7 +111,7 @@ Key implementation notes:
 ```typescript
 // src/cli/index.ts
 if (args.includes("--serve")) {
-  new CNextServer().start();
+  new CnxServer().start();
 } else {
   // existing CLI logic
 }
@@ -143,9 +143,9 @@ Update `vscode-extension/` to spawn the server instead of importing transpiler d
 
 #### Server Client
 
-Create `vscode-extension/src/server/CNextServerClient.ts`:
+Create `vscode-extension/src/server/CnxServerClient.ts`:
 
-- Spawn `cnext --serve` as child process
+- Spawn `cnx --serve` as child process
 - Track pending requests with timeout (30s default)
 - Auto-restart on crash (once, then show error)
 - Log to output channel for debugging
@@ -155,8 +155,8 @@ Create `vscode-extension/src/server/CNextServerClient.ts`:
 ```typescript
 // Try workspace node_modules first, then global
 const paths = [
-  path.join(workspaceRoot, "node_modules/.bin/cnext"),
-  "cnext", // Fall back to PATH
+  path.join(workspaceRoot, "node_modules/.bin/cnx"),
+  "cnx", // Fall back to PATH
 ];
 ```
 
@@ -170,7 +170,7 @@ If server unavailable, extension still provides:
 - Snippets
 - Language configuration (brackets, comments)
 
-Show warning: "C-Next server not found. Install with: npm i -g @jlaustill/cnext"
+Show warning: "cnx server not found. Install with: npm i -g @smeltworks/cnx"
 
 #### Extension Settings
 
@@ -178,12 +178,12 @@ Add to `package.json` contributes.configuration:
 
 ```json
 {
-  "cnext.serverPath": {
+  "cnx.serverPath": {
     "type": "string",
     "default": "",
-    "description": "Custom path to cnext binary"
+    "description": "Custom path to cnx binary"
   },
-  "cnext.serverTimeout": {
+  "cnx.serverTimeout": {
     "type": "number",
     "default": 30000,
     "description": "Request timeout in milliseconds"
@@ -197,7 +197,7 @@ Invalidate cached symbols when files change:
 
 ```typescript
 vscode.workspace.onDidChangeTextDocument((e) => {
-  if (e.document.languageId === "cnext") {
+  if (e.document.languageId === "cnx") {
     symbolCache.invalidate(e.document.uri);
   }
 });
@@ -205,7 +205,7 @@ vscode.workspace.onDidChangeTextDocument((e) => {
 
 #### Phase 2 Deliverables
 
-- [x] `CNextServerClient.ts` in vscode-extension
+- [x] `CnxServerClient.ts` in vscode-extension
 - [x] Update all providers to use client
 - [x] Add extension settings (`serverPath`, `serverTimeout`)
 - [x] Add graceful degradation ("syntax highlighting only mode")
@@ -228,17 +228,17 @@ Only proceed after Phase 2 is stable.
 #### New Repository Structure
 
 ```
-vscode-c-next/
+vscode-cnx/
 ├── .github/workflows/
 │   ├── ci.yml           # PR checks (lint, test, build)
 │   └── publish.yml      # Marketplace publish on tags
 ├── src/
 │   ├── extension.ts
 │   ├── server/
-│   │   └── CNextServerClient.ts
+│   │   └── CnxServerClient.ts
 │   └── providers/
 ├── syntaxes/
-│   └── cnext.tmLanguage.json
+│   └── cnx.tmLanguage.json
 ├── package.json
 ├── sonar-project.properties
 └── README.md

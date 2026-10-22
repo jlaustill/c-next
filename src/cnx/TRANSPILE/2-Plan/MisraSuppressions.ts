@@ -21,7 +21,7 @@ class MisraSuppressions {
    * Headers whose use generated C must suppress, mapped to the rule cited.
    *
    * MISRA Rule 21.6: the standard library input/output functions shall not be
-   * used. C-Next emits `<stdio.h>` only where a program asked for it.
+   * used. cnx emits `<stdio.h>` only where a program asked for it.
    */
   private static readonly BANNED_HEADERS: ReadonlyMap<string, string> = new Map(
     [["stdio.h", "misra-c2012-21.6"]],

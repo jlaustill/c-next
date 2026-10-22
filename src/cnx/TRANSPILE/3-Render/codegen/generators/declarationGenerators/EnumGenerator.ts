@@ -1,7 +1,7 @@
 /**
  * EnumGenerator - ADR-017 Enum Declaration Generation
  *
- * Generates C typedef enum declarations from C-Next enum syntax.
+ * Generates C typedef enum declarations from cnx enum syntax.
  *
  * Example:
  *   enum State { IDLE, RUNNING, ERROR <- 255 }
@@ -22,7 +22,7 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
- * Generate a C typedef enum from a C-Next enum declaration.
+ * Generate a C typedef enum from a cnx enum declaration.
  *
  * ADR-017: Enums are strongly-typed with explicit integer backing.
  * Members are prefixed with the enum name to avoid C namespace collisions.

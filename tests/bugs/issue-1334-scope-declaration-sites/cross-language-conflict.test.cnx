@@ -16,7 +16,7 @@
 //      tag and the alias at one position, which printed the same file:line twice.
 //
 // `quiet` is the negative control: a C prototype is a declaration, not a definition,
-// so a C-Next function implementing it must stay silent. Without it this fixture
+// so a cnx function implementing it must stay silent. Without it this fixture
 // would pass just as well against a check that flagged every shared name.
 
 #include "legacy-c-types.h"

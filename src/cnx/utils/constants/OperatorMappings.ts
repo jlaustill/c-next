@@ -1,7 +1,7 @@
 import COMPOUND_BINARY_OPERATORS from "../../types/syntax/COMPOUND_BINARY_OPERATORS";
 
 /**
- * Operator mapping from C-Next assignment operators to C assignment operators:
+ * Operator mapping from cnx assignment operators to C assignment operators:
  * `<-` is C's `=`, and `op<-` is C's `op=` for the binary operator it applies.
  * Used by assignment handling and control flow generation.
  */

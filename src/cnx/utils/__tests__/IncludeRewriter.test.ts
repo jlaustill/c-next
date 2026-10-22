@@ -2,7 +2,7 @@
  * Unit tests for IncludeRewriter
  *
  * Issue #1467: it decides no paths -- `PathResolver` does -- and since #1444
- * it decides no kinds either: whether a directive names C-Next source is 1.1
+ * it decides no kinds either: whether a directive names cnx source is 1.1
  * Discover's answer, which its callers ask first (owner ruling 1). These cover
  * what it IS responsible for: using the owner's answer in preference to the
  * extension-swap fallback, and keeping the author's form and spacing.
@@ -16,7 +16,7 @@ import EFileType from "../../PARSE/1-Discover/types/EFileType";
 /** 1.1 Discover's answer for one directive, as it records it. */
 const kindOf = (
   directive: string,
-  kind: EFileType = EFileType.CNext,
+  kind: EFileType = EFileType.Cnx,
 ): ReadonlyMap<string, EFileType> => {
   const include = IncludeDirectiveText.split(directive);
   return include === null
@@ -28,18 +28,13 @@ describe("IncludeRewriter", () => {
   const none = new Map<string, string>();
 
   describe("rewrite", () => {
-    it.each([
-      [".cnx", "#include <utils.cnx>", "utils.cnx"],
-      [".cnext", "#include <utils.cnext>", "utils.cnext"],
-    ])(
-      "names the resolved header for a %s include",
-      (_ext, directive, spec) => {
-        const rewrites = new Map([[spec, "Display/utils.h"]]);
-        expect(
-          IncludeRewriter.rewrite(directive, kindOf(directive), rewrites, ".h"),
-        ).toBe("#include <Display/utils.h>");
-      },
-    );
+    it("names the resolved header for a .cnx include", () => {
+      const directive = "#include <utils.cnx>";
+      const rewrites = new Map([["utils.cnx", "Display/utils.h"]]);
+      expect(
+        IncludeRewriter.rewrite(directive, kindOf(directive), rewrites, ".h"),
+      ).toBe("#include <Display/utils.h>");
+    });
 
     it("keeps a quoted include quoted", () => {
       const rewrites = new Map([["utils.cnx", "Display/utils.h"]]);
@@ -55,11 +50,9 @@ describe("IncludeRewriter", () => {
 
     it.each([
       ["#include <utils.cnx>", ".h", "#include <utils.h>"],
-      ["#include <utils.cnext>", ".h", "#include <utils.h>"],
       ["#include <utils.cnx>", ".hpp", "#include <utils.hpp>"],
-      ["#include <utils.cnext>", ".hpp", "#include <utils.hpp>"],
-      // #1833: only a lowercase extension is C-Next; `Utils.CNX` is E0518
-      ['#include "Utils.cnext"', ".h", '#include "Utils.h"'],
+      // #1833: only a lowercase extension is cnx source; `Utils.CNX` is E0518
+      ['#include "Utils.cnx"', ".h", '#include "Utils.h"'],
       // only the path is replaced: the author's spacing survives
       ["#  include  <utils.cnx>", ".h", "#  include  <utils.h>"],
     ])(
@@ -122,14 +115,14 @@ describe("IncludeRewriter", () => {
     });
   });
 
-  describe("namesCNext", () => {
+  describe("namesCnx", () => {
     it.each([
-      [EFileType.CNext, true],
+      [EFileType.Cnx, true],
       [EFileType.CHeader, false],
       [EFileType.CppSource, false],
     ])("follows 1.1's answer: %s gives %s", (kind, expected) => {
       expect(
-        IncludeRewriter.namesCNext(
+        IncludeRewriter.namesCnx(
           '#include "Gen.CNX"',
           kindOf('#include "Gen.CNX"', kind),
         ),

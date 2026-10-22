@@ -1,7 +1,7 @@
 /**
  * Standard library / framework function metadata.
  *
- * Single source of truth for what C-Next knows about non-C-Next functions.
+ * Single source of truth for what cnx knows about non-cnx functions.
  * Two consumers, one list:
  *   - FunctionCallAnalyzer (ADR-030) asks which header declares a name.
  *   - ReturnValueUseAnalyzer (ADR-070, E0708) asks whether a name returns void.
@@ -212,10 +212,10 @@ const VOID_RETURNING: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * C-Next compiler intrinsics (ADR-051) and the type they hand back.
+ * cnx compiler intrinsics (ADR-051) and the type they hand back.
  *
  * These are not stdlib functions, but they raise the same two questions this
- * module already answers -- does C-Next know the name, and what does it return
+ * module already answers -- does cnx know the name, and what does it return
  * -- so they live beside the stdlib table rather than in a second list that
  * could drift from it.
  *
@@ -231,12 +231,12 @@ const BUILTIN_RETURN_TYPES: Record<string, string> = {
 };
 
 class StdlibFunctions {
-  /** Names of all C-Next compiler intrinsics. */
+  /** Names of all cnx compiler intrinsics. */
   static builtinNames(): string[] {
     return Object.keys(BUILTIN_RETURN_TYPES);
   }
 
-  /** Return type of a C-Next intrinsic, or null when `name` is not one. */
+  /** Return type of a cnx intrinsic, or null when `name` is not one. */
   static builtinReturnType(name: string): string | null {
     return Object.hasOwn(BUILTIN_RETURN_TYPES, name)
       ? BUILTIN_RETURN_TYPES[name]
@@ -244,7 +244,7 @@ class StdlibFunctions {
   }
 
   /**
-   * The header declaring `name`, or null if C-Next does not know the name.
+   * The header declaring `name`, or null if cnx does not know the name.
    *
    * Guarded with Object.hasOwn: a bare `HEADERS[name]` also resolves inherited
    * Object members, so a callee named `constructor` or `toString` would come

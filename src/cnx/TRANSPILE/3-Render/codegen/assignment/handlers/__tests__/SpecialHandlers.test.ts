@@ -36,7 +36,7 @@ function createMockContext(
     identifiers,
     ...HandlerTestUtils.subscriptsOf([]),
     isCompound: true,
-    cnextOp: "+<-",
+    cnxOp: "+<-",
     cOp: "+=",
     generatedValue: "1",
     // #1445: renders, not nodes -- each delegates to the mocked generator the
@@ -172,7 +172,7 @@ describe("SpecialHandlers", () => {
     // handler that joins `currentScopePath.name` asks for `Inner__count` and misses.
     //
     // Not reachable from .cnx: `scopeMember` admits no `scopeDeclaration`
-    // (grammar/CNext.g4:81-89), so no fixture can build depth two. It is
+    // (grammar/Cnx.g4:81-89), so no fixture can build depth two. It is
     // reachable here because `SymbolRegistry.getOrCreateScope` takes a dotted
     // path, which makes this the only level the encoder can be proven at.
     //
@@ -241,7 +241,7 @@ describe("SpecialHandlers", () => {
         generateAssignmentTarget,
       });
       const ctx = createMockContext({
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
       });
 
@@ -291,7 +291,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["value"],
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
         generatedValue: "100",
       });
@@ -311,7 +311,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["result"],
-        cnextOp: "*<-",
+        cnxOp: "*<-",
         cOp: "*=",
         generatedValue: "2",
       });
@@ -347,7 +347,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["d"],
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
         generatedValue: "0.5",
       });
@@ -365,7 +365,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["value"],
-        cnextOp: "/<-",
+        cnxOp: "/<-",
         cOp: "/=",
         generatedValue: "2",
       });
@@ -427,7 +427,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["scaled"],
-        cnextOp: "*<-",
+        cnxOp: "*<-",
         cOp: "*=",
         generatedValue: "s.v",
         valueHasFloatingOperand: () => true,

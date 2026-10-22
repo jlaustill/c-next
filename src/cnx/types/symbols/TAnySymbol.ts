@@ -3,16 +3,16 @@ import type TCSymbol from "./c/TCSymbol";
 import type TCppSymbol from "./cpp/TCppSymbol";
 
 /**
- * Union of all symbol types across all supported languages (C-Next, C, C++).
+ * Union of all symbol types across all supported languages (cnx, C, C++).
  *
  * Use this type when handling symbols that could come from any source file type:
- * - C-Next (.cnx) → TSymbol
+ * - cnx (.cnx) → TSymbol
  * - C (.c, .h) → TCSymbol
  * - C++ (.cpp, .hpp) → TCppSymbol
  *
  * The `sourceLanguage` field can be used to narrow the type:
  * ```typescript
- * if (symbol.sourceLanguage === ESourceLanguage.CNext) {
+ * if (symbol.sourceLanguage === ESourceLanguage.Cnx) {
  *   // TypeScript knows symbol is TSymbol here
  * }
  * ```

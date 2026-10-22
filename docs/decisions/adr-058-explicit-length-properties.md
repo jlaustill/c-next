@@ -15,7 +15,7 @@ logical width of its type (`type_`), or the memory C lays out for it
 these rulings add up to" under Open Questions, with the ruling behind each
 row. `.bit_length`, `.byte_length`, `.char_count` and `.element_count` are
 removed, each a compile error whose help names its replacement. ADR-023 stays
-Rejected: C-Next has no `sizeof` operator; `.memory_byte_length` emits one for
+Rejected: cnx has no `sizeof` operator; `.memory_byte_length` emits one for
 the C compiler to answer.
 
 ## Related
@@ -27,7 +27,7 @@ the C compiler to answer.
 
 ## Context
 
-C-Next currently uses `.length` as a universal property on multiple types, but it means different things depending on the type:
+cnx currently uses `.length` as a universal property on multiple types, but it means different things depending on the type:
 
 | Type                       | `.length` returns       | Compile-time? | Example                        |
 | -------------------------- | ----------------------- | ------------- | ------------------------------ |
@@ -40,7 +40,7 @@ This overloading means that reading `someVar.length` requires knowing the type o
 
 ### The Ambiguity Problem
 
-Consider this C-Next code:
+Consider this cnx code:
 
 ```cnx
 u32 x <- someVar.length;
@@ -224,10 +224,10 @@ What the survey shows:
   types and enums; Java has none. Rust is the exception, with a safe
   `size_of`.
 - **Python's `int.bit_length()` is a value length.** The "Languages with
-  Explicit Naming" list above cites it as the source of C-Next's name, but
-  C-Next's `.bit_length` is never a value length.
+  Explicit Naming" list above cites it as the source of cnx's name, but
+  cnx's `.bit_length` is never a value length.
 
-#### C-Next today
+#### cnx today
 
 Measured on PR #2077 (`168d5da32`, `--target host`):
 
@@ -378,18 +378,18 @@ size: C's `sizeof(SensorReading)` is 12 on x86-64, because one padding byte
 follows `u8 status`. An array of structs follows the array rule, so
 `SensorReading[100]` is 1100 bytes, while C stores it in 1200.
 
-A type answers the same length properties its values do (#1975), since C-Next
+A type answers the same length properties its values do (#1975), since cnx
 has no `sizeof` (ADR-023): `u32.byte_length` is 4, `SensorReading.byte_length`
 is 11, and `SensorReading.status.byte_length` is 1. A struct from a C header
 follows the same rule -- its fields' sizes summed, no padding -- so
 `typedef struct { uint32_t a; uint8_t b; } Cfg;` gives `Cfg.byte_length` 5.
-C-Next has no pointers, so a header's pointer field, and a struct that holds
+cnx has no pointers, so a header's pointer field, and a struct that holds
 one, has no length: E0867. Nor has a header struct whose members do not each
-hold their own bytes, since C-Next could only sum them wrongly: a union, a
+hold their own bytes, since cnx could only sum them wrongly: a union, a
 struct with a bit-field or an unnamed member, a C++ class with a base or a
 virtual member, and a header enum, whose width the C compiler picks. A C++
 class's static members and methods are values, not storage, and are not
-counted. A header bit-field is its declared width, as a C-Next bitmap field
+counted. A header bit-field is its declared width, as a cnx bitmap field
 is (#1975 review, owner ruling): in
 `typedef struct { uint32_t a : 3; uint32_t b : 5; } BF;`, `BF.a.bit_length`
 is 3, not its `uint32_t`'s 32, while `BF.byte_length` stays E0867.
@@ -503,7 +503,7 @@ Keep `.length` working everywhere but add new properties alongside.
 
 - Ambiguity remains during deprecation period
 - "Helpful, not burdensome" principle — deprecation warnings add noise
-- C-Next is pre-1.0; now is the time for breaking changes
+- cnx is pre-1.0; now is the time for breaking changes
 
 ---
 
@@ -581,7 +581,7 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 2. **Which kind of length** (#1975 review 2; see "Research: Three Kinds of Length"): do `.bit_length` and `.byte_length` measure the type length or the memory size?
 3. **`bool` and a 1-bit field** (#2081): what is their `.bit_length`, 1 or 8?
 4. **A width that is no whole number of bytes**: what is `.byte_length` of a 3-bit field? Today it emits `0.375` into the C.
-5. **Enums**: what is a C-Next enum's length? It is emitted as a C `enum`, whose size the C compiler picks.
+5. **Enums**: what is a cnx enum's length? It is emitted as a C `enum`, whose size the C compiler picks.
 6. **Strings**: should a string's lengths count its terminator byte?
 
 **Owner direction so far (#1975 review 2, PR #2077):**
@@ -594,7 +594,7 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   focusing on these 3 different types, after spelling them out, it seems like
   it couldn't hurt, even if it only ever gets used for displaying memory used
   to a user". ADR-023 stays Rejected: "this does NOT re-open adr023, it's
-  still rejected!" -- C-Next has no `sizeof`; memory size is one of these
+  still rejected!" -- cnx has no `sizeof`; memory size is one of these
   properties.
 - `.type_char_count` is the number of letters in the type's name (`u8` is 2,
   `u32` is 3). All three `_char_count` names exist, `.memory_char_count`
@@ -603,10 +603,10 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   compile error whose help names its replacement, as `.length` became.
 - The C compiler answers the memory row: `Cfg.memory_byte_length` emits
   `sizeof(Cfg)`, exact for every build, including header unions and
-  bit-fields. C-Next itself does not know the number, so it cannot check
+  bit-fields. cnx itself does not know the number, so it cannot check
   anything sized by it. An array may still be sized by it
   (`u8[Cfg.memory_byte_length] raw;` emits `uint8_t raw[sizeof(Cfg)]`), as a
-  header macro may; where C-Next needs the number itself, as an enum member's
+  header macro may; where cnx needs the number itself, as an enum member's
   value, it is E0909.
 - The type row is the declared, logical width, so a `bool` and a 1-bit
   bitmap field have `.type_bit_length` 1 and `.memory_bit_length` 8.
@@ -634,7 +634,7 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   removed with a help message, as `.bit_length` is.
 - A bit-field member has no memory of its own, so its `.memory_*` is a compile
   error (`sizeof` cannot take a C bit-field either); the struct that holds it
-  still answers `.memory_*`. A C-Next bitmap field is the same.
+  still answers `.memory_*`. A cnx bitmap field is the same.
 - `.memory_char_count` exists only on strings (`string<8>` is 9, its buffer
   with the `\0`); on anything else it is a compile error.
 - `*_element_count` exists only on arrays and structs (a struct counts its
@@ -663,18 +663,18 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 `.bit_length`, `.byte_length`, `.char_count` and `.element_count` are removed;
 each is a compile error whose help names its replacement. ADR-023 stays
-Rejected: C-Next has no `sizeof` operator.
+Rejected: cnx has no `sizeof` operator.
 
 ---
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                          | Asserted by                                                                          |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| E0867 | A shape property is asked of a subject that cannot answer it (a pointer, a header union, bit-field or other layout C-Next cannot sum), or of a literal | `tests/explicit-length/`, `tests/adr-058/`                                           |
-| E0886 | `.length` is used at all                                                                                                                               | `tests/adr-058/`                                                                     |
-| E0909 | A memory size is where C-Next needs the number itself, as an enum member's value (the C compiler decides it for the target)                            | `tests/adr-058/kinds-memory-dimension-error.test.cnx`                                |
-| E0897 | A chain that names a type does not end in a length property                                                                                            | `tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx` |
+| Code  | Reported when                                                                                                                                       | Asserted by                                                                          |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| E0867 | A shape property is asked of a subject that cannot answer it (a pointer, a header union, bit-field or other layout cnx cannot sum), or of a literal | `tests/explicit-length/`, `tests/adr-058/`                                           |
+| E0886 | `.length` is used at all                                                                                                                            | `tests/adr-058/`                                                                     |
+| E0909 | A memory size is where cnx needs the number itself, as an enum member's value (the C compiler decides it for the target)                            | `tests/adr-058/kinds-memory-dimension-error.test.cnx`                                |
+| E0897 | A chain that names a type does not end in a length property                                                                                         | `tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx` |
 
 `.length` is rejected by NAME and needs no subject: naming a different thing on
 a string, an array and a scalar is what these four properties replaced.

@@ -6,7 +6,7 @@
  * `#define _ASMLANGUAGE` and contain `.macro` definitions whose bodies use
  * assembler instruction mnemonics such as `loop`. None of this is valid C, so
  * when the C parser error-recovers over it those mnemonics get mis-collected as
- * C symbols and then false-conflict with C-Next symbols of the same name (e.g.
+ * C symbols and then false-conflict with cnx symbols of the same name (e.g.
  * Arduino `loop()`) — reported as "defined in multiple languages".
  *
  * Headers that merely GUARD assembler with `#ifdef __ASSEMBLER__` are unaffected:

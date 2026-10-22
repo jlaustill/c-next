@@ -28,12 +28,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // places decided "does this name form a type", and BOTH knew only enum, struct
 // and bitmap:
 //
-//   - symbols layer: CNextResolver Pass 0b, which now asks TYPE_FORMING_KINDS;
+//   - symbols layer: CnxResolver Pass 0b, which now asks TYPE_FORMING_KINDS;
 //   - codegen layer: CodeGenState.isScopeType, which now also consults
 //     callbackTypes rather than gaining a fifth parallel `known*` set.
 //
 // With either half missing, the field type stayed BARE, no `_fp` typedef was
-// emitted, and the header named something that is not a type -- `cnext` exited
+// emitted, and the header named something that is not a type -- `cnx` exited
 // 0 and gcc rejected the output.
 //
 // `Later` is the declaration-order control: its struct is declared ABOVE the

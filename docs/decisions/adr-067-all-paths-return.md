@@ -11,7 +11,7 @@
 
 ## Context
 
-C-Next currently accepts a function declared with a **non-void return type** that never executes a `return` statement, and silently emits C that falls off the end of the function (Issue #1040):
+cnx currently accepts a function declared with a **non-void return type** that never executes a `return` statement, and silently emits C that falls off the end of the function (Issue #1040):
 
 ```cnx
 scope Demo {
@@ -55,7 +55,7 @@ A non-void function is rejected unless `definitelyReturns(body)` is true, comput
 | `do-while`                                  | `definitelyReturns(body)` (the body always executes once)                                                                      |
 | any other statement                         | **false**                                                                                                                      |
 
-Because C-Next has no `break`/`continue` (ADR-026), loop bodies have no early structural exits to reason about, which keeps the analysis simple.
+Because cnx has no `break`/`continue` (ADR-026), loop bodies have no early structural exits to reason about, which keeps the analysis simple.
 
 ### Consequences (intended strictness)
 

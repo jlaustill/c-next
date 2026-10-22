@@ -2,8 +2,8 @@
  * Function Call Analyzer
  * Enforces define-before-use for functions (ADR-030)
  *
- * C-Next requires functions to be defined before they can be called.
- * This catches errors at C-Next compile time rather than deferring to
+ * cnx requires functions to be defined before they can be called.
+ * This catches errors at cnx compile time rather than deferring to
  * the C compiler or runtime.
  */
 
@@ -27,10 +27,10 @@ import IncludeDirective from "./helpers/IncludeDirective";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
- * C-Next built-in functions
+ * cnx built-in functions
  * These are compiler intrinsics that don't need to be defined by the user
  */
-const CNEXT_BUILTINS: Set<string> = new Set(StdlibFunctions.builtinNames());
+const CNX_BUILTINS: Set<string> = new Set(StdlibFunctions.builtinNames());
 
 /**
  * #1991: walks 1.2's syntax, not the parse tree, in source order -- a function
@@ -149,7 +149,7 @@ class FunctionCallWalk {
 }
 
 /**
- * Analyzes C-Next AST for function calls before definition
+ * Analyzes cnx AST for function calls before definition
  */
 class FunctionCallAnalyzer {
   private errors: IFunctionCallError[] = [];
@@ -294,7 +294,7 @@ class FunctionCallAnalyzer {
    * needs exactly that distinction -- so asking it "is this callable here?"
    * asked one set two questions, and a variable typed by an INCLUDED
    * function-as-type was rejected with E0422 "called before definition" for
-   * valid C-Next. ADR-029 draws no line at the include boundary.
+   * valid cnx. ADR-029 draws no line at the include boundary.
    *
    * The second reading is the per-file VISIBLE set, not a second derivation of
    * the first: `functionReturnTypes` is authored once by TSymbolInfoAdapter for
@@ -359,7 +359,7 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * Whether `name` resolves to something DEFINED IN C-NEXT at this call site.
+   * Whether `name` resolves to something DEFINED IN cnx at this call site.
    *
    * This is the boundary ADR-003's diagnostic keys on. A name answering true
    * here is the author's own code and cannot have been imported from anywhere,
@@ -369,10 +369,10 @@ class FunctionCallAnalyzer {
    * STRUCTURAL. Spread through `checkFunctionCall` they were four returns among
    * seven, correct only while nobody inserted a check between them -- and the
    * regression this fixes came from a second analyzer asking the ADR-003
-   * question with none of this context at all, so a C-Next `pool_free` was told
+   * question with none of this context at all, so a cnx `pool_free` was told
    * it came from a header (#1306 review).
    */
-  private resolvesToCNextDefinition(
+  private resolvesToCnxDefinition(
     name: string,
     line: number,
     currentScopePath: string,
@@ -381,7 +381,7 @@ class FunctionCallAnalyzer {
     if (this.definedFunctions.has(name)) {
       return true; // defined before use
     }
-    if (CNEXT_BUILTINS.has(name)) {
+    if (CNX_BUILTINS.has(name)) {
       return true;
     }
     // ADR-040: an ISR or callback variable being invoked.
@@ -441,7 +441,7 @@ class FunctionCallAnalyzer {
 
     // Everything the author wrote themselves, in one group -- see the method.
     if (
-      this.resolvesToCNextDefinition(name, line, currentScopePath, isGlobalCall)
+      this.resolvesToCnxDefinition(name, line, currentScopePath, isGlobalCall)
     ) {
       return; // OK - the author's own code
     }
@@ -522,7 +522,7 @@ class FunctionCallAnalyzer {
 
   /**
    * Check if a function is defined externally (from included files)
-   * This includes C/C++ headers AND C-Next includes.
+   * This includes C/C++ headers AND cnx includes.
    *
    * Issue #786: Only considers a function "external" if it's NOT defined
    * in the current file. Functions defined locally are subject to
@@ -542,7 +542,7 @@ class FunctionCallAnalyzer {
 
     // Looked up by C name, so a bare `helper` never matches `Test__helper`.
     // ADR-057: a bare call inside a scope may name a member of that scope
-    // declared in an included file -- the same rule `resolvesToCNextDefinition`
+    // declared in an included file -- the same rule `resolvesToCnxDefinition`
     // applies to this file's members.
     const scoped = CalleeNameResolver.scopeQualifiedCandidate(
       name,

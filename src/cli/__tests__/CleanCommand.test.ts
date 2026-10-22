@@ -180,23 +180,6 @@ describe("CleanCommand", () => {
       expect(paths.some((p) => p.includes("main.c"))).toBe(true);
     });
 
-    it("handles .cnext extension files", () => {
-      vi.mocked(InputExpansion.expandInputs).mockReturnValue([
-        "/project/src/test.cnext",
-      ]);
-
-      vi.mocked(fs.unlinkSync).mockImplementation(() => {});
-
-      CleanCommand.execute("/project/src/", "/project/build/", undefined);
-
-      const unlinkCalls = vi.mocked(fs.unlinkSync).mock.calls;
-      const paths = unlinkCalls.map((call) => call[0] as string);
-
-      // Should strip .cnext and add proper extensions
-      expect(paths.some((p) => p.includes("test.c"))).toBe(true);
-      expect(paths.some((p) => p.includes("test.h"))).toBe(true);
-    });
-
     it("preserves directory structure in output", () => {
       vi.mocked(InputExpansion.expandInputs).mockReturnValue([
         "/project/src/drivers/uart.cnx",

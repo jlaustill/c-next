@@ -1,6 +1,6 @@
 // test-error
 // #1632 regression guard: `break` as an assignment target is still `break`,
-// and C-Next has none. #2020 fixed it, when it began walking assignment
+// and cnx has none. #2020 fixed it, when it began walking assignment
 // targets; before that, `break = 5;` reached the C compiler.
 void main(u8 n) {
     u8 i <- 0;

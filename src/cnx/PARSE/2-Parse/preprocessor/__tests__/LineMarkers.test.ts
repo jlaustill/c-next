@@ -37,13 +37,13 @@ describe("LineMarkers.entered (#1844)", () => {
 
   it("does not count the file that included the header, which it returns to", () => {
     const content = [
-      '# 1 "/tmp/w/cnext-include.h"',
+      '# 1 "/tmp/w/cnx-include.h"',
       '# 1 "lib.h" 1',
       '# 1 "impl.h" 1',
       "int impl;",
       '# 2 "lib.h" 2',
       "int lib;",
-      '# 2 "/tmp/w/cnext-include.h" 2',
+      '# 2 "/tmp/w/cnx-include.h" 2',
     ].join("\n");
 
     expect([...LineMarkers.entered(content, "lib.h")]).toEqual([

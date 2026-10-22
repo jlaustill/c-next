@@ -3,15 +3,15 @@
 **Status:** Research (Pending Approval)
 **Date:** 2026-01-23
 **Updated:** 2026-02-22
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-C-Next already has per-variable overflow semantics for integers with `clamp` (saturate) and `wrap` (two's complement) keywords, defaulting to `clamp` for safety (ADR-044). A community member raised an insightful question:
+cnx already has per-variable overflow semantics for integers with `clamp` (saturate) and `wrap` (two's complement) keywords, defaulting to `clamp` for safety (ADR-044). A community member raised an insightful question:
 
 > "Can your clamped be applied to an array index?"
 
-This is a natural extension of C-Next's overflow philosophy. Buffer overflows (CWE-787) are the #2 most dangerous software weakness, and array bounds errors are endemic in embedded systems. Applying the same `clamp`/`wrap` semantics to array indexing could:
+This is a natural extension of cnx's overflow philosophy. Buffer overflows (CWE-787) are the #2 most dangerous software weakness, and array bounds errors are endemic in embedded systems. Applying the same `clamp`/`wrap` semantics to array indexing could:
 
 1. Eliminate out-of-bounds access bugs by construction
 2. Make circular buffers (ring buffers) first-class citizens
@@ -108,7 +108,7 @@ All bracket subscript expressions require unsigned integer types. Signed integer
 | `i8`, `i16`, `i32`, `i64` | **Compile error** | Negative indexes are undefined behavior |
 | `f32`, `f64`              | **Compile error** | Not valid index types                   |
 
-This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using C-Next's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
+This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using cnx's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
 
 ```cnx
 u8[100] buffer;
@@ -240,7 +240,7 @@ _ = arr[10];  // Debug: panic! ReleaseFast: UB
 
 **Compile-time checking:** Constant indices are checked at compile time. Zig's `comptime` evaluation can prove many bounds at compile time.
 
-**Key insight:** Zig's approach is "trust but verify" — assumes code is correct in release, but verifies in debug. Different from C-Next's always-safe default.
+**Key insight:** Zig's approach is "trust but verify" — assumes code is correct in release, but verifies in debug. Different from cnx's always-safe default.
 
 > Source: [Zig Guide: Runtime Safety](https://zig.guide/language-basics/runtime-safety/)
 
@@ -283,7 +283,7 @@ procedure Safe_Access(Arr : in out My_Array; Idx : Index)
 
 > "GNATprove can be used to demonstrate statically that none of these errors can ever occur at runtime." — [AdaCore SPARK Guide](https://learn.adacore.com/courses/intro-to-spark/chapters/03_Proof_Of_Program_Integrity.html)
 
-**Key insight:** Ada's `mod` types are **exactly** what C-Next's `wrap` behavior should emulate. The type itself carries the wraparound semantics.
+**Key insight:** Ada's `mod` types are **exactly** what cnx's `wrap` behavior should emulate. The type itself carries the wraparound semantics.
 
 ---
 
@@ -346,7 +346,7 @@ arr[safe: 10]  // Returns nil instead of crashing
 
 > "Array bounds checks are necessary to enforce memory safety, so these are enabled (by default) for @safe code even in -release mode." — [D Language Spec](https://dlang.org/spec/arrays.html)
 
-**Key insight:** D's approach of per-function safety attributes is interesting, but more complex than C-Next's per-variable approach.
+**Key insight:** D's approach of per-function safety attributes is interesting, but more complex than cnx's per-variable approach.
 
 ---
 
@@ -424,7 +424,7 @@ const val = arr[10]; // Type is number | undefined
 
 > "In many languages, accessing past the bounds of an array throws an error. But in JavaScript, if you try to access an out-of-bound element of an array, you'll get `undefined`." — [TypeScript TV](https://typescript.tv/best-practices/safer-array-access-in-typescript/)
 
-**Key insight:** JavaScript's `undefined` return is effectively the "ignore/skip" behavior for reads. C-Next could study this pattern.
+**Key insight:** JavaScript's `undefined` return is effectively the "ignore/skip" behavior for reads. cnx could study this pattern.
 
 ---
 
@@ -487,7 +487,7 @@ procedure Access(Arr : My_Array; Idx : Integer)
 
 > "If N happens to be a base-2 number (like 64, 1024, or 4096), `i mod N` is computationally equivalent to using a binary AND operator (`i and (N-1)`), which is more efficient." — [High Performance Modulo](https://www.chrisnewland.com/high-performance-modulo-operation-317)
 
-**Implication for C-Next:** For `wrap` behavior, encourage power-of-2 array sizes or warn about performance.
+**Implication for cnx:** For `wrap` behavior, encourage power-of-2 array sizes or warn about performance.
 
 ---
 
@@ -500,32 +500,32 @@ procedure Access(Arr : My_Array; Idx : Integer)
 
 **DO-178C (Aerospace):** Requires proof that buffer overflows cannot occur. SPARK is specifically designed for this.
 
-**Key insight:** Safety standards want **proof** of safety, not just runtime checks. C-Next's static `clamp`/`wrap` approach can be statically analyzed more easily than dynamic checks.
+**Key insight:** Safety standards want **proof** of safety, not just runtime checks. cnx's static `clamp`/`wrap` approach can be statically analyzed more easily than dynamic checks.
 
 ---
 
 ## Research Summary: Language Comparison
 
-| Language              | Default Behavior                 | Alternative Access    | Wrap Support      | No-Op Support |
-| --------------------- | -------------------------------- | --------------------- | ----------------- | ------------- |
-| **Rust**              | Panic                            | `get()` → Option      | ❌ Manual         | ❌            |
-| **Zig**               | Panic (debug) / UB (release)     | —                     | ❌ Manual         | ❌            |
-| **Ada**               | Exception                        | Modular types         | ✅ `mod` types    | ❌            |
-| **Swift**             | Crash (trap)                     | Manual extension      | ❌                | ❌            |
-| **D**                 | Exception (@safe) / UB (@system) | —                     | ❌ Manual         | ❌            |
-| **Java**              | Exception                        | —                     | ❌ Manual         | ❌            |
-| **C#**                | Exception                        | `unsafe`              | ❌ Manual         | ❌            |
-| **JavaScript**        | `undefined` / extend             | —                     | ❌ Manual         | ✅ Implicit   |
-| **Vulkan/GPU**        | Clamp                            | `robustBufferAccess2` | ❌                | ✅ Discard    |
-| **C-Next (proposed)** | Clamp                            | Per-access override   | ✅ `wrap` keyword | ✅ discard    |
+| Language           | Default Behavior                 | Alternative Access    | Wrap Support      | No-Op Support |
+| ------------------ | -------------------------------- | --------------------- | ----------------- | ------------- |
+| **Rust**           | Panic                            | `get()` → Option      | ❌ Manual         | ❌            |
+| **Zig**            | Panic (debug) / UB (release)     | —                     | ❌ Manual         | ❌            |
+| **Ada**            | Exception                        | Modular types         | ✅ `mod` types    | ❌            |
+| **Swift**          | Crash (trap)                     | Manual extension      | ❌                | ❌            |
+| **D**              | Exception (@safe) / UB (@system) | —                     | ❌ Manual         | ❌            |
+| **Java**           | Exception                        | —                     | ❌ Manual         | ❌            |
+| **C#**             | Exception                        | `unsafe`              | ❌ Manual         | ❌            |
+| **JavaScript**     | `undefined` / extend             | —                     | ❌ Manual         | ✅ Implicit   |
+| **Vulkan/GPU**     | Clamp                            | `robustBufferAccess2` | ❌                | ✅ Discard    |
+| **cnx (proposed)** | Clamp                            | Per-access override   | ✅ `wrap` keyword | ✅ discard    |
 
 ### Key Findings
 
 1. **No language provides all three behaviors** (clamp, wrap, discard) with clean syntax
-2. **Ada's `mod` types** are the closest precedent to C-Next's `wrap` behavior
+2. **Ada's `mod` types** are the closest precedent to cnx's `wrap` behavior
 3. **Vulkan calls the no-op write behavior "discard"** — strong naming precedent
 4. **JavaScript returns `undefined`** for out-of-bounds reads — implicit "skip" behavior
-5. **Most languages choose panic/exception** as default, C-Next's `clamp` default is novel
+5. **Most languages choose panic/exception** as default, cnx's `clamp` default is novel
 
 ---
 
@@ -617,11 +617,11 @@ This means:
 
 - Compile-time warnings remain for constant OOB indices, even when clamp/wrap/discard would handle them safely at runtime
 - `--debug` mode panics on **all three behaviors** when an OOB access occurs, because hitting the safety net means a bug exists
-- There is **no "unchecked" or "raw" mode** — this goes against C-Next's core safety philosophy
+- There is **no "unchecked" or "raw" mode** — this goes against cnx's core safety philosophy
 
 ### Default Behavior
 
-All array access defaults to `clamp`. This means existing code without explicit overflow modifiers will gain bounds-checking code generation. This is intentional and non-negotiable — C-Next eliminates buffer overflows by construction.
+All array access defaults to `clamp`. This means existing code without explicit overflow modifiers will gain bounds-checking code generation. This is intentional and non-negotiable — cnx eliminates buffer overflows by construction.
 
 ### Debug Mode
 
@@ -708,7 +708,7 @@ When writing past the current char_count but within capacity:
 #### Clamp (Default)
 
 ```cnx
-// C-Next
+// cnx
 u8[clamp 100] buffer;
 value <- buffer[idx];
 ```
@@ -722,7 +722,7 @@ value = buffer[idx >= 100 ? 99 : idx];
 #### Wrap
 
 ```cnx
-// C-Next
+// cnx
 u8[wrap 256] ring;
 ring[head] <- byte;
 ```
@@ -734,7 +734,7 @@ ring[head & 255] = byte;  // Bitwise AND for power-of-2 sizes
 ```
 
 ```cnx
-// C-Next (non-power-of-2)
+// cnx (non-power-of-2)
 u8[wrap 100] ring;
 ring[head] <- byte;
 ```
@@ -748,7 +748,7 @@ ring[head % 100] = byte;   // Modulo for non-power-of-2 sizes
 #### Discard
 
 ```cnx
-// C-Next
+// cnx
 u8[discard 100] sensorData;
 result <- sensorData[idx];
 sensorData[idx] <- newValue;
@@ -805,7 +805,7 @@ ring[head & 255] = byte;
 
 ## References
 
-### C-Next ADRs
+### cnx ADRs
 
 - [ADR-044: Primitive Types](adr-044-primitive-types.md) - Integer overflow with `clamp`/`wrap`
 - [ADR-008: Language-Level Bug Prevention](adr-008-language-bug-prevention.md) - Buffer overflow prevention strategy

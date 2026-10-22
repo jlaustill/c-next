@@ -3,7 +3,7 @@ import type TSettledConst from "../../../types/TSettledConst";
 
 /**
  * The program's compile-time values, settled once by 1.4 Resolve (#1175,
- * #1669): every file-scope and scope const that has a value, and every C-Next
+ * #1669): every file-scope and scope const that has a value, and every cnx
  * enum's member values, by C name.
  */
 interface ISettledConstants {

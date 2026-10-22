@@ -1,20 +1,20 @@
 /**
- * Parser for the C-Next Prettier plugin (#1364).
+ * Parser for the cnx Prettier plugin (#1364).
  *
  * This file used to be 1,993 lines converting ANTLR contexts into a bespoke AST
  * declared in `nodes.ts`. That conversion was the hand-maintained mapping of the
  * grammar, and it is what silently rotted when #572 moved the parser: it went on
  * referencing eight rules that no longer exist.
  *
- * Now it delegates to `CNextSourceParser`, the transpiler's single parse entry
+ * Now it delegates to `CnxSourceParser`, the transpiler's single parse entry
  * point, hands Prettier the parse tree unchanged, and anchors each comment to
  * the token it belongs to.
  */
 
 import { ParseTree, Token } from "antlr4ng";
 
-import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
-import { CNextLexer } from "../../src/cnx/PARSE/2-Parse/grammar/CNextLexer";
+import CnxSourceParser from "../../src/cnx/PARSE/2-Parse/CnxSourceParser";
+import { CnxLexer } from "../../src/cnx/PARSE/2-Parse/grammar/CnxLexer";
 
 import Cst from "./cst";
 import ICommentAnchor from "./types/ICommentAnchor";
@@ -34,9 +34,9 @@ interface IPrettierSyntaxError extends Error {
  * recoverable here without their appearing in the parse tree.
  */
 const COMMENT_TOKEN_TYPES = new Set<number>([
-  CNextLexer.DOC_COMMENT,
-  CNextLexer.LINE_COMMENT,
-  CNextLexer.BLOCK_COMMENT,
+  CnxLexer.DOC_COMMENT,
+  CnxLexer.LINE_COMMENT,
+  CnxLexer.BLOCK_COMMENT,
 ]);
 
 /** Build the error Prettier expects, pointing at the first parse failure. */
@@ -66,8 +66,8 @@ function toCommentNode(
   return {
     type: "Comment",
     value: token.text ?? "",
-    block: token.type === CNextLexer.BLOCK_COMMENT,
-    documentation: token.type === CNextLexer.DOC_COMMENT,
+    block: token.type === CnxLexer.BLOCK_COMMENT,
+    documentation: token.type === CnxLexer.DOC_COMMENT,
     start: token.start,
     end: token.stop,
     line: token.line,
@@ -184,13 +184,13 @@ function attachToTerminals(
 }
 
 /**
- * Parse C-Next source into the parse tree Prettier will print.
+ * Parse cnx source into the parse tree Prettier will print.
  *
  * Throws on any syntax error: a formatter that cannot parse a file must leave
  * it alone rather than emit a guess.
  */
 function parse(source: string): TCstRoot {
-  const { tree, tokenStream, parseErrors } = CNextSourceParser.parse(source);
+  const { tree, tokenStream, parseErrors } = CnxSourceParser.parse(source);
 
   if (parseErrors.length > 0) {
     const first = parseErrors[0];

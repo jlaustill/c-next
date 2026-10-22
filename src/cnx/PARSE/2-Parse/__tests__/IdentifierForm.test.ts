@@ -3,7 +3,7 @@
  * ADR-063 / Issue #1117: declared identifiers may not end with `_` or contain `__`
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 
 const VIOLATIONS: ReadonlyArray<[string, string]> = [
   ["cannot begin with", "reserved-prefix"],
@@ -16,7 +16,7 @@ const VIOLATIONS: ReadonlyArray<[string, string]> = [
  * back off the message the user sees (#1991).
  */
 function analyze(source: string) {
-  return CNextSourceParser.parse(source)
+  return CnxSourceParser.parse(source)
     .formErrors.filter((e) => /^error\[E020[12]\]/.test(e.message))
     .map((e) => ({
       ...e,
@@ -284,7 +284,7 @@ describe("IdentifierForm (E0201, E0202)", () => {
       expect(errors[0].helpText).not.toMatch(/value_'/);
     });
 
-    // References are deliberately unchecked, which is what lets a C-Next file
+    // References are deliberately unchecked, which is what lets a cnx file
     // call an external C symbol that happens to use the prefix (ADR-010).
     it("does not check references", () => {
       const errors = analyze(`
@@ -306,7 +306,7 @@ describe("IdentifierForm (E0201, E0202)", () => {
       `struct S { u8 ; }`,
       `u8 f( { }`,
     ])("reports the parse error, not a crash, for %s", (code) => {
-      const parsed = CNextSourceParser.parse(code);
+      const parsed = CnxSourceParser.parse(code);
       expect(parsed.parseErrors.length).toBeGreaterThan(0);
       expect(parsed.formErrors).toEqual([]);
     });
@@ -316,7 +316,7 @@ describe("IdentifierForm (E0201, E0202)", () => {
   // still accept the file. The form errors come in source order (#2020
   // review): `value_` at 1:3 before `010` at 1:13.
   it("keeps form errors out of parseErrors", () => {
-    const parsed = CNextSourceParser.parse(`u8 value_ <- 010;`);
+    const parsed = CnxSourceParser.parse(`u8 value_ <- 010;`);
     expect(parsed.parseErrors).toEqual([]);
     expect(parsed.formErrors.map((e) => e.message.slice(0, 11))).toEqual([
       "error[E0201",

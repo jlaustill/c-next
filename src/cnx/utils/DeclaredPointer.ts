@@ -1,5 +1,5 @@
 /**
- * #1668: whether a declaration is a C pointer though C-Next spelled its type
+ * #1668: whether a declaration is a C pointer though cnx spelled its type
  * without one -- the one decision the emitted declaration and the
  * declaration's type info both read, so the two cannot disagree.
  *
@@ -40,7 +40,7 @@ class DeclaredPointer {
 
   /**
    * ADR-030 / #958: whether a type is a C handle -- an incomplete (opaque) or
-   * typedef struct type from a C header, which C-Next only ever holds through
+   * typedef struct type from a C header, which cnx only ever holds through
    * a pointer. Arm 1 below, and `TranspileState.isHeldThroughPointer`, which
    * every other declaration site asks: one predicate, so a declaration's
    * pointer-ness and the sites that ask about its type cannot differ.

@@ -1,5 +1,5 @@
 /**
- * A COMPLETE struct, and C functions that take a pointer to one. A whole C-Next
+ * A COMPLETE struct, and C functions that take a pointer to one. A whole cnx
  * array of `CPoint` reaching `pts_bump2` must decay to the pointer to its first
  * element -- the `CPoint*` the function expects -- exactly as a C array does.
  */

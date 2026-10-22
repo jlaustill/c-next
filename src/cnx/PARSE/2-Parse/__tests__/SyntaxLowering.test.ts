@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../CNextSourceParser";
-import * as Parser from "../grammar/CNextParser";
+import CnxSourceParser from "../CnxSourceParser";
+import * as Parser from "../grammar/CnxParser";
 import StatementLowering from "../StatementLowering";
 import SyntaxLowering from "../SyntaxLowering";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
@@ -9,7 +9,7 @@ import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 
 /** The expression `source` lowers to, written as a variable's initializer */
 function expressionOf(source: string): TExpression {
-  const tree = CNextSourceParser.parse(`u32 q <- ${source};\n`).tree;
+  const tree = CnxSourceParser.parse(`u32 q <- ${source};\n`).tree;
   const expression = tree.declaration()[0].variableDeclaration()?.expression();
   if (!expression) throw new Error(`no expression in: ${source}`);
   return SyntaxLowering.expression(expression);
@@ -17,7 +17,7 @@ function expressionOf(source: string): TExpression {
 
 /** The type `source` lowers to, written as a variable's type */
 function typeOf(source: string): TTypeSyntax {
-  const tree = CNextSourceParser.parse(`${source} q;\n`).tree;
+  const tree = CnxSourceParser.parse(`${source} q;\n`).tree;
   const type = tree.declaration()[0].variableDeclaration()?.type();
   if (!type) throw new Error(`no type in: ${source}`);
   return SyntaxLowering.type(type);
@@ -187,7 +187,7 @@ describe("SyntaxLowering", () => {
   ])(
     "lowers %s, which the parser recovered from, as %s",
     (source, expected) => {
-      const { tree, parseErrors } = CNextSourceParser.parse(
+      const { tree, parseErrors } = CnxSourceParser.parse(
         `u32 q <- ${source};\n`,
       );
       expect(parseErrors.length).toBeGreaterThan(0);
@@ -309,9 +309,7 @@ describe("SyntaxLowering on recovered trees", () => {
         () => TOKENS[Math.floor(next() * TOKENS.length)],
       ).join(" ");
       const position = POSITIONS[i % POSITIONS.length];
-      const { tree, parseErrors } = CNextSourceParser.parse(
-        `${position(run)}\n`,
-      );
+      const { tree, parseErrors } = CnxSourceParser.parse(`${position(run)}\n`);
       if (parseErrors.length === 0) continue;
       recovered++;
       lowerEverything(tree, lowered);
@@ -331,7 +329,7 @@ describe("SyntaxLowering on recovered trees", () => {
     "while (x < 3",
     "x 5;",
   ])("lowers the repaired statement in `%s` to a missing part", (body) => {
-    const { tree, parseErrors } = CNextSourceParser.parse(
+    const { tree, parseErrors } = CnxSourceParser.parse(
       `void f() { ${body} }\n`,
     );
     expect(parseErrors.length).toBeGreaterThan(0);
@@ -343,7 +341,7 @@ describe("SyntaxLowering on recovered trees", () => {
 
   /** Every assignment target in a recovered source, lowered */
   function loweredTargets(source: string): TExpression[] {
-    const { tree, parseErrors } = CNextSourceParser.parse(`${source}\n`);
+    const { tree, parseErrors } = CnxSourceParser.parse(`${source}\n`);
     expect(parseErrors.length).toBeGreaterThan(0);
     const targets: TExpression[] = [];
     const visit = (node: unknown): void => {
@@ -421,7 +419,7 @@ describe("SyntaxLowering member spans", () => {
   }
 
   it("a rooted target's first member op covers the `.`, as an expression's does", () => {
-    const tree = CNextSourceParser.parse(
+    const tree = CnxSourceParser.parse(
       "scope S { mut u8 x; void f() { this.x <- 1; u8 y <- this.x; } }\n",
     ).tree;
     const target = SyntaxLowering.assignmentTarget(

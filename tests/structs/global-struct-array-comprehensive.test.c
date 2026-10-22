@@ -11,31 +11,31 @@
 
 #include <stdint.h>
 
-// C-Next defined struct with array field
+// cnx defined struct with array field
 // Nested struct
 /* Scope: GlobalStruct */
 
 // Global variables
 const ExternalStruct globalExternal = {0};
 
-const CNextStruct globalCNext = {0};
+const CnxStruct globalCnx = {0};
 
 const GlobalStruct__Outer globalOuter = {0};
 
 /* Scope: ArrayTests */
 static const ExternalStruct ArrayTests__scopeExternal = {0};
-static const CNextStruct ArrayTests__scopeCNext = {0};
+static const CnxStruct ArrayTests__scopeCnx = {0};
 
 uint8_t ArrayTests__testGlobalExternal(void) {
     return globalExternal.data[2U];
 }
 
-uint8_t ArrayTests__testGlobalCNext(void) {
-    return globalCNext.buffer[3U];
+uint8_t ArrayTests__testGlobalCnx(void) {
+    return globalCnx.buffer[3U];
 }
 
-uint32_t ArrayTests__testGlobalCNextU32(void) {
-    return globalCNext.values[1U];
+uint32_t ArrayTests__testGlobalCnxU32(void) {
+    return globalCnx.values[1U];
 }
 
 uint8_t ArrayTests__testNestedViaGlobal(void) {
@@ -50,8 +50,8 @@ uint8_t ArrayTests__testThisExternal(void) {
     return ArrayTests__scopeExternal.data[6U];
 }
 
-uint8_t ArrayTests__testThisCNext(void) {
-    return ArrayTests__scopeCNext.buffer[7U];
+uint8_t ArrayTests__testThisCnx(void) {
+    return ArrayTests__scopeCnx.buffer[7U];
 }
 
 uint8_t ArrayTests__testMultipleIndex(void) {
@@ -62,6 +62,6 @@ uint8_t ArrayTests__testParameter(const ExternalStruct* param) {
     return param->data[1U];
 }
 
-uint8_t ArrayTests__testParameterCNext(const CNextStruct* param) {
+uint8_t ArrayTests__testParameterCnx(const CnxStruct* param) {
     return param->buffer[2U];
 }

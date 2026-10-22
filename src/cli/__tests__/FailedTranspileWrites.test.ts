@@ -20,7 +20,7 @@ describe("a failed transpile writes no .c to disk (#1233)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-1233-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-1233-"));
   });
 
   afterEach(() => {

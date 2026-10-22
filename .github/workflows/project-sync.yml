@@ -1,4 +1,4 @@
-# Keeps the C-Next project board in step with issue and PR events (Issue #1247).
+# Keeps the cnx project board in step with issue and PR events (Issue #1247).
 #
 # GitHub has no built-in workflow for "pull request opened", and none for
 # "issue assigned" or "issue unassigned", so those three transitions live here.

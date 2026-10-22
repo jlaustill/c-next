@@ -26,7 +26,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Exact reproduction case from Issue #280
-// Note: public keyword requires a scope in C-Next
+// Note: public keyword requires a scope in cnx
 const j1939EncodeSource = `
 // Reproduction of Issue #280 scenario
 // j1939_encode.cnx with lowByte function
@@ -48,7 +48,7 @@ scope j1939_encode {
 `;
 
 async function runTest() {
-  const testDir = "/tmp/c-next-test-280-lowbyte";
+  const testDir = "/tmp/cnx-test-280-lowbyte";
 
   // Clean up any previous test run
   if (existsSync(testDir)) {

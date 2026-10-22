@@ -5,7 +5,7 @@ function noIncludes(): IFileIncludes {
   return {
     includeRewrites: new Map(),
     resolutions: new Map(),
-    cnextAlternatives: new Map(),
+    cnxAlternatives: new Map(),
     kinds: new Map(),
     quotedIncludeDirectory: "/p",
     generatedHeaderDirectory: "/p",

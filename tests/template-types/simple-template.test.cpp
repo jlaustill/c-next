@@ -7,7 +7,7 @@
 
 // test-cpp-only
 // Issue #291: Test C++ template type syntax parsing
-// Tests that C-Next can parse C++ template instantiation syntax
+// Tests that cnx can parse C++ template instantiation syntax
 #include "template-stubs.h"
 
 // Template with multiple identifier parameters

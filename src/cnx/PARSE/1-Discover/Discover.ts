@@ -34,9 +34,8 @@ import ReadOnceFileSystem from "./ReadOnceFileSystem";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import CnxSourcePath from "../../utils/CnxSourcePath";
 import IncludePath from "../../utils/IncludePath";
-import ConfigFileNames from "./ConfigFileNames";
 import CrossCompilerVariable from "./CrossCompilerVariable";
 
 /** The configuration a run's discovery reads. */
@@ -91,10 +90,7 @@ interface IResolvedFileIncludes {
 class Discover {
   /**
    * The run's discovery errors: E0509, each at its header's marker (#1542),
-   * E0518 for an input whose C-Next extension is not lowercase (#1833), and
-   * E0918 for each config under an old name a project-root walk passed
-   * (#2165), and E0924 for an environment that sets the cross compiler's old
-   * name (#2166).
+   * and E0518 for an input whose cnx extension is not lowercase (#1833).
    */
   private readonly errors: ITranspileError[] = [];
 
@@ -105,9 +101,6 @@ class Discover {
    * answer -- and a source run makes this run on every editor request.
    */
   private readonly tiersByDirectory = new Map<string, readonly string[]>();
-
-  /** The renamed configs reported so far, so each is E0918 once. */
-  private readonly reportedConfigs = new Set<string>();
 
   /**
    * #1844: each file's includes as resolved, in visiting order. They are
@@ -124,7 +117,7 @@ class Discover {
   ) {}
 
   /**
-   * 1.1's artifact for one C-Next text with no run around it: the editor's
+   * 1.1's artifact for one cnx text with no run around it: the editor's
    * symbol list (`lib/parseWithSymbols`). No include is looked up and nothing
    * is read, as before: that request stopped paying for a whole discovery per
    * keystroke when the global registry went (#1378, #1452). The text still
@@ -134,8 +127,8 @@ class Discover {
     return {
       path,
       source,
-      discoveredFile: { path, type: EFileType.CNext },
-      cnextIncludes: [],
+      discoveredFile: { path, type: EFileType.Cnx },
+      cnxIncludes: [],
       reachesForeignHeader: false,
     };
   }
@@ -194,17 +187,6 @@ class Discover {
       new ReadOnceFileSystem(fs),
       warnings,
     );
-    // #2165: the anchor's own walk reports its renamed configs by construction,
-    // not because the run's first file happens to sit beside it; the anchor
-    // reads only the root, since it is reused across runs.
-    discovery._tiersFor(anchor.path);
-    const renamedVariable = CrossCompilerVariable.errorFor(
-      process.env,
-      root === null ? settings.input : root.path,
-    );
-    if (renamedVariable !== null) {
-      discovery.errors.push(renamedVariable);
-    }
     const files =
       input.kind === "source" && root !== null
         ? discovery._fromSource(root, input.includeDirs ?? [])
@@ -212,7 +194,7 @@ class Discover {
     return {
       graph: discovery._freeze(
         files,
-        discovery._translationUnit(files.cnextFiles),
+        discovery._translationUnit(files.cnxFiles),
       ),
       anchor,
       errors: discovery.errors,
@@ -224,11 +206,11 @@ class Discover {
    * unit includes it, deduped in first-seen source order.
    */
   private _translationUnit(
-    cnextFiles: readonly { readonly path: string }[],
+    cnxFiles: readonly { readonly path: string }[],
   ): IHeaderUnit {
     const sites = new Map<string, ISourceSite[]>();
     const unresolvedSystem: string[] = [];
-    for (const file of cnextFiles) {
+    for (const file of cnxFiles) {
       const includes = this.resolvedIncludes.get(file.path);
       invariant(
         includes !== undefined,
@@ -308,7 +290,7 @@ class Discover {
           includeRewrites: sourceSpelling.includeRewrites,
           // #1672: what each directive resolved to, which 2.1's ADR-010 rules read
           resolutions: resolved.resolutions,
-          cnextAlternatives: resolved.cnextAlternatives,
+          cnxAlternatives: resolved.cnxAlternatives,
           // #1444, owner ruling 1: what each directive's spelling names, which
           // 2.1 and render read rather than classify
           kinds: resolved.kinds,
@@ -367,10 +349,10 @@ class Discover {
    * read-only, as `Program`'s are, and left as they are: freezing a `Map`
    * stops nothing, since `set` writes no property.
    *
-   * #1444 review: this froze two levels. `discoveredFile`, `cnextIncludes`,
+   * #1444 review: this froze two levels. `discoveredFile`, `cnxIncludes`,
    * each header and `anchor.defines` still took writes, and two of those reached
    * past the record written: `anchor.defines` is the `RunAnchor`'s own object,
-   * which the next run at that anchor reuses, and a file's `cnextIncludes`
+   * which the next run at that anchor reuses, and a file's `cnxIncludes`
    * entry is the included file's own `discoveredFile`.
    */
   private _freeze(files: TDiscoveredFiles, unit: IHeaderUnit): ISourceGraph {
@@ -383,7 +365,7 @@ class Discover {
     const written = (paths: ReadonlyMap<string, IOutputPaths>) =>
       files.writeOutputToDisk ? paths : new Map<string, IOutputPaths>();
     return Discover._frozen({
-      cnextFiles: files.cnextFiles,
+      cnxFiles: files.cnxFiles,
       headerFiles: files.headerFiles,
       // #1713: the text the walk read, which 1.2 hands the target's compiler
       headerTexts: new Map(
@@ -456,7 +438,7 @@ class Discover {
     const extensions = OutputExtensions.forCppMode(cppMode);
     const paths = this.anchor.pathResolver;
     return new Map(
-      files.cnextFiles.map((file): [string, IOutputPaths] => {
+      files.cnxFiles.map((file): [string, IOutputPaths] => {
         const source = paths.getOutputPath(
           file.discoveredFile,
           extensions.source,
@@ -472,7 +454,7 @@ class Discover {
             // entry pulled the file in
             selfInclude: files.writeOutputToDisk
               ? IncludePath.relative(dirname(source), header)
-              : CNextSourcePath.withExtension(
+              : CnxSourcePath.withExtension(
                   basename(file.path),
                   extensions.header,
                 ),
@@ -513,27 +495,27 @@ class Discover {
     }
 
     // Step 1: Discover entry point file (original .cnx entry point logic)
-    const cnextFiles: IDiscoveredFile[] = [];
+    const cnxFiles: IDiscoveredFile[] = [];
     const fileByPath = new Map<string, IDiscoveredFile>();
 
     const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
-    if (entryFile?.type === EFileType.MiscasedCNext) {
-      return this._miscasedInput(entryPath);
+    if (entryFile?.type === EFileType.RejectedCnx) {
+      return this._rejectedInput(entryPath);
     }
-    if (entryFile?.type !== EFileType.CNext) {
-      return Discover._noCNextFiles();
+    if (entryFile?.type !== EFileType.Cnx) {
+      return Discover._noCnxFiles();
     }
-    cnextFiles.push(entryFile);
+    cnxFiles.push(entryFile);
     fileByPath.set(resolve(entryFile.path), entryFile);
 
     // Step 2: Build dependency graph, resolve headers, and return pipeline input
-    return this._buildFiles(cnextFiles, fileByPath);
+    return this._buildFiles(cnxFiles, fileByPath);
   }
 
   /**
-   * Discover C-Next files from a C/C++ entry point.
+   * Discover cnx files from a C/C++ entry point.
    *
-   * Scans the include tree for headers with C-Next generation markers,
+   * Scans the include tree for headers with cnx generation markers,
    * extracts the source .cnx paths, and returns them for transpilation.
    */
   private _fromCppEntryPoint(entryPath: string): TDiscoveredFiles {
@@ -555,65 +537,66 @@ class Discover {
     // marker as its position, as every other diagnostic carries its own.
     //
     // The warnings are kept beside them: the scan collects `#include "x.h" not
-    // found (from ...)` and `Could not read <path>`, and a missing C-Next source
+    // found (from ...)` and `Could not read <path>`, and a missing cnx source
     // is very often downstream of exactly those. A marker found with no source
-    // also sets `noCNextFound`, so the errors are checked first: the run is
-    // rejected, not told "No C-Next source files found".
+    // also sets `noCnxFound`, so the errors are checked first: the run is
+    // rejected, not told "No cnx source files found".
     this.warnings.push(...scanResult.warnings);
 
     if (scanResult.errors.length > 0) {
       this.errors.push(...scanResult.errors);
-      return Discover._noCNextFiles();
+      return Discover._noCnxFiles();
     }
 
-    if (scanResult.noCNextFound) {
-      return Discover._noCNextFiles();
+    if (scanResult.noCnxFound) {
+      return Discover._noCnxFiles();
     }
 
     // Convert discovered .cnx paths to IDiscoveredFile array
-    const cnextFiles: IDiscoveredFile[] = scanResult.cnextSources.map(
-      (path) => ({
-        path,
-        type: EFileType.CNext,
-      }),
-    );
+    const cnxFiles: IDiscoveredFile[] = scanResult.cnxSources.map((path) => ({
+      path,
+      type: EFileType.Cnx,
+    }));
 
     // Build fileByPath map for dependency resolution
     const fileByPath = new Map<string, IDiscoveredFile>();
-    for (const cnxFile of cnextFiles) {
+    for (const cnxFile of cnxFiles) {
       fileByPath.set(resolve(cnxFile.path), cnxFile);
     }
 
     // Scanner discovers .cnx files via header markers in the C/C++ include tree.
     // _buildFiles then resolves direct .cnx-to-.cnx includes (e.g.,
     // #include "utils.cnx") which the scanner visits but doesn't add to sources.
-    return this._buildFiles(cnextFiles, fileByPath);
+    return this._buildFiles(cnxFiles, fileByPath);
   }
 
   /**
-   * #1833: E0518 for the run's input, files or source. No directive names the
-   * input, so it is placed at `1:0`, as every diagnostic about the run is
-   * (E0510, E0511, E0515); #1847 decides that form for all of them.
+   * #1833: E0518 for the run's input, files or source. No
+   * directive names the input, so it is placed at `1:0`, as every diagnostic
+   * about the run is (E0510, E0511, E0515); #1847 decides that form for all
+   * of them.
    */
-  private _miscasedInput(path: string): TDiscoveredFiles {
+  private _rejectedInput(path: string): TDiscoveredFiles {
+    const rejection = CnxSourcePath.rejection(
+      basename(path),
+      "rename the file.",
+    );
+    invariant(rejection !== null, `${path} is a rejected cnx path`);
     this.errors.push({
       sourcePath: path,
       line: 1,
       column: 0,
-      message: CodedErrorText.of(
-        "E0518",
-        CNextSourcePath.miscasedMessage(basename(path)),
-      ),
-      helpText: CNextSourcePath.miscasedHelp("rename the file."),
+      message: CodedErrorText.of(rejection.code, rejection.message),
+      helpText: rejection.helpText,
       severity: "error",
     });
-    return Discover._noCNextFiles();
+    return Discover._noCnxFiles();
   }
 
-  /** Discovery's answer when it finds no C-Next file to transpile. */
-  private static _noCNextFiles(): TDiscoveredFiles {
+  /** Discovery's answer when it finds no cnx file to transpile. */
+  private static _noCnxFiles(): TDiscoveredFiles {
     return {
-      cnextFiles: [],
+      cnxFiles: [],
       headerFiles: [],
       headerSearchPaths: new Map(),
       headerIncludes: [],
@@ -643,12 +626,12 @@ class Discover {
     entry: IInMemorySource,
     callerIncludeDirs: readonly string[],
   ): TDiscoveredFiles {
-    if (CNextSourcePath.isMiscased(entry.path)) {
-      return this._miscasedInput(entry.path);
+    if (CnxSourcePath.isRejected(entry.path)) {
+      return this._rejectedInput(entry.path);
     }
     const root: IDiscoveredFile = {
       path: entry.path,
-      type: EFileType.CNext,
+      type: EFileType.Cnx,
     };
     const discovered = this._buildFiles(
       [root],
@@ -662,7 +645,7 @@ class Discover {
     // match files mode.
     return {
       ...discovered,
-      cnextFiles: discovered.cnextFiles.map((file) =>
+      cnxFiles: discovered.cnxFiles.map((file) =>
         file.path === entry.path
           ? { ...file, source: entry.source }
           : { ...file, symbolOnly: true },
@@ -672,7 +655,7 @@ class Discover {
   }
 
   /**
-   * Build the graph from the C-Next files discovered so far.
+   * Build the graph from the cnx files discovered so far.
    *
    * Processes includes, builds dependency graph, resolves headers transitively,
    * and converts to pipeline files. Used by both .cnx and C/C++ entry point paths.
@@ -681,7 +664,7 @@ class Discover {
    *   every file of the run searches (see `_fromSource`).
    */
   private _buildFiles(
-    cnextFiles: IDiscoveredFile[],
+    cnxFiles: IDiscoveredFile[],
     fileByPath: Map<string, IDiscoveredFile>,
     inMemory?: IInMemorySource,
     callerIncludeDirs: readonly string[] = [],
@@ -699,8 +682,8 @@ class Discover {
     const sourcesByPath = new Map<string, string>();
     // #1723: every file's search path, merged in discovery order.
     const includeSearchPaths = new Set<string>();
-    // `cnextFiles` grows as includes are found, so this visits the closure.
-    for (const cnxFile of cnextFiles) {
+    // `cnxFiles` grows as includes are found, so this visits the closure.
+    for (const cnxFile of cnxFiles) {
       const cnxPath = resolve(cnxFile.path);
       depGraph.addFile(cnxPath);
       const discovered = this._resolveCnxIncludes(
@@ -725,11 +708,11 @@ class Discover {
       );
       includesByPath.set(
         cnxPath,
-        Discover._processCnextIncludes(
+        Discover._processCnxIncludes(
           resolved,
           cnxPath,
           depGraph,
-          cnextFiles,
+          cnxFiles,
           fileByPath,
         ),
       );
@@ -742,7 +725,7 @@ class Discover {
     );
 
     // Issue #580: Sort files topologically for correct cross-file const inference
-    const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
+    const sortedCnxFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
     // Resolve headers transitively, each along its includer's search path
     const allHeaders = this._resolveHeadersTransitively([
@@ -750,10 +733,10 @@ class Discover {
     ]);
 
     // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
-    const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => {
-      const cnextIncludes = includesByPath.get(resolve(f.path));
+    const pipelineFiles: IPipelineFile[] = sortedCnxFiles.map((f) => {
+      const cnxIncludes = includesByPath.get(resolve(f.path));
       invariant(
-        cnextIncludes !== undefined,
+        cnxIncludes !== undefined,
         `discovery resolves the includes of every file it sorts (missing ${f.path})`,
       );
       const source = sourcesByPath.get(resolve(f.path));
@@ -765,13 +748,13 @@ class Discover {
         path: f.path,
         source,
         discoveredFile: f,
-        cnextIncludes,
+        cnxIncludes,
         reachesForeignHeader: reachesForeign.has(resolve(f.path)),
       };
     });
 
     return {
-      cnextFiles: pipelineFiles,
+      cnxFiles: pipelineFiles,
       headerFiles: allHeaders.headers,
       headerSearchPaths: allHeaders.searchPaths,
       headerIncludes,
@@ -853,9 +836,7 @@ class Discover {
 
   /**
    * What `discoverIncludePaths` finds from `file`'s directory, walked once
-   * per directory per run. #2165: the walk's renamed configs are E0918 here,
-   * each once however many directories' walks pass it. Every project-root
-   * walk a run makes comes through here, the anchor's first.
+   * per directory per run.
    */
   private _tiersFor(file: string): readonly string[] {
     const directory = dirname(resolve(file));
@@ -864,14 +845,8 @@ class Discover {
       return cached;
     }
     const tiers = IncludeDiscovery.discoverIncludePaths(file, this.fs);
-    for (const renamed of tiers.projectRoot.renamedConfigs) {
-      if (!this.reportedConfigs.has(renamed.path)) {
-        this.reportedConfigs.add(renamed.path);
-        this.errors.push(ConfigFileNames.errorFor(renamed));
-      }
-    }
-    this.tiersByDirectory.set(directory, tiers.paths);
-    return tiers.paths;
+    this.tiersByDirectory.set(directory, tiers);
+    return tiers;
   }
 
   /**
@@ -895,7 +870,7 @@ class Discover {
   }
 
   /**
-   * Process C-Next includes from resolved includes.
+   * Process cnx includes from resolved includes.
    * Issue #461: Collect included .cnx files for symbol resolution
    * Issue #580: Track dependencies for topological sorting
    *
@@ -903,15 +878,15 @@ class Discover {
    *   file (#1435), so 1.4's visibility closure keys on the same paths the
    *   files were declared under.
    */
-  private static _processCnextIncludes(
-    resolved: { cnextIncludes: IDiscoveredFile[] },
+  private static _processCnxIncludes(
+    resolved: { cnxIncludes: IDiscoveredFile[] },
     cnxPath: string,
     depGraph: DependencyGraph,
-    cnextFiles: IDiscoveredFile[],
+    cnxFiles: IDiscoveredFile[],
     fileByPath: Map<string, IDiscoveredFile>,
   ): IDiscoveredFile[] {
     const direct: IDiscoveredFile[] = [];
-    for (const cnxInclude of resolved.cnextIncludes) {
+    for (const cnxInclude of resolved.cnxIncludes) {
       const includePath = resolve(cnxInclude.path);
 
       depGraph.addDependency(cnxPath, includePath);
@@ -921,11 +896,11 @@ class Discover {
       // Issue #1134: identity here is the RESOLVED PATH, never the basename.
       // Keying on the basename made can/config.cnx and uart/config.cnx the same
       // file, so the second was dropped from the compilation entirely — the
-      // transpiler exited 0 and emitted C-Next source syntax into the C output.
-      // `fileByPath` indexes `cnextFiles` by exactly that path, on every route.
+      // transpiler exited 0 and emitted cnx source syntax into the C output.
+      // `fileByPath` indexes `cnxFiles` by exactly that path, on every route.
       const existing = fileByPath.get(includePath);
       if (!existing) {
-        cnextFiles.push(cnxInclude);
+        cnxFiles.push(cnxInclude);
         fileByPath.set(includePath, cnxInclude);
       }
       direct.push(existing ?? cnxInclude);
@@ -936,7 +911,7 @@ class Discover {
   /**
    * Record each header a `.cnx` file includes as a root of the header walk.
    *
-   * #1435: this skipped any header whose BASENAME matched a C-Next file of the
+   * #1435: this skipped any header whose BASENAME matched a cnx file of the
    * run, a guess from when discovery scanned whole directories and every `.h`
    * beside a `.cnx` was "likely generated output" (77d2a9903). A basename is
    * not an identity -- the #1134 shape -- so `uart.cnx` wrapping ESP-IDF's

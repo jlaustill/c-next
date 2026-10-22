@@ -8,7 +8,7 @@ import IAdrViolation from "../types/IAdrViolation";
 /**
  * The rewrite test, enforced (issue #1403).
  *
- * An ADR decides something about the C-Next language. If the transpiler were
+ * An ADR decides something about the cnx language. If the transpiler were
  * rebuilt from scratch in another language and stack, every ADR must still be
  * fully applicable. `docs/decisions/README.md` holds the in/out list; this is
  * the mechanical half of it.

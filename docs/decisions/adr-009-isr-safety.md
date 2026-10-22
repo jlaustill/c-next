@@ -3,7 +3,7 @@
 **Status:** Research
 **Date:** 2025-12-26
 **Updated:** 2026-01-04
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
@@ -37,13 +37,13 @@ fn main() {
 
 Even with `critical-section` crates, the fundamental issue remains: the compiler cannot prove safety at compile time, so `unsafe` is required.
 
-### The C-Next Opportunity
+### The cnx Opportunity
 
-C-Next transpiles to C, which doesn't have Rust's ownership model. But we can still provide **compile-time guarantees** that make ISR code safe by construction, without needing an escape hatch.
+cnx transpiles to C, which doesn't have Rust's ownership model. But we can still provide **compile-time guarantees** that make ISR code safe by construction, without needing an escape hatch.
 
 ### Motivation: CAN Bus and Real Embedded Work
 
-ISR safety is critical for practical embedded development. CAN bus communication, UART handling, timer callbacks, and sensor interrupts all require safe data sharing between ISRs and main code. Without this feature, C-Next cannot be used for real-world embedded projects.
+ISR safety is critical for practical embedded development. CAN bus communication, UART handling, timer callbacks, and sensor interrupts all require safe data sharing between ISRs and main code. Without this feature, cnx cannot be used for real-world embedded projects.
 
 ---
 
@@ -297,7 +297,7 @@ ISR → [Ring Buffer (fixed size)] → main calls events() → user callback
 
 ## Potential Approaches
 
-Based on research, here are potential approaches for C-Next, organized by complexity level. These are a synthesis of patterns found across RTIC, Ravenscar, and real-world embedded code — not an industry standard.
+Based on research, here are potential approaches for cnx, organized by complexity level. These are a synthesis of patterns found across RTIC, Ravenscar, and real-world embedded code — not an industry standard.
 
 ### Approach 1: Atomic Types
 
@@ -457,9 +457,9 @@ void main() {
 
 ---
 
-## C-Next Advantages
+## cnx Advantages
 
-Things C-Next already does well for ISR safety:
+Things cnx already does well for ISR safety:
 
 1. **Register bindings with access modifiers (ADR-004)**
    - Write-only registers (wo) generate simple writes, not RMW
@@ -482,7 +482,7 @@ Things C-Next already does well for ISR safety:
 
 5. **ISR function type (ADR-040)**
    - `ISR` type for `void(void)` function pointers
-   - Vector tables can be built in C-Next
+   - Vector tables can be built in cnx
 
 ---
 
@@ -490,13 +490,13 @@ Things C-Next already does well for ISR safety:
 
 ### Resolved Questions
 
-1. **Should C-Next have an `unsafe` escape hatch?**
+1. **Should cnx have an `unsafe` escape hatch?**
 
-   **Resolution: No.** C-Next should aim for "safe by construction" without `unsafe`. The escape hatch is transpiling to readable C — developers can always modify the generated C if needed. This aligns with C-Next's philosophy of safety through removal, not addition.
+   **Resolution: No.** cnx should aim for "safe by construction" without `unsafe`. The escape hatch is transpiling to readable C — developers can always modify the generated C if needed. This aligns with cnx's philosophy of safety through removal, not addition.
 
 2. **How do we handle platform differences?**
 
-   **Resolution: Support all platforms, graceful degradation.** C-Next should support Cortex-M0 even if slower. If someone is using an M0, they already expect it to be slower. The compiler should:
+   **Resolution: Support all platforms, graceful degradation.** cnx should support Cortex-M0 even if slower. If someone is using an M0, they already expect it to be slower. The compiler should:
    - Use LDREX/STREX on M3+ for atomic RMW
    - Fall back to critical sections on M0/M0+
    - Generate platform-appropriate code based on target config
@@ -507,7 +507,7 @@ Things C-Next already does well for ISR safety:
 
    **Status: Partially resolved, needs documentation and examples.**
 
-   C-Next already provides the foundation:
+   cnx already provides the foundation:
    - Generates valid C with correct ISR signatures
    - Supports `--cpp` for C++ output
    - Has `ISR` type for function pointers (ADR-040)
@@ -516,10 +516,10 @@ Things C-Next already does well for ISR safety:
 
    #### 3a. Vector Table Placement
 
-   How does a C-Next ISR end up in the hardware vector table?
+   How does a cnx ISR end up in the hardware vector table?
 
    ```cnx
-   // C-Next declares this...
+   // cnx declares this...
    interrupt UART_RX {
        // handle interrupt
    }
@@ -536,7 +536,7 @@ Things C-Next already does well for ISR safety:
    | Runtime registration | `attachInterruptVector(IRQ_UART, handler)`                           | Teensyduino            |
    | Compiler attributes  | `__attribute__((interrupt("IRQ")))`                                  | GCC/Clang              |
 
-   **Current C-Next approach:** Generate standard C function, user wires to vector table.
+   **Current cnx approach:** Generate standard C function, user wires to vector table.
 
    **Possible enhancement:** `interrupt(vector: "UART_IRQHandler")` syntax to control generated name.
 
@@ -549,7 +549,7 @@ Things C-Next already does well for ISR safety:
    can.onReceive(myCallback);  // myCallback is a function pointer
    ```
 
-   C-Next generates C, which can't call C++ member functions directly.
+   cnx generates C, which can't call C++ member functions directly.
 
    **Solutions:**
    - Use `--cpp` flag to generate C++ output
@@ -558,7 +558,7 @@ Things C-Next already does well for ISR safety:
 
    #### 3c. Vendor HAL Patterns
 
-   | Vendor      | Pattern                            | C-Next Integration      |
+   | Vendor      | Pattern                            | cnx Integration         |
    | ----------- | ---------------------------------- | ----------------------- |
    | CMSIS       | `void SysTick_Handler(void)`       | Match naming convention |
    | Arduino     | `attachInterrupt(pin, func, mode)` | Pass function pointer   |
@@ -566,7 +566,7 @@ Things C-Next already does well for ISR safety:
    | Teensyduino | `attachInterruptVector()`          | Runtime registration    |
 
    #### 3d. Remaining Work
-   1. **Documentation**: "How to use C-Next ISRs with [Teensy/STM32/etc]"
+   1. **Documentation**: "How to use cnx ISRs with [Teensy/STM32/etc]"
    2. **Examples**: Real FlexCAN_T4 integration example
    3. **Possible v2 feature**: ISR naming convention support
 
@@ -604,7 +604,7 @@ This ADR has been split into focused ADRs:
 1. ~~Resolve open questions in ADR-049~~ — **Done** (Implemented 2026-01-06)
 2. ~~Resolve open questions in ADR-050~~ — **Done** (Implemented 2026-01-06)
 3. ~~Resolve open questions in ADR-104~~ — **Deferred to v2**
-4. **Research C interop philosophy** — C-Next makes C-Next code safe, not C code (Q3)
+4. **Research C interop philosophy** — cnx makes cnx code safe, not C code (Q3)
 5. **Prototype on Teensy** — Test with real CAN bus ISRs
 
 ---

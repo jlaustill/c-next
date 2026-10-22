@@ -4,7 +4,7 @@
 
 **Rejected**
 
-C-Next has no `sizeof` (#1975, below): a size is one of ADR-058's kind-named
+cnx has no `sizeof` (#1975, below): a size is one of ADR-058's kind-named
 lengths, `.type_byte_length` or `.memory_byte_length`. The
 problem, options and research are kept as the record of how that was decided;
 "Recommended Decision" is kept as the recommendation it was, and is superseded
@@ -12,13 +12,13 @@ by the ruling.
 
 ## Owner Ruling (#1975)
 
-C-Next has no `sizeof`. The size of a type or of a value is ADR-058's
-`.type_byte_length` (and `.type_bit_length`), which C-Next decides itself rather than the
+cnx has no `sizeof`. The size of a type or of a value is ADR-058's
+`.type_byte_length` (and `.type_bit_length`), which cnx decides itself rather than the
 C compiler:
 
 ```cnx
 u32 a <- u32.type_byte_length;        // 4: a type answers its length properties
-u32 b <- Point.type_byte_length;      // a C-Next struct: its fields' sizes, summed
+u32 b <- Point.type_byte_length;      // a cnx struct: its fields' sizes, summed
 u32 c <- Point.x.type_byte_length;    // a field of a type
 u32 d <- reading.type_byte_length;    // a value: the same answer as its type
 u32 e <- Cfg.type_byte_length;        // a C header's struct: also its fields summed
@@ -28,7 +28,7 @@ u32 e <- Cfg.type_byte_length;        // a C header's struct: also its fields su
   the struct is declared. For `typedef struct { uint32_t a; uint8_t b; } Cfg;`
   from a header, `Cfg.type_byte_length` is 5, not gcc's 8: a memory-safe language
   has no use for C's own size.
-- C-Next has no pointers, so it cannot size one. A header struct's pointer
+- cnx has no pointers, so it cannot size one. A header struct's pointer
   field, and a header struct holding one, has no `.type_byte_length`: E0867.
 - Writing `sizeof(...)` is a compile error, E0603, whose help names
   `.type_byte_length`. It is parsed only so that it is rejected with a code.
@@ -38,7 +38,7 @@ Later (#1975 review 2, ADR-058's Decision) the owner split the length into
 three kinds, each named: `.value_*`, `.type_*` and `.memory_*`. The `type_`
 row is the one above. `.memory_byte_length` is C's layout, emitted as
 `sizeof(T)` in the generated C for the C compiler to answer (`Cfg` is 8 there,
-and a pointer has one). This is not a C-Next `sizeof`: the operator stays
+and a pointer has one). This is not a cnx `sizeof`: the operator stays
 rejected, and this ADR stays Rejected.
 
 The sections below that describe `sizeof` syntax and its rules are the
@@ -53,7 +53,7 @@ C's `sizeof` operator is essential for:
 - Array length calculations
 - Struct padding awareness
 
-C-Next needs a way to query type and value sizes.
+cnx needs a way to query type and value sizes.
 
 However, `sizeof` is also the source of several common bugs:
 
@@ -155,7 +155,7 @@ usize pointBytes <- sizeof(Point) * points.length;  // Safe pattern
 
 ## Safety Rules
 
-These are the research's rules, kept as the record of what was weighed. C-Next
+These are the research's rules, kept as the record of what was weighed. cnx
 has no `sizeof` (#1975), so E0601 and E0602 are retired; the VLA rule below
 stands, under E0909.
 
@@ -222,7 +222,7 @@ usize s <- sizeof(x);  // OK - no side effects
 
 ### Variable-Length Arrays Forbidden (ADR-003, E0909)
 
-Variable-length arrays (VLAs) are not allowed in C-Next. This aligns with ADR-003 (static allocation) and avoids:
+Variable-length arrays (VLAs) are not allowed in cnx. This aligns with ADR-003 (static allocation) and avoids:
 
 - Runtime sizeof evaluation
 - Stack overflow risks
@@ -311,7 +311,7 @@ size_t arrSize = sizeof(buffer);
 
 ## Resolved Questions
 
-1. **sizeof on expressions vs types?** - Neither: C-Next has no `sizeof` (#1975). Both a type and a value answer `.type_byte_length`.
+1. **sizeof on expressions vs types?** - Neither: cnx has no `sizeof` (#1975). Both a type and a value answer `.type_byte_length`.
 2. **Compile-time only?** - Yes, a length property is always compile-time (no VLAs).
 3. **A C header struct's size?** - Its fields' sizes summed, no padding; a pointer field has none (E0867) (#1975).
 

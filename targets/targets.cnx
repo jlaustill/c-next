@@ -1,7 +1,7 @@
-// The C-Next target catalog (ADR-049, "Named targets").
+// The cnx target catalog (ADR-049, "Named targets").
 //
 // Every named target is one read-only `TargetDescription` here, and every other
-// name for the same platform is one read-only `TargetAlias`. This file is a C-Next
+// name for the same platform is one read-only `TargetAlias`. This file is a cnx
 // program, and it is the only list of targets: the compiler reads it, so adding
 // a target means adding one initializer below.
 //

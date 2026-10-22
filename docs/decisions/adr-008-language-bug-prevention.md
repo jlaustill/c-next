@@ -2,13 +2,13 @@
 
 **Status:** Research
 **Date:** 2025-12-26
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-Every programming language has its "top 10" common bugs — patterns that developers repeatedly fall into despite experience and best intentions. C-Next's design philosophy is to **make these bugs impossible by construction** rather than catching them with warnings or runtime checks.
+Every programming language has its "top 10" common bugs — patterns that developers repeatedly fall into despite experience and best intentions. cnx's design philosophy is to **make these bugs impossible by construction** rather than catching them with warnings or runtime checks.
 
-This document catalogs the most common and dangerous bugs in low-level/embedded languages (C, C++, Rust, Ada) and maps each to C-Next's prevention strategy. The goal: if a bug class has plagued embedded developers for decades, C-Next should structurally eliminate it.
+This document catalogs the most common and dangerous bugs in low-level/embedded languages (C, C++, Rust, Ada) and maps each to cnx's prevention strategy. The goal: if a bug class has plagued embedded developers for decades, cnx should structurally eliminate it.
 
 > **Design Principle:** Safety through removal, not addition. If Linus Torvalds wouldn't approve of the complexity, it doesn't ship.
 
@@ -55,7 +55,7 @@ strcpy(buffer, user_input);  // No bounds checking!
 - Constrained embedded systems often lack ASLR/DEP protections
 - [MISRA C Rule 18.1](https://www.mathworks.com/help/bugfinder/misra-c-2012-reference.html): "A pointer shall not point past the end of an array"
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                      | How it Prevents                                                                |
 | ------------------------------ | ------------------------------------------------------------------------------ |
@@ -65,7 +65,7 @@ strcpy(buffer, user_input);  // No bounds checking!
 | **Range-based iteration**      | `for item in array` instead of manual indexing                                 |
 
 ```
-// C-Next: Compile-time error if provably out of bounds
+// cnx: Compile-time error if provably out of bounds
 u8[10] buffer;
 buffer[10] <- 5;  // ERROR: Index 10 out of bounds for size 10
 
@@ -102,7 +102,7 @@ free(ptr);
 - [Microsoft: 70% of CVEs are memory safety issues](https://msrc-blog.microsoft.com/2019/07/16/a-proactive-approach-to-more-secure-code/)
 - Use-after-free is a [top exploitation target](https://krishnag.ceo/blog/2024-cwe-top-25-most-dangerous-software-weaknesses-use-after-free-cwe-416/)
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                   | How it Prevents                                           |
 | --------------------------- | --------------------------------------------------------- |
@@ -111,7 +111,7 @@ free(ptr);
 | **No pointer reassignment** | Addresses are fixed, eliminating aliasing bugs            |
 
 ```
-// C-Next: No malloc, no free, no problem
+// cnx: No malloc, no free, no problem
 u8[256] buffer;  // Static allocation, lives forever
 // buffer is ALWAYS valid for the program's lifetime
 ```
@@ -147,7 +147,7 @@ printf("%s", ptr);  // Might be NULL!
 - Causes crashes in production systems
 - In embedded systems without memory protection, can corrupt arbitrary memory
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                             | How it Prevents                                    |
 | ------------------------------------- | -------------------------------------------------- |
@@ -156,7 +156,7 @@ printf("%s", ptr);  // Might be NULL!
 | **Optional types for "maybe" values** | Use `Option<T>` when absence is meaningful         |
 
 ```
-// C-Next: Mandatory initialization
+// cnx: Mandatory initialization
 i32 value;              // ERROR: Must initialize
 i32 value <- 0;         // OK
 
@@ -201,7 +201,7 @@ if (x = 5) {  // Always true, also modifies x!
 - [MISRA C:2012 Rule 13.4](https://pvs-studio.com/en/docs/warnings/v2561/): "The result of an assignment operator should not be used"
 - [SEI CERT EXP45-C](https://wiki.sei.cmu.edu/confluence/display/c/EXP45-C.+Do+not+perform+assignments+in+selection+statements): "Do not perform assignments in selection statements"
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                        | How it Prevents                              |
 | -------------------------------- | -------------------------------------------- |
@@ -210,7 +210,7 @@ if (x = 5) {  // Always true, also modifies x!
 | **No assignment in expressions** | Assignment is a statement, not an expression |
 
 ```
-// C-Next: Impossible to confuse
+// cnx: Impossible to confuse
 x <- 5;         // Assignment: value flows INTO x
 if (x = 5) {    // Comparison: single equals, like math
     // ...
@@ -251,7 +251,7 @@ int16_t result = big + big;  // Overflow! Undefined behavior for signed
 - Size calculation vulnerabilities lead to buffer overflows
 - Counter wraparounds cause timing/logic bugs in embedded systems
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                        | How it Prevents                          |
 | -------------------------------- | ---------------------------------------- |
@@ -260,7 +260,7 @@ int16_t result = big + big;  // Overflow! Undefined behavior for signed
 | **Saturating arithmetic option** | `255 +sat 1 = 255` for counters          |
 
 ```
-// C-Next: Explicit overflow semantics
+// cnx: Explicit overflow semantics
 u8 counter <- 255;
 
 counter <- counter + 1;           // Default: trap (panic) on overflow
@@ -303,7 +303,7 @@ printf("%d", value);  // Uninitialized if condition was false!
 - Security vulnerabilities from information leakage
 - Intermittent bugs that are hard to reproduce
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                    | How it Prevents                                 |
 | ---------------------------- | ----------------------------------------------- |
@@ -311,7 +311,7 @@ printf("%d", value);  // Uninitialized if condition was false!
 | **Compiler flow analysis**   | Error if any path leaves variable uninitialized |
 
 ```
-// C-Next: Mandatory initialization
+// cnx: Mandatory initialization
 i32 value;                    // ERROR: Must initialize
 i32 value <- 0;               // OK
 
@@ -367,7 +367,7 @@ counter++;
 - Can cause safety-critical system failures
 - Priority inversion can miss real-time deadlines
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                              | How it Prevents                              |
 | -------------------------------------- | -------------------------------------------- |
@@ -376,7 +376,7 @@ counter++;
 | **Structured concurrency**             | Task/ISR communication through safe channels |
 
 ```
-// C-Next: Shared data requires explicit atomic wrapper
+// cnx: Shared data requires explicit atomic wrapper
 atomic<u32> counter <- 0;
 
 // In any context - atomic operations
@@ -424,7 +424,7 @@ strncpy(buffer, source, 10);  // Might not null-terminate!
 - Common cause of buffer overflows
 - [strncat misuse writes one byte beyond max length](https://en.wikipedia.org/wiki/Off-by-one_error)
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                  | How it Prevents                                       |
 | -------------------------- | ----------------------------------------------------- |
@@ -434,7 +434,7 @@ strncpy(buffer, source, 10);  // Might not null-terminate!
 | **Bounds checking**        | Array access checked at compile/runtime               |
 
 ```
-// C-Next: Range-based iteration (no off-by-one possible)
+// cnx: Range-based iteration (no off-by-one possible)
 u8[10] array;
 for item in array {
     item <- 0;  // Exactly 10 iterations
@@ -483,7 +483,7 @@ void process() {
 - [Eventually exhausts memory, system fails in unpredictable ways](https://barrgroup.com/embedded-systems/how-to/most-common-embedded-software-bugs)
 - Often NULL is returned by malloc and caller proceeds to corrupt memory
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                    | How it Prevents                                             |
 | ---------------------------- | ----------------------------------------------------------- |
@@ -492,7 +492,7 @@ void process() {
 | **Pool allocators (future)** | If dynamic needed, use managed pools with clear ownership   |
 
 ```
-// C-Next: Static allocation only
+// cnx: Static allocation only
 u8[1024] buffer;  // Always exists, never leaked
 
 // For variable-size needs: pools (future feature)
@@ -536,7 +536,7 @@ if (s < u) {  // FALSE! s becomes huge unsigned value
 - [MISRA C Rules 10.x](https://www.codeant.ai/blogs/misra-c-2012-rules-examples-pdf) address essential type conversions
 - Common source of security vulnerabilities in size calculations
 
-**C-Next Prevention Strategy:**
+**cnx Prevention Strategy:**
 
 | Mechanism                            | How it Prevents                         |
 | ------------------------------------ | --------------------------------------- |
@@ -545,7 +545,7 @@ if (s < u) {  // FALSE! s becomes huge unsigned value
 | **Signed/unsigned comparison error** | Mixing requires explicit cast           |
 
 ```
-// C-Next: Explicit conversions required
+// cnx: Explicit conversions required
 u8 small <- 200;
 i8 signed_val <- small;           // ERROR: Potential data loss
 
@@ -582,7 +582,7 @@ while (*status_reg == 0) {  // Compiler might read once and loop forever!
 }
 ```
 
-**C-Next Prevention:**
+**cnx Prevention:**
 
 - Register bindings are automatically volatile
 - Shared variables require explicit `volatile` or `atomic`
@@ -613,7 +613,7 @@ void recursive(int n) {
 - Unpredictable stack usage is critical for embedded systems with limited memory
 - [MISRA C:2012 Rule 17.2](https://www.mathworks.com/help/bugfinder/ref/misrac2012rule17.2.html) (Required): "Functions shall not call themselves, either directly or indirectly"
 
-**C-Next Prevention:**
+**cnx Prevention:**
 
 | Mechanism                | How it Prevents                                |
 | ------------------------ | ---------------------------------------------- |
@@ -623,7 +623,7 @@ void recursive(int n) {
 | **Stack usage analysis** | Compile-time analysis (future)                 |
 
 ```
-// C-Next: Recursion is forbidden
+// cnx: Recursion is forbidden
 void countdown(u32 n) {
     if (n = 0) { return; }
     countdown(n - 1);  // ERROR: Recursive call to 'countdown' is forbidden
@@ -654,7 +654,7 @@ ptr += 20;      // Points outside array!
 *ptr = 42;      // Undefined behavior
 ```
 
-**C-Next Prevention:**
+**cnx Prevention:**
 
 - No pointer arithmetic — use array indexing with bounds checks
 - [MISRA C Rule 18.4](https://www.mathworks.com/help/bugfinder/misra-c-2012-reference.html): "Pointer arithmetic shall not be performed"
@@ -673,7 +673,7 @@ ptr += 20;      // Points outside array!
 printf(user_input);  // If user_input is "%s%s%s%s", crash!
 ```
 
-**C-Next Prevention:**
+**cnx Prevention:**
 
 - Type-safe printing: `Console.print(value)` — no format strings
 - String interpolation at compile time: `f"Value is {value}"`
@@ -686,7 +686,7 @@ printf(user_input);  // If user_input is "%s%s%s%s", crash!
 
 **What it is:** Two tasks each hold a resource the other needs, neither can proceed.
 
-**C-Next Prevention:**
+**cnx Prevention:**
 
 - Structured concurrency with clear resource ownership
 - Lock ordering enforced by type system (future)
@@ -694,9 +694,9 @@ printf(user_input);  // If user_input is "%s%s%s%s", crash!
 
 ---
 
-## Summary: C-Next Bug Prevention Matrix
+## Summary: cnx Bug Prevention Matrix
 
-| Bug Category         | CWE | C-Next Prevention               | ADR                                                                         |
+| Bug Category         | CWE | cnx Prevention                  | ADR                                                                         |
 | -------------------- | --- | ------------------------------- | --------------------------------------------------------------------------- |
 | Buffer Overflow      | 787 | Bounds-checked arrays           | Future                                                                      |
 | Use-After-Free       | 416 | Static allocation only          | [003](adr-003-static-allocation.md)                                         |
@@ -739,13 +739,13 @@ Ada/SPARK addresses through:
 
 **Trade-off:** Verbose syntax, smaller ecosystem.
 
-### C-Next's Approach
+### cnx's Approach
 
-C-Next takes a **removal-based approach:**
+cnx takes a **removal-based approach:**
 
 > "Remove the ability to make errors rather than add concepts to catch them."
 
-| Approach       | Rust           | Ada            | C-Next            |
+| Approach       | Rust           | Ada            | cnx               |
 | -------------- | -------------- | -------------- | ----------------- |
 | Memory safety  | Borrow checker | Runtime checks | Static allocation |
 | Null safety    | Option type    | Constraints    | Mandatory init    |
@@ -790,9 +790,9 @@ Based on severity and frequency, implementation priority:
 
 ## Conclusion
 
-C-Next can eliminate **entire categories of bugs** that have plagued embedded development for decades. By making these bugs structurally impossible rather than merely warned about, C-Next achieves safety without the complexity overhead of languages like Rust.
+cnx can eliminate **entire categories of bugs** that have plagued embedded development for decades. By making these bugs structurally impossible rather than merely warned about, cnx achieves safety without the complexity overhead of languages like Rust.
 
-The key insight from Ada/SPARK: **defect rates are 10-100x lower** when the language prevents bugs by construction. C-Next aims to bring these benefits while maintaining C's simplicity and familiarity.
+The key insight from Ada/SPARK: **defect rates are 10-100x lower** when the language prevents bugs by construction. cnx aims to bring these benefits while maintaining C's simplicity and familiarity.
 
 > "The best bug is one that's impossible to write."
 

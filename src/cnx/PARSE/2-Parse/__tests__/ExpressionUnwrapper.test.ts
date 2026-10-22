@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from "vitest";
 import ExpressionUnwrapper from "../ExpressionUnwrapper";
-import CNextSourceParser from "../CNextSourceParser";
-import * as Parser from "../grammar/CNextParser";
+import CnxSourceParser from "../CnxSourceParser";
+import * as Parser from "../grammar/CnxParser";
 
 /**
  * Helper to parse a simple expression and get its ExpressionContext
@@ -13,7 +13,7 @@ import * as Parser from "../grammar/CNextParser";
 function parseExpression(exprSource: string): Parser.ExpressionContext {
   // Wrap in a variable declaration in main() to get a complete program
   const source = `void main() { u32 x <- ${exprSource}; }`;
-  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CnxSourceParser.parse(source);
 
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);

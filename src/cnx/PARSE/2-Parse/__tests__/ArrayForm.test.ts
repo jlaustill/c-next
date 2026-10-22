@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../CNextSourceParser";
+import CnxSourceParser from "../CnxSourceParser";
 
 /**
  * ADR-035/036 array shape as 1.2 reports it (#1991), with the code read back
  * off the message the user sees.
  */
 const errors = (source: string) =>
-  CNextSourceParser.parse(source)
+  CnxSourceParser.parse(source)
     .formErrors.filter((e) =>
       /^error\[E0(8(66|7[456]|92)|917)\]/.test(e.message),
     )

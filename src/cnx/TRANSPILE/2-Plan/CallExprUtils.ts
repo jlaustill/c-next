@@ -10,8 +10,8 @@ import TypeResolver from "../../utils/TypeResolver";
 
 class CallExprUtils {
   /**
-   * Issue #304: Map C-Next type to C type for static_cast.
-   * Returns the input unchanged if not a known C-Next primitive type.
+   * Issue #304: Map cnx type to C type for static_cast.
+   * Returns the input unchanged if not a known cnx primitive type.
    */
   static mapTypeToCType(cnxType: string): string {
     return TYPE_MAP[cnxType] || cnxType;
@@ -72,7 +72,7 @@ class CallExprUtils {
       for (const sym of symbols) {
         if (sym.kind === "function" && sym.parameters?.[paramIndex]) {
           const p = sym.parameters[paramIndex];
-          // Convert TType to string for C-Next symbols, use string directly for C/C++
+          // Convert TType to string for cnx symbols, use string directly for C/C++
           const paramType = p.type;
           const baseType =
             typeof paramType === "string"

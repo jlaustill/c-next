@@ -2,7 +2,7 @@
  * Null Check Analyzer
  * Enforces NULL safety for C library interop (ADR-046)
  *
- * C-Next eliminates null bugs by design. This analyzer provides a controlled
+ * cnx eliminates null bugs by design. This analyzer provides a controlled
  * exception for C interop: Variables storing nullable C pointer returns must
  * use the c_ prefix to indicate they hold C interop values.
  *
@@ -638,7 +638,7 @@ class NullCheckWalk {
 }
 
 /**
- * Analyzes C-Next AST for NULL safety violations
+ * Analyzes cnx AST for NULL safety violations
  */
 class NullCheckAnalyzer {
   private errors: INullCheckError[] = [];

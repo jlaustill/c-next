@@ -3,14 +3,14 @@
  * Tests validation of function parameter naming conventions (Issue #227)
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import ParameterNamingAnalyzer from "../ParameterNamingAnalyzer";
 
 /**
- * Helper to parse C-Next code and return 1.2's syntax
+ * Helper to parse cnx code and return 1.2's syntax
  */
 function parse(source: string) {
-  return CNextSourceParser.parse(source).program;
+  return CnxSourceParser.parse(source).program;
 }
 
 describe("ParameterNamingAnalyzer", () => {

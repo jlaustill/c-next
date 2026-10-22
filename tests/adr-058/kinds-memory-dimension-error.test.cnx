@@ -1,8 +1,8 @@
 // test-error
 // test-adr: 058
-// Where C-Next itself needs the number, the memory row has none: the C
+// Where cnx itself needs the number, the memory row has none: the C
 // compiler decides it for the target (#1975). An enum member's value is
-// C-Next's to know.
+// cnx's to know.
 
 struct Cfg {
     u32 a;

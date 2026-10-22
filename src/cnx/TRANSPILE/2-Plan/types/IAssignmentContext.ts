@@ -182,8 +182,8 @@ interface IAssignmentContext {
 
   // === Operator info ===
 
-  /** C-Next operator (e.g., "<-", "+<-") */
-  readonly cnextOp: string;
+  /** cnx operator (e.g., "<-", "+<-") */
+  readonly cnxOp: string;
 
   /** Mapped C operator (e.g., "=", "+=") */
   readonly cOp: string;

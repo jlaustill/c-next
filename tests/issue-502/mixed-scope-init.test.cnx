@@ -1,10 +1,10 @@
 // test-cpp-only
 // test-transpile-only
-// Tests: Issue #502 - Mixed C-Next scopes and C++ namespaces in struct initialization
+// Tests: Issue #502 - Mixed cnx scopes and C++ namespaces in struct initialization
 
 #include "SeaDash.hpp"
 
-// C-Next scope with a struct type
+// cnx scope with a struct type
 scope Motor {
     public struct State {
         i32 position;
@@ -12,7 +12,7 @@ scope Motor {
     }
 }
 
-// Wrapper combining C-Next scope type and C++ namespace type
+// Wrapper combining cnx scope type and C++ namespace type
 struct MixedWrapper {
     Motor.State motor;
     SeaDash.Parse.ParseResult parsed;

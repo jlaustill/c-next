@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Build the C-Next transpiler into a single JS bundle using esbuild.
+ * Build the cnx transpiler into a single JS bundle using esbuild.
  *
  * Output: dist/index.js (ESM, Node 18+, with sourcemaps)
  *

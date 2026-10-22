@@ -1,11 +1,11 @@
 ---
 name: start-issue
-description: "Begin work on a known c-next issue: assign it, block until the project board reaches WIP, run the dedup gate, read the issue and its blockers, create the branch, and route into the TDD or ADR-first workflow. Use when the user says 'start on #1234', 'work on #1234', 'let's do #1234', '/start-issue 1234', or when issue-check has selected an issue."
+description: "Begin work on a known cnx issue: assign it, block until the project board reaches WIP, run the dedup gate, read the issue and its blockers, create the branch, and route into the TDD or ADR-first workflow. Use when the user says 'start on #1234', 'work on #1234', 'let's do #1234', '/start-issue 1234', or when issue-check has selected an issue."
 user-invocable: true
 tools: Bash, Read, Grep, Glob, AskUserQuestion
 ---
 
-# Start Issue — Begin Work on a Chosen c-next Issue
+# Start Issue — Begin Work on a Chosen cnx Issue
 
 The single begin-work procedure for this repository. Two entry points reach it:
 
@@ -242,10 +242,10 @@ Classification rules:
   - Otherwise → ENHANCEMENT/FEATURE/OTHER
 ```
 
-#### 7a: Bug → c-next TDD Workflow
+#### 7a: Bug → cnx TDD Workflow
 
 ```
-FOR bugs, follow Test-Driven Development with c-next test conventions:
+FOR bugs, follow Test-Driven Development with cnx test conventions:
 
   1. ANALYZE the bug:
      - What is the expected behavior? What is the actual behavior?
@@ -266,7 +266,7 @@ FOR bugs, follow Test-Driven Development with c-next test conventions:
 
   5. WAIT for user approval before implementing the fix.
 
-  6. After approval, implement the fix UPSTREAM (never work around c-next bugs) and verify:
+  6. After approval, implement the fix UPSTREAM (never work around cnx bugs) and verify:
      - The previously failing test now passes
      - npm run test:gate is green — test:all is four checks of twenty-four
      - Commit generated .test.c / .test.h files — they are part of the suite
@@ -387,7 +387,7 @@ THROUGHOUT the work:
   blocker, record the measurements, delete the branch, unassign yourself, take other work
 - **DO NOT** leave a paused card assigned. `WIP` means someone is on it, and unassigning
   is what returns it to `Backlog` for whoever picks it up next (#1572)
-- **DO NOT** work around a c-next bug downstream — fix it upstream in the transpiler
-- **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit approval
+- **DO NOT** work around a cnx bug downstream — fix it upstream in the transpiler
+- **DO NOT** change cnx syntax/behavior or an ADR's Status without explicit approval
 - **DO NOT** copy these phases back into `issue-check`. It delegates here on purpose
 - **DO NOT** squash-merge — always use a merge commit

@@ -1,4 +1,4 @@
-import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../symbol-kinds/TSymbolKindCnx";
 import type ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TVisibility from "../TVisibility";
 import type ISourceSpan from "../ISourceSpan";
@@ -9,7 +9,7 @@ import type ISourceSpan from "../ISourceSpan";
  */
 interface IBaseSymbol {
   /** Symbol kind - discriminator for type narrowing */
-  readonly kind: TSymbolKindCNext;
+  readonly kind: TSymbolKindCnx;
 
   /** Symbol name -- the leaf, as the source spells it inside its scope */
   readonly name: string;
@@ -50,7 +50,7 @@ interface IBaseSymbol {
   readonly fullyQualifiedCName: string;
 
   /**
-   * The name a C-Next author would write -- `Motor.init`, `Outer.Inner.process`.
+   * The name a cnx author would write -- `Motor.init`, `Outer.Inner.process`.
    *
    * A separate namespace from `fullyQualifiedCName`, not a transformation of it.
    * Diagnostics want this one: reporting the generated identifier names something
@@ -98,7 +98,7 @@ interface IBaseSymbol {
    */
   readonly span: ISourceSpan;
 
-  /** Source language (CNext, C, Cpp) */
+  /** Source language (Cnx, C, Cpp) */
   readonly sourceLanguage: ESourceLanguage;
 
   /**

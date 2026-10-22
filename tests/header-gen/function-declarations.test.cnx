@@ -1,6 +1,6 @@
 // Issue #403: Function declarations header generation test
 // Tests that top-level functions generate prototypes in the header.
-// Note: In C-Next, 'public' is only used inside scopes.
+// Note: In cnx, 'public' is only used inside scopes.
 
 mut u32 globalCounter <- 0;
 

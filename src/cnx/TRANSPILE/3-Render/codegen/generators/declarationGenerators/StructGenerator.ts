@@ -1,7 +1,7 @@
 /**
  * StructGenerator - Struct Declaration Generation
  *
- * Generates C typedef struct declarations from C-Next struct syntax.
+ * Generates C typedef struct declarations from cnx struct syntax.
  *
  * Example:
  *   struct Point { i32 x; i32 y; }
@@ -94,7 +94,7 @@ function getTrackedFieldDimensions(
 }
 
 /**
- * Generate a C typedef struct from a C-Next struct declaration.
+ * Generate a C typedef struct from a cnx struct declaration.
  *
  * Handles:
  * - Regular fields with primitive types

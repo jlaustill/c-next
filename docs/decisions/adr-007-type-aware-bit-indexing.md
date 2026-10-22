@@ -2,7 +2,7 @@
 
 **Status:** Implemented; section 3 (`.length`) superseded by [ADR-058](adr-058-explicit-length-properties.md)
 **Date:** 2025-12-26
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 

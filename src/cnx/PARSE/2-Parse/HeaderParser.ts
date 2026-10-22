@@ -78,7 +78,7 @@ class HeaderParser {
    *
    * This parser reads the header as written. It does not preprocess, so it sees
    * every branch including the ones a C compiler never would. The dominant case is
-   * the C++ interop guard that C-Next itself emits into every header:
+   * the C++ interop guard that cnx itself emits into every header:
    *
    *     #ifdef __cplusplus
    *     extern "C" {

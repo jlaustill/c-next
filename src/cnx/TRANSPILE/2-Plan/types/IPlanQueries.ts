@@ -9,7 +9,7 @@ interface IPlanQueries {
   getCallbackTypedefName(typeName: string): string | null;
   isCppEnumClass(typeName: string): boolean;
   isIntegerType(typeName: string): boolean;
-  isCNextFunction(name: string): boolean;
+  isCnxFunction(name: string): boolean;
   isFloatType(typeName: string): boolean;
   getKnownEnums(): ReadonlySet<string>;
 }

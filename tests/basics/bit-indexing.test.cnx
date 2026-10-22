@@ -1,5 +1,5 @@
 // test-execution
-// Tests: Bit indexing syntax (C-Next specific)
+// Tests: Bit indexing syntax (cnx specific)
 // Demonstrates: value[start, width] for bit extraction
 
 u32 main() {

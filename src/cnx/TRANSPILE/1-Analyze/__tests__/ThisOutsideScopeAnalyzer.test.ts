@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import ThisOutsideScopeAnalyzer from "../ThisOutsideScopeAnalyzer";
 
 /**
@@ -18,7 +18,7 @@ import ThisOutsideScopeAnalyzer from "../ThisOutsideScopeAnalyzer";
  */
 const errors = (source: string) => {
   return new ThisOutsideScopeAnalyzer().analyze(
-    CNextSourceParser.parse(source).program,
+    CnxSourceParser.parse(source).program,
   );
 };
 

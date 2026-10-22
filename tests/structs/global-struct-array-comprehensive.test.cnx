@@ -3,8 +3,8 @@
 
 #include "External.h"
 
-// C-Next defined struct with array field
-struct CNextStruct {
+// cnx defined struct with array field
+struct CnxStruct {
     u8[16] buffer;
     u32[4] values;
 }
@@ -19,27 +19,27 @@ scope GlobalStruct {
 
 // Global variables
 ExternalStruct globalExternal;
-CNextStruct globalCNext;
+CnxStruct globalCnx;
 GlobalStruct.Outer globalOuter;
 
 scope ArrayTests {
     // Scope-level struct variable
     ExternalStruct scopeExternal;
-    CNextStruct scopeCNext;
+    CnxStruct scopeCnx;
 
     // Test 1: Global external struct array access
     public u8 testGlobalExternal() {
         return global.globalExternal.data[2];
     }
 
-    // Test 2: Global C-Next struct array access
-    public u8 testGlobalCNext() {
-        return global.globalCNext.buffer[3];
+    // Test 2: Global cnx struct array access
+    public u8 testGlobalCnx() {
+        return global.globalCnx.buffer[3];
     }
 
-    // Test 3: Global C-Next struct u32 array access
-    public u32 testGlobalCNextU32() {
-        return global.globalCNext.values[1];
+    // Test 3: Global cnx struct u32 array access
+    public u32 testGlobalCnxU32() {
+        return global.globalCnx.values[1];
     }
 
     // Test 4: Nested struct array access via global
@@ -57,9 +57,9 @@ scope ArrayTests {
         return this.scopeExternal.data[6];
     }
 
-    // Test 7: Scope C-Next struct via this
-    public u8 testThisCNext() {
-        return this.scopeCNext.buffer[7];
+    // Test 7: Scope cnx struct via this
+    public u8 testThisCnx() {
+        return this.scopeCnx.buffer[7];
     }
 
     // Test 8: Multiple index operations
@@ -73,8 +73,8 @@ scope ArrayTests {
         return param.data[1];
     }
 
-    // Test 10: Parameter C-Next struct
-    public u8 testParameterCNext(CNextStruct param) {
+    // Test 10: Parameter cnx struct
+    public u8 testParameterCnx(CnxStruct param) {
         return param.buffer[2];
     }
 }

@@ -8,11 +8,11 @@
  * a `for` header, is decided by position, not line (see its own cases).
  */
 
-import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import FixtureContext from "../matrix/FixtureContext";
 
 const contextOf = (source: string, line: number, column?: number) =>
-  FixtureContext.at(CNextSourceParser.parse(source).tree, line, column);
+  FixtureContext.at(CnxSourceParser.parse(source).tree, line, column);
 
 describe("FixtureContext.at", () => {
   // The same division by zero, moved between contexts. Nothing else varies.

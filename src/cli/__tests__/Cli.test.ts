@@ -14,8 +14,6 @@ import { existsSync, statSync } from "node:fs";
 import Cli from "../Cli";
 import ArgParser from "../ArgParser";
 import ConfigLoader from "../ConfigLoader";
-import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
-import DiagnosticText from "../DiagnosticText";
 import ConfigPrinter from "../ConfigPrinter";
 import PlatformIOCommand from "../PlatformIOCommand";
 import CleanCommand from "../CleanCommand";
@@ -72,10 +70,7 @@ describe("Cli", () => {
 
     // Default mocks
     vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
-    vi.mocked(ConfigLoader.load).mockReturnValue({
-      kind: "loaded",
-      config: {},
-    });
+    vi.mocked(ConfigLoader.load).mockReturnValue({});
     vi.mocked(existsSync).mockReturnValue(true);
     vi.mocked(statSync).mockReturnValue({
       isDirectory: () => false,
@@ -218,23 +213,6 @@ describe("Cli", () => {
       expect(ConfigLoader.load).toHaveBeenCalledWith("/path/to/src");
     });
 
-    it("stops with exit 1 at a config under an old name (#2165)", () => {
-      const error = ConfigFileNames.errorFor({
-        path: "/path/to/src/.cnextrc",
-        successor: ".cnxrc",
-        besideConfig: null,
-      });
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "renamed",
-        errors: [error],
-      });
-
-      expect(Cli.run()).toEqual({ shouldRun: false, exitCode: 1 });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        `Error: ${DiagnosticText.of(error)}`,
-      );
-    });
-
     it("loads config from cwd when no input file", () => {
       mockParsedArgs.inputFiles = [];
       mockParsedArgs.showConfig = true; // To avoid error path
@@ -253,10 +231,7 @@ describe("Cli", () => {
         target: "teensy41",
         include: ["lib/"],
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 
@@ -269,10 +244,7 @@ describe("Cli", () => {
       const fileConfig: IFileConfig = {
         cppRequired: true,
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
       const result = Cli.run();
@@ -282,10 +254,7 @@ describe("Cli", () => {
     });
 
     it("CLI --no-cpp takes precedence over a config asking for C++ (#1844)", () => {
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: { cppRequired: true },
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue({ cppRequired: true });
       mockParsedArgs.cppRequired = false;
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
@@ -293,10 +262,7 @@ describe("Cli", () => {
     });
 
     it("leaves cppRequired unset when neither the CLI nor the config says (#1844)", () => {
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: {},
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue({});
       vi.mocked(ArgParser.parse).mockReturnValue(mockParsedArgs);
 
       // Unset, not false: 1.1 detects the mode from the headers
@@ -312,10 +278,7 @@ describe("Cli", () => {
         cppRequired: false,
         target: "teensy41",
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 
@@ -331,10 +294,7 @@ describe("Cli", () => {
       const fileConfig: IFileConfig = {
         include: ["config-include/"],
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 
@@ -352,10 +312,7 @@ describe("Cli", () => {
       const fileConfig: IFileConfig = {
         output: "config-build/",
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 
@@ -369,10 +326,7 @@ describe("Cli", () => {
       const fileConfig: IFileConfig = {
         output: "config-build/",
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 
@@ -395,10 +349,7 @@ describe("Cli", () => {
       const fileConfig: IFileConfig = {
         noCache: true,
       };
-      vi.mocked(ConfigLoader.load).mockReturnValue({
-        kind: "loaded",
-        config: fileConfig,
-      });
+      vi.mocked(ConfigLoader.load).mockReturnValue(fileConfig);
 
       const result = Cli.run();
 

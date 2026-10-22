@@ -5,7 +5,7 @@ import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type IAtomicAccess from "../types/IAtomicAccess";
 import type ITypingContext from "../types/ITypingContext";
 import BitmapFieldStep from "./BitmapFieldStep";
-import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import ForeignTypeFacts from "./ForeignTypeFacts";
 import OperandTyper from "./OperandTyper";
@@ -65,7 +65,7 @@ class AtomicOwner {
 
   /**
    * What an atomic value of type `t` is accessed as: a bitmap as its backing
-   * integer, an enum as its C type, a C-Next type as itself, a C header type
+   * integer, an enum as its C type, a cnx type as itself, a C header type
    * by its declared C type -- `size_t` stays `size_t` even where the typer
    * names it `u32`, as `uint32_t` may be another C type (#2155 review 9)
    */
@@ -77,7 +77,7 @@ class AtomicOwner {
     if (bitmap !== null) {
       const backing = bitmapBackingType.get(bitmap);
       const accessed = UNSIGNED.find(
-        (name) => CNEXT_TO_C_TYPE_MAP[name] === backing,
+        (name) => CNX_TO_C_TYPE_MAP[name] === backing,
       );
       invariant(
         accessed !== undefined && backing !== undefined,
@@ -93,7 +93,7 @@ class AtomicOwner {
       return { typeName: null, cType: t.enumTypeName, bits: null };
     }
     const named =
-      t.typeName === null ? undefined : CNEXT_TO_C_TYPE_MAP[t.typeName];
+      t.typeName === null ? undefined : CNX_TO_C_TYPE_MAP[t.typeName];
     if (t.typeName !== null && named !== undefined) {
       return {
         typeName: t.typeName,

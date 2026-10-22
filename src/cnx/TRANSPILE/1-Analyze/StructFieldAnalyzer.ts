@@ -1,8 +1,8 @@
 /**
  * Struct Field Analyzer
- * Validates that struct field names don't conflict with C-Next reserved property names
+ * Validates that struct field names don't conflict with cnx reserved property names
  *
- * Fields cannot use reserved names like 'length' which conflict with C-Next's
+ * Fields cannot use reserved names like 'length' which conflict with cnx's
  * built-in .length property for primitives and arrays.
  */
 

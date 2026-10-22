@@ -1,21 +1,18 @@
 /**
- * C-Next to C Type Mappings
+ * cnx to C Type Mappings
  *
- * Single source of truth for type mappings used across:
- * - CodeGenerator (src/codegen/types/TYPE_MAP.ts)
- * - TypeUtils (src/symbol_resolution/cnext/utils/TypeUtils.ts)
- * - Header Generator (src/codegen/headerGenerators/mapType.ts)
+ * Single source of truth for the primitive type mappings.
  */
 
 /**
- * Maps C-Next primitive types to their C equivalents.
+ * Maps cnx primitive types to their C equivalents.
  *
  * Used by:
  * - Code generation for variable/parameter declarations
  * - Header generation for extern declarations
  * - Symbol resolution for type conversion
  */
-const CNEXT_TO_C_TYPE_MAP: Record<string, string> = {
+const CNX_TO_C_TYPE_MAP: Record<string, string> = {
   u8: "uint8_t",
   u16: "uint16_t",
   u32: "uint32_t",
@@ -32,4 +29,4 @@ const CNEXT_TO_C_TYPE_MAP: Record<string, string> = {
   cstring: "char*", // ADR-046: C string pointer type (nullable)
 };
 
-export default CNEXT_TO_C_TYPE_MAP;
+export default CNX_TO_C_TYPE_MAP;

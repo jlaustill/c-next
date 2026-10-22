@@ -102,11 +102,11 @@ class HeaderGeneratorUtils {
   }
 
   /**
-   * Check if a type is a C++ template type (excluding C-Next string<N>)
+   * Check if a type is a C++ template type (excluding cnx string<N>)
    */
   static isCppTemplateType(type: string | undefined): boolean {
     if (!type) return false;
-    // C-Next string<N> types are allowed (string followed by <digits>)
+    // cnx string<N> types are allowed (string followed by <digits>)
     if (/^string<\d+>$/.test(type)) return false;
     // Any other <> is a C++ template
     return type.includes("<") || type.includes(">");
@@ -626,7 +626,7 @@ class HeaderGeneratorUtils {
       // Build normalized input for the unified formatter
       const input: IVariableFormatInput = {
         name: sym.name,
-        cnextType: sym.type || "int",
+        cnxType: sym.type || "int",
         mappedType: DeclaredPointer.spell(
           mapType(sym.type || "int"),
           sym.isPointer ?? false,

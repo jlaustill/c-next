@@ -13,8 +13,8 @@
 import SyntaxLowering from "../../../../../../../cnx/PARSE/2-Parse/SyntaxLowering";
 import { describe, it, expect } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import MemberChainAnalyzer from "../../../../../../../cnx/TRANSPILE/3-Render/codegen/analysis/MemberChainAnalyzer";
 import OperandTyper from "../../../../../../../cnx/utils/OperandTyper";
 import testAnalysisContextFor from "../../../1-Analyze/testAnalysisContextFor";
@@ -52,7 +52,7 @@ function analyze(statement: string): {
   );
   let target: Parser.AssignmentTargetContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterAssignmentTarget = (
         ctx: Parser.AssignmentTargetContext,
       ): void => {

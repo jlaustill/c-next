@@ -40,7 +40,7 @@ describe("Cli path normalization (integration)", () => {
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
 
-    process.argv = ["node", "cnext", join(tempDir, "test.cnx")];
+    process.argv = ["node", "cnx", join(tempDir, "test.cnx")];
 
     const result = Cli.run();
 
@@ -61,7 +61,7 @@ describe("Cli path normalization (integration)", () => {
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
 
-    process.argv = ["node", "cnext", join(tempDir, "test.cnx")];
+    process.argv = ["node", "cnx", join(tempDir, "test.cnx")];
 
     const result = Cli.run();
 
@@ -89,7 +89,7 @@ describe("Cli path normalization (integration)", () => {
 
     process.argv = [
       "node",
-      "cnext",
+      "cnx",
       join(tempDir, "test.cnx"),
       "--header-out",
       "cli-headers",
@@ -111,7 +111,7 @@ describe("Cli path normalization (integration)", () => {
     );
     writeFileSync(join(srcDir, "test.cnx"), "void main() {}");
 
-    process.argv = ["node", "cnext", join(srcDir, "test.cnx")];
+    process.argv = ["node", "cnx", join(srcDir, "test.cnx")];
 
     const result = Cli.run();
 
@@ -129,7 +129,7 @@ describe("Cli path normalization (integration)", () => {
 
     process.argv = [
       "node",
-      "cnext",
+      "cnx",
       join(tempDir, "test.cnx"),
       "--include",
       "~/my-libs",

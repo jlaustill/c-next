@@ -62,8 +62,8 @@ interface IOrchestrator extends IPlanQueries {
   /** Check if a type is an integer type */
   isIntegerType(typeName: string): boolean;
 
-  /** Check if a function is defined in C-Next (vs C headers) */
-  isCNextFunction(name: string): boolean;
+  /** Check if a function is defined in cnx (vs C headers) */
+  isCnxFunction(name: string): boolean;
 
   /**
    * Brace that zero-initializes a whole aggregate -- `{}` in C++, `{0}` in C.
@@ -209,7 +209,7 @@ interface IOrchestrator extends IPlanQueries {
   /** Check if a symbol is a C++ scope symbol (namespace, class, enum) */
   isCppScopeSymbol(name: string): boolean;
 
-  /** Get the separator for scope access (:: for C++, _ for C-Next) */
+  /** Get the separator for scope access (:: for C++, _ for cnx) */
   getScopeSeparator(isCppAccess: boolean): string;
 
   /** Add a pending temp variable declaration (for float bit indexing) */

@@ -1,8 +1,8 @@
 /**
- * Printer for the C-Next Prettier plugin (#1364).
+ * Printer for the cnx Prettier plugin (#1364).
  *
  * Prints ANTLR's parse tree directly. Every case dispatches on the *generated*
- * rule index (`CNextParser.RULE_*`), so `tests/rule-coverage.test.ts` can assert
+ * rule index (`CnxParser.RULE_*`), so `tests/rule-coverage.test.ts` can assert
  * that no grammar rule is unhandled -- which is what turns "the grammar grew
  * and the formatter did not" into a CI failure instead of silent bit-rot.
  *
@@ -25,7 +25,7 @@
 import { ParserRuleContext } from "antlr4ng";
 import { AstPath, Doc, ParserOptions, doc } from "prettier";
 
-import { CNextParser } from "../../src/cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxParser } from "../../src/cnx/PARSE/2-Parse/grammar/CnxParser";
 
 import ChildCursor from "./childCursor";
 import Cst from "./cst";
@@ -49,11 +49,11 @@ type TPath = AstPath<TCstNode>;
 
 /** Modifiers that may precede a type in a declaration, in grammar order. */
 const DECLARATION_MODIFIERS: readonly number[] = [
-  CNextParser.RULE_atomicModifier,
-  CNextParser.RULE_volatileModifier,
-  CNextParser.RULE_constModifier,
-  CNextParser.RULE_mutModifier,
-  CNextParser.RULE_overflowModifier,
+  CnxParser.RULE_atomicModifier,
+  CnxParser.RULE_volatileModifier,
+  CnxParser.RULE_constModifier,
+  CnxParser.RULE_mutModifier,
+  CnxParser.RULE_overflowModifier,
 ];
 
 /**
@@ -62,37 +62,37 @@ const DECLARATION_MODIFIERS: readonly number[] = [
  * Membership counts as "handled" for the rule-coverage gate.
  */
 const CONCATENATED_RULES: ReadonlySet<number> = new Set([
-  CNextParser.RULE_includeDirective,
-  CNextParser.RULE_defineDirective,
-  CNextParser.RULE_conditionalDirective,
-  CNextParser.RULE_pragmaDirective,
-  CNextParser.RULE_visibilityModifier,
-  CNextParser.RULE_accessModifier,
-  CNextParser.RULE_bitmapType,
-  CNextParser.RULE_constModifier,
-  CNextParser.RULE_mutModifier,
-  CNextParser.RULE_volatileModifier,
-  CNextParser.RULE_overflowModifier,
-  CNextParser.RULE_atomicModifier,
-  CNextParser.RULE_assignmentOperator,
-  CNextParser.RULE_primitiveType,
-  CNextParser.RULE_userType,
-  CNextParser.RULE_literal,
-  CNextParser.RULE_caseLabel,
-  CNextParser.RULE_bitmapMember,
-  CNextParser.RULE_scopedType,
-  CNextParser.RULE_globalType,
-  CNextParser.RULE_qualifiedType,
-  CNextParser.RULE_stringType,
+  CnxParser.RULE_includeDirective,
+  CnxParser.RULE_defineDirective,
+  CnxParser.RULE_conditionalDirective,
+  CnxParser.RULE_pragmaDirective,
+  CnxParser.RULE_visibilityModifier,
+  CnxParser.RULE_accessModifier,
+  CnxParser.RULE_bitmapType,
+  CnxParser.RULE_constModifier,
+  CnxParser.RULE_mutModifier,
+  CnxParser.RULE_volatileModifier,
+  CnxParser.RULE_overflowModifier,
+  CnxParser.RULE_atomicModifier,
+  CnxParser.RULE_assignmentOperator,
+  CnxParser.RULE_primitiveType,
+  CnxParser.RULE_userType,
+  CnxParser.RULE_literal,
+  CnxParser.RULE_caseLabel,
+  CnxParser.RULE_bitmapMember,
+  CnxParser.RULE_scopedType,
+  CnxParser.RULE_globalType,
+  CnxParser.RULE_qualifiedType,
+  CnxParser.RULE_stringType,
   // Also just their children run together: `sizeof(T)`, `(T)x`, `a.b[i]`,
   // `(expr)`, `[N]`. Each had its own function with an identical body; the
   // duplication was five copies of one decision.
-  CNextParser.RULE_assignmentTarget,
-  CNextParser.RULE_primaryExpression,
-  CNextParser.RULE_sizeofExpression,
-  CNextParser.RULE_castExpression,
-  CNextParser.RULE_arrayDimension,
-  CNextParser.RULE_arrayTypeDimension,
+  CnxParser.RULE_assignmentTarget,
+  CnxParser.RULE_primaryExpression,
+  CnxParser.RULE_sizeofExpression,
+  CnxParser.RULE_castExpression,
+  CnxParser.RULE_arrayDimension,
+  CnxParser.RULE_arrayTypeDimension,
 ]);
 
 /**
@@ -103,38 +103,38 @@ const CONCATENATED_RULES: ReadonlySet<number> = new Set([
  * `primaryExpression` is 16 levels deep for a single literal.
  */
 const DELEGATING_RULES: ReadonlySet<number> = new Set([
-  CNextParser.RULE_preprocessorDirective,
-  CNextParser.RULE_declaration,
-  CNextParser.RULE_statement,
-  CNextParser.RULE_expression,
-  CNextParser.RULE_forInit,
-  CNextParser.RULE_arrayInitializerElement,
-  CNextParser.RULE_templateArgument,
-  CNextParser.RULE_type,
-  CNextParser.RULE_arrayType,
-  CNextParser.RULE_postfixExpression,
+  CnxParser.RULE_preprocessorDirective,
+  CnxParser.RULE_declaration,
+  CnxParser.RULE_statement,
+  CnxParser.RULE_expression,
+  CnxParser.RULE_forInit,
+  CnxParser.RULE_arrayInitializerElement,
+  CnxParser.RULE_templateArgument,
+  CnxParser.RULE_type,
+  CnxParser.RULE_arrayType,
+  CnxParser.RULE_postfixExpression,
 ]);
 
 /** Left-associative binary chains, all of the shape `operand (OP operand)*`. */
 const BINARY_CHAIN_RULES: ReadonlySet<number> = new Set([
-  CNextParser.RULE_orExpression,
-  CNextParser.RULE_andExpression,
-  CNextParser.RULE_equalityExpression,
-  CNextParser.RULE_relationalExpression,
-  CNextParser.RULE_bitwiseOrExpression,
-  CNextParser.RULE_bitwiseXorExpression,
-  CNextParser.RULE_bitwiseAndExpression,
-  CNextParser.RULE_shiftExpression,
-  CNextParser.RULE_additiveExpression,
-  CNextParser.RULE_multiplicativeExpression,
+  CnxParser.RULE_orExpression,
+  CnxParser.RULE_andExpression,
+  CnxParser.RULE_equalityExpression,
+  CnxParser.RULE_relationalExpression,
+  CnxParser.RULE_bitwiseOrExpression,
+  CnxParser.RULE_bitwiseXorExpression,
+  CnxParser.RULE_bitwiseAndExpression,
+  CnxParser.RULE_shiftExpression,
+  CnxParser.RULE_additiveExpression,
+  CnxParser.RULE_multiplicativeExpression,
 ]);
 
 /** Comma-separated lists that share one layout: `item (',' item)*`. */
 const COMMA_LIST_RULES: ReadonlySet<number> = new Set([
-  CNextParser.RULE_parameterList,
-  CNextParser.RULE_argumentList,
-  CNextParser.RULE_constructorArgumentList,
-  CNextParser.RULE_templateArgumentList,
+  CnxParser.RULE_parameterList,
+  CnxParser.RULE_argumentList,
+  CnxParser.RULE_constructorArgumentList,
+  CnxParser.RULE_templateArgumentList,
 ]);
 
 // ============================================================================
@@ -346,7 +346,7 @@ function printDimensions(cursor: ChildCursor, dimensionRule: number): Doc[] {
 /** `type name dims? ('<-' value)?` — shared by variable and for-loop decls. */
 function printDeclarator(cursor: ChildCursor): Doc[] {
   const parts: Doc[] = [cursor.take(), " ", cursor.take()];
-  parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
+  parts.push(...printDimensions(cursor, CnxParser.RULE_arrayDimension));
   const arrow = cursor.takeIfText("<-");
   if (arrow !== null) parts.push(" ", arrow, " ", cursor.take());
   return parts;
@@ -383,7 +383,7 @@ function printScopeDeclaration(cursor: ChildCursor): Doc {
     " ",
     name,
     " ",
-    printMemberBlock(cursor, CNextParser.RULE_scopeMember),
+    printMemberBlock(cursor, CnxParser.RULE_scopeMember),
   ];
 }
 
@@ -401,7 +401,7 @@ function printRegisterDeclaration(cursor: ChildCursor): Doc {
     " ",
     address,
     " ",
-    printMemberBlock(cursor, CNextParser.RULE_registerMember),
+    printMemberBlock(cursor, CnxParser.RULE_registerMember),
   ];
 }
 
@@ -438,19 +438,17 @@ function printStructDeclaration(cursor: ChildCursor): Doc {
     " ",
     name,
     " ",
-    printMemberBlock(cursor, CNextParser.RULE_structMember),
+    printMemberBlock(cursor, CnxParser.RULE_structMember),
   ];
 }
 
 function printStructMember(cursor: ChildCursor): Doc {
   const parts: Doc[] = [];
-  const modifiers = cursor.takeWhileAnyRule([
-    CNextParser.RULE_overflowModifier,
-  ]);
+  const modifiers = cursor.takeWhileAnyRule([CnxParser.RULE_overflowModifier]);
   for (const modifier of modifiers) parts.push(modifier.doc, " ");
   const type = cursor.take();
   const name = cursor.take();
-  const dimensions = printDimensions(cursor, CNextParser.RULE_arrayDimension);
+  const dimensions = printDimensions(cursor, CnxParser.RULE_arrayDimension);
   return [...parts, type, " ", name, ...dimensions, cursor.take()];
 }
 
@@ -462,7 +460,7 @@ function printEnumDeclaration(cursor: ChildCursor): Doc {
     " ",
     name,
     " ",
-    printCommaMemberBlock(cursor, CNextParser.RULE_enumMember),
+    printCommaMemberBlock(cursor, CnxParser.RULE_enumMember),
   ];
 }
 
@@ -481,7 +479,7 @@ function printBitmapDeclaration(cursor: ChildCursor): Doc {
     " ",
     name,
     " ",
-    printCommaMemberBlock(cursor, CNextParser.RULE_bitmapMember),
+    printCommaMemberBlock(cursor, CnxParser.RULE_bitmapMember),
   ];
 }
 
@@ -489,7 +487,7 @@ function printFunctionDeclaration(cursor: ChildCursor): Doc {
   const type = cursor.take();
   const name = cursor.take();
   const open = cursor.take();
-  const parameters = cursor.takeIfRule(CNextParser.RULE_parameterList);
+  const parameters = cursor.takeIfRule(CnxParser.RULE_parameterList);
   const close = cursor.take();
   const body = cursor.take();
   return [type, " ", name, open, parameters ?? "", close, " ", body];
@@ -497,12 +495,12 @@ function printFunctionDeclaration(cursor: ChildCursor): Doc {
 
 function printParameter(cursor: ChildCursor): Doc {
   const parts: Doc[] = [];
-  const constModifier = cursor.takeIfRule(CNextParser.RULE_constModifier);
+  const constModifier = cursor.takeIfRule(CnxParser.RULE_constModifier);
   if (constModifier !== null) parts.push(constModifier, " ");
-  const mutModifier = cursor.takeIfRule(CNextParser.RULE_mutModifier);
+  const mutModifier = cursor.takeIfRule(CnxParser.RULE_mutModifier);
   if (mutModifier !== null) parts.push(mutModifier, " ");
   parts.push(cursor.take(), " ", cursor.take());
-  parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
+  parts.push(...printDimensions(cursor, CnxParser.RULE_arrayDimension));
   return parts;
 }
 
@@ -522,7 +520,7 @@ function printVariableDeclaration(cursor: ChildCursor): Doc {
     return parts;
   }
 
-  parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
+  parts.push(...printDimensions(cursor, CnxParser.RULE_arrayDimension));
   const arrow = cursor.takeIfText("<-");
   if (arrow !== null) parts.push(" ", arrow, " ", cursor.take());
   parts.push(cursor.take());
@@ -541,7 +539,7 @@ function printScopeMember(cursor: ChildCursor): Doc {
 }
 
 function printBlock(cursor: ChildCursor): Doc {
-  return printMemberBlock(cursor, CNextParser.RULE_statement);
+  return printMemberBlock(cursor, CnxParser.RULE_statement);
 }
 
 function printAssignmentLike(cursor: ChildCursor): Doc {
@@ -624,11 +622,11 @@ function printDoWhileStatement(cursor: ChildCursor): Doc {
 function printForStatement(cursor: ChildCursor): Doc {
   const keyword = cursor.take();
   const open = cursor.take();
-  const initializer = cursor.takeIfRule(CNextParser.RULE_forInit);
+  const initializer = cursor.takeIfRule(CnxParser.RULE_forInit);
   const firstSemicolon = cursor.take();
-  const condition = cursor.takeIfRule(CNextParser.RULE_expression);
+  const condition = cursor.takeIfRule(CnxParser.RULE_expression);
   const secondSemicolon = cursor.take();
-  const update = cursor.takeIfRule(CNextParser.RULE_forUpdate);
+  const update = cursor.takeIfRule(CnxParser.RULE_forUpdate);
   const close = cursor.take();
   return [
     keyword,
@@ -657,7 +655,7 @@ function printForVarDecl(cursor: ChildCursor): Doc {
 
 function printReturnStatement(cursor: ChildCursor): Doc {
   const keyword = cursor.take();
-  const value = cursor.takeIfRule(CNextParser.RULE_expression);
+  const value = cursor.takeIfRule(CnxParser.RULE_expression);
   const semicolon = cursor.take();
   return value === null
     ? [keyword, semicolon]
@@ -758,7 +756,7 @@ function printStructInitializer(cursor: ChildCursor): Doc {
   // Explicit form carries the type name before the brace; inferred form does not.
   const name = cursor.peekText() === "{" ? null : cursor.take();
   const open = cursor.take();
-  const fields = cursor.takeIfRule(CNextParser.RULE_fieldInitializerList);
+  const fields = cursor.takeIfRule(CnxParser.RULE_fieldInitializerList);
   const close = cursor.take();
   const prefix: Doc[] = name === null ? [] : [name, " "];
   if (fields === null) return [...prefix, open, close];
@@ -848,49 +846,49 @@ function printTemplateType(cursor: ChildCursor): Doc {
  * A map rather than a switch so the set of handled rules is derived from the
  * dispatcher itself. `Printer.handledRuleIndices()` reads it directly, which is
  * what lets `tests/rule-coverage.test.ts` compare the printer against
- * `CNextParser.ruleNames` without maintaining a second list that could drift --
+ * `CnxParser.ruleNames` without maintaining a second list that could drift --
  * the drift being exactly how this plugin rotted for seven months.
  */
 const RULE_LAYOUTS: ReadonlyMap<number, (cursor: ChildCursor) => Doc> = new Map(
   [
-    [CNextParser.RULE_program, printProgram],
-    [CNextParser.RULE_scopeDeclaration, printScopeDeclaration],
-    [CNextParser.RULE_scopeMember, printScopeMember],
-    [CNextParser.RULE_registerDeclaration, printRegisterDeclaration],
-    [CNextParser.RULE_registerMember, printRegisterMember],
-    [CNextParser.RULE_structDeclaration, printStructDeclaration],
-    [CNextParser.RULE_structMember, printStructMember],
-    [CNextParser.RULE_enumDeclaration, printEnumDeclaration],
-    [CNextParser.RULE_enumMember, printEnumMember],
-    [CNextParser.RULE_bitmapDeclaration, printBitmapDeclaration],
-    [CNextParser.RULE_functionDeclaration, printFunctionDeclaration],
-    [CNextParser.RULE_parameter, printParameter],
-    [CNextParser.RULE_variableDeclaration, printVariableDeclaration],
-    [CNextParser.RULE_block, printBlock],
-    [CNextParser.RULE_criticalStatement, printKeywordBlock],
-    [CNextParser.RULE_foreverStatement, printKeywordBlock],
-    [CNextParser.RULE_assignmentStatement, printAssignmentLike],
-    [CNextParser.RULE_forAssignment, printAssignmentLike],
-    [CNextParser.RULE_forUpdate, printAssignmentLike],
-    [CNextParser.RULE_postfixTargetOp, printPostfixOperation],
-    [CNextParser.RULE_postfixOp, printPostfixOperation],
-    [CNextParser.RULE_expressionStatement, printExpressionStatement],
-    [CNextParser.RULE_ifStatement, printIfStatement],
-    [CNextParser.RULE_whileStatement, printWhileStatement],
-    [CNextParser.RULE_doWhileStatement, printDoWhileStatement],
-    [CNextParser.RULE_forStatement, printForStatement],
-    [CNextParser.RULE_forVarDecl, printForVarDecl],
-    [CNextParser.RULE_returnStatement, printReturnStatement],
-    [CNextParser.RULE_switchStatement, printSwitchStatement],
-    [CNextParser.RULE_switchCase, printSwitchCase],
-    [CNextParser.RULE_defaultCase, printDefaultCase],
-    [CNextParser.RULE_ternaryExpression, printTernaryExpression],
-    [CNextParser.RULE_unaryExpression, printUnaryExpression],
-    [CNextParser.RULE_structInitializer, printStructInitializer],
-    [CNextParser.RULE_fieldInitializerList, printFieldInitializerList],
-    [CNextParser.RULE_fieldInitializer, printFieldInitializer],
-    [CNextParser.RULE_arrayInitializer, printArrayInitializer],
-    [CNextParser.RULE_templateType, printTemplateType],
+    [CnxParser.RULE_program, printProgram],
+    [CnxParser.RULE_scopeDeclaration, printScopeDeclaration],
+    [CnxParser.RULE_scopeMember, printScopeMember],
+    [CnxParser.RULE_registerDeclaration, printRegisterDeclaration],
+    [CnxParser.RULE_registerMember, printRegisterMember],
+    [CnxParser.RULE_structDeclaration, printStructDeclaration],
+    [CnxParser.RULE_structMember, printStructMember],
+    [CnxParser.RULE_enumDeclaration, printEnumDeclaration],
+    [CnxParser.RULE_enumMember, printEnumMember],
+    [CnxParser.RULE_bitmapDeclaration, printBitmapDeclaration],
+    [CnxParser.RULE_functionDeclaration, printFunctionDeclaration],
+    [CnxParser.RULE_parameter, printParameter],
+    [CnxParser.RULE_variableDeclaration, printVariableDeclaration],
+    [CnxParser.RULE_block, printBlock],
+    [CnxParser.RULE_criticalStatement, printKeywordBlock],
+    [CnxParser.RULE_foreverStatement, printKeywordBlock],
+    [CnxParser.RULE_assignmentStatement, printAssignmentLike],
+    [CnxParser.RULE_forAssignment, printAssignmentLike],
+    [CnxParser.RULE_forUpdate, printAssignmentLike],
+    [CnxParser.RULE_postfixTargetOp, printPostfixOperation],
+    [CnxParser.RULE_postfixOp, printPostfixOperation],
+    [CnxParser.RULE_expressionStatement, printExpressionStatement],
+    [CnxParser.RULE_ifStatement, printIfStatement],
+    [CnxParser.RULE_whileStatement, printWhileStatement],
+    [CnxParser.RULE_doWhileStatement, printDoWhileStatement],
+    [CnxParser.RULE_forStatement, printForStatement],
+    [CnxParser.RULE_forVarDecl, printForVarDecl],
+    [CnxParser.RULE_returnStatement, printReturnStatement],
+    [CnxParser.RULE_switchStatement, printSwitchStatement],
+    [CnxParser.RULE_switchCase, printSwitchCase],
+    [CnxParser.RULE_defaultCase, printDefaultCase],
+    [CnxParser.RULE_ternaryExpression, printTernaryExpression],
+    [CnxParser.RULE_unaryExpression, printUnaryExpression],
+    [CnxParser.RULE_structInitializer, printStructInitializer],
+    [CnxParser.RULE_fieldInitializerList, printFieldInitializerList],
+    [CnxParser.RULE_fieldInitializer, printFieldInitializer],
+    [CnxParser.RULE_arrayInitializer, printArrayInitializer],
+    [CnxParser.RULE_templateType, printTemplateType],
   ],
 );
 
@@ -952,7 +950,7 @@ function printNode(
   return result;
 }
 
-class CNextPrinter {
+class CnxPrinter {
   /** Prettier's printer entry point. */
   static print(
     path: TPath,
@@ -980,4 +978,4 @@ class CNextPrinter {
   }
 }
 
-export default CNextPrinter;
+export default CnxPrinter;

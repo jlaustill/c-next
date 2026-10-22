@@ -24,7 +24,7 @@ import type TConstExpr from "../types/TConstExpr";
 import type TConstResult from "../types/TConstResult";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
 import SaturationRule from "./SaturationRule";
-import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 
 type TBinary = Extract<TConstExpr, { kind: "binary" }>;
 type TValue = Extract<TConstResult, { kind: "value" }>;
@@ -95,7 +95,7 @@ class ConstantEvaluator {
         return env.valueOf(expr);
       case "cast":
         if (
-          CNEXT_TO_C_TYPE_MAP[expr.typeName] === undefined &&
+          CNX_TO_C_TYPE_MAP[expr.typeName] === undefined &&
           !env.isTypeName(expr.typeName, expr.at)
         ) {
           return {

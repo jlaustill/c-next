@@ -35,7 +35,7 @@ describe("TypeDeclarationAnalyzer", () => {
       expect(errors("bitmap8 Exact {\n    a[4],\n    b[4]\n}\n")).toEqual([]);
     });
 
-    it("names a scope-declared bitmap by its C-Next name", () => {
+    it("names a scope-declared bitmap by its cnx name", () => {
       const found = errors(
         "scope Motor {\n    bitmap8 Flags {\n        Mode[3]\n    }\n}\n",
       );
@@ -68,7 +68,7 @@ describe("TypeDeclarationAnalyzer", () => {
       ]);
     });
 
-    it("names a scope-declared enum's member by its C-Next name", () => {
+    it("names a scope-declared enum's member by its cnx name", () => {
       const found = errors(
         "scope Motor {\n    enum EMode {\n        OFF <- -2\n    }\n}\n",
       );

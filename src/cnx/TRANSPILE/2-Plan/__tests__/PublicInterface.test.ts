@@ -5,7 +5,7 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import PublicInterface from "../PublicInterface";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import TestMembers from "../../../types/__testUtils__/testMembers";
-import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import type IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
 import type IRegisterSymbol from "../../../types/symbols/IRegisterSymbol";
 import type TSymbol from "../../../types/symbols/TSymbol";
@@ -38,7 +38,7 @@ const base = <K extends "register" | "bitmap">(
     scopePath,
     sourceFile: FILE,
     span: TestSourceSpan.at(1),
-    sourceLanguage: ESourceLanguage.CNext,
+    sourceLanguage: ESourceLanguage.Cnx,
     visibility,
   });
 

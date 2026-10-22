@@ -11,7 +11,7 @@
  *
  * It runs on MockFileSystem. It used to need a real temp directory, because
  * .cnx include resolution called existsSync directly rather than the injected
- * IFileSystem, so a virtual dependency read as "Included C-Next file not
+ * IFileSystem, so a virtual dependency read as "Included cnx file not
  * found". #1137 pins that it no longer does.
  */
 import { describe, it, expect, beforeAll } from "vitest";

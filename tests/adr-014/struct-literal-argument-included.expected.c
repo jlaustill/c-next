@@ -5,7 +5,7 @@
 
 // test-execution
 // test-adr: 014
-// ADR-014 / ADR-006 (#1530): a struct literal passed to a C-Next function
+// ADR-014 / ADR-006 (#1530): a struct literal passed to a cnx function
 // declared in an included file reaches it by reference, as in the same file.
 // The callee's parameter comes from the symbol table rather than this file's
 // signatures, and only a read-only one takes `&(GeomPoint){ ... }` in C.

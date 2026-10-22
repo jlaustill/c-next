@@ -7,8 +7,8 @@
 
 // test-cpp-only
 // test-transpile-only
-// Tests: C++ namespace type references from C-Next (Issue #388)
-// This test verifies that C-Next can reference types nested in C++ namespaces
+// Tests: C++ namespace type references from cnx (Issue #388)
+// This test verifies that cnx can reference types nested in C++ namespaces
 #include "MockLib.hpp"
 
 // Test 1: Two-level namespace type (MockLib::Parse::ParseResult)

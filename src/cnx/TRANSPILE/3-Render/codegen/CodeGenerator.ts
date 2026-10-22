@@ -1,6 +1,6 @@
 /**
- * C-Next Code Generator
- * Transforms C-Next AST to clean, readable C code
+ * cnx Code Generator
+ * Transforms cnx AST to clean, readable C code
  */
 
 import PlanQueries from "../../2-Plan/PlanQueries";
@@ -76,7 +76,7 @@ import ElementCount from "../../../utils/ElementCount";
 import type IProgram from "../../../types/IProgram";
 
 /**
- * Code Generator - Transpiles C-Next to C
+ * Code Generator - Transpiles cnx to C
  *
  * Implements IOrchestrator to support modular generator extraction.
  */
@@ -233,11 +233,11 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Check if a function is defined in C-Next.
+   * Check if a function is defined in cnx.
    * Part of IOrchestrator interface.
    */
-  isCNextFunction(name: string): boolean {
-    return this.planQueries.isCNextFunction(name);
+  isCnxFunction(name: string): boolean {
+    return this.planQueries.isCnxFunction(name);
   }
 
   // === Expression Analysis ===
@@ -560,7 +560,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get the separator for scope access (:: for C++, _ for C-Next).
+   * Get the separator for scope access (:: for C++, _ for cnx).
    * Part of IOrchestrator interface - delegates to FormatUtils.
    */
   getScopeSeparator(isCppAccess: boolean): string {

@@ -13,11 +13,11 @@
 - [x] Create `vscode-extension/` directory
 - [x] Initialize with manual setup
 - [x] Configure `package.json` with:
-  - Extension name: `c-next`
-  - Display name: `C-Next`
+  - Extension name: `cnx`
+  - Display name: `cnx`
   - Publisher: `jlaustill`
-  - Activation events: `onLanguage:cnext`
-  - File associations: `.cnx` → `cnext`
+  - Activation events: `onLanguage:cnx`
+  - File associations: `.cnx` → `cnx`
 - [x] Set up TypeScript configuration
 - [x] Add `.vscodeignore` for clean packaging
 
@@ -36,7 +36,7 @@
 
 ### 2.1 TextMate Grammar
 
-- [x] Create `syntaxes/cnext.tmLanguage.json`
+- [x] Create `syntaxes/cnx.tmLanguage.json`
 - [x] Define language scopes for:
   - Comments (line and block)
   - Preprocessor directives
@@ -122,12 +122,12 @@
 ### 4.2 Register Commands
 
 - [x] Add `contributes.commands` to `package.json`:
-  - `cnext.openPreview` — Open preview in current column
-  - `cnext.openPreviewToSide` — Open preview beside editor
+  - `cnx.openPreview` — Open preview in current column
+  - `cnx.openPreviewToSide` — Open preview beside editor
 - [x] Implement command handlers in `extension.ts`
 - [x] Add keybindings:
-  - `Ctrl+Shift+V` → `cnext.openPreview`
-  - `Ctrl+K V` → `cnext.openPreviewToSide`
+  - `Ctrl+Shift+V` → `cnx.openPreview`
+  - `Ctrl+K V` → `cnx.openPreviewToSide`
 - [x] Add editor title menu button for `.cnx` files
 
 ### 4.3 Link Preview to Editor
@@ -150,7 +150,7 @@
 
 ### 5.2 Error Display
 
-- [x] Create `DiagnosticCollection` for C-Next errors
+- [x] Create `DiagnosticCollection` for cnx errors
 - [x] Map `ITranspileError` to `vscode.Diagnostic`
 - [x] Show errors in Problems panel
 - [x] Show inline squiggles in editor
@@ -175,12 +175,12 @@
 - [x] Add `contributes.configuration` to `package.json`:
   ```json
   {
-    "cnext.preview.updateDelay": {
+    "cnx.preview.updateDelay": {
       "type": "number",
       "default": 300,
       "description": "Delay in ms before updating preview"
     },
-    "cnext.preview.showLineNumbers": {
+    "cnx.preview.showLineNumbers": {
       "type": "boolean",
       "default": true
     }
@@ -191,8 +191,8 @@
 ### 6.2 Status Bar
 
 - [x] Add status bar item showing transpile status
-- [x] `$(check) C-Next` when successful
-- [x] `$(error) C-Next: N errors` when parse fails (clickable → Problems)
+- [x] `$(check) cnx` when successful
+- [x] `$(error) cnx: N errors` when parse fails (clickable → Problems)
 
 ### 6.3 Testing
 
@@ -205,7 +205,7 @@
 ### 6.4 Package Extension
 
 - [x] Run `vsce package` to create `.vsix`
-- [x] Install locally: `code --install-extension c-next-0.3.0.vsix`
+- [x] Install locally: `code --install-extension vscode-cnx-0.3.0.vsix`
 - [x] Verify all features work in installed extension
 - [x] Document installation in README
 
@@ -217,7 +217,7 @@
 
 - [x] Add `ISymbolInfo` interface to transpiler types
 - [x] Add `parseWithSymbols()` function to transpiler
-- [x] Use existing `CNextSymbolCollector` for symbol extraction
+- [x] Use existing `CnxSymbolCollector` for symbol extraction
 - [x] Transform symbols to simplified format for extension use
 
 ### 7.2 Autocomplete Provider
@@ -228,7 +228,7 @@
   - Type contexts (after `:` in register member)
   - Global scope (keywords, types, top-level symbols)
 - [x] Register provider with `.` as trigger character
-- [x] Include C-Next keywords and primitive types
+- [x] Include cnx keywords and primitive types
 - [x] Show symbol kind icons and type info
 
 ### 7.3 Hover Provider
@@ -255,14 +255,14 @@
 ## File Structure (Final)
 
 ```
-c-next/
+cnx/
 ├── src/
 │   ├── lib/
 │   │   ├── transpiler.ts           # Core transpilation API
 │   │   └── types/
 │   │       └── ITranspileResult.ts # Includes ISymbolInfo
 │   ├── symbols/
-│   │   └── CNextSymbolCollector.ts # Symbol extraction
+│   │   └── CnxSymbolCollector.ts # Symbol extraction
 │   ├── index.ts                    # CLI entry point
 │   ├── codegen/
 │   │   └── CodeGenerator.ts        # Code generator
@@ -272,14 +272,14 @@ c-next/
 │   ├── package.json                # Extension manifest (v0.3.0)
 │   ├── tsconfig.json
 │   ├── syntaxes/
-│   │   └── cnext.tmLanguage.json
+│   │   └── cnx.tmLanguage.json
 │   ├── language-configuration.json
 │   ├── src/
 │   │   ├── extension.ts            # Extension entry
 │   │   ├── previewProvider.ts      # Webview logic + scroll sync
 │   │   ├── completionProvider.ts   # Autocomplete (v0.3.0)
 │   │   └── hoverProvider.ts        # Hover info (v0.3.0)
-│   └── c-next-0.3.0.vsix           # Current package
+│   └── vscode-cnx-0.3.0.vsix           # Current package
 │
 └── docs/
     ├── decisions/

@@ -38,7 +38,7 @@ float Math__multiply(const float mult_factor, const float value) {
 // NOTE (ADR-063 / #1117): these calls used to be written `Math_add(...)`,
 // spelling the generated C name directly. That only worked because the
 // symbol table was keyed by the qualified name, leaking generated naming
-// into the source namespace. `Math.add(...)` is the correct C-Next syntax.
+// into the source namespace. `Math.add(...)` is the correct cnx syntax.
 int main(void) {
     calculate(42U);
     process(10U);

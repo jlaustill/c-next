@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-/* A type C-Next does not know: an external typedef */
+/* A type cnx does not know: an external typedef */
 typedef uint32_t ticks_t;
 
 typedef struct {

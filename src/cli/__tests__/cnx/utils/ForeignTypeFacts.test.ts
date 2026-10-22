@@ -1,5 +1,5 @@
 /**
- * Unit tests for ForeignTypeFacts -- what C-Next may read of a C or C++
+ * Unit tests for ForeignTypeFacts -- what cnx may read of a C or C++
  * header symbol's type (#978, #1668).
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -50,7 +50,7 @@ describe("ForeignTypeFacts", () => {
   });
 
   // #1760 review: the spelling a write casts back to, where the typer has no
-  // C-Next name for the type
+  // cnx name for the type
   describe("operandType's cType", () => {
     it.each([
       ["an integer of unfixed width", "int_fast16_t", "int_fast16_t", null],
@@ -197,7 +197,7 @@ describe("ForeignTypeFacts", () => {
     });
 
     // #1975 review (owner ruling): a bit-field is its declared width, as a
-    // C-Next bitmap field is -- it was its storage type's 32
+    // cnx bitmap field is -- it was its storage type's 32
     it("types a bit-field by its declared width", () => {
       symbolTable.addStructField("Bits", "a", "uint32_t", undefined, 3);
       symbolTable.addStructField("Bits", "m", "uint32_t", undefined, "W");

@@ -336,7 +336,7 @@ describe("Runner", () => {
         );
       });
 
-      it("prints found files when C-Next sources discovered", async () => {
+      it("prints found files when cnx sources discovered", async () => {
         mockTranspilerInstance.transpile.mockResolvedValue({
           success: true,
           outputFiles: ["/project/src/led.c"],
@@ -363,7 +363,7 @@ describe("Runner", () => {
         );
       });
 
-      it("prints getting started guide when no C-Next files found", async () => {
+      it("prints getting started guide when no cnx files found", async () => {
         mockTranspilerInstance.transpile.mockResolvedValue({
           success: true,
           outputFiles: [],

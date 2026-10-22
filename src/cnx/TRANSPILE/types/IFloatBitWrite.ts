@@ -8,7 +8,7 @@ import type IPlannedAtomic from "./IPlannedAtomic";
 interface IFloatBitWrite {
   /** The float written, as C: a variable's name, or an lvalue */
   readonly target: string;
-  /** Its C-Next type, `f32` or `f64`, as the typer gives it */
+  /** Its cnx type, `f32` or `f64`, as the typer gives it */
   readonly floatType: string;
   /** Bit index expression (the start position of a range) */
   readonly bitIndex: string;

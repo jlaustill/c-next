@@ -12,7 +12,7 @@
 
 ## Context
 
-C-Next performs **no control-flow-reachability analysis today** (stated outright in ADR-067:
+cnx performs **no control-flow-reachability analysis today** (stated outright in ADR-067:
 "There is no control-flow-reachability analysis in the transpiler today."). The transpiler
 silently accepts — and emits — unreachable code:
 
@@ -104,7 +104,7 @@ as a use, and would duplicate Phase 1's reasoning to do it.
 
 ### Unused objects (liveness) — #1107 (proposed E0709)
 
-C-Next performs **no liveness analysis today**. A variable defined but never used transpiles
+cnx performs **no liveness analysis today**. A variable defined but never used transpiles
 cleanly, for locals and globals alike:
 
 ```cnx
@@ -118,26 +118,26 @@ transpiles (verified) to `uint32_t counter = 0U;` with no diagnostic — `counte
 initialized, and never read or written. Both `counter` (read only via a compile-time property)
 and a plain dead local like `u32 dead <- 0;` are accepted.
 
-**Coverage rule: exhaustive over everything C-Next can see, and a use from C/C++ is a use.**
+**Coverage rule: exhaustive over everything cnx can see, and a use from C/C++ is a use.**
 
-C-Next cannot take responsibility for code it cannot read, so "unused" is decided against the
+cnx cannot take responsibility for code it cannot read, so "unused" is decided against the
 widest view available — never against a guess:
 
 | Object                              | Rule                                                                                                                                   |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Local variable                      | Always checked. A local is only readable inside its own body, which C-Next fully sees.                                                 |
-| Global absent from generated header | Always checked. It is private to the translation unit, so C-Next sees every possible use.                                              |
+| Local variable                      | Always checked. A local is only readable inside its own body, which cnx fully sees.                                                    |
+| Global absent from generated header | Always checked. It is private to the translation unit, so cnx sees every possible use.                                                 |
 | Global present in generated header  | Public surface. Flagged only when a project view exists **and** no discovered `.c`/`.cpp`/`.cnx` translation unit references the name. |
-| Any object, pure C-Next project     | Always checked. With no `.c`/`.cpp` in the discovered set, nothing external can reference anything.                                    |
+| Any object, pure cnx project        | Always checked. With no `.c`/`.cpp` in the discovered set, nothing external can reference anything.                                    |
 
 A **project view** means the transpiler can enumerate the project's other translation units —
 from `compile_commands.json` — the build-system-agnostic database every build system emits —
-or from a C/C++ entry point. When `cnext` is handed a single `.cnx` on the command line it has no
+or from a C/C++ entry point. When `cnx` is handed a single `.cnx` on the command line it has no
 such view, and an exported global is therefore **not** flagged. Under-reporting in that case is
 deliberate: a false positive on a legitimately exported global would be a bug the developer
 cannot fix without disabling the rule.
 
-**A read from C or C++ counts as a use.** A C-Next global reaches C/C++ through the generated
+**A read from C or C++ counts as a use.** A cnx global reaches C/C++ through the generated
 header, so the check is "does any discovered translation unit reference this name?", not "does
 any `.cnx` reference it?".
 
@@ -172,13 +172,13 @@ _objects/variables_ first; the others can join the same analyzer once the primit
 needed to decide "does any C/C++ translation unit read this global?" already exist:
 
 - classify a source as C or C++
-- tell a C-Next-generated header from a hand-written one
+- tell a cnx-generated header from a hand-written one
 - enumerate the project's other translation units
 - walk a C/C++ entry point's includes
 
 One gap is real and should be scoped as build work rather than assumed away. What exists walks
 **from** a C/C++ entry point **into** `.cnx` sources, to decide what to transpile. Liveness needs
-the **inverse**: given a C-Next global, which translation units mention it. Nothing builds that
+the **inverse**: given a cnx global, which translation units mention it. Nothing builds that
 direction today, and the difference is not a detail — the existing direction answers "what must
 I compile", the needed one answers "who reads this", and no amount of the first yields the
 second.
@@ -266,7 +266,7 @@ side();` leaves `side()` unreachable even in a `void` function. The two predicat
    disguised loop. Open question on the code number is **resolved: use E0706.**
 
 5. **Post-preprocessor concern is mild.** The check runs on the parsed `.cnx` tree as
-   written; C-Next conditional
+   written; cnx conditional
    compilation is a header/include mechanism, not intra-body statement deletion. Structural
    reachability over the parsed function body is therefore well-defined. _(The outstanding
    confirmation — that no source-level construct removes statements from a function body — was
@@ -292,12 +292,12 @@ rewritten before Phase 2 lands, and it needs rewriting under _either_ answer. It
 flagged regardless of how this question is answered. Every shipped example is transpiled in
 CI, so this is enforced rather than optional.
 
-### 2. Cross-translation-unit globals — **exhaustive over what C-Next can see; C/C++ use counts**
+### 2. Cross-translation-unit globals — **exhaustive over what cnx can see; C/C++ use counts**
 
 See the table under _Unused objects (liveness)_. In short: locals and header-absent globals are
 always checked; a header-exported global is flagged only when a project view exists and no
 discovered translation unit references it; a project with no `.c`/`.cpp` at all is checked
-exhaustively. "All globals unconditionally" is rejected as overreach — C-Next cannot take
+exhaustively. "All globals unconditionally" is rejected as overreach — cnx cannot take
 responsibility for code it cannot read.
 
 ### 3. Function calls that never return — **out of scope, deferred**
@@ -312,15 +312,15 @@ type lands. This is a deliberate deferral, not an unknown.
 No source-level construct can delete a statement from a function body, so structural reachability
 over a parsed function body is well-defined. Verified against the grammar and the test suite:
 
-- `grammar/CNext.g4` — `program: (includeDirective | preprocessorDirective)* declaration* EOF`.
+- `grammar/Cnx.g4` — `program: (includeDirective | preprocessorDirective)* declaration* EOF`.
   Directives are legal only at the top of a compilation unit, **before** any declaration.
-- `grammar/CNext.g4` — the `statement` rule has no directive alternative at all, so `#ifdef`
+- `grammar/Cnx.g4` — the `statement` rule has no directive alternative at all, so `#ifdef`
   cannot appear inside a block.
 - `tests/preprocessor/nested-ifdef.expected.error` — interleaving `#ifdef` between declarations is
   a **parse error today** ("extraneous input '#ifdef DEBUG'"), not a supported construct.
 - `tests/preprocessor/conditional-compilation.test.cnx` states it in its own header comment:
   _"Inline conditionals (around code blocks) are handled by the C preprocessor"_ — that is, after
-  C-Next has emitted.
+  cnx has emitted.
 
 This supersedes the "partially resolved" note from 2026-06-28, whose remaining item was exactly
 this confirmation.
@@ -329,7 +329,7 @@ this confirmation.
 
 Neither phase lands behind a flag. This matches how every comparable diagnostic has shipped:
 ADR-067 (E0704) and ADR-068 (E0705 / E0707) both went straight to hard errors with no migration
-period. C-Next is pre-1.0, the one known reachability offender is already gone (see
+period. cnx is pre-1.0, the one known reachability offender is already gone (see
 _Breaking-Change Note_), and `npm run unit` gates the rollout by transpiling every example.
 Phase 1 must be a hard error for the ordering contract in _Decision_ to hold.
 
@@ -357,5 +357,5 @@ ADR-067's _Related ADRs_ now lists ADR-069.
 - Issue #1107 (unused variables — Phase 2)
 - `docs/misra-compliance.md` (Rules 2.1 and 2.2, both "Not Enforced")
 - `docs/error-codes.md` (E0706 reserved for this ADR)
-- `grammar/CNext.g4` and `tests/preprocessor/nested-ifdef.expected.error` (evidence for Resolved Question 4)
+- `grammar/Cnx.g4` and `tests/preprocessor/nested-ifdef.expected.error` (evidence for Resolved Question 4)
 - The phase ordering above (reachability before liveness) is a correctness contract, not a preference — see `### Architecture (proposed)`

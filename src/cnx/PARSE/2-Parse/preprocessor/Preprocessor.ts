@@ -21,7 +21,7 @@ import type IHeaderPreprocessor from "./types/IHeaderPreprocessor";
 type IPreprocessOutcome = Omit<IPreprocessCacheEntry, "deps" | "absent">;
 
 /** The `-MT` target the dependency list is printed for */
-const DEPS_TARGET = "cnext";
+const DEPS_TARGET = "cnx";
 
 /**
  * The language cpp gives a file of each extension, which a string on standard
@@ -122,7 +122,7 @@ class Preprocessor implements IHeaderPreprocessor {
     }
     const result = await this.preprocessString(
       `#include "${resolve(filePath)}"\n`,
-      `cnext-include${extname(filePath)}`,
+      `cnx-include${extname(filePath)}`,
       // The file's own directory stays on the path, as for a main file
       {
         ...rest,

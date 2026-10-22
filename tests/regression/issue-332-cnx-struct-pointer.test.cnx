@@ -1,17 +1,17 @@
 // test-cpp-only
 // test-adr: 010
-// Issue #332: Missing & for C-Next structs passed to external pointer parameters
+// Issue #332: Missing & for cnx structs passed to external pointer parameters
 // When calling external C++ functions that expect pointer parameters,
 // the transpiler should add & for BOTH:
 // - Structs from C headers (Issue332AppConfig from .h) - this WORKS
-// - Structs from C-Next files (Issue332AppData from .cnx) - this was BROKEN
+// - Structs from cnx files (Issue332AppData from .cnx) - this was BROKEN
 
 #include <issue-332-cnx-types.cnx>
 #include "issue-332-c-header-types.h"
 #include "issue-332-external-processor.hpp"
 
 scope Issue332Storage {
-    mut Issue332AppData appData; // From C-Next .cnx file
+    mut Issue332AppData appData; // From cnx .cnx file
     mut Issue332AppConfig appConfig; // From C .h file
 
     public void setup() {
@@ -19,7 +19,7 @@ scope Issue332Storage {
         this.appConfig.setting <- 100;
         this.appConfig.flags <- 5;
 
-        // Initialize C-Next struct
+        // Initialize cnx struct
         this.appData.value <- 10.5;
         this.appData.count <- 0;
     }
@@ -29,7 +29,7 @@ scope Issue332Storage {
         // This should add & automatically: &Issue332Storage_appConfig
         global.Issue332DataProcessor.processConfig(this.appConfig);
 
-        // Call external function with C-Next struct pointer
+        // Call external function with cnx struct pointer
         // BUG: This was NOT adding & automatically - should be: &Issue332Storage_appData
         global.Issue332DataProcessor.processData(this.appData);
     }
@@ -37,7 +37,7 @@ scope Issue332Storage {
     public void initFromConfig() {
         // Both struct types in same call
         // C header struct: should add &Issue332Storage_appConfig
-        // C-Next struct: should add &Issue332Storage_appData (BUG: was missing)
+        // cnx struct: should add &Issue332Storage_appData (BUG: was missing)
         global.Issue332DataProcessor.initialize(this.appConfig, this.appData);
     }
 }

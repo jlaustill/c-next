@@ -12,10 +12,10 @@
 
 #include <stdint.h>
 
-// C-Next style array of C++ class (should generate = {})
+// cnx style array of C++ class (should generate = {})
 extern const CppTestClass items[4] = {};
 
-// C-Next style array of primitive (should still generate = {0})
+// cnx style array of primitive (should still generate = {0})
 extern const uint32_t counters[8] = {};
 
 int main(void) {

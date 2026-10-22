@@ -1,7 +1,7 @@
 /**
  * ADR-024 / Issue #632: the one shape of a saturating float-to-integer cast.
  *
- * C leaves an out-of-range float-to-int conversion undefined, and C-Next's
+ * C leaves an out-of-range float-to-int conversion undefined, and cnx's
  * default is to saturate, so the cast is a bounded ternary. Written once
  * because it is emitted in two places (#1668): inline, and as the body of the
  * single-evaluation helper a side-effecting operand is routed through. Two
@@ -12,7 +12,7 @@
  * to a narrower essential type).
  */
 import TYPE_LIMITS from "../../../2-Plan/types/TYPE_LIMITS";
-import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import invariant from "../../../../utils/invariant";
 import SaturationRule from "../../../../utils/SaturationRule";
 
@@ -56,7 +56,7 @@ class SaturatingCast {
    * defaults for anything but `f32` and `f64`)
    */
   static floatCType(sourceType: string): string {
-    const cType = CNEXT_TO_C_TYPE_MAP[sourceType];
+    const cType = CNX_TO_C_TYPE_MAP[sourceType];
     invariant(
       cType === "float" || cType === "double",
       `a saturating cast's source is a float ('${sourceType}')`,

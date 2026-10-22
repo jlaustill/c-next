@@ -291,7 +291,7 @@ class LexicalFrames {
    * make the outer one unreachable and `global.name` would bind the local.
    * A parameter is no exception (#1290): its moved name is the one the `.c`
    * signature, the `.h` prototype and every use in the body read.
-   * `__` cannot be written in a C-Next identifier (E0201), so the moved name
+   * `__` cannot be written in a cnx identifier (E0201), so the moved name
    * collides with nothing the source declares.
    *
    * #1643: an initializer that names the enclosing local it shadows reads that

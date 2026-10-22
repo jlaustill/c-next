@@ -1,7 +1,7 @@
 import type INamedTypeResolution from "../../../types/INamedTypeResolution";
 
 /**
- * A C-Next type, reduced to what 2.3 Render asks of it.
+ * A cnx type, reduced to what 2.3 Render asks of it.
  *
  * #1445: `TypeGenerationHelper` used to take a `TypeContext` and re-walk the
  * six type alternatives itself. That was the seventh ladder #1285 set out to

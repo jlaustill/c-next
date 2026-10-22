@@ -3,7 +3,7 @@ import ASSIGNMENT_OPERATOR_MAP from "../../../utils/constants/OperatorMappings";
 
 /**
  * Map compound assignment operator to its binary operator equivalent, keyed
- * by its C spelling (`/=` -> `/`), derived from the one C-Next table.
+ * by its C spelling (`/=` -> `/`), derived from the one cnx table.
  *
  * Shared constant used by:
  * - SimpleHandler.ts: MISRA 10.3 compound assignment expansion

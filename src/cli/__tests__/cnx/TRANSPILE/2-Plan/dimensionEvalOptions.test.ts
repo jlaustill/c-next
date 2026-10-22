@@ -7,8 +7,8 @@
 
 import { describe, it, expect } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import dimensionEvalOptions from "../../../../../cnx/TRANSPILE/2-Plan/dimensionEvalOptions";
 import ConstExprLowering from "../../../../../cnx/utils/ConstExprLowering";
@@ -27,7 +27,7 @@ function setUp(source: string): {
   state.sourcePath = context.sourceFile;
   const arrays: Parser.ExpressionContext[] = [];
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterArrayTypeDimension = (
         ctx: Parser.ArrayTypeDimensionContext,
       ): void => {

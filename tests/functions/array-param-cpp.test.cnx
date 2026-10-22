@@ -1,6 +1,6 @@
 // test-cpp-only
 // test-execution
-// Tests: C-Next style array parameters in C++ mode
+// Tests: cnx style array parameters in C++ mode
 // Bug: u8[8] param generated as uint8_t& instead of uint8_t param[8]
 
 void fillBuffer(mut u8[8] buf) {

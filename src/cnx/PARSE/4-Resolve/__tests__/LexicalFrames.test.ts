@@ -4,8 +4,8 @@
  */
 import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../2-Parse/CNextSourceParser";
-import CNextResolver from "../../3-Declare/cnext/index";
+import CnxSourceParser from "../../2-Parse/CnxSourceParser";
+import CnxResolver from "../../3-Declare/cnx/index";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import Program from "../Program";
 import type ILexicalFrame from "../../../types/ILexicalFrame";
@@ -40,8 +40,8 @@ function constantAt(
 function build(files: Record<string, string>) {
   const registry = new SymbolRegistry();
   const declared = Object.entries(files).map(([path, source]) =>
-    CNextResolver.resolve(
-      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
+    CnxResolver.resolve(
+      ProgramLowering.program(CnxSourceParser.parse(source).tree, null),
       path,
       registry,
     ),
@@ -49,7 +49,7 @@ function build(files: Record<string, string>) {
   // #1724: a file sees the scope types of its include closure only, so the
   // graph is stated as discovery would resolve it -- a quoted `.cnx` include
   // naming another file of the run
-  const cnextIncludesByFile = new Map(
+  const cnxIncludesByFile = new Map(
     Object.entries(files).map(([path, source]) => [
       path,
       [...source.matchAll(/^#include "([^"]+\.cnx)"/gm)]
@@ -61,7 +61,7 @@ function build(files: Record<string, string>) {
   return Program.build(declared, {
     cppMode: false,
     registry,
-    visibility: { cnextIncludesByFile },
+    visibility: { cnxIncludesByFile },
   });
 }
 

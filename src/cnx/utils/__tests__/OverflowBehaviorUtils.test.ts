@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import OverflowBehaviorUtils from "../OverflowBehaviorUtils";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
@@ -13,7 +13,7 @@ import type TOverflowBehavior from "../../types/TOverflowBehavior";
  * lowering that reads the wrong node.
  */
 const modifierFor = (declaration: string): TOverflowBehavior | null => {
-  const { tree, parseErrors: errors } = CNextSourceParser.parse(declaration);
+  const { tree, parseErrors: errors } = CnxSourceParser.parse(declaration);
   if (errors.length > 0) {
     throw new Error(`unparsable fixture: ${errors[0].message}`);
   }

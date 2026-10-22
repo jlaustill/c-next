@@ -6,9 +6,9 @@
 
 ## Problem
 
-When a C-Next function is assigned to a C callback typedef (function pointer), the generated signatures don't match:
+When a cnx function is assigned to a C callback typedef (function pointer), the generated signatures don't match:
 
-| Mode | C-Next generates               | C callback expects  | Match? |
+| Mode | cnx generates                  | C callback expects  | Match? |
 | ---- | ------------------------------ | ------------------- | ------ |
 | C++  | `void handler(const Point& p)` | `void (*)(Point p)` | No     |
 | C    | `void handler(const Point* p)` | `void (*)(Point p)` | No     |
@@ -17,7 +17,7 @@ This makes `PointCallback cb = handler;` a compile error in both modes.
 
 ## Root Cause
 
-ADR-006 makes all struct parameters pass-by-reference (pointer in C, reference in C++). But C function pointer typedefs from included headers always expect by-value parameters. When assigning a C-Next function to such a typedef, the signatures are incompatible.
+ADR-006 makes all struct parameters pass-by-reference (pointer in C, reference in C++). But C function pointer typedefs from included headers always expect by-value parameters. When assigning a cnx function to such a typedef, the signatures are incompatible.
 
 ## Solution
 
@@ -67,7 +67,7 @@ In C mode, by-value uses `.` while by-reference uses `->` — both signature AND
 
 ## Edge Cases
 
-- Function assigned to both C-Next and C callbacks: unlikely, would need wrapper (future work)
+- Function assigned to both cnx and C callbacks: unlikely, would need wrapper (future work)
 - Multiple struct params: all become by-value (C callbacks always use by-value)
 - Detection of `register_callback(handler)`: requires knowing param types — handle if needed
 

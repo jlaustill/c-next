@@ -9,14 +9,14 @@
 
 // test-cpp-only
 // test-transpile-only
-// Tests: Issue #502 - Mixed C-Next scopes and C++ namespaces in struct initialization
+// Tests: Issue #502 - Mixed cnx scopes and C++ namespaces in struct initialization
 #include "SeaDash.hpp"
 
 #include <stdbool.h>
 
-// C-Next scope with a struct type
+// cnx scope with a struct type
 /* Scope: Motor */
 
-// Wrapper combining C-Next scope type and C++ namespace type
+// Wrapper combining cnx scope type and C++ namespace type
 // Initialize with both types - Motor.State should use _, SeaDash.Parse.ParseResult should use ::
 extern const MixedWrapper mw = { .motor = { .position = 0, .running = false }, .parsed = { .data = {0}, .count = 0, .success = false } };

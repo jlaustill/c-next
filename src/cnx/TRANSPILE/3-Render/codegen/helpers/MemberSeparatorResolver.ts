@@ -1,7 +1,7 @@
 /**
  * Member Separator Resolver
  *
- * Determines the appropriate separator for member access chains in C-Next.
+ * Determines the appropriate separator for member access chains in cnx.
  * Different separators are used based on context:
  * - `_` for scope member access (Motor.speed -> Motor_speed)
  * - `_` for register field access (GPIO7.DR_SET -> GPIO7_DR_SET)

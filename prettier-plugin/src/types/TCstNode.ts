@@ -1,7 +1,7 @@
 import { ParserRuleContext, TerminalNode } from "antlr4ng";
 
 /**
- * Anything Prettier may be handed as a node while printing C-Next.
+ * Anything Prettier may be handed as a node while printing cnx.
  *
  * The plugin prints ANTLR's parse tree directly, so a "node" is either a rule
  * context or one of its tokens — there is no bespoke AST in between.

@@ -16,7 +16,7 @@ import IRegisterSymbol from "../../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
-import TestSymbolUtils from "../../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../../PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../../types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../../types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../types/__testUtils__/testMembers";
@@ -44,7 +44,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -71,7 +71,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Motor",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(5),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("f32"),
@@ -98,7 +98,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "data.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u8"),
@@ -124,7 +124,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "config.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -161,7 +161,7 @@ describe("HeaderSymbolAdapter", () => {
             scopePath: "",
             sourceFile: "handles.cnx",
             span: TestSourceSpan.at(1),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           type: TTypeUtils.createExternal(typeName),
@@ -189,7 +189,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "main.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         parameters: [],
@@ -214,7 +214,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Motor",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(10),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         parameters: [
@@ -249,7 +249,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "process.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         parameters: [
@@ -294,7 +294,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "pair.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         parameters: [
@@ -346,7 +346,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "geometry.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         fields: TestMembers.asStructFields(
@@ -383,7 +383,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Geometry",
           sourceFile: "geometry.cnx",
           span: TestSourceSpan.at(10),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         fields: new Map(),
@@ -405,7 +405,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "colors.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         members: TestEnumMembers.of("EColor", { RED: 0, GREEN: 1, BLUE: 2 }),
@@ -425,7 +425,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Motor",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         members: TestEnumMembers.of("EMode", { OFF: 0, ON: 1 }),
@@ -447,7 +447,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "flags.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         backingType: "u8",
@@ -476,7 +476,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Motor",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(5),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         backingType: "u16",
@@ -501,7 +501,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "gpio.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         baseAddress: TestExpression.hex("0x40000000"),
@@ -542,7 +542,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Motor",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(20),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         baseAddress: TestExpression.hex("0x50000000"),
@@ -565,7 +565,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         members: ["init", "setSpeed"],
@@ -596,7 +596,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "Outer",
           sourceFile: "motor.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         members: [],
@@ -626,7 +626,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u8"),
@@ -656,7 +656,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "test.cnx",
         }),
         span: TestSourceSpan.at(1),
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.Cnx,
         visibility: "public",
         type: TTypeUtils.createPrimitive("u8"),
         isConst: true,
@@ -672,7 +672,7 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.arrayDimensions).toEqual(["3", "BUF_SIZE + 1"]);
     });
 
-    // #1117 review: a dimension used to arrive as C-Next SOURCE, resolved here
+    // #1117 review: a dimension used to arrive as cnx SOURCE, resolved here
     // with the .c path's scope awareness. #1175: 1.4 settles it once for both
     // files, so what remains is a value or C, written as given.
     describe("scope-aware array dimensions", () => {
@@ -687,7 +687,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "test.cnx",
         }),
         span: TestSourceSpan.at(1),
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.Cnx,
         visibility: "public",
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,

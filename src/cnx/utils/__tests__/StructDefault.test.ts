@@ -71,7 +71,7 @@ describe("StructDefault", () => {
     expect(StructDefault.hasDefault("u32", f)).toBe(false);
   });
   describe("factsOf (#1283 review: one builder for every reader)", () => {
-    it("reads the struct table and the C-Next functions", () => {
+    it("reads the struct table and the cnx functions", () => {
       const structFields = new Map([
         ["Ticker", new Map([["handler", "onTick"]])],
       ]);

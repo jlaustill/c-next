@@ -24,8 +24,8 @@
  * on code the corpus treats as valid.
  */
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "./grammar/CNextListener";
-import * as Parser from "./grammar/CNextParser";
+import { CnxListener } from "./grammar/CnxListener";
+import * as Parser from "./grammar/CnxParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ProgramLowering from "./ProgramLowering";
 import MainSignature from "../../utils/MainSignature";
@@ -43,7 +43,7 @@ import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 
 type TArrayTypeSyntax = Extract<TTypeSyntax, { kind: "array" }>;
 
-class ArrayFormListener extends CNextListener {
+class ArrayFormListener extends CnxListener {
   private readonly found: ITranspileError[] = [];
 
   public errors(): ITranspileError[] {

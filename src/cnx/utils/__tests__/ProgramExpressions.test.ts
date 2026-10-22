@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import ProgramExpressions from "../ProgramExpressions";
 
 const written = (source: string): string[] =>
-  ProgramExpressions.of(CNextSourceParser.parse(source).program).map(
+  ProgramExpressions.of(CnxSourceParser.parse(source).program).map(
     (expression) => expression.written,
   );
 

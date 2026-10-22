@@ -7,7 +7,7 @@
  * Different inputs, one question: "does this text use a name that header
  * declares?".
  *
- * Before #1927 the `.c` asked a different question -- "is this C-Next name in
+ * Before #1927 the `.c` asked a different question -- "is this cnx name in
  * `TYPE_MAP`?" -- so `f32` pulled `<stdint.h>` into the `.c` while the `.h`,
  * asking about `float`, correctly did not.
  */

@@ -6,14 +6,14 @@
 
 ## Summary
 
-Create integration tests using real C/C++ libraries (starting with FreeRTOS) to validate C-Next interop in actual usage scenarios. This will discover transpiler limitations—particularly around `void*` handling—that synthetic tests miss.
+Create integration tests using real C/C++ libraries (starting with FreeRTOS) to validate cnx interop in actual usage scenarios. This will discover transpiler limitations—particularly around `void*` handling—that synthetic tests miss.
 
 ## Goals
 
-1. Test C-Next against **real library headers**, not simplified stubs
+1. Test cnx against **real library headers**, not simplified stubs
 2. Discover what breaks with real-world C patterns
 3. Document findings to inform future ADRs (especially void\* interop)
-4. Prove bidirectional interop: C-Next includes C headers, C includes C-Next headers
+4. Prove bidirectional interop: cnx includes C headers, C includes cnx headers
 
 ## Non-Goals
 
@@ -35,10 +35,10 @@ tests/
 │       ├── VERSION.txt            # Pinned version for reproducibility
 │       └── LICENSE                # MIT license
 │
-├── real-libraries/                # C-Next tests using real libraries
+├── real-libraries/                # cnx tests using real libraries
 │   ├── README.md                  # Overview, setup, patterns
 │   └── freertos/
-│       ├── FreeRTOSConfig.cnx     # C-Next config (transpiles to .h)
+│       ├── FreeRTOSConfig.cnx     # cnx config (transpiles to .h)
 │       ├── FreeRTOSConfig.expected.h
 │       ├── task-handle.test.cnx   # Step 2: Type resolution
 │       ├── task-create.test.cnx   # Step 3: void* callback test
@@ -49,11 +49,11 @@ tests/
 
 ### Step 1: FreeRTOSConfig.cnx (Config Generation)
 
-C-Next source that transpiles to `FreeRTOSConfig.h`, which FreeRTOS headers include.
+cnx source that transpiles to `FreeRTOSConfig.h`, which FreeRTOS headers include.
 
-```c-next
+```cnx
 // test-no-exec
-// Minimal FreeRTOS configuration in C-Next
+// Minimal FreeRTOS configuration in cnx
 
 #define configUSE_PREEMPTION 1
 #define configUSE_IDLE_HOOK 0
@@ -62,12 +62,12 @@ C-Next source that transpiles to `FreeRTOSConfig.h`, which FreeRTOS headers incl
 // ... other required config macros
 ```
 
-**Tests:** Can C-Next generate a valid header that FreeRTOS accepts?
+**Tests:** Can cnx generate a valid header that FreeRTOS accepts?
 **Expected:** Should work (just macros)
 
 ### Step 2: task-handle.test.cnx (Type Resolution)
 
-```c-next
+```cnx
 // test-no-exec
 #include "FreeRTOS.h"
 #include "task.h"
@@ -75,12 +75,12 @@ C-Next source that transpiles to `FreeRTOSConfig.h`, which FreeRTOS headers incl
 TaskHandle_t myHandle;
 ```
 
-**Tests:** Can C-Next parse FreeRTOS typedefs and use opaque handle types?
+**Tests:** Can cnx parse FreeRTOS typedefs and use opaque handle types?
 **Expected:** May hit issues with opaque handle types
 
 ### Step 3: task-create.test.cnx (void\* Callback Test)
 
-```c-next
+```cnx
 // test-no-exec
 #include "FreeRTOS.h"
 #include "task.h"
@@ -116,7 +116,7 @@ When Step 3 fails:
 
 - How do other safe languages handle C void\* interop? (Rust, Zig, etc.)
 - What patterns exist in real embedded code for void\* usage?
-- Should C-Next track types through void\* at transpile time?
+- Should cnx track types through void\* at transpile time?
 - Should there be an explicit `opaque<T>` annotation?
 - What are the MISRA implications?
 

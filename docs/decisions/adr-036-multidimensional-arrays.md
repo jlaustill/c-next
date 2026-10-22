@@ -31,7 +31,7 @@ Every dimension's value is at least 1 (#1874). C (C99 6.7.5.2p1) gives an array
 of zero or fewer elements no meaning, and ISO C and MISRA have no `[0]`. A
 dimension below 1 is E0913 at the dimension, whatever produced the value: a
 literal (`u8[0]`), folded arithmetic (`u8[1 - 2]`), a negative const, or a
-header macro's value C-Next reads (`onSample[N_HANDLERS - 5]`). This holds at
+header macro's value cnx reads (`onSample[N_HANDLERS - 5]`). This holds at
 file scope, for a local, a struct field and a parameter.
 
 ## Syntax
@@ -135,7 +135,7 @@ properties in [ADR-058](adr-058-explicit-length-properties.md). This ADR defines
 
 ### Function Parameters: Strict Enforcement
 
-Unlike C (where array sizes in parameters are advisory), C-Next enforces dimensions at compile time:
+Unlike C (where array sizes in parameters are advisory), cnx enforces dimensions at compile time:
 
 ```cnx
 void process4x4(f32[4][4] matrix) {
@@ -169,7 +169,7 @@ arrayInitializer
 
 ### Memory Layout
 
-C-Next uses **row-major** order (same as C):
+cnx uses **row-major** order (same as C):
 
 - `arr[i][j]` = `arr + i * cols + j`
 - Last index varies fastest in memory
@@ -181,7 +181,7 @@ This is the only sensible choice for C compatibility.
 Direct mapping to C with size enforcement:
 
 ```c
-// C-Next input
+// cnx input
 void process(u8[4][4] data) { }
 
 // Generated C - preserve array notation for safety
@@ -209,7 +209,7 @@ lowering; the Status and Decision above are unchanged.
 
 ### Relevant MISRA C:2012 Rules
 
-| Rule     | Category | Description                                      | C-Next Mitigation                             |
+| Rule     | Category | Description                                      | cnx Mitigation                                |
 | -------- | -------- | ------------------------------------------------ | --------------------------------------------- |
 | **9.2**  | Required | Initializers shall be enclosed in braces         | Enforced: nested `[]` required                |
 | **17.5** | Advisory | Array parameters should have bounds specified    | Enforced: bounds always specified and checked |
@@ -228,15 +228,15 @@ int x[4][2] = {{0,0}, {1,0}, {0,1}, {1,1}};
 int w[4][2] = {0, 0, 1, 0, 0, 1, 1, 1};
 ```
 
-C-Next enforces this with `[]` syntax - each dimension requires its own brackets.
+cnx enforces this with `[]` syntax - each dimension requires its own brackets.
 
 ### Rule 17.5: Array Parameter Bounds
 
-MISRA advises specifying array bounds in function parameters to enable static analysis. C-Next makes this **mandatory and enforced**.
+MISRA advises specifying array bounds in function parameters to enable static analysis. cnx makes this **mandatory and enforced**.
 
 ### Rule 18.1: Pointer Arithmetic Within Bounds
 
-MISRA requires pointer arithmetic to stay within the originating array. C-Next achieves this through:
+MISRA requires pointer arithmetic to stay within the originating array. cnx achieves this through:
 
 - Compile-time bounds checking for constant indices
 - Runtime bounds checking for variable indices (optional, enabled by default)
@@ -255,7 +255,7 @@ MISRA requires pointer arithmetic to stay within the originating array. C-Next a
 - Denial of service via segmentation faults
 - The 2024 CrowdStrike outage was caused by CWE-125
 
-**C-Next Mitigation:** Compile-time and runtime bounds checking prevents all out-of-bounds reads.
+**cnx Mitigation:** Compile-time and runtime bounds checking prevents all out-of-bounds reads.
 
 ### CWE-787: Out-of-bounds Write
 
@@ -268,13 +268,13 @@ MISRA requires pointer arithmetic to stay within the originating array. C-Next a
 - Stack smashing attacks
 - Control flow hijacking
 
-**C-Next Mitigation:** Same bounds checking prevents out-of-bounds writes.
+**cnx Mitigation:** Same bounds checking prevents out-of-bounds writes.
 
 ### CWE-119: Improper Restriction of Operations within Bounds
 
 Parent category covering all buffer access issues.
 
-**C-Next Mitigation:** Comprehensive bounds enforcement addresses the entire category.
+**cnx Mitigation:** Comprehensive bounds enforcement addresses the entire category.
 
 ## Common Bug Patterns
 
@@ -304,7 +304,7 @@ void process(int matrix[4][4]) {
 }
 ```
 
-**C-Next Solution:**
+**cnx Solution:**
 
 - Array lengths (ADR-058) are resolved at compile time, never at runtime
 - Array parameters retain their full type including all dimensions
@@ -328,7 +328,7 @@ for (size_t i = 0; i < COLS; i++) {     // Should be ROWS
 }
 ```
 
-**C-Next Solution:**
+**cnx Solution:**
 
 Bound each loop by its own dimension's length property (ADR-058). Each bound is
 read from the array, so the two cannot be swapped.
@@ -349,7 +349,7 @@ int get(int index) {
 }
 ```
 
-**C-Next Solution:**
+**cnx Solution:**
 
 - Use `usize` for indices (unsigned, cannot be negative)
 - Runtime bounds checking catches any remaining issues
@@ -366,7 +366,7 @@ void clear(int a[100]) {
 
 Even when you specify the size in the parameter declaration, C ignores it and treats the parameter as a pointer.
 
-**C-Next Solution:**
+**cnx Solution:**
 An array parameter keeps every dimension, so its length properties (ADR-058) are compile-time constants rather than a measurement of a decayed pointer. This extends to multi-dimensional arrays.
 
 ### Bug 5: Blaster Worm Pattern (Unbounded Loop)
@@ -379,7 +379,7 @@ while (*pwszTemp != L'\\')
     *pwszServerName++ = *pwszTemp++;  // No bounds check!
 ```
 
-**C-Next Solution:**
+**cnx Solution:**
 
 - All array access is bounds-checked
 - Loop patterns with array indexing generate bounds checks
@@ -426,7 +426,7 @@ Compiler flags:
 | E0854 | A constant index is negative or not below the dimension it indexes, read or written                                           | `tests/adr-036/bounds-error.test.cnx`, `tests/adr-036/array-bounds-uncovered-arms-error.test.cnx`                                 |
 | E0874 | A variable declaration or a parameter puts a dimension after the name (`u8 arr[4]`)                                           | `tests/adr-036/c-style-error.test.cnx`, `tests/adr-036/c-style-trailing-bracket-rejected.test.cnx`                                |
 | E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                           | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                                         |
-| E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023)   | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx`               |
+| E0909 | A dimension is not known at compile time -- a variable or a parameter, since cnx has no variable-length arrays (ADR-023)      | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx`               |
 | E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                  | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                                           |
 | E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) or through a header typedef, or a string (#1823) | `tests/adr-036/for-header-array-error.test.cnx`, `tests/adr-036/for-header-typedef-array-error.test.cnx`, and their `--cpp` twins |
 
@@ -558,4 +558,4 @@ positions — tracked as #1168.
 - ADR-007: bit indexing
 - ADR-058: length properties
 - ADR-035: Array initializers (syntax applies to multi-dimensional)
-- ADR-023: C-Next has no sizeof; an array parameter's `.type_byte_length` is the array's (#1975)
+- ADR-023: cnx has no sizeof; an array parameter's `.type_byte_length` is the array's (#1975)

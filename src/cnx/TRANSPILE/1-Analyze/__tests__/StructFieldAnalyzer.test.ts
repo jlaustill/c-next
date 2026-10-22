@@ -1,19 +1,19 @@
 /**
  * Unit tests for StructFieldAnalyzer
- * Validates struct field names don't conflict with C-Next reserved property names
+ * Validates struct field names don't conflict with cnx reserved property names
  *
  * Note: ADR-058 removed "length" from reserved names since .length is deprecated.
  * Currently there are no reserved field names.
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../../PARSE/2-Parse/CnxSourceParser";
 import StructFieldAnalyzer from "../StructFieldAnalyzer";
 
 /**
- * Helper to parse C-Next code and return 1.2's syntax
+ * Helper to parse cnx code and return 1.2's syntax
  */
 function parse(source: string) {
-  return CNextSourceParser.parse(source).program;
+  return CnxSourceParser.parse(source).program;
 }
 
 describe("StructFieldAnalyzer", () => {

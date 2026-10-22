@@ -2,7 +2,7 @@
 
 **Status:** Implemented
 **Date:** 2025-12-25
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
@@ -74,7 +74,7 @@ This class of bug is documented extensively:
 
 ## Decision
 
-C-Next uses `<-` for assignment and `=` for comparison:
+cnx uses `<-` for assignment and `=` for comparison:
 
 ```
 x <- 5;         // assignment: value flows INTO x
@@ -184,7 +184,7 @@ This is a simple token substitution with no semantic complexity.
 ## Scope-Context Matrix (#1219)
 
 `<-` and `=` are not features that appear in one kind of program position. Every
-context in which C-Next code can be written is a context in which a value is
+context in which cnx code can be written is a context in which a value is
 assigned or compared, so every cell below is `error`: there is no position where
 this decision is permitted not to hold.
 

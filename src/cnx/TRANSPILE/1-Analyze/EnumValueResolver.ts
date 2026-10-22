@@ -52,8 +52,8 @@ class EnumValueResolver {
     if (t.form.kind === "ternary") {
       return EnumValueResolver.ternaryKind(t.form.arms);
     }
-    // ADR-017 governs C-Next enums; a header's enum is enum-category to Rule
-    // 10.4 (E0810) but has no C-Next enum type here (it carries no
+    // ADR-017 governs cnx enums; a header's enum is enum-category to Rule
+    // 10.4 (E0810) but has no cnx enum type here (it carries no
     // `enumTypeName`), which is why E0810 asks this reading what E0434 owns
     if (t.category === "enum" && t.enumTypeName !== null) {
       return { kind: "enum", typeName: t.enumTypeName };

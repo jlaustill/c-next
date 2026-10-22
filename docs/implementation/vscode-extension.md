@@ -7,18 +7,18 @@
 
 **Status:** Implemented
 **Date:** 2025-12-27
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-During development, the ability to see C-Next source alongside its generated C output has proven invaluable. Currently this requires:
+During development, the ability to see cnx source alongside its generated C output has proven invaluable. Currently this requires:
 
 1. Writing `.cnx` code
 2. Running the transpiler manually
 3. Opening the generated `.c` file
 4. Switching between windows to compare
 
-This friction slows the feedback loop and makes it harder to understand how C-Next constructs map to C output.
+This friction slows the feedback loop and makes it harder to understand how cnx constructs map to C output.
 
 ### Inspiration: VS Code Markdown Preview
 
@@ -29,7 +29,7 @@ VS Code's markdown extension provides an excellent UX pattern:
 - Updates live as you type
 - Single keystroke to toggle preview
 
-**Why not apply this pattern to C-Next?**
+**Why not apply this pattern to cnx?**
 
 ---
 
@@ -108,7 +108,7 @@ export function transpile(source: string): TranspileResult;
 vscode-extension/
 ├── package.json              # Extension manifest
 ├── syntaxes/
-│   └── cnext.tmLanguage.json # TextMate grammar for highlighting
+│   └── cnx.tmLanguage.json # TextMate grammar for highlighting
 ├── src/
 │   ├── extension.ts          # Extension entry point
 │   └── previewProvider.ts    # Webview panel for C output
@@ -123,7 +123,7 @@ vscode-extension/
 
 ### Phase 1: Syntax Highlighting
 
-1. Create TextMate grammar (`cnext.tmLanguage.json`)
+1. Create TextMate grammar (`cnx.tmLanguage.json`)
 2. Define scopes for:
    - Keywords (`register`, `namespace`, `void`, types)
    - Operators (`<-`, `@`)
@@ -142,7 +142,7 @@ vscode-extension/
 ### Phase 3: Preview Provider
 
 1. Create Webview panel for C output
-2. Implement `CNextPreviewProvider` class
+2. Implement `CnxPreviewProvider` class
 3. Register preview command (like markdown: "Open Preview to the Side")
 4. Style C output with syntax highlighting (use Prism.js or similar)
 
@@ -167,32 +167,32 @@ vscode-extension/
 
 ### Commands
 
-| Command                            | Keybinding     | Description                      |
-| ---------------------------------- | -------------- | -------------------------------- |
-| `C-Next: Open Preview to the Side` | `Ctrl+K V`     | Open C preview beside editor     |
-| `C-Next: Open Preview`             | `Ctrl+Shift+V` | Open C preview in current column |
-| `C-Next: Toggle Preview`           | —              | Toggle preview visibility        |
+| Command                         | Keybinding     | Description                      |
+| ------------------------------- | -------------- | -------------------------------- |
+| `cnx: Open Preview to the Side` | `Ctrl+K V`     | Open C preview beside editor     |
+| `cnx: Open Preview`             | `Ctrl+Shift+V` | Open C preview in current column |
+| `cnx: Toggle Preview`           | —              | Toggle preview visibility        |
 
 ### Settings
 
 ```json
 {
-  "cnext.preview.updateDelay": 300,
-  "cnext.preview.showLineNumbers": true,
-  "cnext.preview.theme": "auto"
+  "cnx.preview.updateDelay": 300,
+  "cnx.preview.showLineNumbers": true,
+  "cnx.preview.theme": "auto"
 }
 ```
 
 ### Status Bar
 
-- Show transpile status: "C-Next: Ready" / "C-Next: Error"
+- Show transpile status: "cnx: Ready" / "cnx: Error"
 - Click to open Problems panel
 
 ---
 
 ## Error Handling Strategy
 
-When C-Next source has syntax errors:
+When cnx source has syntax errors:
 
 1. **Editor**: Red squiggly underlines at error locations
 2. **Problems Panel**: Full error messages with line/column
@@ -213,7 +213,7 @@ Add a third pane showing assembly output:
 
 ```
 ┌───────────────┬───────────────┬───────────────┐
-│   C-Next      │   Generated C │   Assembly    │
+│   cnx      │   Generated C │   Assembly    │
 ├───────────────┼───────────────┼───────────────┤
 │  ...          │  ...          │  LED_toggle:  │
 │               │               │    ldr r0, =  │
@@ -232,7 +232,7 @@ Add a third pane showing assembly output:
 **Architecture Selection:**
 
 - Read from `platformio.ini` if available
-- Or VS Code setting: `cnext.assembly.architecture`
+- Or VS Code setting: `cnx.assembly.architecture`
 - Common targets: ARM Cortex-M4, AVR, x86-64
 
 ### Language Server Protocol (LSP)
@@ -244,8 +244,8 @@ Add a third pane showing assembly output:
 
 ### Debugging Integration
 
-- Source maps: C-Next line → C line → Assembly
-- Breakpoints in C-Next that work in C debugger
+- Source maps: cnx line → C line → Assembly
+- Breakpoints in cnx that work in C debugger
 
 ---
 
@@ -254,7 +254,7 @@ Add a third pane showing assembly output:
 ### Advantages
 
 1. **Immediate feedback** — See C output as you type
-2. **Learning tool** — Understand how C-Next maps to C
+2. **Learning tool** — Understand how cnx maps to C
 3. **Debugging aid** — Verify generated code is correct
 4. **Low friction** — No manual transpile step needed
 5. **Standard UX** — Familiar markdown preview pattern

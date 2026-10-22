@@ -54,7 +54,7 @@ function isParseType(type: Type): boolean {
     return symbol
       .getDeclarations()
       .some((d) =>
-        /CNextParser\.ts$|antlr4ng/.test(d.getSourceFile().getFilePath()),
+        /CnxParser\.ts$|antlr4ng/.test(d.getSourceFile().getFilePath()),
       );
   } catch {
     return false;
@@ -248,7 +248,7 @@ function storedParseNodes(pattern: RegExp): string[] {
  */
 function parseNodeAcceptors(pattern: RegExp): string[] {
   const grammar = project.getSourceFileOrThrow(
-    join(repoRoot, "src/cnx/PARSE/2-Parse/grammar/CNextParser.ts"),
+    join(repoRoot, "src/cnx/PARSE/2-Parse/grammar/CnxParser.ts"),
   );
   // Every generated context, not a sample: a stand-in copies the shape of the
   // ONE context its pass reads (`IModifierContext` was a variable
@@ -321,7 +321,7 @@ function callResultReaches(type: Type): boolean {
  * module got it (#1957).
  *
  * `parse-tree-confined-to-parser` reads imports, so a module that gets a tree
- * as a RETURN VALUE -- `CNextSourceParser.parse(src).tree` -- names no parse
+ * as a RETURN VALUE -- `CnxSourceParser.parse(src).tree` -- names no parse
  * type and passes it. This asks the type checker about every expression
  * instead. A call is also walked by reachability, so a call handing back a
  * bundle that carries a tree (`IParsedFile`) is found before anyone reads it.
@@ -401,7 +401,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       const probe = project.createSourceFile(
         join(repoRoot, "src/cnx/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts"),
         [
-          'import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";',
+          'import * as Parser from "../../PARSE/2-Parse/grammar/CnxParser";',
           "class ParseNodeHolderProbe {",
           "  private held: Parser.IfStatementContext | null = null;",
           "}",

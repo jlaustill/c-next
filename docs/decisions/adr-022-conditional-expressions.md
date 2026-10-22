@@ -6,7 +6,7 @@
 
 ## Context
 
-Conditional control flow is fundamental to any programming language. C-Next needs to support:
+Conditional control flow is fundamental to any programming language. cnx needs to support:
 
 1. **If/else statements** - Standard conditional branching
 2. **Ternary operator** - Inline conditional expressions
@@ -50,7 +50,7 @@ if (x > 0) {
 2. **Assignment operator** - Uses `<-` (not `=`), eliminating the classic `if (x = 5)` bug
 
 ```cnx
-// C-Next prevents accidental assignment in conditions
+// cnx prevents accidental assignment in conditions
 if (x = 5) {      // This is COMPARISON (equals 5?)
     // ...
 }
@@ -73,7 +73,7 @@ ifStatement
 Direct mapping to C with operator translation:
 
 ```c
-// C-Next: if (x = 5)
+// cnx: if (x = 5)
 // C output: if (x == 5)
 ```
 
@@ -99,9 +99,9 @@ Direct mapping to C with operator translation:
 
 ### MISRA C Alignment
 
-C-Next's ternary constraints align with these MISRA C rules:
+cnx's ternary constraints align with these MISRA C rules:
 
-| Rule     | Requirement                                 | C-Next Approach                 |
+| Rule     | Requirement                                 | cnx Approach                    |
 | -------- | ------------------------------------------- | ------------------------------- |
 | **14.4** | Condition must have essential Boolean type  | Required: explicit comparison   |
 | **14.3** | Condition must not be invariant             | Compiler can warn               |
@@ -131,7 +131,7 @@ i32 result <- (a = b) ? a : (a - b);
 
 #### MISRA Rule 13.4 - No Assignment in Expression
 
-C-Next's `<-` assignment operator naturally prevents this class of bugs:
+cnx's `<-` assignment operator naturally prevents this class of bugs:
 
 ```c
 // C: Non-compliant - using assignment result
@@ -139,7 +139,7 @@ y = (x = getValue()) ? x : default;
 ```
 
 ```cnx
-// C-Next: This pattern isn't possible with <- syntax
+// cnx: This pattern isn't possible with <- syntax
 // Must write it clearly:
 x <- getValue();
 y <- (x != 0) ? x : default;
@@ -181,7 +181,7 @@ Use if/else statements only.
 // Simple conditional - parentheses required, boolean expression required
 u32 result <- (x > 0) ? x : 0;
 
-// With equality comparison (= is comparison in C-Next)
+// With equality comparison (= is comparison in cnx)
 bool isEven <- (n % 2 = 0) ? true : false;
 
 // Min/max
@@ -253,7 +253,7 @@ booleanExpression
 Direct pass-through to C:
 
 ```c
-// C-Next: (x > 0) ? x : 0
+// cnx: (x > 0) ? x : 0
 // C output: (x > 0) ? x : 0
 ```
 
@@ -292,7 +292,7 @@ a qualified `this.read()` derive the same cell (#1210, #1260).
 
 This is intentionally **stricter than MISRA C:2012 Rule 14.4**. Rule 14.4 only
 requires the controlling expression to have _essentially Boolean type_, which
-would permit a bare `bool` variable. C-Next additionally forbids the bare form
+would permit a bare `bool` variable. cnx additionally forbids the bare form
 so that the comparison is always visible at the point of decision.
 
 ```cnx

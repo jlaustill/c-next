@@ -1,11 +1,11 @@
 /**
- * 1.3 Declare over 1.2's artifact (#1991): each parsed C-Next file's symbols,
+ * 1.3 Declare over 1.2's artifact (#1991): each parsed cnx file's symbols,
  * with its syntax carried forward for 1.4 and 2.1.
  */
 import type IParsedSources from "../2-Parse/types/IParsedSources";
 import type ITranspileError from "../../types/ITranspileError";
 import CaughtError from "../../utils/CaughtError";
-import CNextResolver from "./cnext/index";
+import CnxResolver from "./cnx/index";
 import HeaderDeclarationRecord from "./HeaderDeclarationRecord";
 import HeaderDeclarations from "./HeaderDeclarations";
 import SymbolRegistry from "./SymbolRegistry";
@@ -34,11 +34,7 @@ class Declare {
       try {
         declared.push({
           file,
-          fileSymbols: CNextResolver.resolve(
-            syntax.program,
-            file.path,
-            registry,
-          ),
+          fileSymbols: CnxResolver.resolve(syntax.program, file.path, registry),
           syntax,
         });
       } catch (err) {
@@ -59,7 +55,7 @@ class Declare {
   /**
    * The C/C++ headers, in header order, because what the table holds depends
    * on it (#1817). #1319: a header that will not parse degrades to a warning,
-   * since tolerating third-party headers is a real need; a C-Next diagnostic
+   * since tolerating third-party headers is a real need; a cnx diagnostic
    * is a rejection made on purpose, so it propagates.
    */
   private static _headers(

@@ -27,7 +27,7 @@ import type IOrchestrator from "../../IOrchestrator";
 import type ICodeGenSymbols from "../../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
-import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
+import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CnxParser";
 import TranspileState from "../../../../../TranspileState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../types/__testUtils__/codeGenSymbolsHelpers";
@@ -146,7 +146,7 @@ function createMockOrchestrator(overrides?: {
     isKnownStruct: overrides?.isKnownStruct ?? vi.fn(() => false),
     isFloatType: vi.fn(),
     isIntegerType: vi.fn(),
-    isCNextFunction: vi.fn(),
+    isCnxFunction: vi.fn(),
     getTypeName: vi.fn(),
     tryEvaluateConstant: overrides?.tryEvaluateConstant ?? vi.fn(),
     getZeroInitializer: vi.fn(),
@@ -400,13 +400,13 @@ function operandOfDeclared(info: TTypeInfo): IOperandType {
       stringCapacity: info.stringCapacity ?? null,
     });
   }
-  // The category the typer gives a C-Next primitive (#1760 review: a bit
+  // The category the typer gives a cnx primitive (#1760 review: a bit
   // range reads its width from it)
   let category: IOperandType["category"] = "none";
   if (/^u\d+$/.test(info.baseType)) category = "unsigned";
   else if (/^i\d+$/.test(info.baseType)) category = "signed";
   else if (/^f\d+$/.test(info.baseType)) category = "floating";
-  // a C-Next enum, as the typer types one (OperandTyper.namedFacts)
+  // a cnx enum, as the typer types one (OperandTyper.namedFacts)
   if (info.isEnum) {
     return typed(info.baseType, {
       dimensions,
@@ -1772,7 +1772,7 @@ describe("PostfixExpressionGenerator", () => {
         const orchestrator = Object.assign(
           createMockOrchestrator({ generatePrimaryExpr: () => "h" }),
           {
-            isCNextFunction: vi.fn((name: string) => name === "peek"),
+            isCnxFunction: vi.fn((name: string) => name === "peek"),
             isKnownStruct: vi.fn(() => true),
           },
         );

@@ -11,11 +11,11 @@ import IncludeResolver from "../../../../cnx/PARSE/1-Discover/IncludeResolver";
 import MockFileSystem from "../../MockFileSystem";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
-import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import CnxSourceParser from "../../../../cnx/PARSE/2-Parse/CnxSourceParser";
+import * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
-import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
-import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import CnxResolver from "../../../../cnx/PARSE/3-Declare/cnx/index";
+import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../../cnx/types/ICodeGenSymbols";
 import TParameterInfo from "../../../../cnx/types/TParameterInfo";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
@@ -48,7 +48,7 @@ function declareAndResolveAs(
   tree: Parser.ProgramContext,
   sourcePath: string,
 ): TSymbol[] {
-  const declared = CNextResolver.resolve(
+  const declared = CnxResolver.resolve(
     ProgramLowering.program(tree, null),
     sourcePath,
     registry,
@@ -65,7 +65,7 @@ function declareAndResolve(tree: Parser.ProgramContext): TSymbol[] {
 }
 
 /**
- * Helper to parse C-Next source and return tree + generator ready for testing.
+ * Helper to parse cnx source and return tree + generator ready for testing.
  */
 function setupGenerator(
   source: string,
@@ -76,11 +76,7 @@ function setupGenerator(
   host: CodeGenerator;
   symbols: ICodeGenSymbols;
 } {
-  const {
-    tree,
-    parseErrors: errors,
-    program,
-  } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors, program } = CnxSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }
@@ -149,7 +145,7 @@ describe("CodeGenWalker", () => {
   describe("generate()", () => {
     it("should generate basic C code from empty program", () => {
       const source = "";
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -171,7 +167,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void foo() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -196,7 +192,7 @@ describe("CodeGenWalker", () => {
           val +<- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -227,7 +223,7 @@ describe("CodeGenWalker", () => {
           val +<- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       const generator = new CodeGenWalker(new CodeGenerator());
       const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
 
@@ -247,7 +243,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void foo() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -271,7 +267,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void foo() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -292,7 +288,7 @@ describe("CodeGenWalker", () => {
 
     it("should include source path in generation comment", () => {
       const source = `void test() { }`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -508,14 +504,14 @@ describe("CodeGenWalker", () => {
         expect(host.isFloatType("f64")).toBe(true);
       });
 
-      it("should return false for C type float (only C-Next types checked)", () => {
-        // isFloatType only checks C-Next types, not C types
+      it("should return false for C type float (only cnx types checked)", () => {
+        // isFloatType only checks cnx types, not C types
         const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("float")).toBe(false);
       });
 
-      it("should return false for C type double (only C-Next types checked)", () => {
-        // isFloatType only checks C-Next types, not C types
+      it("should return false for C type double (only cnx types checked)", () => {
+        // isFloatType only checks cnx types, not C types
         const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("double")).toBe(false);
       });
@@ -551,8 +547,8 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("isCNextFunction()", () => {
-      it("should return true for C-Next defined function", () => {
+    describe("isCnxFunction()", () => {
+      it("should return true for cnx defined function", () => {
         const { host } = createMinimalGenerator(
           `
           void myFunction() { }
@@ -560,13 +556,13 @@ describe("CodeGenWalker", () => {
           false,
         );
 
-        expect(host.isCNextFunction("myFunction")).toBe(true);
+        expect(host.isCnxFunction("myFunction")).toBe(true);
       });
 
       it("should return false for unknown function", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 
-        expect(host.isCNextFunction("unknownFunction")).toBe(false);
+        expect(host.isCnxFunction("unknownFunction")).toBe(false);
       });
     });
 
@@ -706,7 +702,7 @@ describe("CodeGenWalker", () => {
         expect(host.getScopeSeparator(true)).toBe("::");
       });
 
-      it("should return _ for C-Next access", () => {
+      it("should return _ for cnx access", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getScopeSeparator(false)).toBe("__");
@@ -730,7 +726,7 @@ describe("CodeGenWalker", () => {
   });
 
   describe("Type generation", () => {
-    it("should map C-Next types to C types", () => {
+    it("should map cnx types to C types", () => {
       const source = `
         u8 a;
         u16 b;
@@ -745,7 +741,7 @@ describe("CodeGenWalker", () => {
         bool k;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -782,7 +778,7 @@ describe("CodeGenWalker", () => {
           x <- 42;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -812,7 +808,7 @@ describe("CodeGenWalker", () => {
           x /<- 2;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -842,7 +838,7 @@ describe("CodeGenWalker", () => {
           if (x = 10) { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -871,7 +867,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -901,7 +897,7 @@ describe("CodeGenWalker", () => {
           value +<- 100;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -925,7 +921,7 @@ describe("CodeGenWalker", () => {
     // #1991: the target is named, and 1.4 settles it from the catalog
     it("plans with the target 1.4 settled from the option", () => {
       const source = `void foo() { }`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
       const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
@@ -955,7 +951,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -985,7 +981,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1013,7 +1009,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1040,7 +1036,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1068,7 +1064,7 @@ describe("CodeGenWalker", () => {
           } while (x > 0);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1099,7 +1095,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1127,7 +1123,7 @@ describe("CodeGenWalker", () => {
           return 42;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1155,7 +1151,7 @@ describe("CodeGenWalker", () => {
         u32[10] arr;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1178,7 +1174,7 @@ describe("CodeGenWalker", () => {
         u32[3] arr <- [1, 2, 3];
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1202,7 +1198,7 @@ describe("CodeGenWalker", () => {
         u32[3][3] matrix;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1226,7 +1222,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void add(u32 a, u32 b) { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1253,7 +1249,7 @@ describe("CodeGenWalker", () => {
           p.x <- 10;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1276,7 +1272,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void process(u32[10] arr) { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1305,7 +1301,7 @@ describe("CodeGenWalker", () => {
           c <- a + b * 2 - 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1335,7 +1331,7 @@ describe("CodeGenWalker", () => {
           result <- a <= b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1367,7 +1363,7 @@ describe("CodeGenWalker", () => {
           result <- !a;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1399,7 +1395,7 @@ describe("CodeGenWalker", () => {
           result <- ~a;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1429,7 +1425,7 @@ describe("CodeGenWalker", () => {
           result <- a >> 2;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1457,7 +1453,7 @@ describe("CodeGenWalker", () => {
           result <- +a;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1476,7 +1472,7 @@ describe("CodeGenWalker", () => {
     });
 
     it("should generate increment/decrement using compound assignment", () => {
-      // C-Next uses +<- 1 for increment instead of ++
+      // cnx uses +<- 1 for increment instead of ++
       const source = `
         mut wrap u32 a <- 10;
         void main() {
@@ -1484,7 +1480,7 @@ describe("CodeGenWalker", () => {
           a -<- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1514,7 +1510,7 @@ describe("CodeGenWalker", () => {
           p.y <- 20;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1539,7 +1535,7 @@ describe("CodeGenWalker", () => {
         Point p <- {x: 10, y: 20};
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1568,7 +1564,7 @@ describe("CodeGenWalker", () => {
           c <- Color.RED;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1593,7 +1589,7 @@ describe("CodeGenWalker", () => {
         u32 MAX_SIZE <- 100;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1620,7 +1616,7 @@ describe("CodeGenWalker", () => {
         }
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1653,7 +1649,7 @@ describe("CodeGenWalker", () => {
           result <- add(1, 2);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1683,7 +1679,7 @@ describe("CodeGenWalker", () => {
           result <- Math.square(5);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1704,13 +1700,13 @@ describe("CodeGenWalker", () => {
 
   describe("Float types", () => {
     it("should generate float declarations", () => {
-      // Note: C-Next doesn't use 'f' suffix - float literals are just decimals
+      // Note: cnx doesn't use 'f' suffix - float literals are just decimals
       const source = `
         f32 a <- 1.5;
         f64 b <- 2.5;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1736,7 +1732,7 @@ describe("CodeGenWalker", () => {
         atomic u32 counter <- 0;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1762,7 +1758,7 @@ describe("CodeGenWalker", () => {
         #include "myheader.h"
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1793,7 +1789,7 @@ describe("CodeGenWalker", () => {
         #include "nonexistent.cnx"
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1821,7 +1817,7 @@ describe("CodeGenWalker", () => {
           public void start() { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1869,7 +1865,7 @@ describe("CodeGenWalker", () => {
           result <- (a > b) ? 1 : 0;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1897,7 +1893,7 @@ describe("CodeGenWalker", () => {
           result <- flags[4, 4];
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1928,7 +1924,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1958,7 +1954,7 @@ describe("CodeGenWalker", () => {
           obj.inner.value <- 42;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -1991,7 +1987,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2022,7 +2018,7 @@ describe("CodeGenWalker", () => {
           return p;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2050,7 +2046,7 @@ describe("CodeGenWalker", () => {
           localVar +<- 50;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2083,7 +2079,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2113,7 +2109,7 @@ describe("CodeGenWalker", () => {
           result <- a % 5;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2141,7 +2137,7 @@ describe("CodeGenWalker", () => {
           result <- a / 4;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2167,7 +2163,7 @@ describe("CodeGenWalker", () => {
         string<32> name <- "Hello";
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2194,7 +2190,7 @@ describe("CodeGenWalker", () => {
         bool b <- false;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2220,7 +2216,7 @@ describe("CodeGenWalker", () => {
         wrap u32 a <- 0xFF;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2243,7 +2239,7 @@ describe("CodeGenWalker", () => {
         wrap u32 a <- 0b1010;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2268,7 +2264,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2292,7 +2288,7 @@ describe("CodeGenWalker", () => {
           return 0;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2326,7 +2322,7 @@ describe("CodeGenWalker", () => {
           result <- (a + b) * c;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2354,7 +2350,7 @@ describe("CodeGenWalker", () => {
           arr[5] <- 100;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2380,7 +2376,7 @@ describe("CodeGenWalker", () => {
         ISR timer_handler() {
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2409,7 +2405,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2438,7 +2434,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2474,7 +2470,7 @@ describe("CodeGenWalker", () => {
           Motor.stop();
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2500,7 +2496,7 @@ describe("CodeGenWalker", () => {
           bool isNull <- (NULL = NULL);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2526,7 +2522,7 @@ describe("CodeGenWalker", () => {
         u32 sub(u32 a, u32 b) { return a - b; }
         u32 mul(u32 a, u32 b) { return a * b; }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2557,7 +2553,7 @@ describe("CodeGenWalker", () => {
         volatile u32 sharedData <- 0;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2584,7 +2580,7 @@ describe("CodeGenWalker", () => {
         i32 c <- -2147483648;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2614,7 +2610,7 @@ describe("CodeGenWalker", () => {
           if (a != 5) { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2643,7 +2639,7 @@ describe("CodeGenWalker", () => {
           flags ^<- 0xAA;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2672,7 +2668,7 @@ describe("CodeGenWalker", () => {
           value %<- 7;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2700,7 +2696,7 @@ describe("CodeGenWalker", () => {
           value >><- 2;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2732,7 +2728,7 @@ describe("CodeGenWalker", () => {
           public void toggle() { on <- !on; }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2760,7 +2756,7 @@ describe("CodeGenWalker", () => {
         u32[] values <- [1, 2, 3, 4, 5];
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2786,7 +2782,7 @@ describe("CodeGenWalker", () => {
         u8 ch <- 'A';
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2813,7 +2809,7 @@ describe("CodeGenWalker", () => {
           u32 addr <- &value;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2839,7 +2835,7 @@ describe("CodeGenWalker", () => {
           counter +<- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2878,7 +2874,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2905,7 +2901,7 @@ describe("CodeGenWalker", () => {
       const source = `
         void noop() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2937,7 +2933,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2967,7 +2963,7 @@ describe("CodeGenWalker", () => {
         u32 d <- 4;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -2991,12 +2987,12 @@ describe("CodeGenWalker", () => {
 
   describe("Preprocessor directives", () => {
     it("should reject #define with value in favor of const", () => {
-      // C-Next enforces using const instead of #define for values
+      // cnx enforces using const instead of #define for values
       const source = `
         #define MAX_SIZE 100
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3019,7 +3015,7 @@ describe("CodeGenWalker", () => {
         #define DEBUG_MODE
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3047,7 +3043,7 @@ describe("CodeGenWalker", () => {
           current <- State.RUNNING;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3077,7 +3073,7 @@ describe("CodeGenWalker", () => {
           buf.data[0] <- 0xFF;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3106,7 +3102,7 @@ describe("CodeGenWalker", () => {
           public u32 getCount() { return count; }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3134,7 +3130,7 @@ describe("CodeGenWalker", () => {
         i64 bigSigned <- -9223372036854775807;
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3169,7 +3165,7 @@ describe("CodeGenWalker", () => {
           result <- f.enabled;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3194,7 +3190,7 @@ describe("CodeGenWalker", () => {
         u32[4] LOOKUP <- [10, 20, 30, 40];
         void main() { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3221,7 +3217,7 @@ describe("CodeGenWalker", () => {
           return value > 0;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3250,7 +3246,7 @@ describe("CodeGenWalker", () => {
           if (a > 0 && b < 20) { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3278,7 +3274,7 @@ describe("CodeGenWalker", () => {
           if (a = 0 || b = 0) { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3307,7 +3303,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3338,7 +3334,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3371,7 +3367,7 @@ describe("CodeGenWalker", () => {
           modifyPoint(pt);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3404,7 +3400,7 @@ describe("CodeGenWalker", () => {
           result <- a * b + c * (a - b);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3433,7 +3429,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3462,7 +3458,7 @@ describe("CodeGenWalker", () => {
           Motor.speed <- 100;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3488,7 +3484,7 @@ describe("CodeGenWalker", () => {
         enum State { IDLE, RUNNING, ERROR }
         State current;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3512,7 +3508,7 @@ describe("CodeGenWalker", () => {
         enum Priority { LOW <- 1, MEDIUM <- 5, HIGH <- 10 }
         Priority p;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3540,7 +3536,7 @@ describe("CodeGenWalker", () => {
           this.Mode currentMode;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3566,7 +3562,7 @@ describe("CodeGenWalker", () => {
           this.Data latest;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3593,7 +3589,7 @@ describe("CodeGenWalker", () => {
           global.GlobalState state;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3621,7 +3617,7 @@ describe("CodeGenWalker", () => {
         }
         Config.Level setting;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3646,7 +3642,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32[10] data <- [0*];
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3669,7 +3665,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u8[4] buffer <- [255*];
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3694,7 +3690,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32[2][3] matrix <- [[1, 2, 3], [4, 5, 6]];
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3719,7 +3715,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         Point[2] points <- [{x: 1, y: 2}, {x: 3, y: 4}];
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3742,7 +3738,7 @@ describe("CodeGenWalker", () => {
   describe("Primitive type zero initialization", () => {
     it("should initialize bool to false", () => {
       const source = `bool flag;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3762,7 +3758,7 @@ describe("CodeGenWalker", () => {
 
     it("should initialize f32 to 0.0f", () => {
       const source = `f32 value;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3782,7 +3778,7 @@ describe("CodeGenWalker", () => {
 
     it("should initialize f64 to 0.0", () => {
       const source = `f64 value;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3811,7 +3807,7 @@ describe("CodeGenWalker", () => {
           } while (x < 10);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3841,7 +3837,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3868,7 +3864,7 @@ describe("CodeGenWalker", () => {
           return 42;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3892,7 +3888,7 @@ describe("CodeGenWalker", () => {
           return;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3917,7 +3913,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         Point origin;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3932,7 +3928,7 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // C-Next auto-initializes to {0}
+      // cnx auto-initializes to {0}
       expect(code).toContain("Point origin = {0}");
     });
   });
@@ -3942,7 +3938,7 @@ describe("CodeGenWalker", () => {
       const source = `
         atomic volatile u32 badVar;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -3976,7 +3972,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4010,7 +4006,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4037,7 +4033,7 @@ describe("CodeGenWalker", () => {
         u32 SIZE <- 10;
         u32[SIZE] data;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4062,7 +4058,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u8[2][3][4] cube;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4089,7 +4085,7 @@ describe("CodeGenWalker", () => {
           doSomething();
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4119,7 +4115,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4147,7 +4143,7 @@ describe("CodeGenWalker", () => {
           bool result <- !flag;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4172,7 +4168,7 @@ describe("CodeGenWalker", () => {
           wrap u8 inverted <- ~mask;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4197,7 +4193,7 @@ describe("CodeGenWalker", () => {
           i32 neg <- -pos;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4225,7 +4221,7 @@ describe("CodeGenWalker", () => {
           wrap u8 result <- a & b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4251,7 +4247,7 @@ describe("CodeGenWalker", () => {
           wrap u8 result <- a | b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4277,7 +4273,7 @@ describe("CodeGenWalker", () => {
           wrap u8 result <- a ^ b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4302,7 +4298,7 @@ describe("CodeGenWalker", () => {
           wrap u8 result <- a << 4;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4327,7 +4323,7 @@ describe("CodeGenWalker", () => {
           wrap u8 result <- a >> 4;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4355,7 +4351,7 @@ describe("CodeGenWalker", () => {
           bool result <- a && b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4381,7 +4377,7 @@ describe("CodeGenWalker", () => {
           bool result <- a || b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4409,7 +4405,7 @@ describe("CodeGenWalker", () => {
           bool result <- a <= b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4435,7 +4431,7 @@ describe("CodeGenWalker", () => {
           bool result <- a >= b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4461,7 +4457,7 @@ describe("CodeGenWalker", () => {
           bool result <- a != b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4491,7 +4487,7 @@ describe("CodeGenWalker", () => {
         u8 small <- 100;
         u32 big <- small as u32;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4518,7 +4514,7 @@ describe("CodeGenWalker", () => {
           u8 small <- big[0, 8];
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4545,7 +4541,7 @@ describe("CodeGenWalker", () => {
           i32 intVal <- (i32)floatVal;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4575,7 +4571,7 @@ describe("CodeGenWalker", () => {
           return a + b + c;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4606,7 +4602,7 @@ describe("CodeGenWalker", () => {
           obj.child.value <- 100;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4634,7 +4630,7 @@ describe("CodeGenWalker", () => {
           data[i * 2 + 1] <- 42;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4662,7 +4658,7 @@ describe("CodeGenWalker", () => {
           c <- Color.GREEN;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4684,7 +4680,7 @@ describe("CodeGenWalker", () => {
   describe("String type", () => {
     it("should generate bounded string declaration", () => {
       const source = `string<32> name <- "hello";`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4707,7 +4703,7 @@ describe("CodeGenWalker", () => {
   describe("Volatile variable", () => {
     it("should generate volatile declaration", () => {
       const source = `volatile u32 hwReg;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4732,7 +4728,7 @@ describe("CodeGenWalker", () => {
         struct Config { u32 value; }
         Config defaultConfig <- {value: 100};
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4761,7 +4757,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4785,7 +4781,7 @@ describe("CodeGenWalker", () => {
   describe("Atomic variable", () => {
     it("should generate volatile for atomic variable", () => {
       const source = `atomic u32 counter <- 0;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4811,7 +4807,7 @@ describe("CodeGenWalker", () => {
         u32[10] data;
         u32 len <- data.type_element_count;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4834,7 +4830,7 @@ describe("CodeGenWalker", () => {
   describe("Hex and binary literals", () => {
     it("should generate hex literal", () => {
       const source = `u32 mask <- 0xFF00;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4854,7 +4850,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate binary literal", () => {
       const source = `u8 pattern <- 0b10101010;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4877,7 +4873,7 @@ describe("CodeGenWalker", () => {
   describe("Character literal", () => {
     it("should generate character literal", () => {
       const source = `u8 ch <- 'A';`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4904,7 +4900,7 @@ describe("CodeGenWalker", () => {
           public void stop() { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4934,7 +4930,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4962,7 +4958,7 @@ describe("CodeGenWalker", () => {
           wrap u32 result <- a % b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -4990,7 +4986,7 @@ describe("CodeGenWalker", () => {
           wrap u32 result <- a / b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5019,7 +5015,7 @@ describe("CodeGenWalker", () => {
           mask &<- 0x0F;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5044,7 +5040,7 @@ describe("CodeGenWalker", () => {
           flags |<- 0x01;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5069,7 +5065,7 @@ describe("CodeGenWalker", () => {
           bits ^<- 0xFF;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5094,7 +5090,7 @@ describe("CodeGenWalker", () => {
           val <<<- 2;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5119,7 +5115,7 @@ describe("CodeGenWalker", () => {
           val >><- 2;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5144,7 +5140,7 @@ describe("CodeGenWalker", () => {
           val *<- 3;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5169,7 +5165,7 @@ describe("CodeGenWalker", () => {
           val /<- 4;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5194,7 +5190,7 @@ describe("CodeGenWalker", () => {
           val %<- 5;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5223,7 +5219,7 @@ describe("CodeGenWalker", () => {
           wrap u32 result <- (a + b) * c;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5252,7 +5248,7 @@ describe("CodeGenWalker", () => {
           u32 result <- add(10, 20);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5279,7 +5275,7 @@ describe("CodeGenWalker", () => {
           return Status.OK;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5307,7 +5303,7 @@ describe("CodeGenWalker", () => {
           processData(myData);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5337,7 +5333,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5360,7 +5356,7 @@ describe("CodeGenWalker", () => {
   describe("String literal", () => {
     it("should generate string literal", () => {
       const source = `string<20> msg <- "Hello World";`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5387,7 +5383,7 @@ describe("CodeGenWalker", () => {
         u32 c;
         u64 d;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5415,7 +5411,7 @@ describe("CodeGenWalker", () => {
         i32 c;
         i64 d;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5440,7 +5436,7 @@ describe("CodeGenWalker", () => {
   describe("Negative number literal", () => {
     it("should generate negative literal", () => {
       const source = `i32 val <- -42;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5462,7 +5458,7 @@ describe("CodeGenWalker", () => {
   describe("Float literals", () => {
     it("should generate f32 literal with suffix", () => {
       const source = `f32 val <- 3.14;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5482,7 +5478,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate f64 literal", () => {
       const source = `f64 val <- 2.718281828;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5504,7 +5500,7 @@ describe("CodeGenWalker", () => {
   describe("Boolean literals", () => {
     it("should generate true literal", () => {
       const source = `bool flag <- true;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5524,7 +5520,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate false literal", () => {
       const source = `bool flag <- false;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5552,7 +5548,7 @@ describe("CodeGenWalker", () => {
           u32 max <- (a > b) ? a : b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5579,7 +5575,7 @@ describe("CodeGenWalker", () => {
           bool bit0 <- flags[0, 1] = 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5606,7 +5602,7 @@ describe("CodeGenWalker", () => {
           u8 nibble <- data[4, 4];
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5635,7 +5631,7 @@ describe("CodeGenWalker", () => {
         struct Vec3 { i32 x; i32 y; i32 z; }
         Vec3 pos <- {x: 1, y: 2, z: 3};
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5664,7 +5660,7 @@ describe("CodeGenWalker", () => {
           local <- local + 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5692,7 +5688,7 @@ describe("CodeGenWalker", () => {
           p.x <- p.x + 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5720,7 +5716,7 @@ describe("CodeGenWalker", () => {
           a.x <- a.x + b.x;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5746,7 +5742,7 @@ describe("CodeGenWalker", () => {
       // A definition (with initializer) should NOT have extern in C mode.
       // The extern declaration comes from the header.
       const source = `u32 VERSION <- 1;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5770,7 +5766,7 @@ describe("CodeGenWalker", () => {
       // In C++, const at file scope has internal linkage by default.
       // extern is needed for cross-file access, even for definitions.
       const source = `u32 VERSION <- 1;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5793,7 +5789,7 @@ describe("CodeGenWalker", () => {
   describe("Empty function body", () => {
     it("should generate function with empty body", () => {
       const source = `void noop() { }`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5819,7 +5815,7 @@ describe("CodeGenWalker", () => {
           return x > 0;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5850,7 +5846,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5875,7 +5871,7 @@ describe("CodeGenWalker", () => {
         u32 BUFFER_SIZE <- 256;
         u8[BUFFER_SIZE] buffer;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5903,7 +5899,7 @@ describe("CodeGenWalker", () => {
           output[1] <- 2;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5934,7 +5930,7 @@ describe("CodeGenWalker", () => {
           wrap u32 result <- a + b - c;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5964,7 +5960,7 @@ describe("CodeGenWalker", () => {
           wrap u32 result <- ((a + b) * c) - d;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -5992,7 +5988,7 @@ describe("CodeGenWalker", () => {
           f32 sum <- a + b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6018,7 +6014,7 @@ describe("CodeGenWalker", () => {
           bool less <- a < b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6049,7 +6045,7 @@ describe("CodeGenWalker", () => {
           msg.data[0] <- 0x01;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6077,7 +6073,7 @@ describe("CodeGenWalker", () => {
           if (current = State.RUNNING) { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6111,7 +6107,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6139,7 +6135,7 @@ describe("CodeGenWalker", () => {
           u32[SIZE] data;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6168,7 +6164,7 @@ describe("CodeGenWalker", () => {
           flags[0, 1] <- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6192,7 +6188,7 @@ describe("CodeGenWalker", () => {
   describe("Long hex literal", () => {
     it("should generate 64-bit hex literal", () => {
       const source = `u64 big <- 0xFFFFFFFFFFFFFFFF;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6222,7 +6218,7 @@ describe("CodeGenWalker", () => {
           return a / b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6253,7 +6249,7 @@ describe("CodeGenWalker", () => {
           Settings.cfg.value <- 200;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6279,7 +6275,7 @@ describe("CodeGenWalker", () => {
           arr[0] <- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6302,7 +6298,7 @@ describe("CodeGenWalker", () => {
   describe("Escape sequences in strings", () => {
     it("should preserve escape sequences", () => {
       const source = `string<10> newline <- "\\n";`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6329,7 +6325,7 @@ describe("CodeGenWalker", () => {
           val +<- 1000;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6355,7 +6351,7 @@ describe("CodeGenWalker", () => {
           val -<- 200;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6384,7 +6380,7 @@ describe("CodeGenWalker", () => {
           bool result <- a < b;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6408,7 +6404,7 @@ describe("CodeGenWalker", () => {
       const source = `
         scope Empty { }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6435,7 +6431,7 @@ describe("CodeGenWalker", () => {
         }
         Types.Mode selected <- Types.Mode.AUTO;
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6462,7 +6458,7 @@ describe("CodeGenWalker", () => {
           val +<- 500000000;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6487,7 +6483,7 @@ describe("CodeGenWalker", () => {
         void readOnly(u32 val) {
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6514,7 +6510,7 @@ describe("CodeGenWalker", () => {
           if (x = 5) { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6542,7 +6538,7 @@ describe("CodeGenWalker", () => {
           i32 diff <- b - a;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6570,7 +6566,7 @@ describe("CodeGenWalker", () => {
           doWork();
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6599,7 +6595,7 @@ describe("CodeGenWalker", () => {
           public void methodB() { }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6626,7 +6622,7 @@ describe("CodeGenWalker", () => {
           public u32 speed <- 100;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6653,7 +6649,7 @@ describe("CodeGenWalker", () => {
           big +<- 1;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6681,7 +6677,7 @@ describe("CodeGenWalker", () => {
           tiny -<- 50;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6703,7 +6699,7 @@ describe("CodeGenWalker", () => {
   describe("Array with literal size", () => {
     it("should generate array with integer literal size", () => {
       const source = `u32[100] buffer;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6730,7 +6726,7 @@ describe("CodeGenWalker", () => {
           i32 b <- -a;
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6752,7 +6748,7 @@ describe("CodeGenWalker", () => {
   describe("Comment preservation", () => {
     it("should include generated file header", () => {
       const source = `void main() { }`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6774,7 +6770,7 @@ describe("CodeGenWalker", () => {
   describe("Stdint include", () => {
     it("should include stdint.h for fixed-width types", () => {
       const source = `u32 val <- 0;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6796,7 +6792,7 @@ describe("CodeGenWalker", () => {
   describe("Stdbool include", () => {
     it("should include stdbool.h for bool type", () => {
       const source = `bool flag <- false;`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6818,7 +6814,7 @@ describe("CodeGenWalker", () => {
   describe("Array initialization with values", () => {
     it("should generate array with initialization list", () => {
       const source = `u8[4] data <- [1, 2, 3, 4];`;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6846,7 +6842,7 @@ describe("CodeGenWalker", () => {
           process(local);
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -6874,7 +6870,7 @@ describe("CodeGenWalker", () => {
             bool flag;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -6898,7 +6894,7 @@ describe("CodeGenWalker", () => {
             f32 value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -6922,7 +6918,7 @@ describe("CodeGenWalker", () => {
             f64 value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -6946,7 +6942,7 @@ describe("CodeGenWalker", () => {
             u32 value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -6973,7 +6969,7 @@ describe("CodeGenWalker", () => {
             Color c;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7000,7 +6996,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7027,7 +7023,7 @@ describe("CodeGenWalker", () => {
             Motor.Direction d;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7054,7 +7050,7 @@ describe("CodeGenWalker", () => {
             Status s;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7082,7 +7078,7 @@ describe("CodeGenWalker", () => {
             Point p;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7109,7 +7105,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7136,7 +7132,7 @@ describe("CodeGenWalker", () => {
             Config.Settings cfg;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7162,7 +7158,7 @@ describe("CodeGenWalker", () => {
             u32[10] values;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7187,7 +7183,7 @@ describe("CodeGenWalker", () => {
             Point[5] points;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7213,7 +7209,7 @@ describe("CodeGenWalker", () => {
             ExternalClass obj;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7239,7 +7235,7 @@ describe("CodeGenWalker", () => {
             Point p;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7263,13 +7259,13 @@ describe("CodeGenWalker", () => {
       // Note: Template type tests skipped - template argument transformation
       // (i32 -> int32_t) is a separate issue to be addressed in another PR
 
-      it("should generate C-Next style array params with dimensions in C++ mode", () => {
+      it("should generate cnx style array params with dimensions in C++ mode", () => {
         const source = `
           void fill(mut u8[8] buf) {
               buf[0] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7284,19 +7280,19 @@ describe("CodeGenWalker", () => {
           cppMode: true,
         });
 
-        // C-Next style u8[8] param should generate uint8_t buf[8], not uint8_t& buf
+        // cnx style u8[8] param should generate uint8_t buf[8], not uint8_t& buf
         expect(code).toContain("uint8_t buf[8]");
         expect(code).not.toContain("uint8_t& buf");
         expect(code).not.toContain("uint8_t&  buf");
       });
 
-      it("should generate const C-Next style array params in C++ mode", () => {
+      it("should generate const cnx style array params in C++ mode", () => {
         const source = `
           u8 read(u8[4] data) {
               return data[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7311,18 +7307,18 @@ describe("CodeGenWalker", () => {
           cppMode: true,
         });
 
-        // Const C-Next style array param should retain dimension
+        // Const cnx style array param should retain dimension
         expect(code).toContain("const uint8_t data[4]");
         expect(code).not.toContain("const uint8_t& data");
       });
 
-      it("should generate C-Next style array params in C mode too", () => {
+      it("should generate cnx style array params in C mode too", () => {
         const source = `
           void fill(mut u8[8] buf) {
               buf[0] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7342,13 +7338,13 @@ describe("CodeGenWalker", () => {
         expect(code).not.toContain("uint8_t* buf");
       });
 
-      it("should generate primitive C-Next style arrays with {} in C++ mode (Issue #1004)", () => {
+      it("should generate primitive cnx style arrays with {} in C++ mode (Issue #1004)", () => {
         const source = `
           void main() {
               u32[8] counters;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7368,13 +7364,13 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("uint32_t counters[8] = {}");
       });
 
-      it("should generate unknown user type C-Next style arrays with {} in C++ mode", () => {
+      it("should generate unknown user type cnx style arrays with {} in C++ mode", () => {
         const source = `
           void main() {
               UnknownType[4] items;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7393,14 +7389,14 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("UnknownType items[4] = {}");
       });
 
-      it("should generate known C-Next struct arrays with {} in C++ mode (Issue #1004)", () => {
+      it("should generate known cnx struct arrays with {} in C++ mode (Issue #1004)", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void main() {
               Point[3] pts;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7433,7 +7429,7 @@ describe("CodeGenWalker", () => {
               GPIO.DR[3] <- true;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7461,7 +7457,7 @@ describe("CodeGenWalker", () => {
               TIMER.CTRL[4] <- 0x0F;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7490,7 +7486,7 @@ describe("CodeGenWalker", () => {
               GPIO.DR <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7517,7 +7513,7 @@ describe("CodeGenWalker", () => {
               CONTROL.COMMAND <- 0x42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7548,7 +7544,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7576,7 +7572,7 @@ describe("CodeGenWalker", () => {
               Motor.position.x <- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7604,7 +7600,7 @@ describe("CodeGenWalker", () => {
               items[0].value <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7635,7 +7631,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7664,7 +7660,7 @@ describe("CodeGenWalker", () => {
               Counter.value <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7691,7 +7687,7 @@ describe("CodeGenWalker", () => {
               cfg.enabled <- true;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7722,7 +7718,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7749,7 +7745,7 @@ describe("CodeGenWalker", () => {
               Timer.count <- 0;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7778,7 +7774,7 @@ describe("CodeGenWalker", () => {
               }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7803,7 +7799,7 @@ describe("CodeGenWalker", () => {
               p.x <- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7836,7 +7832,7 @@ describe("CodeGenWalker", () => {
             u32 x <- RED;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7866,7 +7862,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7894,7 +7890,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7922,7 +7918,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7949,7 +7945,7 @@ describe("CodeGenWalker", () => {
             LED.Color c <- LED.Color.RED;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -7980,7 +7976,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8010,7 +8006,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8040,7 +8036,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8067,7 +8063,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8095,7 +8091,7 @@ describe("CodeGenWalker", () => {
             } while (i < 10);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8123,7 +8119,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8150,7 +8146,7 @@ describe("CodeGenWalker", () => {
             State s <- State.IDLE;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8180,7 +8176,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8211,7 +8207,7 @@ describe("CodeGenWalker", () => {
             callee(val);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8237,7 +8233,7 @@ describe("CodeGenWalker", () => {
             callee(data);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8263,7 +8259,7 @@ describe("CodeGenWalker", () => {
             callee(p.x);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8289,7 +8285,7 @@ describe("CodeGenWalker", () => {
             callee(arr[0]);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8317,7 +8313,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8344,7 +8340,7 @@ describe("CodeGenWalker", () => {
             callee(a + b);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8370,7 +8366,7 @@ describe("CodeGenWalker", () => {
             callee(d.values);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8395,7 +8391,7 @@ describe("CodeGenWalker", () => {
             callee(param);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8421,7 +8417,7 @@ describe("CodeGenWalker", () => {
             callee(src);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8448,7 +8444,7 @@ describe("CodeGenWalker", () => {
             processData(cfg.data);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8475,7 +8471,7 @@ describe("CodeGenWalker", () => {
             show(p.name);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
@@ -8501,7 +8497,7 @@ describe("CodeGenWalker", () => {
             fill(o.inner.data);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
@@ -8524,7 +8520,7 @@ describe("CodeGenWalker", () => {
             callee(42);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8550,7 +8546,7 @@ describe("CodeGenWalker", () => {
             callee(getValue());
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8575,7 +8571,7 @@ describe("CodeGenWalker", () => {
             callee((cond = true) ? 1 : 0);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8601,7 +8597,7 @@ describe("CodeGenWalker", () => {
             callee(p.x);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8627,7 +8623,7 @@ describe("CodeGenWalker", () => {
             u32 y <- x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8651,7 +8647,7 @@ describe("CodeGenWalker", () => {
             u32 x <- arr[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8676,7 +8672,7 @@ describe("CodeGenWalker", () => {
             u32 x <- p.x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8700,7 +8696,7 @@ describe("CodeGenWalker", () => {
             u32 y <- x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8724,7 +8720,7 @@ describe("CodeGenWalker", () => {
             bool result <- flag;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8748,7 +8744,7 @@ describe("CodeGenWalker", () => {
             f32 result <- val;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8772,7 +8768,7 @@ describe("CodeGenWalker", () => {
             u32 sum <- a + b + c;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8799,7 +8795,7 @@ describe("CodeGenWalker", () => {
             State result <- s;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8826,7 +8822,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8851,7 +8847,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- val[8, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8876,7 +8872,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8901,7 +8897,7 @@ describe("CodeGenWalker", () => {
             u32 val <- d.values[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8936,7 +8932,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8961,7 +8957,7 @@ describe("CodeGenWalker", () => {
             u32 val <- matrix[1][2];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -8987,7 +8983,7 @@ describe("CodeGenWalker", () => {
             public u32 speed;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9011,7 +9007,7 @@ describe("CodeGenWalker", () => {
             public void start() { }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9039,7 +9035,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9073,7 +9069,7 @@ describe("CodeGenWalker", () => {
             u32 x <- p.x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9100,7 +9096,7 @@ describe("CodeGenWalker", () => {
             u32 x <- o.inner.val;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9125,7 +9121,7 @@ describe("CodeGenWalker", () => {
             u32 x <- cfg.value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9151,7 +9147,7 @@ describe("CodeGenWalker", () => {
             u32 x <- d.values[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9181,7 +9177,7 @@ describe("CodeGenWalker", () => {
             u32 x <- points[0].x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9207,7 +9203,7 @@ describe("CodeGenWalker", () => {
             u32 x <- getConfig().value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9233,7 +9229,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9257,7 +9253,7 @@ describe("CodeGenWalker", () => {
             i32 x <- -42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9281,7 +9277,7 @@ describe("CodeGenWalker", () => {
             f32 x <- 3.14;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9305,7 +9301,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9329,7 +9325,7 @@ describe("CodeGenWalker", () => {
             u8 x <- 0b1010;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9357,7 +9353,7 @@ describe("CodeGenWalker", () => {
             u8 nibble <- flags[4, 4];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9384,7 +9380,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- value[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9413,7 +9409,7 @@ describe("CodeGenWalker", () => {
             counter +<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9438,7 +9434,7 @@ describe("CodeGenWalker", () => {
             counter -<- 20;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9465,7 +9461,7 @@ describe("CodeGenWalker", () => {
             u32 result <- a / 5;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9490,7 +9486,7 @@ describe("CodeGenWalker", () => {
             u32 result <- a % 7;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9516,7 +9512,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9547,7 +9543,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9569,7 +9565,7 @@ describe("CodeGenWalker", () => {
 
     describe("callback field types", () => {
       it("should handle callback typedef in struct", () => {
-        // In C-Next, callback types use function name as the type
+        // In cnx, callback types use function name as the type
         const source = `
           void handleClick() { }
           struct Handler {
@@ -9580,7 +9576,7 @@ describe("CodeGenWalker", () => {
             h.onClick <- handleClick;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9607,7 +9603,7 @@ describe("CodeGenWalker", () => {
           u32 MAX_SIZE <- 100;
           u32[MAX_SIZE] buffer;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9635,7 +9631,7 @@ describe("CodeGenWalker", () => {
             counter +<- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9665,7 +9661,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9690,7 +9686,7 @@ describe("CodeGenWalker", () => {
             arr[5] <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9716,7 +9712,7 @@ describe("CodeGenWalker", () => {
             u32 val <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9745,7 +9741,7 @@ describe("CodeGenWalker", () => {
             helper();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9774,7 +9770,7 @@ describe("CodeGenWalker", () => {
             u8 val <- flags[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9802,7 +9798,7 @@ describe("CodeGenWalker", () => {
             p.x +<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9828,7 +9824,7 @@ describe("CodeGenWalker", () => {
             p.x +<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9855,7 +9851,7 @@ describe("CodeGenWalker", () => {
             string<32> name <- "Hello";
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9883,7 +9879,7 @@ describe("CodeGenWalker", () => {
             string<64> result <- a + b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9914,7 +9910,7 @@ describe("CodeGenWalker", () => {
             Config config;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9950,7 +9946,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -9980,7 +9976,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10008,7 +10004,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10039,7 +10035,7 @@ describe("CodeGenWalker", () => {
             } while (i < 10);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10069,7 +10065,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10097,7 +10093,7 @@ describe("CodeGenWalker", () => {
             u32 result <- (x > 3) ? 10 : 20;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10127,7 +10123,7 @@ describe("CodeGenWalker", () => {
             bool result <- a && b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10153,7 +10149,7 @@ describe("CodeGenWalker", () => {
             bool result <- a || b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10181,7 +10177,7 @@ describe("CodeGenWalker", () => {
             u32 result <- a & b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10207,7 +10203,7 @@ describe("CodeGenWalker", () => {
             u32 right <- a >> 4;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10235,7 +10231,7 @@ describe("CodeGenWalker", () => {
             bool result <- !a;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10260,7 +10256,7 @@ describe("CodeGenWalker", () => {
             u32 result <- ~a;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10287,7 +10283,7 @@ describe("CodeGenWalker", () => {
             Color c <- Color.RED;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10317,7 +10313,7 @@ describe("CodeGenWalker", () => {
             return p;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10343,7 +10339,7 @@ describe("CodeGenWalker", () => {
           #pragma target teensy41
           void test() { }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10370,7 +10366,7 @@ describe("CodeGenWalker", () => {
             u32[5] arr <- [1, 2, 3, 4, 5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10396,7 +10392,7 @@ describe("CodeGenWalker", () => {
             val +<- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10421,7 +10417,7 @@ describe("CodeGenWalker", () => {
             p.x <- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10445,7 +10441,7 @@ describe("CodeGenWalker", () => {
             arr[0] <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10469,7 +10465,7 @@ describe("CodeGenWalker", () => {
             u32 copy <- val;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10493,7 +10489,7 @@ describe("CodeGenWalker", () => {
             u32 len <- name.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10519,7 +10515,7 @@ describe("CodeGenWalker", () => {
             callback();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10546,7 +10542,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10578,7 +10574,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10607,7 +10603,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10634,7 +10630,7 @@ describe("CodeGenWalker", () => {
             Motor.State s <- Motor.State.RUNNING;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10662,7 +10658,7 @@ describe("CodeGenWalker", () => {
             o.inner.value <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10688,7 +10684,7 @@ describe("CodeGenWalker", () => {
             c.points[0].x <- 5;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10717,7 +10713,7 @@ describe("CodeGenWalker", () => {
             modify(x);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10745,7 +10741,7 @@ describe("CodeGenWalker", () => {
             process(d.value);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10770,7 +10766,7 @@ describe("CodeGenWalker", () => {
             u32 result <- compute(5 + 3);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10798,7 +10794,7 @@ describe("CodeGenWalker", () => {
             public void bump() { count +<- 1; }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10824,7 +10820,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10850,7 +10846,7 @@ describe("CodeGenWalker", () => {
             i32 negative <- -42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10874,7 +10870,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 123;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10904,7 +10900,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10932,7 +10928,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10959,7 +10955,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -10994,7 +10990,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11024,7 +11020,7 @@ describe("CodeGenWalker", () => {
             u8 nibble <- flags[8, 4];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11054,7 +11050,7 @@ describe("CodeGenWalker", () => {
             small <- large[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11081,7 +11077,7 @@ describe("CodeGenWalker", () => {
             u32 cap <- message.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11108,7 +11104,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11138,7 +11134,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11165,7 +11161,7 @@ describe("CodeGenWalker", () => {
             u32 v <- c.value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11197,7 +11193,7 @@ describe("CodeGenWalker", () => {
             i32 x <- getOrigin().x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11223,7 +11219,7 @@ describe("CodeGenWalker", () => {
             i32 neg <- -100;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11247,7 +11243,7 @@ describe("CodeGenWalker", () => {
             f32 neg <- -3.14;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11278,7 +11274,7 @@ describe("CodeGenWalker", () => {
             r.value <- 25.5f;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11304,7 +11300,7 @@ describe("CodeGenWalker", () => {
             value +<- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11329,7 +11325,7 @@ describe("CodeGenWalker", () => {
             Color current <- c;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11357,7 +11353,7 @@ describe("CodeGenWalker", () => {
             d.status <- State.ON;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11386,7 +11382,7 @@ describe("CodeGenWalker", () => {
             o.middle.inner.val <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11413,7 +11409,7 @@ describe("CodeGenWalker", () => {
             bool other <- false;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11438,7 +11434,7 @@ describe("CodeGenWalker", () => {
             string<16> s <- "test";
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11464,7 +11460,7 @@ describe("CodeGenWalker", () => {
             return flags[0, 1];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11489,7 +11485,7 @@ describe("CodeGenWalker", () => {
             return arr[5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11516,7 +11512,7 @@ describe("CodeGenWalker", () => {
             return val[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11542,7 +11538,7 @@ describe("CodeGenWalker", () => {
             return s[0, 1];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11570,7 +11566,7 @@ describe("CodeGenWalker", () => {
             u32 bits <- value[0, 32];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11597,7 +11593,7 @@ describe("CodeGenWalker", () => {
             u64 bits <- value[0, 64];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11628,7 +11624,7 @@ describe("CodeGenWalker", () => {
             } while (i < 5);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11654,7 +11650,7 @@ describe("CodeGenWalker", () => {
               x +<- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11684,7 +11680,7 @@ describe("CodeGenWalker", () => {
             Device.Mode m <- Device.Mode.ACTIVE;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11714,7 +11710,7 @@ describe("CodeGenWalker", () => {
             process(arr);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11746,7 +11742,7 @@ describe("CodeGenWalker", () => {
             f32 xCoord <- vec.x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11775,7 +11771,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11804,7 +11800,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11838,7 +11834,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11868,7 +11864,7 @@ describe("CodeGenWalker", () => {
             b.data[0] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11893,7 +11889,7 @@ describe("CodeGenWalker", () => {
             c.values[0] <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11921,7 +11917,7 @@ describe("CodeGenWalker", () => {
             counter +<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11952,7 +11948,7 @@ describe("CodeGenWalker", () => {
             Status s <- getStatus();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -11981,7 +11977,7 @@ describe("CodeGenWalker", () => {
             u32 v <- Device.getValue();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12011,7 +12007,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12041,7 +12037,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12068,7 +12064,7 @@ describe("CodeGenWalker", () => {
             buffer[0] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12094,7 +12090,7 @@ describe("CodeGenWalker", () => {
             buffer[0] <- 0;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12118,7 +12114,7 @@ describe("CodeGenWalker", () => {
             u8[] data <- [1, 2, 3];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12136,14 +12132,14 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("uint8_t data[3]");
       });
 
-      it("should allow multi-dimensional C-Next style arrays", () => {
+      it("should allow multi-dimensional cnx style arrays", () => {
         const source = `
           void test() {
             mut u8[4][4] matrix;
             matrix[0][0] <- 0;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12170,7 +12166,7 @@ describe("CodeGenWalker", () => {
             string<32> greeting <- "Hello " + name;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12196,7 +12192,7 @@ describe("CodeGenWalker", () => {
             string<16> prefix <- name[0, 5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12224,7 +12220,7 @@ describe("CodeGenWalker", () => {
             u32 sum <- a + b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12252,7 +12248,7 @@ describe("CodeGenWalker", () => {
             u32 result <- (a + b) * c;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12285,7 +12281,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12312,7 +12308,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12340,7 +12336,7 @@ describe("CodeGenWalker", () => {
             f32 doubled <- pi * 2.0f;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12366,7 +12362,7 @@ describe("CodeGenWalker", () => {
             f32 negFloat <- -3.14;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12396,7 +12392,7 @@ describe("CodeGenWalker", () => {
             o.inner.value <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12425,7 +12421,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12452,7 +12448,7 @@ describe("CodeGenWalker", () => {
               x <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12479,7 +12475,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12505,7 +12501,7 @@ describe("CodeGenWalker", () => {
               sum +<- i;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12535,7 +12531,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12565,7 +12561,7 @@ describe("CodeGenWalker", () => {
             } while (i < 5);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12595,7 +12591,7 @@ describe("CodeGenWalker", () => {
             u8 red <- c.r;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12622,7 +12618,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12649,7 +12645,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12674,7 +12670,7 @@ describe("CodeGenWalker", () => {
             u32 v <- d.value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12698,7 +12694,7 @@ describe("CodeGenWalker", () => {
             string<64> msg <- "Hello, " + name;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12729,7 +12725,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12757,7 +12753,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12784,7 +12780,7 @@ describe("CodeGenWalker", () => {
             LED.Color c <- LED.Color.RED;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12814,7 +12810,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12842,7 +12838,7 @@ describe("CodeGenWalker", () => {
             h();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12875,7 +12871,7 @@ describe("CodeGenWalker", () => {
           struct Point { i32 x; }
           void onPoint(mut Point p) { p.x <- 1; }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
@@ -12905,7 +12901,7 @@ describe("CodeGenWalker", () => {
             matrix[0][0] <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12925,14 +12921,14 @@ describe("CodeGenWalker", () => {
     });
 
     describe("user type array parameters", () => {
-      it("should handle struct array parameter with C-Next style", () => {
+      it("should handle struct array parameter with cnx style", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void processPoints(mut Point[4] points) {
             points[0].x <- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12957,7 +12953,7 @@ describe("CodeGenWalker", () => {
             items[0].value <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -12977,14 +12973,14 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("multi-dimensional C-Next style array parameters", () => {
+    describe("multi-dimensional cnx style array parameters", () => {
       it("should handle 2D array parameter", () => {
         const source = `
           void processMatrix(mut i32[4][4] matrix) {
             matrix[0][0] <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13008,7 +13004,7 @@ describe("CodeGenWalker", () => {
             cube[0][0][0] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13034,7 +13030,7 @@ describe("CodeGenWalker", () => {
             names[0] <- "test";
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13059,7 +13055,7 @@ describe("CodeGenWalker", () => {
             messages[0] <- "hello";
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13086,7 +13082,7 @@ describe("CodeGenWalker", () => {
             u8 lowBits <- flags[0, 4];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13113,7 +13109,7 @@ describe("CodeGenWalker", () => {
             flags[0, 4] <- 0x0F;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13138,7 +13134,7 @@ describe("CodeGenWalker", () => {
             u32 bits <- val[0, 32];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13167,7 +13163,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13194,7 +13190,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13221,7 +13217,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13248,7 +13244,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13274,7 +13270,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[i];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13300,7 +13296,7 @@ describe("CodeGenWalker", () => {
             string<32> first <- names[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13331,7 +13327,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13363,7 +13359,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13391,7 +13387,7 @@ describe("CodeGenWalker", () => {
             u8 ready <- f[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13419,7 +13415,7 @@ describe("CodeGenWalker", () => {
             u32 wid <- w.id;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13449,7 +13445,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13477,7 +13473,7 @@ describe("CodeGenWalker", () => {
             u32 result <- 10 + 5;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13505,7 +13501,7 @@ describe("CodeGenWalker", () => {
             i32 px <- p.x;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13532,7 +13528,7 @@ describe("CodeGenWalker", () => {
             i32 v <- o.inner.val;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13562,7 +13558,7 @@ describe("CodeGenWalker", () => {
             increment(x);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13592,7 +13588,7 @@ describe("CodeGenWalker", () => {
             processData(myData);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13622,7 +13618,7 @@ describe("CodeGenWalker", () => {
             useValue(c.val);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13648,7 +13644,7 @@ describe("CodeGenWalker", () => {
             i32 neg <- -42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13672,7 +13668,7 @@ describe("CodeGenWalker", () => {
             f32 neg <- -3.14;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13696,7 +13692,7 @@ describe("CodeGenWalker", () => {
             u32 val <- 100;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13723,7 +13719,7 @@ describe("CodeGenWalker", () => {
             u8 small <- big[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13752,7 +13748,7 @@ describe("CodeGenWalker", () => {
             items[0].id <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13785,7 +13781,7 @@ describe("CodeGenWalker", () => {
             u32 c <- res.code;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13817,7 +13813,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13844,7 +13840,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13873,7 +13869,7 @@ describe("CodeGenWalker", () => {
             u32 bits <- floatVal[0, 32];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13901,7 +13897,7 @@ describe("CodeGenWalker", () => {
             u64 bits <- doubleVal[8, 11];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13930,7 +13926,7 @@ describe("CodeGenWalker", () => {
             u8 high <- val[24, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13961,7 +13957,7 @@ describe("CodeGenWalker", () => {
             u8 lowByte <- flags[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -13990,7 +13986,7 @@ describe("CodeGenWalker", () => {
             u8 highByte <- flags[8, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14016,7 +14012,7 @@ describe("CodeGenWalker", () => {
         const source = `
           void doNothing() { }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14042,7 +14038,7 @@ describe("CodeGenWalker", () => {
           }
           Motor.State status;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14065,7 +14061,7 @@ describe("CodeGenWalker", () => {
           struct Point { i32 x; i32 y; }
           Point[10] points;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14088,7 +14084,7 @@ describe("CodeGenWalker", () => {
           u8[256] buffer;
           i32[10] numbers;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14118,7 +14114,7 @@ describe("CodeGenWalker", () => {
             u32 c <- name.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14144,7 +14140,7 @@ describe("CodeGenWalker", () => {
             u32 len <- msg.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14187,7 +14183,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14215,7 +14211,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14247,7 +14243,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14274,7 +14270,7 @@ describe("CodeGenWalker", () => {
             u32 result <- count + offset;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14300,7 +14296,7 @@ describe("CodeGenWalker", () => {
             u32 len <- name.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14325,7 +14321,7 @@ describe("CodeGenWalker", () => {
             u32 total <- 0;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14354,7 +14350,7 @@ describe("CodeGenWalker", () => {
             public void next() { cat <- global.Category.B; }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14379,7 +14375,7 @@ describe("CodeGenWalker", () => {
             State current <- this.State.IDLE;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14404,7 +14400,7 @@ describe("CodeGenWalker", () => {
           }
           Motor.State status <- Motor.State.IDLE;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14431,7 +14427,7 @@ describe("CodeGenWalker", () => {
             setOffset(-5);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14455,7 +14451,7 @@ describe("CodeGenWalker", () => {
             u32 val <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14483,7 +14479,7 @@ describe("CodeGenWalker", () => {
             process(data);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14510,7 +14506,7 @@ describe("CodeGenWalker", () => {
             setX(p.x);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14536,7 +14532,7 @@ describe("CodeGenWalker", () => {
             process(x + 5);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14565,7 +14561,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14592,7 +14588,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14619,7 +14615,7 @@ describe("CodeGenWalker", () => {
             u8 val <- buffer[5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14645,7 +14641,7 @@ describe("CodeGenWalker", () => {
             u8 val <- data[idx];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14677,7 +14673,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14706,7 +14702,7 @@ describe("CodeGenWalker", () => {
             public void lower() { level <- global.Priority.LOW; }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14733,7 +14729,7 @@ describe("CodeGenWalker", () => {
             u16 midBits <- value[8, 16];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14762,7 +14758,7 @@ describe("CodeGenWalker", () => {
             u8 lowByte <- val[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14791,7 +14787,7 @@ describe("CodeGenWalker", () => {
             u8 b3 <- data[16, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14822,7 +14818,7 @@ describe("CodeGenWalker", () => {
             u32 len2 <- msg.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14849,7 +14845,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14875,7 +14871,7 @@ describe("CodeGenWalker", () => {
             u32 len <- s.value_char_count;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14908,7 +14904,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14938,7 +14934,7 @@ describe("CodeGenWalker", () => {
             u32 v <- Utils.getValue();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14967,7 +14963,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -14999,7 +14995,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15027,7 +15023,7 @@ describe("CodeGenWalker", () => {
             bool isZero <- (val = 0);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15053,7 +15049,7 @@ describe("CodeGenWalker", () => {
             bool check <- (flags = 0xFF);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15078,7 +15074,7 @@ describe("CodeGenWalker", () => {
             bool check <- (mode = 0b1010);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15105,7 +15101,7 @@ describe("CodeGenWalker", () => {
             bool check <- (code = limit);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15131,7 +15127,7 @@ describe("CodeGenWalker", () => {
             bool check <- (s = "hello");
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15158,7 +15154,7 @@ describe("CodeGenWalker", () => {
             bool check <- (s1 = s2);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15185,7 +15181,7 @@ describe("CodeGenWalker", () => {
             bool check <- (names[0] = "Alice");
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15213,7 +15209,7 @@ describe("CodeGenWalker", () => {
             buffer[0] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15238,7 +15234,7 @@ describe("CodeGenWalker", () => {
             matrix[0][0] <- 0;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15263,7 +15259,7 @@ describe("CodeGenWalker", () => {
             values[0] <- 100;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15287,7 +15283,7 @@ describe("CodeGenWalker", () => {
             u8[4] data <- [1, 2, 3, 4];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15305,7 +15301,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("const uint8_t data[4]");
       });
 
-      it("should handle struct array with C-Next syntax", () => {
+      it("should handle struct array with cnx syntax", () => {
         const source = `
           struct Point {
             i32 x;
@@ -15316,7 +15312,7 @@ describe("CodeGenWalker", () => {
             points[0].x <- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15336,7 +15332,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("points[0].x = 10");
       });
 
-      it("should handle bitmap array with C-Next syntax", () => {
+      it("should handle bitmap array with cnx syntax", () => {
         const source = `
           bitmap8 Flags {
             active,
@@ -15350,7 +15346,7 @@ describe("CodeGenWalker", () => {
             flags[0].active <- true;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15370,7 +15366,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("flags[0]");
       });
 
-      it("should handle enum array with C-Next syntax", () => {
+      it("should handle enum array with cnx syntax", () => {
         const source = `
           enum Color {
             RED,
@@ -15382,7 +15378,7 @@ describe("CodeGenWalker", () => {
             colors[0] <- Color.RED;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15401,14 +15397,14 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("colors[0] = Color__RED");
       });
 
-      it("should handle struct array initializer with C-Next syntax", () => {
+      it("should handle struct array initializer with cnx syntax", () => {
         const source = `
           struct Item {
             u8 id;
           }
           Item[2] items <- [{id: 1}, {id: 2}];
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15438,7 +15434,7 @@ describe("CodeGenWalker", () => {
             u32 v <- cfg.value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15467,7 +15463,7 @@ describe("CodeGenWalker", () => {
             u32 first <- items[0].id;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15495,7 +15491,7 @@ describe("CodeGenWalker", () => {
             u32 v <- cfg.value;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15524,7 +15520,7 @@ describe("CodeGenWalker", () => {
             u32 t <- s.timeout;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15552,7 +15548,7 @@ describe("CodeGenWalker", () => {
             rw u32 DR @ 0x00;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15580,7 +15576,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15610,7 +15606,7 @@ describe("CodeGenWalker", () => {
             c <- Color.GREEN;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15639,7 +15635,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15667,7 +15663,7 @@ describe("CodeGenWalker", () => {
             Result r <- getResult();
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15695,7 +15691,7 @@ describe("CodeGenWalker", () => {
             val +<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15720,7 +15716,7 @@ describe("CodeGenWalker", () => {
             val -<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15745,7 +15741,7 @@ describe("CodeGenWalker", () => {
           #include <stdio.h>
           void test() {}
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15769,7 +15765,7 @@ describe("CodeGenWalker", () => {
           #define DEBUG_MODE
           void test() {}
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15796,7 +15792,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- val[8, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15823,7 +15819,7 @@ describe("CodeGenWalker", () => {
             val[8, 8] <- 0xFF;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15849,7 +15845,7 @@ describe("CodeGenWalker", () => {
             flags[3] <- true;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15876,7 +15872,7 @@ describe("CodeGenWalker", () => {
             arr[5] <- 42;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15901,7 +15897,7 @@ describe("CodeGenWalker", () => {
             u8 lowByte <- val[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15927,7 +15923,7 @@ describe("CodeGenWalker", () => {
             u32 upper <- val[32, 32];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15957,7 +15953,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -15984,7 +15980,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16015,7 +16011,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16047,7 +16043,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16077,7 +16073,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16105,7 +16101,7 @@ describe("CodeGenWalker", () => {
             }
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16136,7 +16132,7 @@ describe("CodeGenWalker", () => {
             } while (i < 10);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16163,7 +16159,7 @@ describe("CodeGenWalker", () => {
             return a + b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16191,7 +16187,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[0];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16215,7 +16211,7 @@ describe("CodeGenWalker", () => {
         const source = `
           u32 globalCounter <- 0;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16238,7 +16234,7 @@ describe("CodeGenWalker", () => {
         const source = `
           u32 MAX_VALUE <- 100;
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16266,7 +16262,7 @@ describe("CodeGenWalker", () => {
             u32 b <- a % 3;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16294,7 +16290,7 @@ describe("CodeGenWalker", () => {
             u32 e <- ~a;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16323,7 +16319,7 @@ describe("CodeGenWalker", () => {
             u32 c <- a >> 2;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16353,7 +16349,7 @@ describe("CodeGenWalker", () => {
             bool d <- a || b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16379,7 +16375,7 @@ describe("CodeGenWalker", () => {
             bool b <- !a;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16406,7 +16402,7 @@ describe("CodeGenWalker", () => {
             u32 b <- (a > 3) ? 10 : 20;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16436,7 +16432,7 @@ describe("CodeGenWalker", () => {
             i32 b <- -a;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16461,7 +16457,7 @@ describe("CodeGenWalker", () => {
             u32 b <- ~a;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16498,7 +16494,7 @@ describe("CodeGenWalker", () => {
             bool isSet <- f.bit0;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16527,7 +16523,7 @@ describe("CodeGenWalker", () => {
             u32 result <- multiply(5, 10);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16556,7 +16552,7 @@ describe("CodeGenWalker", () => {
             u32 result <- Math.square(5);
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16582,7 +16578,7 @@ describe("CodeGenWalker", () => {
             u32 x <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16610,7 +16606,7 @@ describe("CodeGenWalker", () => {
             counter <- 1;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16637,7 +16633,7 @@ describe("CodeGenWalker", () => {
             val +<- 10;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16668,7 +16664,7 @@ describe("CodeGenWalker", () => {
             u32 c <- a / b;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16698,7 +16694,7 @@ describe("CodeGenWalker", () => {
             u32 result <- (a + b) * c;
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16730,7 +16726,7 @@ describe("CodeGenWalker", () => {
             u32 val <- arr[5];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16755,7 +16751,7 @@ describe("CodeGenWalker", () => {
             u8 val <- data[idx];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16780,7 +16776,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- value[8, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16806,7 +16802,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- fval[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16834,7 +16830,7 @@ describe("CodeGenWalker", () => {
             u8 byte <- dval[0, 8];
           }
         `;
-        const { tree, program } = CNextSourceParser.parse(source);
+        const { tree, program } = CnxSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
         // The host is constructed here and injected, so assertions about the state
         // the walk accumulates read the SAME instance the walk drove.
@@ -16859,7 +16855,7 @@ describe("CodeGenWalker", () => {
 
   describe("Issue #1739: a const is a C constant expression where it is named", () => {
     const generate = (source: string): string => {
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       const generator = new CodeGenWalker(new CodeGenerator());
       const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
       return generateWithProgram(generator, tree, program, {
@@ -17015,7 +17011,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17047,7 +17043,7 @@ describe("CodeGenWalker", () => {
           }
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17078,7 +17074,7 @@ describe("CodeGenWalker", () => {
         struct Point { i32 x; i32 y; }
         Point origin <- {x: 0, y: 0};
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17106,7 +17102,7 @@ describe("CodeGenWalker", () => {
           Point p <- {x: 10, y: 20};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17131,7 +17127,7 @@ describe("CodeGenWalker", () => {
         struct Line { Point start; Point end; }
         Line seg <- {start: {x: 0, y: 0}, end: {x: 100, y: 100}};
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.
@@ -17162,7 +17158,7 @@ describe("CodeGenWalker", () => {
           p <- {x: 10, y: 20};
         }
       `;
-      const { tree, program } = CNextSourceParser.parse(source);
+      const { tree, program } = CnxSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
       // the walk accumulates read the SAME instance the walk drove.

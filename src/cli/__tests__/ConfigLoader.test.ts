@@ -7,20 +7,9 @@ import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
-import ConfigFileNames from "../../cnx/PARSE/1-Discover/ConfigFileNames";
 import IncludeDiscovery from "../../cnx/PARSE/1-Discover/IncludeDiscovery";
-import IFileConfig from "../types/IFileConfig";
 import MockFileSystem from "./MockFileSystem";
 import IFileSystem from "../../cnx/types/IFileSystem";
-
-/** The config `load` found from `startDir`, which must not be E0918. */
-function loaded(startDir: string, fs?: IFileSystem): IFileConfig {
-  const result = ConfigLoader.load(startDir, fs);
-  if (result.kind !== "loaded") {
-    throw new Error(`expected a config, got ${JSON.stringify(result.errors)}`);
-  }
-  return result.config;
-}
 
 describe("ConfigLoader", () => {
   let tempDir: string;
@@ -37,7 +26,7 @@ describe("ConfigLoader", () => {
 
   describe("load", () => {
     it("returns empty object when no config file exists", () => {
-      const config = loaded(tempDir);
+      const config = ConfigLoader.load(tempDir);
       expect(config).toEqual({});
     });
 
@@ -48,7 +37,7 @@ describe("ConfigLoader", () => {
     ])("loads %s when present", (name, settings) => {
       writeFileSync(join(tempDir, name), JSON.stringify(settings));
 
-      const config = loaded(tempDir);
+      const config = ConfigLoader.load(tempDir);
 
       expect(config).toEqual({ ...settings, _path: join(tempDir, name) });
     });
@@ -63,7 +52,7 @@ describe("ConfigLoader", () => {
         JSON.stringify({ target: "from-cnx-json" }),
       );
 
-      const config = loaded(tempDir);
+      const config = ConfigLoader.load(tempDir);
 
       expect(config.target).toBe("from-config");
     });
@@ -78,7 +67,7 @@ describe("ConfigLoader", () => {
         JSON.stringify({ target: "from-rc" }),
       );
 
-      const config = loaded(tempDir);
+      const config = ConfigLoader.load(tempDir);
 
       expect(config.target).toBe("from-cnx-json");
     });
@@ -95,7 +84,7 @@ describe("ConfigLoader", () => {
         JSON.stringify({ target: "above-the-empty-one" }),
       );
 
-      expect(loaded(subDir)).toEqual({});
+      expect(ConfigLoader.load(subDir)).toEqual({});
     });
 
     it("searches up the directory tree", () => {
@@ -110,7 +99,7 @@ describe("ConfigLoader", () => {
         JSON.stringify({ target: "found-in-parent" }),
       );
 
-      const config = loaded(subDir);
+      const config = ConfigLoader.load(subDir);
 
       expect(config.target).toBe("found-in-parent");
       expect(config._path).toBe(join(tempDir, "cnx.config.json"));
@@ -135,7 +124,7 @@ describe("ConfigLoader", () => {
       });
       const warn = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      const config = loaded("/p/app", unreadable);
+      const config = ConfigLoader.load("/p/app", unreadable);
 
       expect(config).toEqual({});
       expect(warn).toHaveBeenCalledWith(
@@ -150,7 +139,7 @@ describe("ConfigLoader", () => {
         const fs = new MockFileSystem().addFile("/p/.cnxrc", content);
         const warn = vi.spyOn(console, "error").mockImplementation(() => {});
 
-        expect(loaded("/p", fs)).toEqual({});
+        expect(ConfigLoader.load("/p", fs)).toEqual({});
         expect(warn).toHaveBeenCalledWith(
           expect.stringContaining("/p/.cnxrc is not a JSON object"),
         );
@@ -165,7 +154,7 @@ describe("ConfigLoader", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      const config = loaded(tempDir);
+      const config = ConfigLoader.load(tempDir);
 
       expect(config).toEqual({});
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -190,7 +179,7 @@ describe("ConfigLoader", () => {
         JSON.stringify(fullConfig),
       );
 
-      const config = loaded(tempDir);
+      const config = ConfigLoader.load(tempDir);
 
       expect(config.cppRequired).toBe(true);
       expect(config.debugMode).toBe(true);
@@ -212,7 +201,7 @@ describe("ConfigLoader", () => {
           JSON.stringify({ headerOut: "include" }),
         );
 
-        const config = loaded(tempDir);
+        const config = ConfigLoader.load(tempDir);
 
         expect(config.headerOut).toBe(join(tempDir, "include"));
       });
@@ -225,8 +214,8 @@ describe("ConfigLoader", () => {
           JSON.stringify({ headerOut: "include" }),
         );
 
-        const fromRoot = loaded(tempDir);
-        const fromSubDir = loaded(subDir);
+        const fromRoot = ConfigLoader.load(tempDir);
+        const fromSubDir = ConfigLoader.load(subDir);
 
         expect(fromSubDir.headerOut).toBe(join(tempDir, "include"));
         expect(fromSubDir.headerOut).toBe(fromRoot.headerOut);
@@ -238,7 +227,7 @@ describe("ConfigLoader", () => {
           JSON.stringify({ output: "build" }),
         );
 
-        const config = loaded(tempDir);
+        const config = ConfigLoader.load(tempDir);
 
         expect(config.output).toBe(join(tempDir, "build"));
       });
@@ -251,7 +240,7 @@ describe("ConfigLoader", () => {
           JSON.stringify({ include: ["vendor", ".pio/libdeps"] }),
         );
 
-        const config = loaded(subDir);
+        const config = ConfigLoader.load(subDir);
 
         expect(config.include).toEqual([
           join(tempDir, "vendor"),
@@ -275,7 +264,7 @@ describe("ConfigLoader", () => {
           JSON.stringify({ include: ["", "vendor"] }),
         );
 
-        const config = loaded(tempDir);
+        const config = ConfigLoader.load(tempDir);
 
         expect(config.include).toEqual([join(tempDir, "vendor")]);
       });
@@ -286,7 +275,7 @@ describe("ConfigLoader", () => {
           JSON.stringify({ headerOut: "/opt/generated/include" }),
         );
 
-        const config = loaded(tempDir);
+        const config = ConfigLoader.load(tempDir);
 
         expect(config.headerOut).toBe("/opt/generated/include");
       });
@@ -303,73 +292,10 @@ describe("ConfigLoader", () => {
           JSON.stringify({ headerOut: "~/generated" }),
         );
 
-        const config = loaded(tempDir);
+        const config = ConfigLoader.load(tempDir);
 
         expect(config.headerOut).toBe(join(home, "generated"));
       });
-    });
-  });
-
-  // #2165: a config under an old name is E0918, never read and never skipped
-  describe("old config file names", () => {
-    it.each([
-      ["cnext.config.json", "cnx.config.json"],
-      [".cnext.json", ".cnx.json"],
-      [".cnextrc", ".cnxrc"],
-    ])("%s is E0918, naming %s", (oldName, successor) => {
-      const fs = new MockFileSystem().addFile(`/p/${oldName}`, "{}");
-
-      expect(ConfigLoader.load("/p", fs)).toEqual({
-        kind: "renamed",
-        errors: [
-          ConfigFileNames.errorFor({
-            path: `/p/${oldName}`,
-            successor,
-            besideConfig: null,
-          }),
-        ],
-      });
-    });
-
-    it("is E0918 beside a new-name config, rather than reading the new one", () => {
-      const fs = new MockFileSystem()
-        .addFile("/p/cnx.config.json", JSON.stringify({ target: "new" }))
-        .addFile("/p/cnext.config.json", JSON.stringify({ target: "old" }));
-
-      expect(ConfigLoader.load("/p", fs)).toEqual({
-        kind: "renamed",
-        errors: [
-          ConfigFileNames.errorFor({
-            path: "/p/cnext.config.json",
-            successor: "cnx.config.json",
-            besideConfig: "/p/cnx.config.json",
-          }),
-        ],
-      });
-    });
-
-    it("is E0918 for an empty old-name file, which a new name would skip", () => {
-      const fs = new MockFileSystem()
-        .addFile("/p/app/.cnextrc", "")
-        .addFile("/p/cnx.config.json", JSON.stringify({ target: "above" }));
-
-      expect(ConfigLoader.load("/p/app", fs).kind).toBe("renamed");
-    });
-
-    it("is E0918 below a new-name config: the walk reaches the old file first", () => {
-      const fs = new MockFileSystem()
-        .addFile("/p/app/cnext.config.json", "{}")
-        .addFile("/p/cnx.config.json", JSON.stringify({ target: "above" }));
-
-      expect(ConfigLoader.load("/p/app", fs).kind).toBe("renamed");
-    });
-
-    it("never reaches an old name above the config it loads", () => {
-      const fs = new MockFileSystem()
-        .addFile("/p/app/cnx.config.json", JSON.stringify({ target: "near" }))
-        .addFile("/p/cnext.config.json", JSON.stringify({ target: "far" }));
-
-      expect(loaded("/p/app", fs).target).toBe("near");
     });
   });
 
@@ -393,7 +319,7 @@ describe("ConfigLoader", () => {
       );
       mark(fs);
 
-      expect(loaded("/proj/tools", fs)).toEqual({});
+      expect(ConfigLoader.load("/proj/tools", fs)).toEqual({});
     });
 
     it("reads the config above a directory with no marker, which is the root", () => {
@@ -402,7 +328,7 @@ describe("ConfigLoader", () => {
         JSON.stringify({ headerOut: "include" }),
       );
 
-      expect(loaded("/proj/tools", fs)).toMatchObject({
+      expect(ConfigLoader.load("/proj/tools", fs)).toMatchObject({
         _path: "/proj/cnx.config.json",
         headerOut: "/proj/include",
       });
@@ -413,19 +339,8 @@ describe("ConfigLoader", () => {
         .addFile("/home/.cnxrc", JSON.stringify({ headerOut: "headers" }))
         .addDirectory("/home/work/p/.git");
 
-      expect(loaded("/home/work/p", fs)).toEqual({});
-      expect(loaded("/home/work/q", fs)._path).toBe("/home/.cnxrc");
-    });
-
-    it("never reaches an old name above the root, so it is not E0918", () => {
-      const fs = new MockFileSystem()
-        .addFile("/p/app/package.json", "{}")
-        .addFile("/p/.cnextrc", JSON.stringify({ target: "teensy41" }));
-
-      expect(ConfigLoader.load("/p/app", fs)).toEqual({
-        kind: "loaded",
-        config: {},
-      });
+      expect(ConfigLoader.load("/home/work/p", fs)).toEqual({});
+      expect(ConfigLoader.load("/home/work/q", fs)._path).toBe("/home/.cnxrc");
     });
 
     it.each([
@@ -445,16 +360,16 @@ describe("ConfigLoader", () => {
         .addFile("/home/work/p/.cnx.json", "{}")
         .addDirectory("/home/work/r/.git");
 
-      const read = loaded(start, fs)._path;
+      const read = ConfigLoader.load(start, fs)._path;
 
-      expect(IncludeDiscovery.findProjectRoot(start, fs).root).toBe(root);
+      expect(IncludeDiscovery.findProjectRoot(start, fs)).toBe(root);
       expect(read).toBe(config);
       expect(read === undefined || dirname(read) === root).toBe(true);
     });
   });
 
   describe("inDirectory", () => {
-    it("is the first non-empty new-name config in that directory alone", () => {
+    it("is the first non-empty config file in that directory alone", () => {
       const fs = new MockFileSystem()
         .addFile("/p/app/cnx.config.json", " ")
         .addFile("/p/app/.cnxrc", "{}")

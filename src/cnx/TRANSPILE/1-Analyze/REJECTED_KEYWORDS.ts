@@ -1,6 +1,6 @@
 /**
  * Words that parse as a bare IDENTIFIER but are deliberately not part of
- * C-Next, and get their own diagnostic rather than a generic one.
+ * cnx, and get their own diagnostic rather than a generic one.
  *
  * ADR-026 (Status: Rejected) excludes `break` and `continue` from the language;
  * `CodeGenerator` rejects them with E0703 naming the structured alternative.

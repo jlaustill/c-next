@@ -18,18 +18,18 @@ import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
-import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 const registry = new SymbolRegistry();
 
 describe("ConflictDetector", () => {
-  let cnext: TSymbol[];
+  let cnx: TSymbol[];
   let c: TCSymbol[];
   let cpp: TCppSymbol[];
 
   beforeEach(() => {
-    cnext = [];
+    cnx = [];
     c = [];
     cpp = [];
   });
@@ -44,26 +44,26 @@ describe("ConflictDetector", () => {
    * `detect` also means a break in it reddens these tests; when this wrapped a
    * separate entry point, a mutation to `detect` left 12 of 13 green.
    *
-   * Matches either side because a C-Next duplicate is reported under its
+   * Matches either side because a cnx duplicate is reported under its
    * `cnxScopedName` (`Lib.useIt`), not the bare name a caller asks about.
    */
   const hasConflict = (name: string): boolean =>
-    ConflictDetector.detect(registry, cnext, c, cpp).some(
+    ConflictDetector.detect(registry, cnx, c, cpp).some(
       (conflict) =>
         conflict.symbolName === name ||
         conflict.definitions.some((definition) => definition.name === name),
     );
 
   describe("hasConflict", () => {
-    it("should detect cross-language conflicts between C-Next and C", () => {
-      cnext.push({
+    it("should detect cross-language conflicts between cnx and C", () => {
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "conflictFunc",
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
@@ -115,7 +115,7 @@ describe("ConflictDetector", () => {
 
     // The same symbol declared in both a C header and a C++ header is normally the
     // SAME symbol seen twice, not a conflict. Covered here because extracting
-    // detectCNextDuplicate moved this branch, and a moved line is attributed to
+    // detectCnxDuplicate moved this branch, and a moved line is attributed to
     // the mover.
     it("should NOT detect conflict for the same symbol in C and C++ headers", () => {
       c.push({
@@ -152,14 +152,14 @@ describe("ConflictDetector", () => {
     // unit-level seam for it.
     it("should NOT detect conflict for a scope declared twice (reopened)", () => {
       for (const line of [1, 10]) {
-        cnext.push({
+        cnx.push({
           ...TestSymbolUtils.base({
             kind: "scope",
             name: "Lib",
             scopePath: "",
             sourceFile: "test.cnx",
             span: TestSourceSpan.at(line),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           members: [],
@@ -174,14 +174,14 @@ describe("ConflictDetector", () => {
     // were written in, because members group by the scope's own identity.
     it("should STILL detect conflict for a duplicated member of a reopened scope", () => {
       for (const line of [2, 11]) {
-        cnext.push({
+        cnx.push({
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "count",
             scopePath: "Lib",
             sourceFile: "test.cnx",
             span: TestSourceSpan.at(line),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("u32"),
@@ -201,14 +201,14 @@ describe("ConflictDetector", () => {
       // Create two different named scopes
 
       // Add 'enabled' variable in scope Foo
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "enabled",
           scopePath: "Foo",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(2),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
@@ -220,14 +220,14 @@ describe("ConflictDetector", () => {
       });
 
       // Add 'enabled' variable in scope Bar
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "enabled",
           scopePath: "Bar",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(10),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
@@ -245,14 +245,14 @@ describe("ConflictDetector", () => {
     // Issue #817: Same-named functions in different scopes are not conflicts
     it("should NOT detect conflict for same-named functions in different scopes", () => {
       // Add 'initialize' function in scope Foo
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "initialize",
           scopePath: "Foo",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(4),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
@@ -261,14 +261,14 @@ describe("ConflictDetector", () => {
       } as IFunctionSymbol);
 
       // Add 'initialize' function in scope Bar
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "initialize",
           scopePath: "Bar",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(12),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
@@ -283,14 +283,14 @@ describe("ConflictDetector", () => {
     // True conflicts: same name in same scope should still be detected
     it("should detect conflict for same-named symbols in same scope", () => {
       // Add 'duplicate' variable in scope Foo twice
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "duplicate",
           scopePath: "Foo",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(2),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
@@ -301,14 +301,14 @@ describe("ConflictDetector", () => {
         overflowBehavior: "clamp",
       });
 
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "duplicate",
           scopePath: "Foo",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(5),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
@@ -328,7 +328,7 @@ describe("ConflictDetector", () => {
     // cannot see the difference because they use depth-one scopes, where a
     // scope's name and its qualified name are the same string.
     //
-    // Nested scopes are unreachable from .cnx source (grammar/CNext.g4:81-89),
+    // Nested scopes are unreachable from .cnx source (grammar/Cnx.g4:81-89),
     // so this has to be built through the scope factory. That is the point: the
     // property is real in the symbol model before the grammar admits it.
     it("should NOT detect conflict for members of distinct scopes sharing a leaf name", () => {
@@ -338,7 +338,7 @@ describe("ConflictDetector", () => {
         ["Outer.Inner", 2],
         ["Other.Inner", 20],
       ] as const) {
-        cnext.push({
+        cnx.push({
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "tick",
@@ -366,7 +366,7 @@ describe("ConflictDetector", () => {
     // left the whole suite green.
     it("names a conflicting symbol by its full source path", () => {
       for (const line of [2, 5]) {
-        cnext.push({
+        cnx.push({
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "tick",
@@ -384,7 +384,7 @@ describe("ConflictDetector", () => {
         });
       }
 
-      const conflicts = ConflictDetector.detect(registry, cnext, c, cpp);
+      const conflicts = ConflictDetector.detect(registry, cnx, c, cpp);
 
       expect(conflicts).toHaveLength(1);
       // Not "tick" (no scope at all) and not "Inner.tick" (the leaf only, which
@@ -395,14 +395,14 @@ describe("ConflictDetector", () => {
     // Global scope conflicts should still be detected
     it("should detect conflict for same-named globals", () => {
       // Add two global variables with same name
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "globalVar",
           scopePath: "",
           sourceFile: "first.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -413,14 +413,14 @@ describe("ConflictDetector", () => {
         overflowBehavior: "clamp",
       });
 
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "globalVar",
           scopePath: "",
           sourceFile: "second.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -435,19 +435,19 @@ describe("ConflictDetector", () => {
       expect(hasConflict("globalVar")).toBe(true);
     });
 
-    // Issue #967: Scoped C-Next symbols live in a namespace and don't conflict
-    // with C's global symbols. Only global-scope C-Next symbols can conflict.
-    it("should NOT detect conflict for scoped C-Next method vs C function with same bare name", () => {
-      // Add C-Next scoped function 'read' in scope 'Touch'
+    // Issue #967: Scoped cnx symbols live in a namespace and don't conflict
+    // with C's global symbols. Only global-scope cnx symbols can conflict.
+    it("should NOT detect conflict for scoped cnx method vs C function with same bare name", () => {
+      // Add cnx scoped function 'read' in scope 'Touch'
       // This transpiles to Touch_read()
-      cnext.push({
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "read",
           scopePath: "Touch",
           sourceFile: "touch.cnx",
           span: TestSourceSpan.at(28),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("u8"),
@@ -476,17 +476,17 @@ describe("ConflictDetector", () => {
       expect(hasConflict("read")).toBe(false);
     });
 
-    // Issue #967: Global C-Next functions SHOULD still conflict with C functions
-    it("should detect conflict for global C-Next function vs C function", () => {
-      // Add global C-Next function 'read'
-      cnext.push({
+    // Issue #967: Global cnx functions SHOULD still conflict with C functions
+    it("should detect conflict for global cnx function vs C function", () => {
+      // Add global cnx function 'read'
+      cnx.push({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "read",
           scopePath: "",
           sourceFile: "utils.cnx",
           span: TestSourceSpan.at(5),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("u8"),
@@ -506,7 +506,7 @@ describe("ConflictDetector", () => {
         parameters: [],
       });
 
-      // Global C-Next read() DOES conflict with C's read()
+      // Global cnx read() DOES conflict with C's read()
       expect(hasConflict("read")).toBe(true);
     });
   });

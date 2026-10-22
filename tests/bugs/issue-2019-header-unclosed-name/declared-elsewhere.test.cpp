@@ -7,7 +7,7 @@
 
 // test-execution
 // test-adr: 030
-// #2019 review: in a file that reaches a C header, a name is C-Next's where a
+// #2019 review: in a file that reaches a C header, a name is cnx's where a
 // declaration of the file would bind it once closed. A declaration that
 // cannot bind at the use is no such evidence: a scope's member, under a bare
 // name outside the scope, leaves the name to the header's macro (ADR-030, as

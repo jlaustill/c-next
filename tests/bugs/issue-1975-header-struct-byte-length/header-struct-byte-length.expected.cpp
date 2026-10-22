@@ -6,8 +6,8 @@
 #include "header-struct-byte-length.test.hpp"
 
 // test-execution
-// Issue #1975 (owner ruling): C-Next has no `sizeof`, so a struct from a C
-// header answers ADR-058's length properties by C-Next's rule: its fields'
+// Issue #1975 (owner ruling): cnx has no `sizeof`, so a struct from a C
+// header answers ADR-058's length properties by cnx's rule: its fields'
 // sizes summed, without C padding. `Cfg` is 5 (gcc's `sizeof` is 8), and
 // `Outer` is 5 + 6 + 4 = 15 through a nested header struct and an array field.
 // The type answers the same as a value of it.
@@ -17,21 +17,21 @@
 //
 // #1975 review: a header typedef (`word_t`) and a C primitive spelling
 // (`uint32_t`) are types too, and size an array dimension the same; and the
-// #1867 rule holds for a C-Next struct's array field, in `main` and in a
+// #1867 rule holds for a cnx struct's array field, in `main` and in a
 // scope's function. A header struct's `.type_element_count` is its field count, as
-// a C-Next struct's is, and a length is a case label's number.
+// a cnx struct's is, and a length is a case label's number.
 //
 // #1975 review (owner ruling): a header bit-field is its declared width, as a
-// C-Next bitmap field is -- `BF.a.type_bit_length` is 3, not its `uint32_t`'s 32 --
+// cnx bitmap field is -- `BF.a.type_bit_length` is 3, not its `uint32_t`'s 32 --
 // as a value, a dimension and a case label.
 //
-// NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
-// `Wrap`, a C-Next struct with a header struct's field, sized by it too.
+// NEGATIVE CONTROL: `Point`, a cnx struct, sized by the same rule; and
+// `Wrap`, a cnx struct with a header struct's field, sized by it too.
 #include "shapes.h"
 
 #include <stdint.h>
 
-// #1975 review: a C-Next struct with a header struct's field is sized by the
+// #1975 review: a cnx struct with a header struct's field is sized by the
 // one rule, its fields' sizes together: 5 + 1
 extern const uint8_t wrapBytes[6] = {};
 

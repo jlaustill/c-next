@@ -2,17 +2,17 @@
 
 **Status:** Implemented
 **Date:** 2025-12-28
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-C-Next needs a way to group related data fields together. This is the foundation for:
+cnx needs a way to group related data fields together. This is the foundation for:
 
 - Complex data types (point, vector, configuration)
 - Register layouts with multiple fields
 - The `class` feature (ADR-005) which adds methods to structs
 
-C already has `struct`, and C-Next should provide an equivalent with:
+C already has `struct`, and cnx should provide an equivalent with:
 
 - Same semantics as C structs
 - Fixed-width types (`u8`, `u32`, etc.)
@@ -125,7 +125,7 @@ p = (Point){ .x = 10, .y = 20 };
 | Methods                   | Use `namespace` (ADR-002) for singleton services, `class` (ADR-005) for multiple instances |
 | Constructors              | Use `class` or inline initialization                                                       |
 | Visibility modifiers      | All fields are public (use `class` for encapsulation)                                      |
-| Inheritance               | Not in C-Next                                                                              |
+| Inheritance               | Not in cnx                                                                                 |
 | Nested struct definitions | Define separately, compose by field                                                        |
 
 ## Design Decisions
@@ -380,7 +380,7 @@ these cells were `off`, recorded as unable to exist.
 
 ### Grammar Changes
 
-Add to `CNext.g4`:
+Add to `Cnx.g4`:
 
 ```antlr
 structDeclaration

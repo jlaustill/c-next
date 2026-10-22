@@ -22,7 +22,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // test-cpp-only
 // test-execution
-// Tests: C-Next style array parameters in C++ mode
+// Tests: cnx style array parameters in C++ mode
 // Bug: u8[8] param generated as uint8_t& instead of uint8_t param[8]
 void fillBuffer(uint8_t buf[8]) {
     buf[0] = 0xAAU;

@@ -11,7 +11,7 @@
 // pointer too, but to a value C can copy, so the value is `(*f)` -- the
 // opposite of an opaque handle, whose value is the pointer.
 //
-// Forwarded to a C-Next function it stays `fullPoke(f)`, and a whole-value use
+// Forwarded to a cnx function it stays `fullPoke(f)`, and a whole-value use
 // stays `(*f)`: the fix is keyed on the opaque-handle decision, and a complete
 // struct is not an opaque handle. Dropping the dereference for struct
 // parameters in general, rather than for opaque handles only, reddens this

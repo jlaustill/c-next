@@ -5,13 +5,13 @@
 
 ## Summary
 
-Enhance VS Code extension hover tooltips to show the language type (C/C++/C-Next) and source filename for every symbol, providing full traceability when working across C-Next source, generated C, and C/C++ dependencies.
+Enhance VS Code extension hover tooltips to show the language type (C/C++/cnx) and source filename for every symbol, providing full traceability when working across cnx source, generated C, and C/C++ dependencies.
 
 ## Motivation
 
-When working in a C-Next project, it's not always obvious where a symbol comes from:
+When working in a cnx project, it's not always obvious where a symbol comes from:
 
-- Is this a C-Next symbol from my `.cnx` file?
+- Is this a cnx symbol from my `.cnx` file?
 - Is this from a C header I included?
 - Is this from an Arduino C++ library?
 
@@ -32,14 +32,14 @@ Source: [filename.ext:line](file-link) (Language (.ext))
 
 ### Examples
 
-**C-Next scope method:**
+**cnx scope method:**
 
 ```
 void LED_toggle(void)
 Toggle the LED state
 
 ---
-Source: [led.cnx:42](command:...) (C-Next (.cnx))
+Source: [led.cnx:42](command:...) (cnx (.cnx))
 ```
 
 **C standard library function:**
@@ -65,7 +65,7 @@ Source: [HardwareSerial.h:89](command:...) (C++ (.h))
 
 | File Extension        | Language Label       |
 | --------------------- | -------------------- |
-| `.cnx`                | C-Next (.cnx)        |
+| `.cnx`                | cnx (.cnx)           |
 | `.c`                  | C (.c)               |
 | `.h`                  | C (.h) or C++ (.h)\* |
 | `.cpp`, `.cc`, `.cxx` | C++ (.cpp)           |
@@ -83,7 +83,7 @@ Source: [HardwareSerial.h:89](command:...) (C++ (.h))
 
 | Symbol Origin            | Source of File/Line                                  |
 | ------------------------ | ---------------------------------------------------- |
-| C-Next symbols           | `ISymbolInfo.line` + file from WorkspaceIndex        |
+| cnx symbols              | `ISymbolInfo.line` + file from WorkspaceIndex        |
 | C/C++ from headers       | Parsed via `CSymbolCollector`, line numbers captured |
 | C/C++ extension fallback | Query C/C++ extension's definition provider          |
 
@@ -113,14 +113,14 @@ Clicking opens the file and jumps to the specified line.
 
 3. **`vscode-extension/src/lib/types/ISymbolInfo.ts`**
    - Add `sourceFile?: string` field (if not present)
-   - Add `language?: 'cnext' | 'c' | 'cpp'` field
+   - Add `language?: 'cnx' | 'c' | 'cpp'` field
 
 ### Implementation Steps
 
 1. Extend `ISymbolInfo` with source tracking fields
 2. Update symbol collectors to populate source file paths
 3. Add helper functions to `hoverProvider.ts`
-4. Modify C-Next symbol hover to include footer
+4. Modify cnx symbol hover to include footer
 5. Modify C/C++ header symbol hover to include footer
 6. Modify C/C++ extension fallback hover to include footer
 7. Test across all symbol types

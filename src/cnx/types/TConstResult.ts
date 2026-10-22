@@ -16,7 +16,7 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
  *   see it.
  * - `foreign`: it depends on a name only C knows the value of -- a macro. C can
  *   evaluate it where C
- *   allows (an array dimension); C-Next cannot use it where it needs the value.
+ *   allows (an array dimension); cnx cannot use it where it needs the value.
  */
 type TConstResult =
   | {
@@ -72,7 +72,7 @@ type TConstResult =
       /** What only C knows, as the source spells it, for a message */
       readonly spelling: string;
       /**
-       * A name a header declares; a name no C-Next declaration binds, in a
+       * A name a header declares; a name no cnx declaration binds, in a
        * file that includes a header, which may be a macro (a `#define` never
        * reaches the symbol model); or a memory size the C compiler decides
        * for the target (ADR-058 `.memory_*`)

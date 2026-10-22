@@ -47,5 +47,5 @@ npm test tests/postfix-chains/
 ## Related Documentation
 
 - **Coverage:** `/coverage.md` (Section 34.3)
-- **Grammar:** `grammar/CNext.g4` lines 485-486
+- **Grammar:** `grammar/Cnx.g4` lines 485-486
 - **Code Location:** `src/codegen/CodeGenerator.ts` lines 5850-6285

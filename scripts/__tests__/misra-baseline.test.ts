@@ -62,14 +62,14 @@ describe("parseViolations", () => {
 });
 
 describe("isGenerated", () => {
-  it("treats *.test.c and *.test.h as C-Next-generated", () => {
+  it("treats *.test.c and *.test.h as cnx-generated", () => {
     expect(MisraBaseline.isGenerated("tests/foo/bar.test.c")).toBe(true);
     expect(MisraBaseline.isGenerated("tests/foo/bar.test.h")).toBe(true);
   });
 
   it("treats hand-written fixtures and third-party headers as external", () => {
     // cppcheck reports violations in transitively-included headers; these are
-    // NOT C-Next output and must not gate the build (#1057 refinement).
+    // NOT cnx output and must not gate the build (#1057 refinement).
     expect(MisraBaseline.isGenerated("tests/libs/cJSON/cJSON.h")).toBe(false);
     expect(MisraBaseline.isGenerated("tests/include/c-interop/enums.h")).toBe(
       false,

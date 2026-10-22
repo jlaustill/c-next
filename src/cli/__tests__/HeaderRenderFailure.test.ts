@@ -20,7 +20,7 @@ describe("header render failure promotion (#1323)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-header-render-failure-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-header-render-failure-"));
   });
 
   afterEach(() => {

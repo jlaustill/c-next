@@ -2,7 +2,7 @@
  * Issue #1152: `clamp` must govern arithmetic expressions, not just compound
  * assignment.
  *
- * `clamp` is C-Next's default overflow behavior (ADR-044), but it used to apply
+ * `clamp` is cnx's default overflow behavior (ADR-044), but it used to apply
  * only to `+<-`/`-<-`/`*<-`. So `c <- a + b` wrapped while `c +<- b` saturated,
  * and `wrap` produced byte-identical output to `clamp` in every expression --
  * the opt-in modifier bought nothing and the default protected nothing.

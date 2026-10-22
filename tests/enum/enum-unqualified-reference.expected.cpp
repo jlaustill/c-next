@@ -14,7 +14,7 @@
 // Tests: Unqualified enum value references must be prefixed in generated C
 // Bug: When referencing an enum value without EnumType.VALUE syntax,
 //      the generated C was missing the required EnumType_ prefix.
-// Issue: https://github.com/jlaustill/c-next/issues/452
+// Issue: https://github.com/smeltworks/cnx/issues/452
 /* Scope: EnumUnqualRef */
 
 void setDefault(EnumUnqualRef__Config& config) {

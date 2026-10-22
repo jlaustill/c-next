@@ -4,7 +4,7 @@
  * How a declared name is spelled is syntax, so 1.2 reports it with the file's
  * other parse errors (#1991), off the tree only 1.2 holds.
  *
- * A C-Next identifier may not end with `_` and may not contain `__`. That reserves
+ * A cnx identifier may not end with `_` and may not contain `__`. That reserves
  * `__` exclusively for the transpiler as the qualified-name separator, which makes
  * `Scope__member` injective: distinct declarations can no longer produce the same C
  * identifier. A leading underscore stays legal — injectivity constrains only the
@@ -12,13 +12,13 @@
  * unaffected.
  *
  * Only DECLARATION contexts are checked. References are deliberately skipped, which
- * is what lets a C-Next file call an external C symbol such as `__disable_irq()`
+ * is what lets a cnx file call an external C symbol such as `__disable_irq()`
  * without tripping the rule (ADR-010, ADR-063).
  */
 
 import { ParseTreeWalker, TerminalNode } from "antlr4ng";
-import { CNextListener } from "./grammar/CNextListener";
-import * as Parser from "./grammar/CNextParser";
+import { CnxListener } from "./grammar/CnxListener";
+import * as Parser from "./grammar/CnxParser";
 import type ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
 import ReservedCnxName from "../../utils/ReservedCnxName";
@@ -129,7 +129,7 @@ function formatIdentifierSyntaxHelp(
  * repeating the classify/report logic, which keeps the thirteen near-identical
  * handlers from tripping duplication analysis.
  */
-class IdentifierSyntaxListener extends CNextListener {
+class IdentifierSyntaxListener extends CnxListener {
   readonly found: ITranspileError[] = [];
 
   override enterScopeDeclaration = (

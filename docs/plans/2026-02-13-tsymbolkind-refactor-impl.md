@@ -4,7 +4,7 @@
 
 **Goal:** Replace `ESymbolKind` enum with language-specific string union types for better type safety and zero runtime overhead.
 
-**Architecture:** Create four type files in `src/transpiler/types/symbol-kinds/` - one per language (C-Next, C, C++) plus a union type. Update all 71 files that import `ESymbolKind` to use string literals instead. Delete the enum.
+**Architecture:** Create four type files in `src/transpiler/types/symbol-kinds/` - one per language (cnx, C, C++) plus a union type. Update all 71 files that import `ESymbolKind` to use string literals instead. Delete the enum.
 
 **Tech Stack:** TypeScript, string literal union types
 
@@ -14,7 +14,7 @@
 
 **Files:**
 
-- Create: `src/transpiler/types/symbol-kinds/TSymbolKindCNext.ts`
+- Create: `src/transpiler/types/symbol-kinds/TSymbolKindCnx.ts`
 - Create: `src/transpiler/types/symbol-kinds/TSymbolKindC.ts`
 - Create: `src/transpiler/types/symbol-kinds/TSymbolKindCpp.ts`
 - Create: `src/transpiler/types/symbol-kinds/TSymbolKind.ts`
@@ -23,13 +23,13 @@
 
 Run: `mkdir -p src/transpiler/types/symbol-kinds`
 
-**Step 2: Create TSymbolKindCNext.ts**
+**Step 2: Create TSymbolKindCnx.ts**
 
 ```typescript
 /**
- * Symbol kinds for C-Next language constructs.
+ * Symbol kinds for cnx language constructs.
  */
-type TSymbolKindCNext =
+type TSymbolKindCnx =
   | "function"
   | "variable"
   | "struct"
@@ -41,7 +41,7 @@ type TSymbolKindCNext =
   | "register_member"
   | "scope";
 
-export default TSymbolKindCNext;
+export default TSymbolKindCnx;
 ```
 
 **Step 3: Create TSymbolKindC.ts**
@@ -83,14 +83,14 @@ export default TSymbolKindCpp;
 **Step 5: Create TSymbolKind.ts**
 
 ```typescript
-import TSymbolKindCNext from "./TSymbolKindCNext";
+import TSymbolKindCnx from "./TSymbolKindCnx";
 import TSymbolKindC from "./TSymbolKindC";
 import TSymbolKindCpp from "./TSymbolKindCpp";
 
 /**
  * Union of all symbol kinds across supported languages.
  */
-type TSymbolKind = TSymbolKindCNext | TSymbolKindC | TSymbolKindCpp;
+type TSymbolKind = TSymbolKindCnx | TSymbolKindC | TSymbolKindCpp;
 
 export default TSymbolKind;
 ```
@@ -174,7 +174,7 @@ Remove import, change `kind: ESymbolKind.Register` to `kind: "register"`.
 
 **Step 7: Update IScopeSymbol.ts**
 
-Remove import, change `kind: ESymbolKind.Namespace` to `kind: "scope"` (C-Next scopes, not C++ namespaces).
+Remove import, change `kind: ESymbolKind.Namespace` to `kind: "scope"` (cnx scopes, not C++ namespaces).
 
 **Step 8: Verify TypeScript compiles**
 
@@ -279,19 +279,19 @@ git commit -m "refactor: update ISymbol and type guards to use string literals"
 
 ---
 
-## Task 4: Update C-Next Symbol Collectors
+## Task 4: Update cnx Symbol Collectors
 
-These files create C-Next symbols - all use `"scope"` for scopes.
+These files create cnx symbols - all use `"scope"` for scopes.
 
 **Files:**
 
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/FunctionCollector.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/VariableCollector.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/StructCollector.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/EnumCollector.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/BitmapCollector.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/RegisterCollector.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/collectors/ScopeCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/FunctionCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/VariableCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/StructCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/EnumCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/BitmapCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/RegisterCollector.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/collectors/ScopeCollector.ts`
 
 **Step 1: Update each collector**
 
@@ -327,18 +327,18 @@ kind: "scope",
 **Step 2: Commit**
 
 ```bash
-git add src/transpiler/logic/symbols/cnext/collectors/
-git commit -m "refactor: update C-Next collectors to use string literal kinds"
+git add src/transpiler/logic/symbols/cnx/collectors/
+git commit -m "refactor: update cnx collectors to use string literal kinds"
 ```
 
 ---
 
-## Task 5: Update C-Next Symbol Adapters
+## Task 5: Update cnx Symbol Adapters
 
 **Files:**
 
-- Modify: `src/transpiler/logic/symbols/cnext/adapters/TSymbolAdapter.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/adapters/TSymbolAdapter.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/adapters/TSymbolInfoAdapter.ts`
 
 **Step 1: Update TSymbolAdapter.ts**
 
@@ -350,7 +350,7 @@ Remove ESymbolKind import. Update switch cases:
 - `case ESymbolKind.Function:` → `case "function":`
 - `case ESymbolKind.Variable:` → `case "variable":`
 - `case ESymbolKind.Register:` → `case "register":`
-- `case ESymbolKind.Namespace:` → `case "scope":` (C-Next scopes)
+- `case ESymbolKind.Namespace:` → `case "scope":` (cnx scopes)
 
 Also update object literals:
 
@@ -363,8 +363,8 @@ Same pattern as TSymbolAdapter.ts - remove import, update switch cases and objec
 **Step 3: Commit**
 
 ```bash
-git add src/transpiler/logic/symbols/cnext/adapters/
-git commit -m "refactor: update C-Next adapters to use string literal kinds"
+git add src/transpiler/logic/symbols/cnx/adapters/
+git commit -m "refactor: update cnx adapters to use string literal kinds"
 ```
 
 ---
@@ -616,7 +616,7 @@ For each file:
 
 1. Remove `import ESymbolKind from "...";`
 2. Replace all `ESymbolKind.X` with `"x"` string literals
-3. For SymbolGuards.test.ts, change `ESymbolKind.Namespace` to `"scope"` for C-Next scope tests
+3. For SymbolGuards.test.ts, change `ESymbolKind.Namespace` to `"scope"` for cnx scope tests
 
 **Step 2: Commit**
 
@@ -627,17 +627,17 @@ git commit -m "test: update symbol type tests to use string literal kinds"
 
 ---
 
-## Task 15: Update Test Files - C-Next Collectors
+## Task 15: Update Test Files - cnx Collectors
 
 **Files:**
 
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/FunctionCollector.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/VariableCollector.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/StructCollector.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/EnumCollector.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/BitmapCollector.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/RegisterCollector.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/ScopeCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/FunctionCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/VariableCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/StructCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/EnumCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/BitmapCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/RegisterCollector.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/ScopeCollector.test.ts`
 
 **Step 1: Update each test file**
 
@@ -647,30 +647,30 @@ For ScopeCollector.test.ts, use `"scope"` instead of `ESymbolKind.Namespace`.
 **Step 2: Commit**
 
 ```bash
-git add src/transpiler/logic/symbols/cnext/__tests__/
-git commit -m "test: update C-Next collector tests to use string literal kinds"
+git add src/transpiler/logic/symbols/cnx/__tests__/
+git commit -m "test: update cnx collector tests to use string literal kinds"
 ```
 
 ---
 
-## Task 16: Update Test Files - C-Next Adapters
+## Task 16: Update Test Files - cnx Adapters
 
 **Files:**
 
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/TSymbolAdapter.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/TSymbolInfoAdapter.test.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/__tests__/CNextResolver.integration.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/TSymbolAdapter.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/TSymbolInfoAdapter.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/__tests__/CnxResolver.integration.test.ts`
 
 **Step 1: Update each test file**
 
 Remove ESymbolKind imports, replace with string literals.
-Use `"scope"` for C-Next scopes.
+Use `"scope"` for cnx scopes.
 
 **Step 2: Commit**
 
 ```bash
-git add src/transpiler/logic/symbols/cnext/__tests__/
-git commit -m "test: update C-Next adapter tests to use string literal kinds"
+git add src/transpiler/logic/symbols/cnx/__tests__/
+git commit -m "test: update cnx adapter tests to use string literal kinds"
 ```
 
 ---

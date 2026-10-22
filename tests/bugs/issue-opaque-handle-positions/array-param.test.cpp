@@ -17,7 +17,7 @@
 // handle, and forwarding the whole array emitted `pokeAll((*arr))`.
 //
 // Each element is the handle itself, whether the array is a parameter or a
-// local, and whether it reaches a C function or a C-Next one.
+// local, and whether it reaches a C function or a cnx one.
 //
 // Control: an element of an array of COMPLETE structs, passed to a C function
 // taking its address, keeps its `&` -- that element is a value, not a

@@ -21,7 +21,7 @@ describe("#1444: one run reads platformio.ini once", () => {
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-one-pio-read-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-one-pio-read-"));
     mkdirSync(join(project, "src"));
     mkdirSync(join(project, "lib", "util"), { recursive: true });
     writeFileSync(

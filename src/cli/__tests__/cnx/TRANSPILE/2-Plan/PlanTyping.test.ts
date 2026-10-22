@@ -5,8 +5,8 @@
 import SyntaxLowering from "../../../../../cnx/PARSE/2-Parse/SyntaxLowering";
 import { describe, expect, it } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CnxListener";
+import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CnxParser";
 import OperandTyper from "../../../../../cnx/utils/OperandTyper";
 import PlanTyping from "../../../../../cnx/TRANSPILE/2-Plan/PlanTyping";
 import testAnalysisContextFor from "../1-Analyze/testAnalysisContextFor";
@@ -16,7 +16,7 @@ function initializerOf(source: string) {
   const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
   let found: Parser.ExpressionContext | null = null;
   ParseTreeWalker.DEFAULT.walk(
-    new (class extends CNextListener {
+    new (class extends CnxListener {
       override enterVariableDeclaration = (
         ctx: Parser.VariableDeclarationContext,
       ): void => {
@@ -49,7 +49,7 @@ describe("PlanTyping.castSourceType (ADR-024)", () => {
     );
     let operand: Parser.UnaryExpressionContext | null = null;
     ParseTreeWalker.DEFAULT.walk(
-      new (class extends CNextListener {
+      new (class extends CnxListener {
         override enterCastExpression = (
           ctx: Parser.CastExpressionContext,
         ): void => {

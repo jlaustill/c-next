@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import CnxSourceParser from "../../PARSE/2-Parse/CnxSourceParser";
 import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import MainSignature from "../MainSignature";
 
 function signatureOf(
   source: string,
 ): Parameters<typeof MainSignature.takesArgs> {
-  const fn = CNextSourceParser.parse(source)
+  const fn = CnxSourceParser.parse(source)
     .tree.declaration()[0]
     .functionDeclaration()!;
   return [

@@ -5,16 +5,16 @@
 
 /*
  * C Interop Test Variables
- * Test variable declarations for C-Next interop testing
+ * Test variable declarations for cnx interop testing
  *
  * Variables are defined as static to allow execution tests without
  * requiring separate compilation/linking of a .c file.
  */
 
-/* Static constant (can be accessed from C-Next) */
+/* Static constant (can be accessed from cnx) */
 static const uint32_t EXTERN_MAGIC_NUMBER = 0xCAFEBABEU;
 
-/* Static variable (can be read/written from C-Next) */
+/* Static variable (can be read/written from cnx) */
 static uint32_t extern_counter = 0;
 
 /* Static const array */

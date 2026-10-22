@@ -272,7 +272,7 @@ ${generatePanicBlock(info.cnxType, opName)}
  * Generate an overflow helper function for the given operation and type
  *
  * @param operation - The arithmetic operation (add, sub, mul)
- * @param cnxType - The C-Next type (u8, i32, etc.)
+ * @param cnxType - The cnx type (u8, i32, etc.)
  * @param debugMode - If true, generate panic helpers; otherwise, clamp helpers
  * @returns The generated helper function or null if type is invalid
  */

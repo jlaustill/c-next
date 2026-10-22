@@ -2,7 +2,7 @@
  * Source language of a symbol
  */
 enum ESourceLanguage {
-  CNext = "cnext",
+  Cnx = "cnx",
   C = "c",
   Cpp = "cpp",
 }

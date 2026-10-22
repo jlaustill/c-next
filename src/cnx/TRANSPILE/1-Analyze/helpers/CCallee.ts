@@ -12,7 +12,7 @@ type TPostfix = Extract<TExpression, { kind: "postfix" }>;
  * The C (or C++) function a call reaches, and nothing after the call: one
  * named (`f(a)`, `global.f(a)`, `hw.f(a)` in a C++ namespace), a C++ method
  * (`c.set(a)`), or a value of a C function-pointer typedef (`h.fill(a)`). A
- * C-Next function of that name is C-Next's own, so it is not one. E0895's
+ * cnx function of that name is cnx's own, so it is not one. E0895's
  * pointer check and ADR-071's write tracking ask this one question.
  */
 class CCallee {

@@ -153,5 +153,5 @@ Expected output without `*` in parameters.
 8. Update call site generation to omit `&`
 9. Run tests, iterate until passing
 10. Add comprehensive edge case tests
-11. Update documentation (ADR-006, learn-cnext)
+11. Update documentation (ADR-006, learn-cnx)
 12. Close GitHub issue with PR

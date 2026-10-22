@@ -4,16 +4,16 @@
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../../../PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../../../PARSE/2-Parse/grammar/CnxParser";
 import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 import ReturnPathAnalyzer from "../ReturnPathAnalyzer";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   return parser.program();
 }
 
@@ -207,7 +207,7 @@ describe("ReturnPathAnalyzer", () => {
   });
 
   describe("treats `forever` as a divergent terminal path (ADR-068, the primitive #849 consumes)", () => {
-    // A `forever` loop never exits (C-Next has no break/continue, ADR-026), so a
+    // A `forever` loop never exits (cnx has no break/continue, ADR-026), so a
     // function whose terminal path is `forever` never falls through and must not
     // be flagged E0704. (In real programs `forever` is void-only via E0705 in
     // codegen; this is the shared divergence primitive ADR-069 reuses.)

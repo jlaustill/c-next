@@ -11,7 +11,7 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import HeaderIncludes from "../HeaderIncludes";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
-import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import type IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type TSymbol from "../../../types/symbols/TSymbol";
@@ -26,7 +26,7 @@ function variable(name: string, type: TType): IVariableSymbol {
       scopePath: "",
       sourceFile: "test.cnx",
       span: TestSourceSpan.at(1),
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public",
     }),
     type,
@@ -47,7 +47,7 @@ function bitmap(name: string, backingType: string): IBitmapSymbol {
       scopePath: "",
       sourceFile: "test.cnx",
       span: TestSourceSpan.at(1),
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public",
     }),
     backingType,

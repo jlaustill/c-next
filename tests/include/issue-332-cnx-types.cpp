@@ -7,6 +7,6 @@
 
 #include <stdint.h>
 
-// Issue #332: C-Next struct that will be passed to external C++ function
-// This struct is defined in a C-Next file (not a C header)
+// Issue #332: cnx struct that will be passed to external C++ function
+// This struct is defined in a cnx file (not a C header)
 // and must work with external functions expecting pointers

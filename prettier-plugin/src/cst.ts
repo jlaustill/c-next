@@ -1,5 +1,5 @@
 /**
- * CST helpers for the C-Next Prettier plugin (#1364).
+ * CST helpers for the cnx Prettier plugin (#1364).
  *
  * The plugin prints ANTLR's parse tree directly rather than converting it to a
  * bespoke AST first. That conversion layer is what rotted in the previous
@@ -11,7 +11,7 @@
 
 import { TerminalNode, Token } from "antlr4ng";
 
-import { CNextParser } from "../../src/cnx/PARSE/2-Parse/grammar/CNextParser";
+import { CnxParser } from "../../src/cnx/PARSE/2-Parse/grammar/CnxParser";
 
 import ICommentAnchor from "./types/ICommentAnchor";
 import ICommentNode from "./types/ICommentNode";
@@ -52,7 +52,7 @@ class Cst {
   /** The generated rule name, or null for a token. Diagnostics only. */
   static ruleNameOf(node: TCstNode): string | null {
     const index = Cst.ruleIndexOf(node);
-    return index === null ? null : (CNextParser.ruleNames[index] ?? null);
+    return index === null ? null : (CnxParser.ruleNames[index] ?? null);
   }
 
   /** The comments anchored to this token during parsing, if any. */
@@ -145,7 +145,7 @@ class Cst {
   /**
    * True when a blank line separated these two nodes in the source.
    *
-   * `grammar/CNext.g4` sends whitespace to `-> skip`, so there are no
+   * `grammar/Cnx.g4` sends whitespace to `-> skip`, so there are no
    * whitespace tokens to inspect. Line numbers survive on the tokens
    * themselves, which is all blank-line preservation needs.
    *

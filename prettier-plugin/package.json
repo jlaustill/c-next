@@ -1,7 +1,7 @@
 {
-  "name": "prettier-plugin-cnext",
+  "name": "@smeltworks/prettier-plugin-cnx",
   "version": "0.0.1",
-  "description": "Prettier plugin for C-Next language",
+  "description": "Prettier plugin for the cnx language",
   "main": "dist/index.js",
   "files": [
     "dist/"
@@ -14,7 +14,7 @@
   "keywords": [
     "prettier",
     "plugin",
-    "c-next",
+    "cnx",
     "formatter"
   ],
   "author": "Joshua Austill <jlaustill@gmail.com>",

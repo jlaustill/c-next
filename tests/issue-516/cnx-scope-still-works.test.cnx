@@ -1,0 +1,53 @@
+// Tests: cnx scopes still use _ separator after issue #516 fix
+// Ensures we didn't break existing cnx scope functionality
+
+scope Motor {
+    public mut u8 speed;
+
+    public void start() {
+        this.speed <- 100;
+    }
+
+    public void stop() {
+        this.speed <- 0;
+    }
+}
+
+scope Controller {
+    public void run() {
+        // cnx scope call should use _ separator
+        Motor.start();
+        Motor.stop();
+
+        // cnx scope member access should use _ separator
+        u8 s <- Motor.speed;
+    }
+}
+
+u32 main() {
+    // Test 1: Initial speed should be 0
+    if (global.Motor.speed != 0) {
+        return 1;
+    }
+
+    // Test 2: Start should set speed to 100
+    global.Motor.start();
+    if (global.Motor.speed != 100) {
+        return 2;
+    }
+
+    // Test 3: Stop should set speed to 0
+    global.Motor.stop();
+    if (global.Motor.speed != 0) {
+        return 3;
+    }
+
+    // Test 4: Run controller (exercises scope calls)
+    global.Motor.start(); // Set to 100 first
+    global.Controller.run(); // This calls start() then stop()
+    if (global.Motor.speed != 0) {
+        return 4;
+    }
+
+    return 0;
+}

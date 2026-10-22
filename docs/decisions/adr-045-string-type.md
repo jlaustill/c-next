@@ -2,7 +2,7 @@
 
 **Status:** Implemented
 **Date:** 2025-12-30
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 

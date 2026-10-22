@@ -3,7 +3,7 @@
  * dimension naming a macro from an included header (`u8[BUF_SIZE + 1]`).
  *
  * Written from the expression's STRUCTURE, never from its source text. Every
- * part that has a value is written as that value, so a C-Next const (which C
+ * part that has a value is written as that value, so a cnx const (which C
  * cannot see) never reaches the C by name; operators are C's (`=` is `==`);
  * and a negative value is parenthesized, so no two tokens can join into one
  * (`1 - -1` must never become `1--1`). The .c and the .h both print a
@@ -14,7 +14,7 @@ import invariant from "./invariant";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
 import type TConstExpr from "../types/TConstExpr";
 
-/** The C-Next operators C spells differently */
+/** The cnx operators C spells differently */
 const C_OPERATOR: Readonly<Record<string, string>> = { "=": "==" };
 
 class ConstExprPrinter {

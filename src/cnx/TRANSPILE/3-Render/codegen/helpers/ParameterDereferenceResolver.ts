@@ -2,7 +2,7 @@
  * Parameter Dereference Resolver
  *
  * Determines whether a parameter needs to be dereferenced when used as a value.
- * C-Next uses pass-by-reference for most types, but some types use pass-by-value:
+ * cnx uses pass-by-reference for most types, but some types use pass-by-value:
  * - Callbacks (function pointers)
  * - Read-only scalars: integers, floats, enums (ADR-071 Q6)
  * - Structs (use -> instead of dereference)
@@ -77,7 +77,7 @@ class ParameterDereferenceResolver {
     }
 
     // Issue #895: Callback-compatible primitives need dereferencing when
-    // used as values (assignments, comparisons) because the C-Next type
+    // used as values (assignments, comparisons) because the cnx type
     // (e.g., u8) became a pointer (uint8_t*) to match the callback typedef.
     if (paramInfo.forcePointerSemantics) {
       return `(*${emittedName})`;

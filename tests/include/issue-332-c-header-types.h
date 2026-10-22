@@ -1,5 +1,5 @@
 // Issue #332: Plain C struct (for comparison)
-// This struct comes from a C header (not a C-Next file)
+// This struct comes from a C header (not a cnx file)
 
 #ifndef ISSUE_332_C_HEADER_TYPES_H
 #define ISSUE_332_C_HEADER_TYPES_H

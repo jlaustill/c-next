@@ -5,7 +5,6 @@ import Preprocessor from "../../../../../cnx/PARSE/2-Parse/preprocessor/Preproce
 import RunAnchor from "../../../../../cnx/PARSE/1-Discover/RunAnchor";
 import EFileType from "../../../../../cnx/PARSE/1-Discover/types/EFileType";
 import MockFileSystem from "../../../MockFileSystem";
-import ConfigFileNames from "../../../../../cnx/PARSE/1-Discover/ConfigFileNames";
 import type ISourceGraph from "../../../../../cnx/PARSE/1-Discover/types/ISourceGraph";
 import type TTranspileInput from "../../../../../cnx/types/TTranspileInput";
 
@@ -22,12 +21,10 @@ describe("Discover", () => {
   // #2166: a developer's export must not decide what a run's anchor names
   const exported = {
     CNX_CROSS_COMPILER: process.env.CNX_CROSS_COMPILER,
-    CNEXT_CROSS_COMPILER: process.env.CNEXT_CROSS_COMPILER,
   };
 
   beforeEach(() => {
     delete process.env.CNX_CROSS_COMPILER;
-    delete process.env.CNEXT_CROSS_COMPILER;
     vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(true);
     vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
       async (file: string) => ({
@@ -145,7 +142,7 @@ describe("Discover", () => {
   it("orders the files so each follows the files it includes", async () => {
     const { graph } = await discover(project());
 
-    expect(graph.cnextFiles.map((file) => file.path)).toEqual([
+    expect(graph.cnxFiles.map((file) => file.path)).toEqual([
       "/proj/src/lib.cnx",
       "/proj/src/app.cnx",
     ]);
@@ -153,18 +150,18 @@ describe("Discover", () => {
 
   it("carries each file's kind, its edges and the text it was read from", async () => {
     const { graph } = await discover(project());
-    const byPath = new Map(graph.cnextFiles.map((file) => [file.path, file]));
+    const byPath = new Map(graph.cnxFiles.map((file) => [file.path, file]));
     const app = byPath.get("/proj/src/app.cnx");
     const lib = byPath.get("/proj/src/lib.cnx");
     if (app === undefined || lib === undefined) {
       throw new Error("both files are discovered");
     }
 
-    expect(app.discoveredFile.type).toBe(EFileType.CNext);
-    expect(app.cnextIncludes.map((include) => include.path)).toEqual([
+    expect(app.discoveredFile.type).toBe(EFileType.Cnx);
+    expect(app.cnxIncludes.map((include) => include.path)).toEqual([
       "/proj/src/lib.cnx",
     ]);
-    expect(lib.cnextIncludes).toEqual([]);
+    expect(lib.cnxIncludes).toEqual([]);
     expect(app.source).toContain('#include "lib.cnx"');
     // The header is the file's edge to C, which is what E0426/E0427 decline on
     expect(app.reachesForeignHeader).toBe(true);
@@ -177,7 +174,7 @@ describe("Discover", () => {
   it("records each file's include facts, in the order it visited them", async () => {
     const { graph } = await discover(project());
 
-    // Visit order, not `cnextFiles`' dependency order (see `ISourceGraph`)
+    // Visit order, not `cnxFiles`' dependency order (see `ISourceGraph`)
     expect([...graph.includes.c.keys()]).toEqual([
       "/proj/src/app.cnx",
       "/proj/src/lib.cnx",
@@ -209,8 +206,8 @@ describe("Discover", () => {
     const { graph } = await discover(project());
 
     expect(Object.isFrozen(graph)).toBe(true);
-    expect(Object.isFrozen(graph.cnextFiles)).toBe(true);
-    expect(graph.cnextFiles.every((file) => Object.isFrozen(file))).toBe(true);
+    expect(Object.isFrozen(graph.cnxFiles)).toBe(true);
+    expect(graph.cnxFiles.every((file) => Object.isFrozen(file))).toBe(true);
     expect(Object.isFrozen(graph.headerFiles)).toBe(true);
     expect(Object.isFrozen(graph.includeSearchPaths)).toBe(true);
     expect(
@@ -221,32 +218,32 @@ describe("Discover", () => {
 
   it("is frozen all the way down, not just the records (#1444 review)", async () => {
     const { graph } = await discover(project());
-    const app = graph.cnextFiles.find(
+    const app = graph.cnxFiles.find(
       (file) => file.path === "/proj/src/app.cnx",
     );
 
     expect(Object.isFrozen(app?.discoveredFile)).toBe(true);
-    expect(Object.isFrozen(app?.cnextIncludes)).toBe(true);
-    expect(Object.isFrozen(app?.cnextIncludes[0])).toBe(true);
+    expect(Object.isFrozen(app?.cnxIncludes)).toBe(true);
+    expect(Object.isFrozen(app?.cnxIncludes[0])).toBe(true);
     expect(Object.isFrozen(graph.headerFiles[0])).toBe(true);
     // The `RunAnchor`'s own object, which the next run at this anchor reuses
     expect(Object.isFrozen(graph.anchor.defines)).toBe(true);
   });
 
-  it("has no files when the entry is not C-Next", async () => {
+  it("has no files when the entry is not cnx", async () => {
     const fs = new MockFileSystem().addFile("/proj/src/readme.txt", "hello");
     const warnings: string[] = [];
-    const notCNext = { ...settings, input: "/proj/src/readme.txt" };
+    const notCnx = { ...settings, input: "/proj/src/readme.txt" };
 
     const { graph } = Discover.run(
       { kind: "files" },
-      RunAnchor.at(notCNext.input, null, notCNext, fs),
-      notCNext,
+      RunAnchor.at(notCnx.input, null, notCnx, fs),
+      notCnx,
       fs,
       warnings,
     );
 
-    expect(graph.cnextFiles).toEqual([]);
+    expect(graph.cnxFiles).toEqual([]);
     expect(graph.includes.c.size).toBe(0);
   });
 
@@ -277,162 +274,16 @@ describe("Discover", () => {
 
       expect(run().graph.anchor.configuredCompiler).toBeNull();
     });
-
-    it("rejects CNEXT_CROSS_COMPILER, naming CNX_CROSS_COMPILER", () => {
-      process.env.CNEXT_CROSS_COMPILER = "xtensa-esp32-elf-gcc";
-
-      const { graph, errors } = run();
-
-      expect(errors).toEqual([
-        {
-          sourcePath: "/proj/src/app.cnx",
-          line: 1,
-          column: 0,
-          severity: "error",
-          message:
-            "error[E0924]: the environment sets CNEXT_CROSS_COMPILER, which cnx no longer reads: it is now CNX_CROSS_COMPILER",
-          helpText:
-            "Set CNX_CROSS_COMPILER to 'xtensa-esp32-elf-gcc' instead, and unset CNEXT_CROSS_COMPILER.",
-        },
-      ]);
-      expect(graph.anchor.configuredCompiler).toBeNull();
-    });
-
-    it("rejects it beside CNX_CROSS_COMPILER, which still names the compiler", () => {
-      process.env.CNEXT_CROSS_COMPILER = "old-gcc";
-      process.env.CNX_CROSS_COMPILER = "new-gcc";
-
-      const { graph, errors } = run();
-
-      expect(errors.map((e) => e.helpText)).toEqual([
-        "CNX_CROSS_COMPILER is set too, and names the compiler cnx reads headers with. Unset CNEXT_CROSS_COMPILER.",
-      ]);
-      expect(graph.anchor.configuredCompiler).toBe("new-gcc");
-    });
-
-    it("rejects it at a source run's text", () => {
-      process.env.CNEXT_CROSS_COMPILER = "old-gcc";
-
-      const { errors } = run({
-        kind: "source",
-        source: "void main() { }\n",
-        sourcePath: "/proj/src/editor.cnx",
-      });
-
-      expect(errors.map((e) => e.sourcePath)).toEqual(["/proj/src/editor.cnx"]);
-    });
   });
 
-  describe("renamed config files", () => {
-    /** E0918 for an old-name file with no new-name config beside it. */
-    function renamedError(path: string, successor: string): unknown {
-      return ConfigFileNames.errorFor({ path, successor, besideConfig: null });
-    }
-
-    function discoverErrors(
-      files: MockFileSystem,
-      run = settings,
-    ): readonly unknown[] {
-      fs = files;
-      return Discover.run(
-        { kind: "files" },
-        RunAnchor.at(run.input, null, run, fs),
-        run,
-        fs,
-        [],
-      ).errors;
-    }
-
-    it("reports one that two directories' walks pass, once", () => {
-      // /proj/src and /proj/src/sub are walked separately; both pass /proj
-      const errors = discoverErrors(
-        new MockFileSystem()
-          .addFile(
-            "/proj/src/app.cnx",
-            '#include "sub/lib.cnx"\n\nvoid main() { }\n',
-          )
-          .addFile("/proj/src/sub/lib.cnx", "u32 one() { return 1; }\n")
-          .addFile("/proj/cnext.config.json", "{}"),
-      );
-
-      expect(errors).toEqual([
-        renamedError("/proj/cnext.config.json", "cnx.config.json"),
-      ]);
-    });
-
-    it("reports one beside a file included from another tree", () => {
-      const errors = discoverErrors(
-        new MockFileSystem()
-          .addFile("/proj/.git", "")
-          .addFile(
-            "/proj/src/app.cnx",
-            "#include <util.cnx>\nvoid main() { }\n",
-          )
-          .addFile("/vendor/util/util.cnx", "u32 one() { return 1; }\n")
-          .addFile("/vendor/util/.cnextrc", "{}")
-          // Negative control: the same tree under a new name is silent
-          .addFile("/proj/.cnxrc", "{}"),
-        { ...settings, includeDirs: ["/vendor/util"] },
-      );
-
-      expect(errors).toEqual([renamedError("/vendor/util/.cnextrc", ".cnxrc")]);
-    });
-
-    it("never reports one above the root the walk stops at", () => {
-      const errors = discoverErrors(
-        project()
-          .addFile("/proj/package.json", "{}")
-          .addFile("/cnext.config.json", "{}"),
-      );
-
-      expect(errors).toEqual([]);
-    });
-
-    it("reports the anchor's own walk though no file of the run is walked", () => {
-      const notCNext = { ...settings, input: "/proj/src/readme.txt" };
-
-      const errors = discoverErrors(
-        new MockFileSystem()
-          .addFile("/proj/src/readme.txt", "hello")
-          .addFile("/proj/src/.cnext.json", "{}"),
-        notCNext,
-      );
-
-      expect(errors).toEqual([
-        renamedError("/proj/src/.cnext.json", ".cnx.json"),
-      ]);
-    });
-
-    // A source run is the editor's (serve mode): its text lives in memory,
-    // and the run is anchored where it says the text sits (#1719)
-    it("reports one the walk from a source run's text passes", () => {
-      fs = new MockFileSystem()
-        .addFile("/proj/.git", "")
-        .addFile("/proj/src/lib.cnx", "u32 one() { return 1; }\n")
-        .addFile("/proj/cnext.config.json", "{}");
-
-      const { errors } = Discover.run(
-        {
-          kind: "source",
-          source: '#include "lib.cnx"\n\nvoid main() { }\n',
-          sourcePath: "/proj/src/app.cnx",
-        },
-        RunAnchor.at(settings.input, null, settings, fs),
-        settings,
-        fs,
-        [],
-      );
-
-      expect(errors).toEqual([
-        renamedError("/proj/cnext.config.json", "cnx.config.json"),
-      ]);
-    });
-
-    it("stops reporting it once the file is renamed, at the same anchor", () => {
-      fs = project().addFile("/proj/cnext.config.json", "{}");
+  // #2221 review: the root is walked again on every run, so a marker created
+  // between runs moves it, and an unchanged root keeps the anchor
+  describe("the anchor's project root across runs", () => {
+    it("follows a marker created between runs, at the same anchor", () => {
+      fs = project();
       const anchor = RunAnchor.at(settings.input, null, settings, fs);
       const first = Discover.run({ kind: "files" }, anchor, settings, fs, []);
-      fs.rename("/proj/cnext.config.json", "/proj/cnx.config.json");
+      fs.addFile("/proj/cnx.config.json", "{}");
 
       const second = Discover.run(
         { kind: "files" },
@@ -442,10 +293,8 @@ describe("Discover", () => {
         [],
       );
 
-      expect(first.errors).toHaveLength(1);
+      expect(first.errors).toEqual([]);
       expect(second.errors).toEqual([]);
-      // #2221 review: the renamed file is a marker now, and the anchor's root
-      // follows it, as discovery's own walk from the anchor does
       expect(first.anchor.projectRoot).toBeUndefined();
       expect(second.anchor.projectRoot).toBe("/proj");
     });

@@ -8,13 +8,13 @@
 
 C has `size_t` for sizes and array indices. It's platform-dependent (32-bit on ARM Cortex-M, 64-bit on desktop).
 
-The question was whether C-Next should have a clean way to express "size of things" via `usize`/`isize` types.
+The question was whether cnx should have a clean way to express "size of things" via `usize`/`isize` types.
 
 ## Decision
 
 **Rejected: Use fixed-width types (`u32`/`u64`) instead of platform-sized types.**
 
-C-Next's core philosophy is that fixed-width types solve portability problems by being explicit and predictable. Adding `usize`/`isize` would reintroduce the platform variance that fixed-width types eliminate.
+cnx's core philosophy is that fixed-width types solve portability problems by being explicit and predictable. Adding `usize`/`isize` would reintroduce the platform variance that fixed-width types eliminate.
 
 ## Rationale
 
@@ -25,15 +25,15 @@ C-Next's core philosophy is that fixed-width types solve portability problems by
 | `u32` / `u64` | Same size everywhere — explicit choice by developer  |
 | `usize`       | 16-bit on AVR, 32-bit on Cortex-M, 64-bit on desktop |
 
-C-Next targets embedded systems where predictability matters more than abstracting over platform differences.
+cnx targets embedded systems where predictability matters more than abstracting over platform differences.
 
 ### MISRA C Supports This Decision
 
-MISRA C:2023 Directive 4.6 recommends using fixed-width types from `<stdint.h>` instead of basic types. While MISRA _permits_ `size_t` and `ptrdiff_t` as exceptions, the core recommendation aligns with C-Next's approach.
+MISRA C:2023 Directive 4.6 recommends using fixed-width types from `<stdint.h>` instead of basic types. While MISRA _permits_ `size_t` and `ptrdiff_t` as exceptions, the core recommendation aligns with cnx's approach.
 
 ### Embedded Systems Don't Need Platform-Sized Types
 
-On C-Next's target platforms (e.g., Teensy MicroMod with ~16MB RAM):
+On cnx's target platforms (e.g., Teensy MicroMod with ~16MB RAM):
 
 - Maximum array size is well under `u32`'s 4GB limit
 - Fixed-width types generate more predictable assembly
@@ -56,15 +56,15 @@ The original ADR listed "portability issues" as a con of using fixed-width types
 
 Functions like `malloc()`, `memcpy()`, and `strlen()` use `size_t`.
 
-**Solution:** The transpiler handles casts at the C library boundary automatically. When C-Next code calls C stdlib functions, the generated C includes appropriate casts:
+**Solution:** The transpiler handles casts at the C library boundary automatically. When cnx code calls C stdlib functions, the generated C includes appropriate casts:
 
 ```c
-// C-Next: u32 len <- myString.length();
+// cnx: u32 len <- myString.length();
 // Generated C:
 uint32_t len = (uint32_t)strlen(myString);
 ```
 
-This keeps the C-Next source clean while ensuring correct C output.
+This keeps the cnx source clean while ensuring correct C output.
 
 ## Options Considered
 
@@ -75,7 +75,7 @@ usize length <- buffer.length;
 isize offset <- -5;
 ```
 
-**Why rejected:** Reintroduces platform variance that C-Next's type system was designed to eliminate.
+**Why rejected:** Reintroduces platform variance that cnx's type system was designed to eliminate.
 
 ### Option B: `size` Type Only (Rejected)
 
@@ -91,7 +91,7 @@ Developers choose the appropriate fixed-width type based on their requirements.
 
 **Why accepted:**
 
-- Matches C-Next's philosophy of explicit, predictable types
+- Matches cnx's philosophy of explicit, predictable types
 - Aligns with MISRA C recommendations
 - Sufficient for all embedded use cases
 - Simpler — no new types to learn

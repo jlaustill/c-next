@@ -3,7 +3,7 @@
  * Extracted from CodeGenerator.ts.
  *
  * Portability note: Uses __builtin_add_overflow, __builtin_sub_overflow, and
- * __builtin_mul_overflow intrinsics (GCC 5+, Clang 3.4+). C-Next targets embedded
+ * __builtin_mul_overflow intrinsics (GCC 5+, Clang 3.4+). cnx targets embedded
  * systems using arm-none-eabi-gcc, so these are available. MSVC is not supported.
  *
  * Issue #707: Refactored to use OverflowHelperTemplates for reduced duplication.

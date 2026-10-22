@@ -1,8 +1,8 @@
 /**
  * Third-party C header for #1545, second round. Two callback typedefs whose
- * parameter is a pointer C-Next does NOT render through the string branch:
+ * parameter is a pointer cnx does NOT render through the string branch:
  *
- *   buf_cb_t  takes `const uint8_t *` -- the C-Next handler declares an ARRAY,
+ *   buf_cb_t  takes `const uint8_t *` -- the cnx handler declares an ARRAY,
  *             and the array branch dropped the typedef's const in BOTH files,
  *             so the two agreed with each other and neither matched the
  *             typedef (-Wincompatible-pointer-types at the registration).

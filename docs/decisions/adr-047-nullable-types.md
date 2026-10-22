@@ -3,11 +3,11 @@
 **Status:** Superseded
 **Date:** 2026-01-06
 **Superseded By:** ADR-046 (Nullable C Interop with c\_ Prefix)
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-C-Next eliminates null-related bugs by design through:
+cnx eliminates null-related bugs by design through:
 
 - ADR-003: No dynamic allocation (no malloc/free)
 - ADR-006: No pointer arithmetic or reassignment
@@ -20,7 +20,7 @@ However, C library functions commonly return `NULL` to signal failure:
 char *fgets(char *s, int n, FILE *stream);   // Returns NULL on EOF or error
 ```
 
-C-Next needs a way to safely interoperate with these functions, particularly for stdin/stdout I/O operations that are common even in embedded systems.
+cnx needs a way to safely interoperate with these functions, particularly for stdin/stdout I/O operations that are common even in embedded systems.
 
 ## Decision
 
@@ -57,7 +57,7 @@ fgets(buffer, buffer.size, stdin);
 printf("Got: %s", buffer);  // ERROR!
 
 // E0902: importing a dynamic memory function from C/C++ (ADR-003)
-malloc(64);  // ERROR: C-Next has no dynamic memory allocation
+malloc(64);  // ERROR: cnx has no dynamic memory allocation
 
 // E0903: NULL outside comparison
 u32 x <- NULL;  // ERROR
@@ -87,7 +87,7 @@ string<64>? result <- fgets(...);  // ERROR: No nullable types
 > A test fixture comment repeated this table's reading and had to be corrected in
 > #1306; the pointer is here so the next reader does not repeat it again.
 
-These functions return pointers that C-Next cannot handle safely:
+These functions return pointers that cnx cannot handle safely:
 
 | Function  | Reason                                                   |
 | --------- | -------------------------------------------------------- |
@@ -119,7 +119,7 @@ These functions return pointers that C-Next cannot handle safely:
 
 - Adds `?` suffix for nullable types
 - Requires flow analysis for null safety
-- More complex, introduces nullable types to C-Next
+- More complex, introduces nullable types to cnx
 
 **Option B: Result Type** - Rust-style
 
@@ -129,11 +129,11 @@ These functions return pointers that C-Next cannot handle safely:
 **Option C: Full NULL support** - C-style
 
 - Allows NULL anywhere
-- Defeats C-Next's null safety guarantees
+- Defeats cnx's null safety guarantees
 
 ### Why Constrained NULL
 
-1. **Maintains null safety** - C-Next variables cannot be null
+1. **Maintains null safety** - cnx variables cannot be null
 2. **Enables practical interop** - stdin/stdout I/O works
 3. **Minimal complexity** - No new type system features
 4. **Clear semantics** - NULL only appears in C interop context
@@ -141,7 +141,7 @@ These functions return pointers that C-Next cannot handle safely:
 
 ## Implementation
 
-### Grammar (CNext.g4)
+### Grammar (Cnx.g4)
 
 ```antlr
 C_NULL : 'NULL';     // Distinct from lowercase 'null'

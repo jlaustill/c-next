@@ -1,7 +1,7 @@
 /**
- * C-Next Type System - Discriminated Union
+ * cnx Type System - Discriminated Union
  *
- * TType represents all possible types in the C-Next type system.
+ * TType represents all possible types in the cnx type system.
  * Each variant has a `kind` discriminator for type narrowing.
  *
  * Use TTypeUtils for factory functions and type guards.
@@ -54,7 +54,7 @@ interface TArrayType {
 
 /**
  * String type with capacity
- * C-Next strings are fixed-capacity char arrays
+ * cnx strings are fixed-capacity char arrays
  */
 interface TStringType {
   readonly kind: "string";
@@ -115,7 +115,7 @@ interface TDeferredType {
 }
 
 /**
- * Discriminated union of all C-Next types
+ * Discriminated union of all cnx types
  */
 type TType =
   | TPrimitiveType

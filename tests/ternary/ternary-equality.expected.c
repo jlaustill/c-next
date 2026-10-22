@@ -9,7 +9,7 @@
 #include <stdbool.h>
 
 // ADR-022: Ternary with equality comparison
-// Uses = for comparison (C-Next syntax)
+// Uses = for comparison (cnx syntax)
 uint32_t getValue(const uint32_t x) {
     return (x == 0) ? 100U : x;
 }

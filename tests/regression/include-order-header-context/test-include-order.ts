@@ -9,7 +9,7 @@
  *   #endif
  * and whose prototypes (e.g. `vTaskDelay`) are only well-formed once FreeRTOS.h
  * has run first (it defines the guard and the attribute/typedef macros the
- * prototypes use). cnext collects header symbols by preprocessing each header
+ * prototypes use). cnx collects header symbols by preprocessing each header
  * on its own, so task.h's #error fired, preprocessing fell back to raw text,
  * and `vTaskDelay` was never collected -> E0422 "not declared in any included
  * header", even though the .cnx included FreeRTOS.h before task.h.

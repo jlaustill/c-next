@@ -38,7 +38,7 @@ interface IProgramInputs {
 
   /**
    * The C and C++ headers' symbols, as the run's table holds them before any
-   * C-Next file is published to it (#1825). ADR-006's and ADR-029's
+   * cnx file is published to it (#1825). ADR-006's and ADR-029's
    * derivations look callees and typedefs up in it by name.
    *
    * Absent only where a test builds a program with no headers behind it.

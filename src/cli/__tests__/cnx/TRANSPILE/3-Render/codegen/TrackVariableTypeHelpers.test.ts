@@ -9,7 +9,7 @@ import Transpiler from "../../../../../Transpiler";
 import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /**
- * Helper to transpile C-Next source and return the C output
+ * Helper to transpile cnx source and return the C output
  */
 async function transpileSource(source: string): Promise<string> {
   const transpiler = new Transpiler(

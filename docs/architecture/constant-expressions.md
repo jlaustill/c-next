@@ -38,7 +38,7 @@ joining tokens with no separator. So `u8[1 - -1]` was `neg[2]` in the `.c`
 `src/cnx/types/TConstExpr.ts`. Literals, names (with their whole path and the
 position they are written at), casts, unary, binary and ternary nodes, and
 `other` for what no constant contains (a call, a subscript, a float, C's
-`sizeof`, which C-Next does not have: E0603),
+`sizeof`, which cnx does not have: E0603),
 carrying its spelling for a message. A literal keeps its value as decimal
 digits: a u64 is past what a `number` holds exactly, and a `bigint` is not JSON,
 while a symbol must stay JSON-encodable (#1298).
@@ -94,7 +94,7 @@ name (`foreign`); in a file that includes a header, a bare name nothing binds
 may be a macro, since a `#define` never reaches the symbol model (`foreign`,
 why `maybeHeader`); anything else has no value, with a reason for the message.
 Only a bare name is `foreign`, because C evaluates it as written: C has no
-spelling of `X.y` that C-Next could write for a header's `X`.
+spelling of `X.y` that cnx could write for a header's `X`.
 
 1.4 asks it while it settles, and every later pass asks it through
 `IProgram.constantValueOf`, with the same facts (`IConstantNameFacts`). That is
@@ -104,7 +104,7 @@ what makes `u8[N]` one size in the `.c` and the `.h`.
 ### Settling in 1.4
 
 `Program.deriveConstants` settles every file-scope and scope const and every
-C-Next enum in one worklist, because each may name the other
+cnx enum in one worklist, because each may name the other
 (`u32 N <- (u32)EColor.COUNT`, `A <- N + 1`). An item waits on the C names
 it found unsettled and is retried only when one settles. An enum publishes the
 members that have settled while the rest wait (`partialEnums`), so an enum and a
@@ -224,8 +224,8 @@ itself be sized by a const.
   anything else a header declares has no value, so `CEnum.MEMBER` in a
   dimension is E0909 until #1877 decides what that spelling means.
 - A header macro as an enum member's value is rejected for now (owner ruling,
-  ADR-017): C-Next needs the value itself.
-- An array whose every element C-Next spells (a callback array or an array of
+  ADR-017): cnx needs the value itself.
+- An array whose every element cnx spells (a callback array or an array of
   a struct with a default, ADR-029; an enum array, ADR-017) needs its count.
   `ElementCount` folds the dimension as above, except that a macro from an
   included C header, whose C replacement is plain integer arithmetic, answers

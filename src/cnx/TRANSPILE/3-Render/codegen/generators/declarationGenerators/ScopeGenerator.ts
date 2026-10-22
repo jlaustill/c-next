@@ -1,7 +1,7 @@
 /**
  * ScopeGenerator - ADR-016 Scope Declaration Generation
  *
- * Generates C code from C-Next scope declarations with visibility control.
+ * Generates C code from cnx scope declarations with visibility control.
  * Scopes provide namespace prefixing and static/extern visibility.
  *
  * Example:
@@ -298,7 +298,7 @@ function renderScopeMember(
 }
 
 /**
- * Generate C code from a C-Next scope declaration.
+ * Generate C code from a cnx scope declaration.
  *
  * ADR-016: Scopes provide:
  * - Namespace prefixing (Scope_member)

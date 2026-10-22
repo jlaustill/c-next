@@ -23,13 +23,13 @@
  * (#1435; it cited a `_declareFile` signature #1472 removed). The
  * `IResolvedSymbols` accumulates every file in the run and is cleared once, so a
  * sibling that was never included is still in it. Asking the run-wide table
- * whether a C-Next type exists would answer "yes" in the file that cannot see
+ * whether a cnx type exists would answer "yes" in the file that cannot see
  * it, and the diagnostic would never fire where it is needed -- the trap #1312
  * names explicitly.
  *
  * So the two questions are routed to the view that can answer them:
  *
- *   - a **C-Next** name is checked against the per-file sets, because C-Next
+ *   - a **cnx** name is checked against the per-file sets, because cnx
  *     visibility is what the include graph governs;
  *   - a **C/C++** name is checked against the run-wide table, because external
  *     types arrive through header includes that are already resolved per file,
@@ -40,7 +40,7 @@
  *
  * `TranspileState.isScopeType()` cannot serve here either: it answers only
  * for a type declared inside a SCOPE that the file being generated can see
- * (#1724), so it says nothing about a file-scope C-Next type or a C/C++ one.
+ * (#1724), so it says nothing about a file-scope cnx type or a C/C++ one.
  */
 
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
@@ -57,7 +57,7 @@ class NameExistence {
    * analysis time it is empty for the first file and holds file N-1's function
    * names for every file after. Reading it made E0426 order-dependent: the same
    * two files with their `#include` lines swapped either diagnosed the undefined
-   * type or emitted C the compiler rejects at exit 0. `_isKnownCNextType` already asks
+   * type or emitted C the compiler rejects at exit 0. `_isKnownCnxType` already asks
    * `symbols.functionReturnTypes`, which is the per-file view of the same
    * ADR-029 fact and is correct here.
    *
@@ -90,7 +90,7 @@ class NameExistence {
     symbolTable: IResolvedSymbols,
   ): boolean {
     return (
-      NameExistence._isKnownCNextType(typeName, symbols, symbolTable) ||
+      NameExistence._isKnownCnxType(typeName, symbols, symbolTable) ||
       NameExistence._isKnownForeignName(typeName, symbolTable)
     );
   }
@@ -157,7 +157,7 @@ class NameExistence {
     return false;
   }
 
-  private static _isKnownCNextType(
+  private static _isKnownCnxType(
     typeName: string,
     symbols: ICodeGenSymbols,
     symbolTable: IResolvedSymbols,
@@ -190,7 +190,7 @@ class NameExistence {
   ): boolean {
     return symbolTable
       .getOverloadsByCName(name)
-      .some((symbol) => symbol.sourceLanguage !== ESourceLanguage.CNext);
+      .some((symbol) => symbol.sourceLanguage !== ESourceLanguage.Cnx);
   }
 }
 

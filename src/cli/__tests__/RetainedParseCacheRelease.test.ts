@@ -32,7 +32,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
   let programs: unknown[];
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-cache-release-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-cache-release-"));
     analyzed = [];
     programs = [];
     const plan = CodeGenWalker.prototype.plan;

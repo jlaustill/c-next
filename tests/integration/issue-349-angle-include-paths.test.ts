@@ -45,7 +45,7 @@ i32 main() {
 `;
 
 // Test directory paths
-const testDir = "/tmp/c-next-test-issue-349";
+const testDir = "/tmp/cnx-test-issue-349";
 const sourceDir = join(testDir, "src");
 const displayDir = join(sourceDir, "Display");
 const codeOutDir = join(testDir, "build");

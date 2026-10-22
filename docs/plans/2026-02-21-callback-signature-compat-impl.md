@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make C-Next functions assigned to C callback typedefs generate compatible signatures in both C and C++ modes.
+**Goal:** Make cnx functions assigned to C callback typedefs generate compatible signatures in both C and C++ modes.
 
 **Architecture:** Add a pre-analysis pass that detects function assignments to C function pointer typedefs, stores them in CodeGenState, then adjusts both parameter signature generation (via `_isPassByValueType`) and body member access (via `isStruct` override in FunctionContextManager).
 
-**Tech Stack:** TypeScript, ANTLR4 parser, C-Next transpiler
+**Tech Stack:** TypeScript, ANTLR4 parser, cnx transpiler
 
 ---
 
@@ -195,7 +195,7 @@ git commit -m "feat: detect functions assigned to C function pointer typedefs"
 
 **Step 1: Write a failing integration test**
 
-Create a simple test file that assigns a C-Next function to a C callback typedef and verifies the output uses by-value parameters.
+Create a simple test file that assigns a cnx function to a C callback typedef and verifies the output uses by-value parameters.
 
 Use the existing `tests/interop/callback-signature/callback-assign.test.cnx` — update it to expect by-value signature.
 
@@ -323,15 +323,15 @@ static inline void register_callback(PointCallback cb) {
 
 Update `callback-assign.test.cnx`:
 
-```c-next
+```cnx
 // test-execution
-// Test: Assigning C-Next function to C callback typedef
+// Test: Assigning cnx function to C callback typedef
 // Verifies signature compatibility in both C and C++ modes
 #include "callback_types.h"
 
 i32 handler_sum <- 0;
 
-// C-Next function that should be assignable to PointCallback
+// cnx function that should be assignable to PointCallback
 void my_point_handler(Point p) {
     handler_sum <- p.x + p.y;
 }

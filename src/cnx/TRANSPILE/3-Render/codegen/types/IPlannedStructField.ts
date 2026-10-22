@@ -29,7 +29,7 @@ interface IPlannedStructField {
   readonly name: string;
 
   /**
-   * The C-Next type name -- the key `callbackTypes` and `knownEnums` use.
+   * The cnx type name -- the key `callbackTypes` and `knownEnums` use.
    *
    * Always read, so it comes over as a value. This is `getTypeName`, NOT
    * `generateType`: the two answer different questions and the generator needs

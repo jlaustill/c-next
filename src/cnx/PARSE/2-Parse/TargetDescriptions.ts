@@ -385,7 +385,7 @@ class TargetDescriptions {
     }
   }
 
-  /** The schema kind a C-Next member type holds, or the type itself */
+  /** The schema kind a cnx member type holds, or the type itself */
   private static memberKind(type: string): string {
     if (type === "bool") {
       return "boolean";

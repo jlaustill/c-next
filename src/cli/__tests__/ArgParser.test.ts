@@ -28,7 +28,7 @@ describe("ArgParser", () => {
 
   // Helper to create argv array (simulates process.argv)
   function argv(...args: string[]): string[] {
-    return ["node", "cnext", ...args];
+    return ["node", "cnx", ...args];
   }
 
   describe("parse", () => {

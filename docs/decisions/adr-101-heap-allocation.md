@@ -2,12 +2,12 @@
 
 **Status:** Research (v2)
 **Date:** 2026-01-04
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Version:** v2
 
 ## Context
 
-C-Next v1 targets embedded systems with static-only allocation (ADR-003). For v2, supporting desktop applications and more complex embedded systems requires heap allocation with proper safety guarantees.
+cnx v1 targets embedded systems with static-only allocation (ADR-003). For v2, supporting desktop applications and more complex embedded systems requires heap allocation with proper safety guarantees.
 
 ### Related ADRs
 

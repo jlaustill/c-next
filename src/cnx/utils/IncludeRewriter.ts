@@ -19,11 +19,11 @@ import EFileType from "../PARSE/1-Discover/types/EFileType";
 import type THeaderExtension from "../types/THeaderExtension";
 import IncludeDirectiveText from "./IncludeDirectiveText";
 import invariant from "./invariant";
-import CNextSourcePath from "./CNextSourcePath";
+import CnxSourcePath from "./CnxSourcePath";
 
 class IncludeRewriter {
   /**
-   * Whether 1.1 Discover classified this directive as naming C-Next source.
+   * Whether 1.1 Discover classified this directive as naming cnx source.
    * A directive with no path names nothing.
    *
    * #1444, owner ruling 1: the kind is 1.1's answer, recorded per directive.
@@ -33,15 +33,15 @@ class IncludeRewriter {
    * had already diverged: render asserted the answer was there, and the
    * resolver read a missing one as a C header.
    */
-  static namesCNext(
+  static namesCnx(
     includeText: string,
     kinds: ReadonlyMap<string, EFileType>,
   ): boolean {
-    return IncludeRewriter._cnextSpec(includeText, kinds) !== null;
+    return IncludeRewriter._cnxSpec(includeText, kinds) !== null;
   }
 
   /**
-   * Rewrite one directive by 1.1's kind: an include of C-Next source names its
+   * Rewrite one directive by 1.1's kind: an include of cnx source names its
    * generated header, a quoted C header takes the spelling 1.1 recorded for
    * the generated file (#1746), and any other directive is returned unchanged.
    *
@@ -60,12 +60,12 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    const cnext = IncludeRewriter._cnextSpec(includeText, kinds);
-    const spec = cnext ?? IncludeDirectiveText.split(includeText);
+    const cnx = IncludeRewriter._cnxSpec(includeText, kinds);
+    const spec = cnx ?? IncludeDirectiveText.split(includeText);
     if (spec === null) return includeText;
     // #1746: a quoted C header 1.1 named from the generated file
     const path =
-      cnext === null
+      cnx === null
         ? spec.isLocal
           ? rewrites.get(spec.path)
           : undefined
@@ -79,11 +79,11 @@ class IncludeRewriter {
   }
 
   /**
-   * What the directive names, when 1.1 classified it as C-Next source.
+   * What the directive names, when 1.1 classified it as cnx source.
    * Asserts 1.1 classified it at all: it lexed the same tokens 1.2 parsed
    * (#1745), so every directive with a path has an answer.
    */
-  private static _cnextSpec(
+  private static _cnxSpec(
     includeText: string,
     kinds: ReadonlyMap<string, EFileType>,
   ): { path: string; isLocal: boolean } | null {
@@ -95,7 +95,7 @@ class IncludeRewriter {
       kind !== undefined,
       `1.1 Discover classified every directive 1.2 parsed (missing ${directive})`,
     );
-    return kind === EFileType.CNext ? spec : null;
+    return kind === EFileType.Cnx ? spec : null;
   }
 
   /**
@@ -108,7 +108,7 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    return rewrites.get(spec) ?? CNextSourcePath.withExtension(spec, ext);
+    return rewrites.get(spec) ?? CnxSourcePath.withExtension(spec, ext);
   }
 }
 

@@ -7,25 +7,25 @@
 > [`../decisions/README.md`](../decisions/README.md).
 >
 > **The policy did not move with it, because it already had a home.** That the generated
-> C must satisfy MISRA C:2012 is a promise C-Next makes, and it is stated by ADR-066 and
+> C must satisfy MISRA C:2012 is a promise cnx makes, and it is stated by ADR-066 and
 > recorded in `docs/misra-compliance.md`, which is generated from the requirements
 > registry and gated in CI. This document covers only how that promise is checked.
 
 **Status:** Implemented
 **Date:** 2025-12-28
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-C-Next transpiles to C code. One of the primary value propositions is generating safer, more reliable embedded C code. However, we currently have no automated verification that the generated C code meets quality standards.
+cnx transpiles to C code. One of the primary value propositions is generating safer, more reliable embedded C code. However, we currently have no automated verification that the generated C code meets quality standards.
 
 ### The Opportunity
 
-Industry-standard static analyzers (cppcheck, clang-tidy, MISRA checkers) can validate generated C code quality. Rather than treating these tools as compliance checkboxes, we can use them as a **guiding light** for C-Next language design:
+Industry-standard static analyzers (cppcheck, clang-tidy, MISRA checkers) can validate generated C code quality. Rather than treating these tools as compliance checkboxes, we can use them as a **guiding light** for cnx language design:
 
 - Warnings reveal patterns where the generated C could be improved
-- Some warnings may indicate C-Next should prevent certain constructs entirely
-- Other warnings validate that C-Next's design already prevents common issues
+- Some warnings may indicate cnx should prevent certain constructs entirely
+- Other warnings validate that cnx's design already prevents common issues
 
 ### MISRA C and Embedded Systems
 
@@ -35,7 +35,7 @@ MISRA C 2012 is the industry standard for safety-critical embedded systems (auto
 - **Required**: Should comply (deviations must be documented)
 - **Advisory**: Recommended practices
 
-C-Next already aligns with many MISRA rules by design:
+cnx already aligns with many MISRA rules by design:
 
 - **No dynamic allocation** (ADR-003) → Compliant with Rule 21.3
 - **Explicit types** (u8, u16, etc.) → Helps with Rule 10.x (type conversions)
@@ -63,7 +63,7 @@ C-Next already aligns with many MISRA rules by design:
 
 This is ambitious but achievable because:
 
-1. C-Next controls code generation completely
+1. cnx controls code generation completely
 2. Language design can prevent violations at the source level
 3. Deviations can be documented once (in this ADR) rather than per-project
 
@@ -147,7 +147,7 @@ Checks: >
 3. **PC-lint Plus** — Commercial, gold standard
 4. **Polyspace** — Commercial, automotive-focused
 
-**Recommendation:** Start with cppcheck + clang-tidy. Evaluate commercial tools if/when C-Next targets safety-critical applications.
+**Recommendation:** Start with cppcheck + clang-tidy. Evaluate commercial tools if/when cnx targets safety-critical applications.
 
 ### Phase 4: flawfinder Integration
 
@@ -171,7 +171,7 @@ pip install flawfinder
 **Integration Approach:**
 
 - **Test runner (`npm test`)**: Uses `--minlevel=3` to skip low-risk findings
-  - Level 2 char[] warnings are false positives for C-Next (static allocation per ADR-003)
+  - Level 2 char[] warnings are false positives for cnx (static allocation per ADR-003)
 - **Manual analysis (`npm run analyze`)**: Uses `--minlevel=1` to show all actionable findings
 - **Exit behavior**: `--error-level=3` returns non-zero for level 3+ findings in test runner
 - **Timeout**: 30 seconds (flawfinder is fast, matches clang-tidy)
@@ -216,16 +216,16 @@ For each warning from static analyzers:
 **Example:** Missing `static` on file-scope variables
 **Action:** Update CodeGenerator.ts to emit `static` keyword
 
-### Category 2: Fix in C-Next Language
+### Category 2: Fix in cnx Language
 
-**Criteria:** Warning indicates potential for user error that C-Next should prevent.
+**Criteria:** Warning indicates potential for user error that cnx should prevent.
 
 **Example:** Uninitialized variable warning
-**Action:** C-Next requires variable initialization (already enforced)
+**Action:** cnx requires variable initialization (already enforced)
 
 ### Category 3: Suppress with Documentation
 
-**Criteria:** Warning is false positive or conflicts with C-Next design goals.
+**Criteria:** Warning is false positive or conflicts with cnx design goals.
 
 **Example:** MISRA Rule 11.3 (pointer casts) triggered by register bindings
 **Action:** Document in this ADR why deviation is acceptable
@@ -291,7 +291,7 @@ This section documents intentional deviations from MISRA C 2012 rules.
 ## File Structure
 
 ```
-c-next/
+cnx/
 ├── scripts/
 │   └── static-analysis.sh     # Analysis runner
 ├── tools/
@@ -319,7 +319,7 @@ c-next/
 - [CERT C Coding Standard](https://wiki.sei.cmu.edu/confluence/display/c)
 - [Barr Group Embedded C Standard](https://barrgroup.com/embedded-systems/books/embedded-c-coding-standard)
 
-### C-Next Related ADRs
+### cnx Related ADRs
 
 - ADR-003: Memory Model (no dynamic allocation)
 - ADR-006: Pointer Semantics

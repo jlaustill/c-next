@@ -47,7 +47,7 @@ class VariableDeclarationFormatter {
    * Build the modifier prefix string with consistent ordering.
    *
    * Order: extern volatile const
-   * - Matches the established C-Next output format
+   * - Matches the established cnx output format
    * - atomic maps to volatile, so atomic and volatile are mutually exclusive
    * - The caller should validate this before calling
    */

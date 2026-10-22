@@ -1,6 +1,6 @@
 /**
  * Issue #895: C header with opaque types and callback typedefs
- * Tests that C-Next callback functions generate correct pointer signatures
+ * Tests that cnx callback functions generate correct pointer signatures
  */
 #ifndef WIDGET_H
 #define WIDGET_H

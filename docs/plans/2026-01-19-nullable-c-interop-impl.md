@@ -6,7 +6,7 @@
 
 **Architecture:** Rewrite `NullCheckAnalyzer.ts` to validate `c_` prefix on variables storing nullable C returns. Add new error codes E0905-E0908. Remove E0702 stream function exemption from `TypeValidator.ts`. Update tests to reflect new behavior.
 
-**Tech Stack:** TypeScript, ANTLR4 parser, C-Next transpiler pipeline
+**Tech Stack:** TypeScript, ANTLR4 parser, cnx transpiler pipeline
 
 ---
 
@@ -729,7 +729,7 @@ public reportNullComparisonOnNonNullable(
     line,
     column,
     message: `NULL comparison on non-nullable variable '${varName}'`,
-    helpText: `Only variables with 'c_' prefix can be compared to NULL. C-Next variables are never null.`,
+    helpText: `Only variables with 'c_' prefix can be compared to NULL. cnx variables are never null.`,
   });
 }
 ```
@@ -951,17 +951,17 @@ git commit -m "test: update null-check tests for ADR-046"
 
 **Files:**
 
-- Modify: `docs/learn-cnext-in-y-minutes.md`
+- Modify: `docs/learn-cnx-in-y-minutes.md`
 - Modify: `README.md` (if applicable)
 
-**Step 1: Update learn-cnext-in-y-minutes.md**
+**Step 1: Update learn-cnx-in-y-minutes.md**
 
 Find the NULL section and update with new c\_ prefix pattern:
 
 ````markdown
 ## C Library Interop with NULL
 
-C-Next variables are never null. C library functions can return nullable pointers.
+cnx variables are never null. C library functions can return nullable pointers.
 Use the `c_` prefix to mark variables storing nullable C returns:
 
 ```cnx
@@ -994,7 +994,7 @@ if (buffer != NULL) { }           // E0907: NULL on non-c_ variable
 **Step 2: Commit**
 
 ```bash
-git add docs/learn-cnext-in-y-minutes.md README.md
+git add docs/learn-cnx-in-y-minutes.md README.md
 git commit -m "docs: update NULL handling documentation for ADR-046"
 ````
 
@@ -1063,13 +1063,13 @@ git commit -m "chore: final cleanup for ADR-046 nullable C interop"
 
 ## Summary
 
-| Task  | Description                          | Key Files                          |
-| ----- | ------------------------------------ | ---------------------------------- |
-| 1-4   | Create failing tests for E0905-E0907 | `tests/null-check/*.test.cnx`      |
-| 5     | Verify error interface               | `INullCheckError.ts`               |
-| 6-7   | Define nullable functions + helpers  | `NullCheckAnalyzer.ts`             |
-| 8-12  | Implement E0905, E0906, E0907        | `NullCheckAnalyzer.ts`             |
-| 13    | Remove E0702 exemption               | `TypeValidator.ts`                 |
-| 14    | Update existing tests                | `tests/null-check/*.test.cnx`      |
-| 15    | Update documentation                 | `docs/learn-cnext-in-y-minutes.md` |
-| 16-17 | Verify and cleanup                   | All files                          |
+| Task  | Description                          | Key Files                        |
+| ----- | ------------------------------------ | -------------------------------- |
+| 1-4   | Create failing tests for E0905-E0907 | `tests/null-check/*.test.cnx`    |
+| 5     | Verify error interface               | `INullCheckError.ts`             |
+| 6-7   | Define nullable functions + helpers  | `NullCheckAnalyzer.ts`           |
+| 8-12  | Implement E0905, E0906, E0907        | `NullCheckAnalyzer.ts`           |
+| 13    | Remove E0702 exemption               | `TypeValidator.ts`               |
+| 14    | Update existing tests                | `tests/null-check/*.test.cnx`    |
+| 15    | Update documentation                 | `docs/learn-cnx-in-y-minutes.md` |
+| 16-17 | Verify and cleanup                   | All files                        |

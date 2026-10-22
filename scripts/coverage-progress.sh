@@ -1,5 +1,5 @@
 #!/bin/bash
-# C-Next Test Coverage Progress Tracker
+# cnx Test Coverage Progress Tracker
 # Run this script anytime to see current coverage status
 
 set -e
@@ -55,7 +55,7 @@ open_issue_count() {
 }
 
 echo "========================================"
-echo "  C-Next Test Coverage - Progress"
+echo "  cnx Test Coverage - Progress"
 echo "========================================"
 echo ""
 
@@ -100,7 +100,7 @@ if command -v gh &> /dev/null; then
     echo ""
 
     echo "📅 Milestone: v1 Test Coverage Complete"
-    MILESTONE_DATA=$(gh api repos/jlaustill/c-next/milestones/1 2>/dev/null)
+    MILESTONE_DATA=$(gh api repos/smeltworks/cnx/milestones/1 2>/dev/null)
     OPEN=$(echo "$MILESTONE_DATA" | jq -r '.open_issues')
     CLOSED=$(echo "$MILESTONE_DATA" | jq -r '.closed_issues')
     TOTAL=$((OPEN + CLOSED))
@@ -152,6 +152,6 @@ echo ""
 echo "📚 Resources:"
 echo "  📄 Full report:     TEST-COVERAGE-REPORT.md"
 echo "  📋 Coverage matrix: coverage.md"
-echo "  🌐 GitHub issues:   https://github.com/jlaustill/c-next/issues"
-echo "  🎯 Milestone:       https://github.com/jlaustill/c-next/milestone/1"
+echo "  🌐 GitHub issues:   https://github.com/smeltworks/cnx/issues"
+echo "  🎯 Milestone:       https://github.com/smeltworks/cnx/milestone/1"
 echo "========================================"

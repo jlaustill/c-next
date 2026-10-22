@@ -1,7 +1,7 @@
 /**
  * Integration test: auto-discovery of compile_commands.json.
  *
- * cnext resolves external C/C++ headers exactly as the compiler will by reading
+ * cnx resolves external C/C++ headers exactly as the compiler will by reading
  * the build-system-agnostic contract every build system emits — the
  * `compile_commands.json` compilation database — from the project root, the way
  * clangd does. This proves the wiring end-to-end: a header reachable ONLY through
@@ -45,7 +45,7 @@ describe("compile_commands.json auto-discovery (integration)", () => {
     ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-cc-discovery-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-cc-discovery-"));
     mkdirSync(join(dir, "ext"));
     writeFileSync(join(dir, "ext", "widget.h"), WIDGET_H);
     writeFileSync(join(dir, "main.cnx"), MAIN_CNX);

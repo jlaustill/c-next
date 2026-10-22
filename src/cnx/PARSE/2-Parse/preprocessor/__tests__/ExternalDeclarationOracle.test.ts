@@ -1,7 +1,7 @@
 /**
  * Unit tests for ExternalDeclarationOracle.
  *
- * cnext collects header symbols by preprocessing each header standalone, which
+ * cnx collects header symbols by preprocessing each header standalone, which
  * fails for include-order-dependent framework headers (e.g. FreeRTOS task.h's
  * `#ifndef INC_FREERTOS_H / #error`). The oracle recovers by preprocessing a
  * header set AS A TRANSLATION UNIT (in order, keeping `#line` directives), then
@@ -113,9 +113,9 @@ describe("ExternalDeclarationOracle", () => {
     // re-read the shrinking directive count and bailed once >half were dropped.
     const recovery = await ExternalDeclarationOracle.recover(
       [
-        "<cnext_no_such_header_a.h>",
-        "<cnext_no_such_header_b.h>",
-        "<cnext_no_such_header_c.h>",
+        "<cnx_no_such_header_a.h>",
+        "<cnx_no_such_header_b.h>",
+        "<cnx_no_such_header_c.h>",
         '"predecessor.h"',
         '"dependent.h"',
       ],
@@ -144,7 +144,7 @@ describe("ExternalDeclarationOracle", () => {
     // The only include does not exist; after it is dropped nothing remains, so
     // the largest-working-TU search exhausts and recovery yields null.
     const recovery = await ExternalDeclarationOracle.recover(
-      ["<cnext_no_such_header_xyzzy.h>"],
+      ["<cnx_no_such_header_xyzzy.h>"],
       preprocessor,
       { includePaths: [FIXTURES] },
     );

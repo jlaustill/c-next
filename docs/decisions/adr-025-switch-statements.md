@@ -284,7 +284,7 @@ switch (state) {
 Instead of fallthrough for cumulative behavior:
 
 ```cnx
-// C-Next: Explicit and clear
+// cnx: Explicit and clear
 switch (level) {
     case 3 {
         initLevel3();
@@ -427,7 +427,7 @@ defaultCase
 
 ## MISRA C:2012/2023 Compliance
 
-| MISRA Rule | Requirement             | C-Next Approach                                              | Status          |
+| MISRA Rule | Requirement             | cnx Approach                                                 | Status          |
 | ---------- | ----------------------- | ------------------------------------------------------------ | --------------- |
 | **16.1**   | Well-formed switch      | Grammar enforces structure                                   | ✅ **Enforced** |
 | **16.2**   | Labels in correct scope | Grammar prevents nesting                                     | ✅ **Enforced** |
@@ -437,15 +437,15 @@ defaultCase
 | **16.6**   | Minimum 2 clauses       | Compiler error if < 2                                        | ✅ **Enforced** |
 | **16.7**   | No boolean switch       | Compiler error                                               | ✅ **Enforced** |
 
-### C-Next Innovation: Counted Default
+### cnx Innovation: Counted Default
 
-C-Next's `default(n)` syntax goes beyond MISRA by providing **compile-time validation** that all enum variants are accounted for, even when using a default clause. This catches enum growth at build time rather than runtime.
+cnx's `default(n)` syntax goes beyond MISRA by providing **compile-time validation** that all enum variants are accounted for, even when using a default clause. This catches enum growth at build time rather than runtime.
 
 **Comparison:**
 
 - **C + MISRA:** `default` required but no validation of completeness
 - **Rust:** `_` wildcard is silent when enum grows
-- **C-Next:** `default(n)` forces explicit acknowledgment; enum growth breaks build
+- **cnx:** `default(n)` forces explicit acknowledgment; enum growth breaks build
 
 ## Diagnostics
 

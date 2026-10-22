@@ -24,7 +24,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-adr: 030
 // test-adr: 057
 // #1643 review: a local whose initializer spells an outer global or member
-// bare reads the outer one, in C-Next and in the C. Each case returns a
+// bare reads the outer one, in cnx and in the C. Each case returns a
 // distinct code if the C reads the new, uninitialized local instead.
 extern const uint32_t g = 10U;
 

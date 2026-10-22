@@ -1,13 +1,13 @@
 # Decision-Record Taxonomy Design
 
 **Date:** 2026-09-06
-**Issue:** [#1522](https://github.com/jlaustill/c-next/issues/1522)
+**Issue:** [#1522](https://github.com/smeltworks/cnx/issues/1522)
 **Status:** Approved
 
 ## Summary
 
 Give every long-lived document in `docs/` a series, a stable number, and a gate. Four series
-draw from one shared number ledger: `ADR-NNN` for C-Next language decisions, `PDR-NNN` for
+draw from one shared number ledger: `ADR-NNN` for cnx language decisions, `PDR-NNN` for
 project and toolchain decisions, `ARC-NNN` for architecture descriptions, `IMP-NNN` for
 implementation descriptions. Decision records carry a Status; descriptions never do, and that
 difference is what the gate enforces. Generate the index from the files instead of maintaining
@@ -34,7 +34,7 @@ it by hand.
 
 ### The gap
 
-The rewrite test (#1403) admits only decisions about the C-Next language:
+The rewrite test (#1403) admits only decisions about the cnx language:
 
 > If the transpiler were rebuilt from scratch in a different language and stack, every ADR must
 > still be fully applicable.
@@ -95,7 +95,7 @@ the gate enforces that exactly one shape exists.
 
 | Directory                 | Holds                                            | Prefix | Status        | Rewrite test | Bands | Matrix |
 | ------------------------- | ------------------------------------------------ | ------ | ------------- | ------------ | ----- | ------ |
-| `docs/cnx-spec-adrs/`     | decisions about the **C-Next language**          | `ADR`  | **required**  | yes          | yes   | yes    |
+| `docs/cnx-spec-adrs/`     | decisions about the **cnx language**             | `ADR`  | **required**  | yes          | yes   | yes    |
 | `docs/project-decisions/` | decisions about the **project/toolchain**        | `PDR`  | **required**  | no           | yes   | no     |
 | `docs/architecture/`      | descriptions of how the transpiler is structured | `ARC`  | **forbidden** | no           | no    | no     |
 | `docs/implementation/`    | descriptions of how one decision is carried out  | `IMP`  | **forbidden** | no           | no    | no     |
@@ -228,7 +228,7 @@ Decision section is a component diagram.
 - No declaration files, no extern blocks, no special syntax
 - `.c` / `.h` / `.cpp` / `.hpp` are consumed as-is
 - What the emitted `#include` names
-- The limits of the boundary — what C-Next promises to understand from a C/C++ header
+- The limits of the boundary — what cnx promises to understand from a C/C++ header
 - A `MATRIX-SEVERITY` table, once the interop matrix exists
 
 **PDR-071 takes** (the mechanism):
@@ -240,7 +240,7 @@ Decision section is a component diagram.
 The number `010` does not move, so every existing reference resolves unchanged.
 
 The boundary-limits section is the load-bearing part of this split. Read as spec it states what
-C-Next promises to understand at the boundary; read as implementation it states which grammar
+cnx promises to understand at the boundary; read as implementation it states which grammar
 was vendored. The interop matrix will derive its `off` cells from the first reading, so this
 section must live where it is reviewed as a language promise.
 
@@ -360,7 +360,7 @@ moved files without updating it would go red on the next step rather than its ow
 | Textual `docs/decisions` occurrences                | 47    | across 32 files                                                                                                 |
 | Hardcoded `decisions` path constants                | 3     | `adr-matrix.ts:28`, `AdrIndependence.ts:288`, `adr-independence.test.ts:215`                                    |
 | Doc-comment mentions in code                        | 5     | `adr-independence.ts:37`, `AdrIndependence.ts:13,280`, `IAdrIndependenceOutcome.ts:4`, `cspell-scope.test.ts:5` |
-| Config and skills                                   | 3     | `.github/ISSUE_TEMPLATE/release.md:28`, `cnext-way/SKILL.md:76`, `start-issue/SKILL.md:293`                     |
+| Config and skills                                   | 3     | `.github/ISSUE_TEMPLATE/release.md:28`, `cnx-way/SKILL.md:76`, `start-issue/SKILL.md:293`                       |
 | References to `docs/architecture/` paths            | 33    | **8 in `src/**` comments\*\*                                                                                    |
 | Hardcoded architecture-doc paths in gates           | 2     | `scope-join-sites.ts:22` (generator), `throw-citations.ts:40` (checker)                                         |
 | References to `docs/implementation/` paths          | 24    | —                                                                                                               |
@@ -422,7 +422,7 @@ Unit tests live in `scripts/__tests__/`, alongside the existing `adr-independenc
   Without this the band decision is stated in the READMEs and enforced by nothing at release time.
 - `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, root `README.md` — path updates; the in/out list
   stays in one home and is not copied
-- `.claude/skills/cnext-way/SKILL.md`, `.claude/skills/start-issue/SKILL.md` — path updates
+- `.claude/skills/cnx-way/SKILL.md`, `.claude/skills/start-issue/SKILL.md` — path updates
 
 Four series READMEs is itself a duplication risk. The numbering rules, the band rules and the
 ledger are defined **once**, in the ADR README; the other three state what belongs in their series

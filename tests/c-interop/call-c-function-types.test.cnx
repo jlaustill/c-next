@@ -1,7 +1,7 @@
 // test-execution
 // test-coverage: 30-call-c-function-types
 // Tests: Calling C functions with various integer types
-// ADR-010: Type compatibility between C-Next and C
+// ADR-010: Type compatibility between cnx and C
 
 #include "c-interop/functions.h"
 

@@ -26,7 +26,7 @@ import SymbolTable from "../../../cnx/PARSE/3-Declare/SymbolTable";
 import MockFileSystem from "../../__tests__/MockFileSystem";
 import TTypeUtils from "../../../cnx/utils/TTypeUtils";
 import type IFunctionSymbol from "../../../cnx/types/symbols/IFunctionSymbol";
-import TestSymbolUtils from "../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../cnx/PARSE/3-Declare/cnx/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../cnx/types/__testUtils__/testSourceSpan";
 import NodeFileSystem from "../../../cnx/PARSE/1-Discover/NodeFileSystem";
 import HeaderDeclarationRecord from "../../../cnx/PARSE/3-Declare/HeaderDeclarationRecord";
@@ -807,9 +807,9 @@ describe("CacheManager", () => {
     });
 
     // Issue #1225: these are the kinds TSymbolKindC and TSymbolKindCpp
-    // actually define. The previous version of this test also listed C-Next
+    // actually define. The previous version of this test also listed cnx
     // kinds (bitmap, register_member, ...) because the flat legacy shape could
-    // hold any string -- but no C-Next symbol is ever cached, so it asserted a
+    // hold any string -- but no cnx symbol is ever cached, so it asserted a
     // capability of the serializer rather than of the transpiler.
     it("round-trips every C symbol kind", () => {
       const testFile = join(testDir, "test.h");
@@ -941,18 +941,18 @@ describe("CacheManager", () => {
       ]);
     });
 
-    it("rejects a C-Next symbol rather than reviving one", () => {
-      // Issue #1225: C-Next symbols are re-parsed from source every run and
+    it("rejects a cnx symbol rather than reviving one", () => {
+      // Issue #1225: cnx symbols are re-parsed from source every run and
       // are never cached. One appearing in an entry means the entry is not
       // what it claims to be, so the whole entry is discarded -- which reads
       // as a cache miss and costs a re-parse, not a wrong header.
       const encoded = [
         JsonCodec.encode({
-          name: "cnextFunc",
+          name: "cnxFunc",
           kind: "function",
           sourceFile: "/test/file.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
       ];
@@ -1003,9 +1003,9 @@ describe("CacheManager", () => {
       });
     });
 
-    it("does not cache C-Next symbols (#1225)", () => {
+    it("does not cache cnx symbols (#1225)", () => {
       // setHeaderDeclarations only ever runs on a .h/.hpp, and the restore path
-      // always skipped C-Next symbols anyway -- so writing them was work whose
+      // always skipped cnx symbols anyway -- so writing them was work whose
       // result was guaranteed to be discarded. The filter makes that invariant
       // explicit, and CachedSymbolReader now rejects an entry containing one.
       const headerFile = join(testDir, "mixed.h");
@@ -1023,7 +1023,7 @@ describe("CacheManager", () => {
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "function",
-          name: "cnextFunction",
+          name: "cnxFunction",
           scopePath: "",
           sourceFile: headerFile,
           span: TestSourceSpan.at(2),

@@ -34,27 +34,26 @@ class GeneratedBanner {
       : ` * ${GeneratedBanner.TEXT}`;
   }
 
-  /**
-   * Matches a banner line carrying `text` -- this banner's `TEXT`, or the text
-   * an earlier release wrote -- with or without a recorded source.
-   */
-  static marker(text: string): RegExp {
+  /** Matches the banner line, with or without a recorded source */
+  static marker(): RegExp {
     return new RegExp(
       GeneratedBanner.LINE_START +
-        RegExpUtils.escape(text) +
+        RegExpUtils.escape(GeneratedBanner.TEXT) +
         GeneratedBanner.TEXT_END,
       "m",
     );
   }
 
   /**
-   * Matches a banner line carrying `text` that records a source; group 1 is
-   * the path, which must be on the banner's own line.
+   * Matches a banner line that records a source; group 1 is the path, which
+   * must be on the banner's own line.
    */
-  static sourcePathMarker(text: string): RegExp {
+  static sourcePathMarker(): RegExp {
     return new RegExp(
       GeneratedBanner.LINE_START +
-        RegExpUtils.escape(GeneratedBanner.withSource(text, "")) +
+        RegExpUtils.escape(
+          GeneratedBanner.withSource(GeneratedBanner.TEXT, ""),
+        ) +
         String.raw`[ \t]*(\S+)`,
       "m",
     );

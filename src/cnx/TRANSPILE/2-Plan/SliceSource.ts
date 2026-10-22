@@ -3,7 +3,7 @@
  * the type the value is read as and the temp it is materialized into. 2.2
  * decides it once per slice (#1991) and 2.3 writes it.
  */
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import LiteralUtils from "../../utils/LiteralUtils";
 import invariant from "../../utils/invariant";
 import type TTypeInfo from "../../types/TTypeInfo";
@@ -61,7 +61,7 @@ function foldContextuallyTypedLiteral(
  * The source is materialized once into an unsigned temp before the writes
  * (`buildSliceWrites`), so this drives the right-hand side of the unrolled copy:
  *  - non-integer sources (float/struct/string) cannot be shifted — reject them
- *    with a clear C-Next error instead of emitting non-compiling C;
+ *    with a clear cnx error instead of emitting non-compiling C;
  *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
  *    would otherwise emit an undefined out-of-range shift);
  *  - `unsignedCType` is the type of the materialized temp. Shifting that temp
@@ -123,13 +123,13 @@ function resolveSliceSource(
   }
 
   return {
-    cType: CNEXT_TO_C_TYPE_MAP[sourceType],
+    cType: CNX_TO_C_TYPE_MAP[sourceType],
     bytes: Number.parseInt(sourceType.slice(1), 10) / 8,
     // Signed sources are reinterpreted to their same-width unsigned type so
     // every shift on the materialized temp satisfies MISRA Rule 10.1.
     unsignedCType: isSigned
-      ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
-      : CNEXT_TO_C_TYPE_MAP[sourceType],
+      ? CNX_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
+      : CNX_TO_C_TYPE_MAP[sourceType],
     isComposite: directType === null,
   };
 }
@@ -178,9 +178,9 @@ function resolveLiteralSliceSource(
 }
 
 class SliceSource {
-  /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
+  /** Matches the unsigned cnx integer types (u8/u16/u32/u64). */
   static readonly UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
-  /** Matches the signed C-Next integer types (i8/i16/i32/i64). */
+  /** Matches the signed cnx integer types (i8/i16/i32/i64). */
   static readonly SIGNED_INT_RE = /^i(8|16|32|64)$/;
 
   static of(

@@ -27,10 +27,9 @@ describe("FileDiscovery", () => {
     mkdirSync(srcDir, { recursive: true });
     mkdirSync(includeDir, { recursive: true });
 
-    // Create C-Next files
+    // Create cnx files
     writeFileSync(join(srcDir, "main.cnx"), "void main() {}");
     writeFileSync(join(srcDir, "utils.cnx"), "scope Utils {}");
-    writeFileSync(join(srcDir, "legacy.cnext"), "// legacy extension");
 
     // Create header files
     writeFileSync(join(includeDir, "types.h"), "typedef int MyInt;");
@@ -62,7 +61,7 @@ describe("FileDiscovery", () => {
 
       expect(file).not.toBeNull();
       expect(file!.path).toBe(resolve(srcDir, "main.cnx"));
-      expect(file!.type).toBe(EFileType.CNext);
+      expect(file!.type).toBe(EFileType.Cnx);
     });
 
     it("returns null for non-existing file", () => {
@@ -94,7 +93,7 @@ describe("FileDiscovery", () => {
         NodeFileSystem.instance,
       );
 
-      expect(cnxFile!.type).toBe(EFileType.CNext);
+      expect(cnxFile!.type).toBe(EFileType.Cnx);
       expect(hFile!.type).toBe(EFileType.CHeader);
       expect(cppFile!.type).toBe(EFileType.CppSource);
     });

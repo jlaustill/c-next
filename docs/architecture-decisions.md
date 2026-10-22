@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This document lists all Architecture Decision Records (ADRs) for the C-Next project.
+This document lists all Architecture Decision Records (ADRs) for the cnx project.
 
 ADRs are stored in [`docs/decisions/`](decisions/) and document significant design choices.
 This page groups them **by status**; [`docs/decisions/README.md`](decisions/README.md) defines
@@ -105,7 +105,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 | ADR                                                         | Title               | Description                                                             |
 | ----------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
-| [ADR-041](decisions/adr-041-inline-assembly.md)             | Inline Assembly     | Write assembly in C files; C-Next transpiles to C anyway                |
+| [ADR-041](decisions/adr-041-inline-assembly.md)             | Inline Assembly     | Write assembly in C files; cnx transpiles to C anyway                   |
 | [ADR-042](decisions/adr-042-error-handling.md)              | Error Handling      | Works with existing features (enums, pass-by-reference, struct returns) |
 | [ADR-039](decisions/adr-039-null-safety.md)                 | Null Safety         | Emergent from ADR-003 + ADR-006 + ADR-015; no additional feature needed |
 | [ADR-020](decisions/adr-020-size-type.md)                   | Size Type           | Fixed-width types are more predictable than platform-sized              |

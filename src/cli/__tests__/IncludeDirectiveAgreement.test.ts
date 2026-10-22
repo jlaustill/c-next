@@ -61,7 +61,7 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-1745-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-1745-"));
   });
 
   afterEach(() => {
@@ -231,21 +231,21 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
     });
 
     it("is handed exactly the C includes the grammar reads", async () => {
-      // The unit's own input, asserted directly. A `.cnext` include is C-Next
-      // and stays out (the regex this replaced skipped `.cnx` only), an angle
-      // include keeps its form, and `#include"tight.h"` is a directive the
-      // grammar allows with no space, which the regex missed.
+      // The unit's own input, asserted directly. A `.cnx` include is cnx
+      // source and stays out, an angle include keeps its form, and
+      // `#include"tight.h"` is a directive the grammar allows with no space,
+      // which the regex missed.
       const recover = vi.spyOn(ExternalDeclarationOracle, "recover");
       try {
         await transpileMain(
           BROKEN_FIRST +
             '#include <stdint.h>\n#include"tight.h"\n' +
-            '#include "lib.cnext"\n/*\n#include "hidden.h"\n*/\n\n' +
+            '#include "lib.cnx"\n/*\n#include "hidden.h"\n*/\n\n' +
             USES_NOTHING,
           {
             ...HELPERS,
             "tight.h": "void tight_fn(void);\n",
-            "lib.cnext": "enum ELib {\n    X\n}\n",
+            "lib.cnx": "enum ELib {\n    X\n}\n",
           },
         );
 

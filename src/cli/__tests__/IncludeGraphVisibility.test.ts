@@ -33,7 +33,7 @@ describe("include-graph visibility (Issue #1435)", () => {
     let project: string;
 
     beforeEach(() => {
-      project = mkdtempSync(join(tmpdir(), "cnext-1435-"));
+      project = mkdtempSync(join(tmpdir(), "cnx-1435-"));
       writeFileSync(
         join(project, "platformio.ini"),
         "[env:teensy41]\nplatform = teensy\n",
@@ -138,10 +138,10 @@ describe("include-graph visibility (Issue #1435)", () => {
     });
   });
 
-  describe("a C header named like a C-Next file of the run", () => {
+  describe("a C header named like a cnx file of the run", () => {
     // A vendor header is not the generated header of a .cnx because they
     // share a basename: `uart.cnx` wrapping `<driver/uart.h>` is the normal
-    // ESP-IDF shape. A generated header carries the C-Next marker, and that is
+    // ESP-IDF shape. A generated header carries the cnx marker, and that is
     // what identifies it.
     const VENDOR_UART = `#ifndef DRIVER_UART_H
 #define DRIVER_UART_H
@@ -158,7 +158,7 @@ void setup() {
     let project: string;
 
     beforeEach(() => {
-      project = mkdtempSync(join(tmpdir(), "cnext-1435-hdr-"));
+      project = mkdtempSync(join(tmpdir(), "cnx-1435-hdr-"));
       mkdirSync(join(project, "vendor", "driver"), { recursive: true });
       writeFileSync(join(project, "vendor", "driver", "uart.h"), VENDOR_UART);
       mkdirSync(join(project, "src"));
@@ -219,7 +219,7 @@ void setup() {
     // `uart.cnx` owns `Reading`, and the header on the path defines the same
     // type, as the header generated from it does. Read as input, that header
     // is a second definition (E0425). A struct, not an `extern` variable: a C
-    // declaration of a variable C-Next defines is not a conflict, and a guard
+    // declaration of a variable cnx defines is not a conflict, and a guard
     // that relied on one would go silent when E0425 stops over-reporting it
     // (#1707).
     const OWNS_READING = `#include <driver/uart.h>
@@ -296,7 +296,7 @@ typedef struct Reading { int32_t raw; } Reading;
     // `workingDir` is where text with no path resolves from. Discovery (which files enter the run) and E0506
     // (which quoted includes are missing) must both use that one directory:
     // when they disagreed, a missing include read as a foreign header, E0426
-    // declined, and C-Next member syntax reached the C output at exit 0.
+    // declined, and cnx member syntax reached the C output at exit 0.
     const QUOTED = `#include "colors.cnx"
 
 void main() {
@@ -306,7 +306,7 @@ void main() {
     let project: string;
 
     beforeEach(() => {
-      project = mkdtempSync(join(tmpdir(), "cnext-1435-dir-"));
+      project = mkdtempSync(join(tmpdir(), "cnx-1435-dir-"));
       mkdirSync(join(project, "proj"));
       mkdirSync(join(project, "other"));
       writeFileSync(join(project, "proj", "colors.cnx"), COLORS);
@@ -415,7 +415,7 @@ void main() {
       expect(result.files[0]?.code).toContain("EColor c = EColor__GREEN;");
     });
 
-    it("an include missing beside the sourcePath is E0506, not C-Next in the C", async () => {
+    it("an include missing beside the sourcePath is E0506, not cnx in the C", async () => {
       const result = await transpile({
         workingDir: join(project, "proj"),
         sourcePath: join(project, "other", "main.cnx"),
@@ -428,11 +428,11 @@ void main() {
     });
   });
 
-  describe("a missing C-Next include inside an included file", () => {
+  describe("a missing cnx include inside an included file", () => {
     // A `.cnx` include that resolves to nothing is not a C or C++ header. It
     // counted as one, and once reaching a header became transitive a missing
     // include in an INCLUDED file -- which a source run does not analyze, so
-    // nothing reported it -- switched the root's E0426 off, and C-Next member
+    // nothing reported it -- switched the root's E0426 off, and cnx member
     // syntax reached the C output at exit 0.
     const ROOT = `#include "a.cnx"
 
@@ -443,7 +443,7 @@ void main() {
     let project: string;
 
     beforeEach(() => {
-      project = mkdtempSync(join(tmpdir(), "cnext-1435-gone-"));
+      project = mkdtempSync(join(tmpdir(), "cnx-1435-gone-"));
     });
 
     afterEach(() => {
@@ -471,7 +471,7 @@ void main() {
       });
     }
 
-    it.each(['#include "b.cnx"', "#include <b.cnx>", '#include "b.cnext"'])(
+    it.each(['#include "b.cnx"', "#include <b.cnx>"])(
       "%s, missing, leaves the includer's E0426 on",
       async (include) => {
         const result = await preview(include);
@@ -502,7 +502,7 @@ void main() {
     let project: string;
 
     beforeEach(() => {
-      project = mkdtempSync(join(tmpdir(), "cnext-1435-dirs-"));
+      project = mkdtempSync(join(tmpdir(), "cnx-1435-dirs-"));
       mkdirSync(join(project, "a"));
       mkdirSync(join(project, "b"));
       writeFileSync(join(project, "a", "lib.cnx"), "#include <util.cnx>\n");
@@ -562,7 +562,7 @@ typedef struct { uint32_t id; } Dev;
     let project: string;
 
     beforeEach(() => {
-      project = mkdtempSync(join(tmpdir(), "cnext-1435-spell-"));
+      project = mkdtempSync(join(tmpdir(), "cnx-1435-spell-"));
       mkdirSync(join(project, "lib"));
       mkdirSync(join(project, "src"));
       writeFileSync(join(project, "lib", "dev.h"), DEV_H);

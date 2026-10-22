@@ -1,4 +1,4 @@
-# C-Next Language Test Coverage Matrix
+# cnx Language Test Coverage Matrix
 
 This document tracks test coverage for every language construct in every valid context.
 **Goal: 100% language coverage before v1 release.**
@@ -8,7 +8,7 @@ This document tracks test coverage for every language construct in every valid c
 **2026-01-11: Comprehensive Postfix Expression Chain Testing**
 
 - ✅ Added 11 new test files targeting lines 5850-6285 (most complex code in transpiler)
-- ✅ Fixed grammar bug (lines 485-486 in CNext.g4) - parser now accepts complex chains
+- ✅ Fixed grammar bug (lines 485-486 in Cnx.g4) - parser now accepts complex chains
 - 🔶 Discovered code generator bug - order scrambling in mixed chains (documented)
 - 📊 Coverage increased from ~60% to ~62% overall
 - 📄 See [BUG-DISCOVERED-postfix-chains.md](../BUG-DISCOVERED-postfix-chains.md) for details
@@ -1045,7 +1045,7 @@ This document tracks test coverage for every language construct in every valid c
 
 ### 12.2 Register Bitfields (bits keyword)
 
-**STATUS: NOT VALID C-NEXT SYNTAX** - The `bits[start..end]` syntax has been removed from the grammar. Attempting to use it will produce a parse error.
+**STATUS: NOT VALID cnx SYNTAX** - The `bits[start..end]` syntax has been removed from the grammar. Attempting to use it will produce a parse error.
 
 **Note:** Use **bitmap types** instead (Section 11). Bitmaps are fully implemented and provide the same functionality with better reusability. The blink example demonstrates this pattern: define a `bitmap32` type, then use it as the register member type.
 
@@ -1515,7 +1515,7 @@ ADR-064 marked "Implemented" (2026-01-10) with hardware testing on Nucleo-F446RE
 - Atomic + volatile combination (ERROR case)
 - Register field implied volatile (ADR-004: `rw` → `volatile`, `ro` → `volatile const`)
 
-**Design Note:** Struct member volatile is intentionally not supported. C-Next provides better alternatives:
+**Design Note:** Struct member volatile is intentionally not supported. cnx provides better alternatives:
 
 - Register bindings for hardware access (implicit volatile)
 - `atomic` keyword for ISR-shared data (volatile + atomicity)
@@ -1640,7 +1640,7 @@ See `/docs/decisions/adr-064-volatile-keyword.md` for implementation details and
 | Boundary conditions (max indices)             | [x]    | `postfix-chains/boundary-conditions.test.cnx`           |
 | Const expressions as indices                  | [x]    | `postfix-chains/const-expression-chain.test.cnx`        |
 
-**Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in CNext.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
+**Note:** Tests created 2026-01-11. Grammar bug fixed (line 485-486 in Cnx.g4). Code generator bug discovered and documented in `BUG-DISCOVERED-postfix-chains.md`.
 
 ### 33.2 Statement Nesting
 

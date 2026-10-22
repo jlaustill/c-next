@@ -1,8 +1,8 @@
 /**
- * ADR-023: C-Next has no `sizeof` -- E0603.
+ * ADR-023: cnx has no `sizeof` -- E0603.
  *
  * Owner ruling (#1975): the size of a type or of a value is ADR-058's
- * `.type_byte_length`, which C-Next decides itself: a struct's is its fields'
+ * `.type_byte_length`, which cnx decides itself: a struct's is its fields'
  * sizes together, without C padding, wherever the struct is declared. C's
  * `sizeof` answers with the C compiler's layout instead, so the same struct
  * had two sizes. The C spelling is parsed only so that it is rejected with a

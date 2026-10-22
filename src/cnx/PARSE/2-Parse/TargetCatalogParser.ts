@@ -1,7 +1,7 @@
 /**
- * ADR-049: reads the target catalog -- a C-Next source file -- into plain data.
+ * ADR-049: reads the target catalog -- a cnx source file -- into plain data.
  *
- * The catalog is parsed by the real C-Next grammar, so it stays a C-Next
+ * The catalog is parsed by the real cnx grammar, so it stays a cnx
  * program rather than a look-alike some second reader accepts. This module is
  * the only one that sees its parse tree; what leaves it is structs, constants
  * and literal values. Judging those values (kinds, completeness, the schema)
@@ -12,8 +12,8 @@
  * `(true)`, `32u8`, a reference to another constant -- is reported, because
  * no reader of the catalog may have to evaluate code to learn a target.
  */
-import CNextSourceParser from "./CNextSourceParser";
-import type * as Parser from "./grammar/CNextParser";
+import CnxSourceParser from "./CnxSourceParser";
+import type * as Parser from "./grammar/CnxParser";
 import ExpressionUnwrapper from "./ExpressionUnwrapper";
 import type ITargetCatalogEntry from "../../types/ITargetCatalogEntry";
 import type ITargetCatalogSource from "../../types/ITargetCatalogSource";
@@ -21,7 +21,7 @@ import type TTargetFieldValue from "../../types/TTargetFieldValue";
 
 class TargetCatalogParser {
   static parse(text: string): ITargetCatalogSource {
-    const parsed = CNextSourceParser.parse(text);
+    const parsed = CnxSourceParser.parse(text);
     const errors = parsed.parseErrors.map(
       (error) => `line ${error.line}: ${error.message}`,
     );

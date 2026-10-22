@@ -70,7 +70,7 @@ describe("IncludeResolver", () => {
       })(),
     );
 
-    // Create test C-Next include file
+    // Create test cnx include file
     writeFileSync(join(includeDir, "shared.cnx"), "scope Shared { }");
   });
 
@@ -306,10 +306,10 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve(content);
 
       expect(result.headers).toHaveLength(1);
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
     });
 
-    it("should categorize .cnx files as C-Next includes", () => {
+    it("should categorize .cnx files as cnx includes", () => {
       const resolver = spellingResolver(
         [includeDir],
         ".h",
@@ -322,11 +322,11 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve(content);
 
       expect(result.headers).toHaveLength(0);
-      expect(result.cnextIncludes).toHaveLength(1);
-      expect(result.cnextIncludes[0].path).toBe(join(includeDir, "shared.cnx"));
+      expect(result.cnxIncludes).toHaveLength(1);
+      expect(result.cnxIncludes[0].path).toBe(join(includeDir, "shared.cnx"));
     });
 
-    it("should handle mixed header and C-Next includes", () => {
+    it("should handle mixed header and cnx includes", () => {
       const resolver = spellingResolver(
         [includeDir],
         ".h",
@@ -339,7 +339,7 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve(content);
 
       expect(result.headers).toHaveLength(1);
-      expect(result.cnextIncludes).toHaveLength(1);
+      expect(result.cnxIncludes).toHaveLength(1);
     });
   });
 
@@ -356,7 +356,6 @@ describe("IncludeResolver", () => {
     it.each([
       ['#include "gone.cnx"', false],
       ["#include <gone.cnx>", false],
-      ['#include "gone.cnext"', false],
       ['#include "gone.h"', true],
       ["#include <gone.h>", true],
     ])("%s -> %s", (content, expected) => {
@@ -368,7 +367,7 @@ describe("IncludeResolver", () => {
         srcDir,
       ).resolve(content);
 
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
       expect(result.hasForeignInclude).toBe(expected);
     });
   });
@@ -510,7 +509,6 @@ describe("IncludeResolver", () => {
       ["#include <system.cnx>", ".h", "#include <system.h>"],
       ['#include "types.cnx"', ".hpp", '#include "types.hpp"'],
       ["#include <lib.cnx>", ".hpp", "#include <lib.hpp>"],
-      ["#include <lib.cnext>", ".h", "#include <lib.h>"],
     ] as const)(
       "renders %s with the run's %s extension when it resolves to nothing",
       (directive, ext, rendered) => {
@@ -555,7 +553,7 @@ describe("IncludeResolver", () => {
         '#include "other.h"',
         "#include <lib.h>",
       ]);
-      // The author's spacing survives, and `<>` names no C-Next source
+      // The author's spacing survives, and `<>` names no cnx source
       expect(result.cHeaderIncludes).toEqual([
         "#include  <system.h>",
         '#include "types.h"',
@@ -573,13 +571,11 @@ describe("IncludeResolver", () => {
     });
 
     // #1444, owner ruling 1: the one classification of an include. Render
-    // and 2.1 read this map. #1833 ruling: only a lowercase C-Next extension
-    // is C-Next; any other case is its own kind, which 2.1 rejects as E0518.
+    // and 2.1 read this map. #1833 ruling: only a lowercase `.cnx` is cnx
+    // source; any other case is its own kind, which 2.1 rejects as E0518.
     it.each([
-      ['#include "Utils.cnx"', EFileType.CNext],
-      ["#include <utils.cnext>", EFileType.CNext],
-      ['#include "Utils.CNX"', EFileType.MiscasedCNext],
-      ["#include <utils.Cnext>", EFileType.MiscasedCNext],
+      ['#include "Utils.cnx"', EFileType.Cnx],
+      ['#include "Utils.CNX"', EFileType.RejectedCnx],
       ['#include "utils.h"', EFileType.CHeader],
       ['#include "utils.cnx.h"', EFileType.CHeader],
       ['#include "impl.c++"', EFileType.CppSource],
@@ -680,7 +676,7 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve("");
 
       expect(result.headers).toHaveLength(0);
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
     });
 
@@ -696,7 +692,7 @@ describe("IncludeResolver", () => {
       const result = resolver.resolve("void main() { }");
 
       expect(result.headers).toHaveLength(0);
-      expect(result.cnextIncludes).toHaveLength(0);
+      expect(result.cnxIncludes).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
     });
 
@@ -829,35 +825,6 @@ describe("IncludeResolver", () => {
       expect(result.headers[0].path).toContain("user.h");
     });
 
-    it("should still skip headers with the banner from before the cnx rename (TODO(#2183))", () => {
-      const generatedDir = join(testDir, "generated_test");
-      mkdirSync(generatedDir, { recursive: true });
-      writeFileSync(
-        join(generatedDir, "generated.h"),
-        "/* Generated by C-Next Transpiler */\nint foo;",
-      );
-      writeFileSync(
-        join(generatedDir, "user.h"),
-        '#include "generated.h"\nint bar;',
-      );
-
-      const rootHeaders = [
-        {
-          path: join(generatedDir, "user.h"),
-          type: EFileType.CHeader,
-        },
-      ];
-
-      const result = IncludeResolver.resolveHeadersTransitively(
-        rootsAlong(rootHeaders, generatedDir),
-        { fs: NodeFileSystem.instance },
-      );
-
-      // Should only include user.h, skip generated.h
-      expect(result.headers).toHaveLength(1);
-      expect(result.headers[0].path).toContain("user.h");
-    });
-
     it("should warn about unresolved local includes", () => {
       const warningDir = join(testDir, "warning_test");
       mkdirSync(warningDir, { recursive: true });
@@ -938,7 +905,7 @@ describe("IncludeResolver", () => {
           includeDir,
         ).resolve(source, sourcePath);
 
-        expect(result.cnextIncludes).toHaveLength(1);
+        expect(result.cnxIncludes).toHaveLength(1);
         expect([...result.headerIncludeDirectives.values()]).toEqual([
           expected,
         ]);

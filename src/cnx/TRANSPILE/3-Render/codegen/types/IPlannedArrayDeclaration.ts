@@ -1,7 +1,7 @@
 /**
  * The array half of a variable declaration (ADR-035/ADR-036).
  *
- * C-Next writes dimensions in the TYPE -- `u16[8] arr` -- and the grammar also
+ * cnx writes dimensions in the TYPE -- `u16[8] arr` -- and the grammar also
  * admits trailing `arrayDimension`s, so "is this an array" is the disjunction
  * of two places and both contribute text. That disjunction is decided here,
  * once, rather than re-asked at each of the four sites that used to ask it.

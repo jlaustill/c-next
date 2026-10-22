@@ -11,12 +11,12 @@
  * also needs a parameter that points to const, or C could write to it: that
  * is a write, so it is ADR-071's E0900.
  *
- * E0896, owner ruling: C-Next cannot see how a C function uses its pointer --
+ * E0896, owner ruling: cnx cannot see how a C function uses its pointer --
  * one `u8` or `n` of them -- so it accepts both, and warns that the call is not
  * memory safe.
  *
- * Asked only where both sides are known: a C function (a C-Next function's
- * parameters are C-Next's own), a parameter of exactly one pointer, and an
+ * Asked only where both sides are known: a C function (a cnx function's
+ * parameters are cnx's own), a parameter of exactly one pointer, and an
  * argument the typer types as a declared value. A literal or an expression is
  * passed as a compound literal of the parameter's type.
  */
@@ -30,7 +30,7 @@ import MutSite from "./helpers/MutSite";
 import CPointerParameter from "../../utils/CPointerParameter";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
-import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import type IOperandType from "../../types/IOperandType";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TExpression from "../../types/syntax/TExpression";
@@ -226,7 +226,7 @@ class CPointerArgumentAnalyzer {
       return null;
     }
     if (typed.stringCapacity !== null) return "char";
-    return CNEXT_TO_C_TYPE_MAP[typed.typeName] ?? typed.typeName;
+    return CNX_TO_C_TYPE_MAP[typed.typeName] ?? typed.typeName;
   }
 }
 

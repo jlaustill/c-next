@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../PARSE/2-Parse/grammar/CNextParser";
+import { CnxLexer } from "../../PARSE/2-Parse/grammar/CnxLexer";
+import { CnxParser } from "../../PARSE/2-Parse/grammar/CnxParser";
 import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import ExpressionShape from "../ExpressionShape";
 import StatementWrites from "../StatementWrites";
 
 function writtenNamesOf(statementSource: string): (string | undefined)[] {
   const source = `void f(u32 x, u32 y) { ${statementSource} }`;
-  const lexer = new CNextLexer(CharStream.fromString(source));
-  const parser = new CNextParser(new CommonTokenStream(lexer));
+  const lexer = new CnxLexer(CharStream.fromString(source));
+  const parser = new CnxParser(new CommonTokenStream(lexer));
   const program = ProgramLowering.program(parser.program(), null);
   const declaration = program.declarations[0].declaration;
   if (declaration.kind !== "function") throw new Error("expected a function");

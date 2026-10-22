@@ -16,7 +16,7 @@ export default defineConfig({
         "**/__testUtils__/**", // Test doubles shared across __tests__ directories
         "src/cli/index.ts", // CLI entry point with module-level bootstrap code
         "src/antlr_parser/**", // Generated ANTLR code (legacy path)
-        "src/cnx/PARSE/2-Parse/grammar/**", // Generated CNext parser
+        "src/cnx/PARSE/2-Parse/grammar/**", // Generated cnx parser
         "src/cnx/PARSE/2-Parse/c/grammar/**", // Generated C parser
         "src/cnx/PARSE/2-Parse/cpp/grammar/**", // Generated C++ parser
       ],

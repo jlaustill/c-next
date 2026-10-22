@@ -1,7 +1,6 @@
 /**
  * #2166: `CNX_CROSS_COMPILER` names the compiler a run reads its headers with,
- * and every diagnostic that asks for one names it. `CNEXT_CROSS_COMPILER` is
- * E0924, and the run reads no header.
+ * and every diagnostic that asks for one names it.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -27,12 +26,10 @@ describe("CNX_CROSS_COMPILER (#2166)", () => {
   let dir: string;
   const exported = {
     CNX_CROSS_COMPILER: process.env.CNX_CROSS_COMPILER,
-    CNEXT_CROSS_COMPILER: process.env.CNEXT_CROSS_COMPILER,
   };
 
   beforeEach(() => {
     delete process.env.CNX_CROSS_COMPILER;
-    delete process.env.CNEXT_CROSS_COMPILER;
     dir = mkdtempSync(join(tmpdir(), "cnx-2166-"));
     writeFileSync(join(dir, "board.h"), "#define LED 13\n");
     writeFileSync(
@@ -93,25 +90,5 @@ describe("CNX_CROSS_COMPILER (#2166)", () => {
     expect(result.errors[0].helpText).toMatch(
       /^target 'atmega328p' has .*\. Set CNX_CROSS_COMPILER \(or compile_commands\.json\) to a compiler for 'atmega328p', or remove it to use the target's own\.$/,
     );
-  });
-
-  it("rejects CNEXT_CROSS_COMPILER before any header is read (E0924)", async () => {
-    process.env.CNEXT_CROSS_COMPILER = "xtensa-esp32-elf-gcc";
-    const preprocess = vi.spyOn(Preprocessor.prototype, "preprocessString");
-
-    const result = await transpile("esp32");
-
-    expect(result.success).toBe(false);
-    expect(
-      result.errors.map((e) => [e.sourcePath, e.line, e.message, e.helpText]),
-    ).toEqual([
-      [
-        join(dir, "main.cnx"),
-        1,
-        "error[E0924]: the environment sets CNEXT_CROSS_COMPILER, which cnx no longer reads: it is now CNX_CROSS_COMPILER",
-        "Set CNX_CROSS_COMPILER to 'xtensa-esp32-elf-gcc' instead, and unset CNEXT_CROSS_COMPILER.",
-      ],
-    ]);
-    expect(preprocess).not.toHaveBeenCalled();
   });
 });

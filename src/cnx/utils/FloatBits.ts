@@ -10,7 +10,7 @@ import invariant from "./invariant";
  * E0888 and 2.2's float-bit and narrowing plans ask this one function.
  */
 class FloatBits {
-  /** The float's C-Next type, or null when the step reads no float's bits */
+  /** The float's cnx type, or null when the step reads no float's bits */
   static typeOf(step: IChainStep | undefined): string | null {
     if (step?.subscript !== "bit_single" && step?.subscript !== "bit_range") {
       return null;

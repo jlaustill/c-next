@@ -1,7 +1,7 @@
 import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { beforeEach, describe, expect, it } from "vitest";
-import parse from "../../3-Declare/cnext/__tests__/testHelpers";
-import CNextResolver from "../../3-Declare/cnext/index";
+import parse from "../../3-Declare/cnx/__tests__/testHelpers";
+import CnxResolver from "../../3-Declare/cnx/index";
 import Program from "../Program";
 import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
@@ -35,7 +35,7 @@ function build(
 ): IProgram {
   return Program.build(
     [
-      CNextResolver.resolve(
+      CnxResolver.resolve(
         ProgramLowering.program(parse(source), null),
         FILE,
         registry,
@@ -342,7 +342,7 @@ u8 after;`;
     });
   });
 
-  describe("a name nothing C-Next declares", () => {
+  describe("a name nothing cnx declares", () => {
     it("may be a header macro in a file that includes a header", () => {
       const program = build(`u8 x;`, true);
       expect(ask(program, ["BUF_SIZE"])).toEqual({
