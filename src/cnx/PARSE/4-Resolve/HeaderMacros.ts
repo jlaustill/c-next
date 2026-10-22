@@ -70,9 +70,10 @@ interface IValueReader {
 
 class HeaderMacros {
   /**
-   * #1619: the C type the compiler gives
-   * each `<stdint.h>`/`<stddef.h>` integer name the compiler's predefined macros define: `uint32_t` is `long unsigned int`
-   * under arm-none-eabi-gcc and `unsigned int` under x86-64 gcc.
+   * #1619: the C type the compiler gives each `<stdint.h>`/`<stddef.h>`
+   * integer name its predefined macros define: `uint32_t` is
+   * `long unsigned int` under arm-none-eabi-gcc and `unsigned int` under
+   * x86-64 gcc.
    */
   static integerTypes(dump: string): ReadonlyMap<string, string> {
     const types = new Map<string, string>();

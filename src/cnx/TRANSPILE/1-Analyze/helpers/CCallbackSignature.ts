@@ -344,9 +344,8 @@ class CCallbackSignature {
   }
 
   /**
-   * The type a base type name denotes: a name among
-   * each `<stdint.h>`/`<stddef.h>` integer name the compiler's predefined macros define, where
-   * the run did not see it declared, taken from those macros, and C's integer
+   * The type a base type name denotes: a `<stdint.h>`/`<stddef.h>` integer
+   * name as the compiler's predefined macros define it, and C's integer
    * spellings in one word order (`long unsigned int` is `unsigned long`).
    */
   private static identity(text: string, context: IAnalysisContext): string {

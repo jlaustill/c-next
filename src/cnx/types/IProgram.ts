@@ -158,9 +158,10 @@ interface IProgram {
   headerMacrosUnread(sourceFile: string): boolean;
 
   /**
-   * #1619: the C type the run's header compiler gives a name among
-   * each `<stdint.h>`/`<stddef.h>` integer name the compiler's predefined macros define (`uint32_t`, `size_t`), or null for any other name or
-   * when no compiler read the run's headers.
+   * #1619: the C type the run's header compiler gives a `<stdint.h>` or
+   * `<stddef.h>` integer name (`uint32_t`, `size_t`), from its predefined
+   * macros, or null for any other name or when no compiler read the run's
+   * headers.
    */
   headerIntegerType(name: string): string | null;
 

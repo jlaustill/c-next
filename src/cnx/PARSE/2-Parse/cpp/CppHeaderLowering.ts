@@ -123,7 +123,7 @@ class CppHeaderLowering {
       isTypedef: declSpecSeq
         .declSpecifier()
         .some((spec) => spec.getText() === "typedef"),
-      isVolatile: CppHeaderLowering.isVolatile(declSpecSeq),
+      isVolatile: CppHeaderLowering.hasQualifier(declSpecSeq, "volatile"),
       typeSpecifiers: CppHeaderLowering.typeSpecifiers(declSpecSeq),
       declarators:
         simple
@@ -411,7 +411,7 @@ class CppHeaderLowering {
     const parameter = ParameterExtractorUtils.buildParameterInfo(
       declarator,
       DeclaratorTypes.withPointers(baseType, depth),
-      declarationSpecifiers.getText().includes("const"),
+      CppHeaderLowering.hasQualifier(declarationSpecifiers, "const"),
       false,
       (candidate: DeclaratorContext) =>
         CppHeaderLowering.declaratorName(candidate),
@@ -429,10 +429,15 @@ class CppHeaderLowering {
   }
 
   /**
-   * Whether a declaration is `volatile` (#1760 review): the base type keeps
-   * simple type specifiers alone, so it drops the qualifier.
+   * Whether a cv-qualifier token is among the specifiers. The base type keeps
+   * simple type specifiers alone, so it drops `volatile` (#1760 review), and
+   * `getText()` joins tokens with no separator, so a substring test would read
+   * `constants_t` as `const` (#1377).
    */
-  private static isVolatile(declSpecSeq: DeclSpecifierSeqContext): boolean {
+  private static hasQualifier(
+    declSpecSeq: DeclSpecifierSeqContext,
+    qualifier: "const" | "volatile",
+  ): boolean {
     return declSpecSeq
       .declSpecifier()
       .some(
@@ -441,7 +446,7 @@ class CppHeaderLowering {
             .typeSpecifier()
             ?.trailingTypeSpecifier()
             ?.cvQualifier()
-            ?.getText() === "volatile",
+            ?.getText() === qualifier,
       );
   }
 

@@ -97,12 +97,11 @@ class CHeaderLowering {
         declarationSpecifiers,
         "extern",
       ),
-      isVolatile: specs.some(
-        (spec) => spec.typeQualifier()?.getText() === "volatile",
+      isVolatile: CHeaderLowering.hasQualifier(
+        declarationSpecifiers,
+        "volatile",
       ),
-      isConst: specs.some(
-        (spec) => spec.typeQualifier()?.getText() === "const",
-      ),
+      isConst: CHeaderLowering.hasQualifier(declarationSpecifiers, "const"),
       typeSpecifiers: CHeaderLowering.typeSpecifiers(declarationSpecifiers),
       struct: structSpec ? CHeaderLowering.struct(structSpec) : null,
       enum: enumSpec ? CHeaderLowering.enum(enumSpec) : null,

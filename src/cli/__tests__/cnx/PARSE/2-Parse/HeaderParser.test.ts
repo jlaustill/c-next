@@ -138,6 +138,37 @@ describe("HeaderParser", () => {
     });
   });
 
+  // #1377: `getText()` joins specifiers with no separator, so a type NAME
+  // containing `const` must not be read as the qualifier, in either language.
+  describe.each([
+    ["C", (content: string) => HeaderParser.parseC(content).syntax],
+    ["C++", (content: string) => HeaderParser.parseCpp(content).syntax],
+  ])("parameter const-ness from %s headers (#1377)", (_language, parse) => {
+    it("reads const from the qualifier token, not from a type name", () => {
+      const syntax = parse(`
+        struct constants { int a; };
+        typedef struct constants constants_t;
+        void takes_plain_struct(struct constants c);
+        void takes_typedef(constants_t c);
+        void takes_real_const(const int x);
+        void takes_plain(int y);
+      `);
+
+      const constness = [
+        ...JSON.stringify(syntax).matchAll(
+          /"name":"(\w+)","type":"[^"]*","isConst":(true|false)/g,
+        ),
+      ].map((match) => [match[1], match[2]]);
+
+      expect(constness).toEqual([
+        ["c", "false"],
+        ["c", "false"],
+        ["x", "true"],
+        ["y", "false"],
+      ]);
+    });
+  });
+
   // ========================================================================
   // Silence, on BOTH listeners and BOTH callers
   //

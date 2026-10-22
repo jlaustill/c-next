@@ -353,13 +353,10 @@ fills a `u32 tickSource()` slot on stm32f4 and AVR, where `uint32_t` is
 matches no callback type. A pointer typedef counts its own `*`s
 (`typedef Sample *SampleRef` is `Sample*`), and every dimension of an array
 parameter after the first is part of its type (`uint8_t g[4][8]` does not fill a
-`u8[4][4]` slot). A header parameter whose shape the header lowering does not
-carry is left undecided rather than reported: a pointer to a function or to an
-array, a typedef of either, an inner dimension that is not a literal, or a typedef
-only a system header the run does not lower declares (`time_t`; the compiler's macros still
-name `size_t`, `ptrdiff_t` and the `least`, `fast`, `ptr` and `max` integer
-families) (#2294). A `volatile` pointee is part of the type.
-A function a C++ header declares is not checked yet (#2293). Asserted by
+`u8[4][4]` slot). A `const` or `volatile` pointee is part of the type, whether
+the parameter or a typedef spells it. Where a C type in the signature cannot be
+determined from the headers the program includes, that part is not reported;
+the C compiler remains the check. Asserted by
 `tests/adr-029/callback-c-header-*.test.cnx`.
 
 The signature compared is the one the author **declared**. A parameter may also
