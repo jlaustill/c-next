@@ -278,11 +278,10 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-22 linked fixtures with no derivable context:
+21 linked fixtures with no derivable context:
 
 - `adr-029/callback-assign.test.cnx`
 - `adr-029/callback-basic.test.cnx`
-- `adr-029/callback-c-header-cpp-error.test.cnx`
 - `adr-029/callback-c-header-params.test.cnx`
 - `adr-029/callback-multi-param.test.cnx`
 - `adr-029/callback-param-types.test.cnx`

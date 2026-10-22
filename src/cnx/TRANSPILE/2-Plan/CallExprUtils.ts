@@ -3,6 +3,7 @@
  * Extracted from CallExprGenerator for testability (Issue #420).
  */
 import TYPE_MAP from "./types/TYPE_MAP";
+import ParameterByValue from "../../utils/ParameterByValue";
 import SafeDivision from "../../utils/SafeDivision";
 import IFunctionSignature from "../../types/IFunctionSignature";
 import type IResolvedSymbols from "../../types/IResolvedSymbols";
@@ -23,15 +24,7 @@ class CallExprUtils {
    * Unknown types (external enums, typedefs) use pass-by-value.
    */
   static isKnownPrimitiveType(typeName: string): boolean {
-    return !!TYPE_MAP[typeName];
-  }
-
-  /**
-   * Issue #551: Check if a type is a string type (string<N>).
-   * String parameters use pass-by-reference (passed as char*).
-   */
-  static isStringType(typeName: string): boolean {
-    return typeName.startsWith("string<") || typeName === "string";
+    return ParameterByValue.isKnownPrimitiveType(typeName);
   }
 
   /**

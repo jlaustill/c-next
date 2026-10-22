@@ -25,7 +25,7 @@ import CnxResolver from "../../../../cnx/PARSE/3-Declare/cnx/index";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnx/adapters/TSymbolInfoAdapter";
-import CallbackTypedefFormatter from "../../../../cnx/TRANSPILE/3-Render/codegen/helpers/CallbackTypedefFormatter";
+import CallbackTypedefFormatter from "../../../../cnx/utils/CallbackTypedefFormatter";
 import ESourceLanguage from "../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../cnx/types/__testUtils__/testSourceSpan";
 

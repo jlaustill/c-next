@@ -20,7 +20,7 @@ import generateBitmapHeader from "./generators/generateBitmapHeader";
 import VariableDeclarationFormatter from "../codegen/helpers/VariableDeclarationFormatter";
 import type IVariableFormatInput from "../codegen/types/IVariableFormatInput";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
-import CallbackTypedefFormatter from "../codegen/helpers/CallbackTypedefFormatter";
+import CallbackTypedefFormatter from "../../../utils/CallbackTypedefFormatter";
 
 const { mapType, isBuiltInType } = typeUtils;
 

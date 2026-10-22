@@ -61,7 +61,7 @@ import type IPlannedFunctionParameter from "../../2-Plan/types/IPlannedFunctionP
 // Issue #793: Function context lifecycle and parameter processing helper
 import FunctionContextManager from "./helpers/FunctionContextManager";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
+import CallbackTypedefFormatter from "../../../utils/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 // Unified parameter generation (Phase 1)
 // Issue #895: Parse typedef signatures to determine pointer vs value params

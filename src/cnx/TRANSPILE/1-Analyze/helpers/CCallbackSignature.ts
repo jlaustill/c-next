@@ -8,18 +8,19 @@
  * width are still two types (C11 6.2.7), and a call through a pointer of the
  * other is undefined (C11 6.3.2.3p8).
  *
- * The cnx side is the callback type's `_fp` typedef, read off the declaration
- * by the rules that typedef is written by (ADR-006 passing, ADR-071 `mut`).
+ * The cnx side is the callback type's `_fp` typedef as 2.2 writes it:
+ * `CallbackParameterShape` decides it and `CallbackTypedefFormatter` spells
+ * it, for 2.2's typedef and for this comparison alike.
  */
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
-import type IParameterInfo from "../../../types/symbols/IParameterInfo";
 import type ICFunctionSymbol from "../../../types/symbols/c/ICFunctionSymbol";
 import type TExpression from "../../../types/syntax/TExpression";
+import CallbackParameterShape from "../../../utils/CallbackParameterShape";
+import type ICallbackShapeFacts from "../../../utils/types/ICallbackShapeFacts";
+import CallbackTypedefFormatter from "../../../utils/CallbackTypedefFormatter";
 import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
-import ParameterConst from "../../../utils/ParameterConst";
+import headerCType from "../../../utils/headerCType";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import TypeCheckUtils from "../../../utils/TypeCheckUtils";
-import TypeResolver from "../../../utils/TypeResolver";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
 /** The words C's integer type spellings are made of, in any order */
@@ -73,24 +74,35 @@ class CCallbackSignature {
     if (actual.isVariadic === true) return false;
     const actualParameters = actual.parameters ?? [];
     if (actualParameters.length !== expected.parameters.length) return false;
-    const expectedReturn = CCallbackSignature.cnxType(
-      TypeResolver.getTypeName(expected.returnType),
-      context,
-    );
+    const facts = CCallbackSignature.shapeFacts(context);
     if (
       !CCallbackSignature.same(
-        { base: expectedReturn, indirection: "", pointeeConst: false },
+        CCallbackSignature.parse(
+          CallbackParameterShape.returnType(expected, facts),
+          false,
+          false,
+        ),
         CCallbackSignature.parse(actual.type, false, false),
         context,
       )
     ) {
       return false;
     }
-    const cName = ScopeUtils.getTranspiledCName(expected);
-    return expected.parameters.every((parameter, index) => {
+    const isCppMode = context.program.cppMode();
+    return CallbackParameterShape.parameters(
+      ScopeUtils.getTranspiledCName(expected),
+      expected,
+      facts,
+    ).every((parameter, index) => {
       const cParameter = actualParameters[index];
+      // The typedef's own spelling of the parameter, unnamed and with its
+      // dimensions dropped: an array parameter is a pointer to its element.
+      const typedefText = CallbackTypedefFormatter.formatParameterList(
+        [{ ...parameter, name: "", arrayDims: "" }],
+        isCppMode,
+      );
       return CCallbackSignature.same(
-        CCallbackSignature.cnxParameter(cName, parameter, context),
+        CCallbackSignature.parse(typedefText, false, parameter.isArray),
         CCallbackSignature.parse(
           cParameter.type,
           cParameter.isConst,
@@ -99,6 +111,21 @@ class CCallbackSignature {
         context,
       );
     });
+  }
+
+  /** The `_fp` typedef's facts, as 2.1 sees the program */
+  private static shapeFacts(context: IAnalysisContext): ICallbackShapeFacts {
+    const { program, symbolTable } = context;
+    return {
+      program,
+      callbackTypes: new Set<string>(),
+      symbolTable,
+      isKnownStruct: (typeName) =>
+        DeclaredTypeFacts.isStruct(context.symbols, symbolTable, typeName),
+      isFunctionType: (typeName) =>
+        program.symbolByCName(typeName)?.kind === "function",
+      cType: (typeName) => headerCType(typeName, symbolTable),
+    };
   }
 
   private static namedValue(
@@ -118,72 +145,9 @@ class CCallbackSignature {
   }
 
   /**
-   * One parameter of a cnx callback type as its `_fp` typedef writes it
-   * (`CallbackTypedefFormatter`): an array, a string, an opaque handle and a
-   * struct are pointers (a struct a C++ reference), `const` unless `mut`; a
-   * `mut` scalar is a plain pointer (ADR-071); a read-only scalar is a value.
-   */
-  private static cnxParameter(
-    cName: string,
-    parameter: IParameterInfo,
-    context: IAnalysisContext,
-  ): ICType {
-    const program = context.program;
-    const typeName = TypeResolver.getTypeName(parameter.type);
-    const isCallbackType = program.symbolByCName(typeName)?.kind === "function";
-    const pointeeConst = ParameterConst.isWritten(
-      parameter.isConst,
-      typeName,
-      isCallbackType,
-    );
-    const base = CCallbackSignature.cnxType(typeName, context);
-    if (isCallbackType) {
-      return { base: `${base}_fp`, indirection: "", pointeeConst: false };
-    }
-    if (parameter.isArray) {
-      return { base, indirection: "*", pointeeConst };
-    }
-    if (TypeCheckUtils.isSizedStringName(typeName)) {
-      return { base: "char", indirection: "*", pointeeConst };
-    }
-    if (parameter.isOpaqueHandle === true) {
-      return { base, indirection: "*", pointeeConst };
-    }
-    if (
-      DeclaredTypeFacts.isStruct(context.symbols, context.symbolTable, typeName)
-    ) {
-      return {
-        base,
-        indirection: program.cppMode() ? "&" : "*",
-        pointeeConst,
-      };
-    }
-    if (program.passByValueParams().get(cName)?.has(parameter.name) === true) {
-      return { base, indirection: "", pointeeConst: false };
-    }
-    const isScalar =
-      TypeCheckUtils.isInteger(typeName) ||
-      TypeCheckUtils.isFloat(typeName) ||
-      typeName === "bool" ||
-      program.knownEnums().has(typeName);
-    return {
-      base,
-      indirection: isScalar ? (program.cppMode() ? "&" : "*") : "",
-      pointeeConst: false,
-    };
-  }
-
-  /** A cnx type name as C spells it (ADR-057): `uint32_t`, `Clock__Timer` */
-  private static cnxType(typeName: string, context: IAnalysisContext): string {
-    return context.program.cTypeNameAt(context.sourceFile, typeName, {
-      line: 0,
-      column: 0,
-    });
-  }
-
-  /**
-   * A C type as a header spells it: `const Reading*`, or a parameter's
-   * `Reading*` with its pointee's `const` and its array-ness given apart
+   * A C type as a header or the `_fp` typedef spells it: `const Reading*`,
+   * `const Reading&`, or a parameter's `Reading*` with its pointee's `const`
+   * and its array-ness given apart
    */
   private static parse(
     text: string,
@@ -191,15 +155,16 @@ class CCallbackSignature {
     isArray: boolean,
   ): ICType {
     const stars = (text.match(/\*/g) ?? []).length + (isArray ? 1 : 0);
-    const words = text.replaceAll("*", " ").split(/\s+/).filter(Boolean);
+    const indirection = "*".repeat(stars) + (text.includes("&") ? "&" : "");
+    const words = text.replaceAll(/[*&]/g, " ").split(/\s+/).filter(Boolean);
     const qualified = words.includes("const") || isConst;
     const base = words
       .filter((word) => word !== "const" && word !== "volatile")
       .join(" ");
     return {
       base,
-      indirection: "*".repeat(stars),
-      pointeeConst: stars > 0 && qualified,
+      indirection,
+      pointeeConst: indirection !== "" && qualified,
     };
   }
 

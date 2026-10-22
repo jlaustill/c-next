@@ -1,6 +1,5 @@
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import UnwrittenIncludes from "./UnwrittenIncludes";
-import ParameterConst from "../../utils/ParameterConst";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type TCArgumentForm from "./types/TCArgumentForm";
 import CArgumentAddress from "./CArgumentAddress";
@@ -12,7 +11,8 @@ import type TPlannedNarrowing from "./types/TPlannedNarrowing";
 import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import TYPE_MAP from "./types/TYPE_MAP";
-import ParameterPassing from "./ParameterPassing";
+import CallbackParameterShape from "../../utils/CallbackParameterShape";
+import type ICallbackShapeFacts from "../../utils/types/ICallbackShapeFacts";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
@@ -3125,85 +3125,7 @@ class FilePlanner {
    * declaration site and every reference cannot spell it differently.
    */
   private static callbackTypedefName(functionName: string): string {
-    return `${functionName}_fp`;
-  }
-
-  /**
-   * ADR-029 + ADR-006: what one parameter of a callback typedef MEANS -- its
-   * rendered type and its pointer semantics.
-   *
-   * Kept as one decision since two builders shared it (#1491, #1552); one
-   * builder is left (#1929).
-   */
-  private callbackParamShape(
-    typeName: string,
-    isArray: boolean,
-    functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
-  ): {
-    type: string;
-    isStruct: boolean;
-    isString: boolean;
-    isOpaqueHandle: boolean;
-  } {
-    // ADR-006: struct-ness drives reference semantics. A C++ namespaced
-    // struct is known by its `::` spelling, which is how the prototype that
-    // takes it by reference names it; the C join (`hw__Dev`) is not.
-    const isStruct = this.queries.isKnownStruct(
-      CppNamespaceUtils.convertToCppNamespace(typeName, this.state.symbolTable),
-    );
-
-    // ADR-029: a parameter whose type is itself a function-as-type.
-    if (functionsAsTypes.has(typeName)) {
-      // Function pointers are already pointers.
-      return {
-        type: FilePlanner.callbackTypedefName(typeName),
-        isStruct,
-        isString: false,
-        isOpaqueHandle: false,
-      };
-    }
-
-    // ADR-045: a `string<N>` parameter is `char*` in C. Decided HERE, not in
-    // either caller's renderer, because that is where the two disagreed: the
-    // parse-tree renderer answered `char` (the ELEMENT type) and the symbol
-    // renderer answered `string<8>` (cnx surface syntax, not C at all, and
-    // rejected by cc while the transpiler exited 0). Both are now wrong in one
-    // place instead of differently wrong in two -- which is the property this
-    // method exists to hold, and the one its comment already claimed.
-    if (!isArray && TypeCheckUtils.isSizedStringName(typeName)) {
-      return {
-        type: "char*",
-        isStruct: false,
-        isString: true,
-        isOpaqueHandle: false,
-      };
-    }
-
-    // ADR-030: an opaque handle is a pointer in the typedef exactly as it is in
-    // the prototype -- `Dev*` in C and C++ alike, and an array of them an array
-    // of pointers (#996). The typedef IS the function's type, so it reads the
-    // decision the prototype reads rather than asking struct-ness, which never
-    // answered for an incomplete type: `typedef void (*aPoke_fp)(Dev)` stood
-    // beside `void aPoke(Dev* d)`. Not ADR-006 reference semantics, so not
-    // `isStruct` -- which is also what keeps an unmodified handle free of the
-    // auto-const its prototype never takes.
-    if (this.state.isHeldThroughPointer(typeName)) {
-      return {
-        type: this.callbackCType(typeName),
-        isStruct: false,
-        isString: false,
-        isOpaqueHandle: true,
-      };
-    }
-
-    // ADR-006: a struct parameter is a pointer in C and a reference in C++,
-    // which the formatter spells from `isStruct`.
-    return {
-      type: this.callbackCType(typeName),
-      isStruct,
-      isString: false,
-      isOpaqueHandle: false,
-    };
+    return CallbackParameterShape.typedefName(functionName);
   }
 
   /**
@@ -3294,46 +3216,19 @@ class FilePlanner {
     symbol: IFunctionSymbol,
     functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
   ): ICallbackTypeInfo {
+    const state = this.state;
+    const facts: ICallbackShapeFacts = {
+      program: state.program,
+      callbackTypes: state.callbackTypes,
+      symbolTable: state.symbolTable,
+      isKnownStruct: (typeName) => this.queries.isKnownStruct(typeName),
+      isFunctionType: (typeName) => functionsAsTypes.has(typeName),
+      cType: (typeName) => this.callbackCType(typeName),
+    };
     return {
       functionName: cName,
-      returnType: this.callbackCType(
-        SymbolTypeResolver.getTypeName(symbol.returnType),
-      ),
-      parameters: symbol.parameters.map((param, index) => {
-        const typeName = SymbolTypeResolver.getTypeName(param.type);
-        // Spread, not re-listed: a field the shape gains reaches the typedef
-        // (#1552 was a builder dropping one).
-        const shape = this.callbackParamShape(
-          typeName,
-          param.isArray,
-          functionsAsTypes,
-        );
-        // #1290 review: the typedef names a parameter as its prototype does
-        invariant(
-          param.emittedName !== null,
-          `1.4 settled the C name of ${cName}'s parameter ${param.name}`,
-        );
-        return {
-          name: param.emittedName,
-          ...shape,
-          isConst: ParameterConst.isWritten(
-            param.isConst,
-            typeName,
-            functionsAsTypes.has(typeName),
-          ),
-          isArray: param.isArray,
-          // ADR-071 Q6: a `mut` scalar is a pointer, as in its prototype
-          // #1639: from the declaration, as a call through the type passes it
-          isPointer: !ParameterPassing.of(cName, index, this.state, false)
-            .byValue,
-          // Already folded to literals by the symbols layer, which is exactly
-          // what MISRA Rule 18.8 needs -- a dimension that is still an
-          // identifier makes the typedef a variably-modified type.
-          arrayDims: (param.arrayDimensions ?? [])
-            .map((dimension) => `[${dimension}]`)
-            .join(""),
-        };
-      }),
+      returnType: CallbackParameterShape.returnType(symbol, facts),
+      parameters: CallbackParameterShape.parameters(cName, symbol, facts),
       typedefName: FilePlanner.callbackTypedefName(cName),
     };
   }

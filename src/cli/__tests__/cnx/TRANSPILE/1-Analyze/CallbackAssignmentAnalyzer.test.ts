@@ -262,7 +262,11 @@ describe("CallbackAssignmentAnalyzer", () => {
  * `<stdint.h>` name (`__UINT32_TYPE__`).
  */
 describe("CallbackAssignmentAnalyzer with a function a C header declares", () => {
-  const ARM = { uint32_t: "long unsigned int", uint8_t: "unsigned char" };
+  const ARM = {
+    uint32_t: "long unsigned int",
+    uint16_t: "short unsigned int",
+    uint8_t: "unsigned char",
+  };
   const X86_64 = { uint32_t: "unsigned int", uint8_t: "unsigned char" };
 
   const declare = (
@@ -303,12 +307,30 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     declare(symbolTable, "onBytePtr", "void", [
       { name: "b", type: "uint8_t *", isConst: false, isArray: false },
     ]);
+    symbolTable.addCSymbol({
+      name: "tick_t",
+      kind: "type",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type: "unsigned long",
+    });
+    declare(symbolTable, "typedefClock", "tick_t");
+    declare(symbolTable, "unsignedByte", "unsigned char");
+    declare(symbolTable, "plainChar", "char");
+    declare(symbolTable, "signedChar", "signed char");
+    declare(symbolTable, "unsignedShort", "unsigned short");
+    declare(symbolTable, "cBool", "_Bool");
     const { syntax, context } = testAnalysisContextFor(
       [
         "u32 tickSource() { return 0; }",
         "void byteSink(u8 b) { (void) b; }",
         "void byteOut(mut u8 b) { b <- 1; }",
-        "struct T { tickSource tick; byteSink sink; byteOut out; }",
+        "u8 byteSource() { return 0; }",
+        "u16 halfSource() { return 0; }",
+        "bool flagSource() { return false; }",
+        "struct T { tickSource tick; byteSink sink; byteOut out; byteSource byte; halfSource half; flagSource flag; }",
         `T t <- { ${value} };`,
       ].join("\n"),
       { symbolTable, integerTypes, cppMode },
@@ -352,6 +374,38 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     expect(run("out: onByte", ARM, false)).toEqual([
       "E0879 Function 'onByte' signature does not match callback type 'byteOut'",
     ]);
+  });
+
+  it("names the function through global. as well as bare", () => {
+    expect(run("tick: global.millis", ARM, false)).toEqual([]);
+    expect(run("tick: global.clock32", ARM, false)).toEqual([
+      "E0879 Function 'global.clock32' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("follows a header typedef to the type it names", () => {
+    expect(run("tick: typedefClock", ARM, false)).toEqual([]);
+    expect(run("tick: typedefClock", X86_64, false)).toEqual([
+      "E0879 Function 'typedefClock' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("keeps char, signed char and unsigned char three types", () => {
+    expect(run("byte: unsignedByte", ARM, false)).toEqual([]);
+    expect(run("byte: plainChar", ARM, false)).toEqual([
+      "E0879 Function 'plainChar' signature does not match callback type 'byteSource'",
+    ]);
+    expect(run("byte: signedChar", ARM, false)).toEqual([
+      "E0879 Function 'signedChar' signature does not match callback type 'byteSource'",
+    ]);
+  });
+
+  it("matches short and bool by their C spellings", () => {
+    expect(run("half: unsignedShort", ARM, false)).toEqual([]);
+    expect(run("half: millis", ARM, false)).toEqual([
+      "E0879 Function 'millis' signature does not match callback type 'halfSource'",
+    ]);
+    expect(run("flag: cBool", ARM, false)).toEqual([]);
   });
 
   it("takes a mut scalar as a reference in C++", () => {
