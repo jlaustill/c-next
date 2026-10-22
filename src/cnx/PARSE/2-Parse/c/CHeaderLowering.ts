@@ -93,6 +93,9 @@ class CHeaderLowering {
       isVolatile: specs.some(
         (spec) => spec.typeQualifier()?.getText() === "volatile",
       ),
+      isConst: specs.some(
+        (spec) => spec.typeQualifier()?.getText() === "const",
+      ),
       typeSpecifiers: CHeaderLowering.typeSpecifiers(declarationSpecifiers),
       struct: structSpec ? CHeaderLowering.struct(structSpec) : null,
       enum: enumSpec ? CHeaderLowering.enum(enumSpec) : null,
@@ -229,7 +232,10 @@ class CHeaderLowering {
         ),
         CHeaderLowering.declaratorName,
       ),
-      ...CHeaderLowering.declaratorExtras(directText),
+      ...CHeaderLowering.declaratorExtras(
+        declarationSpecifiers.getText(),
+        directText,
+      ),
     };
   }
 
@@ -262,7 +268,7 @@ class CHeaderLowering {
       type: shape[0],
       isConst: shape[1],
       isArray: shape[2],
-      ...CHeaderLowering.declaratorExtras(directText),
+      ...CHeaderLowering.declaratorExtras(specifiers.getText(), directText),
     };
   }
 
@@ -289,24 +295,33 @@ class CHeaderLowering {
   }
 
   /**
-   * #1619: what a parameter's type string cannot carry -- each `[...]` of an
-   * array, and whether the declarator nests (`(*f)(void)`, `(*rows)[4]`,
+   * #1619: what a parameter's type string cannot carry -- a `volatile`
+   * pointee, each `[...]` of an array, and whether the declarator nests (`(*f)(void)`, `(*rows)[4]`,
    * `f(void)`), which makes it a pointer to a function or to an array.
    */
-  private static declaratorExtras(directText: string): {
+  private static declaratorExtras(
+    specifiersText: string,
+    directText: string,
+  ): {
     arrayDimensions?: string[];
     isNestedDeclarator?: true;
+    isVolatile?: true;
   } {
-    if (directText.includes("(")) return { isNestedDeclarator: true };
+    const qualifiers = specifiersText.includes("volatile")
+      ? { isVolatile: true as const }
+      : {};
+    if (directText.includes("(")) {
+      return { ...qualifiers, isNestedDeclarator: true };
+    }
     const open = directText.indexOf("[");
-    if (open < 0) return {};
+    if (open < 0) return qualifiers;
     // `[4][8]` splits on `]` to `[4`, `[8`, and a trailing empty part
     const dimensions = directText
       .slice(open)
       .split("]")
       .filter((part) => part.startsWith("["))
       .map((part) => part.slice(1));
-    return { arrayDimensions: dimensions };
+    return { ...qualifiers, arrayDimensions: dimensions };
   }
 
   private static struct(

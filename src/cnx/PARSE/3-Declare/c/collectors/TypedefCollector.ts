@@ -21,6 +21,7 @@ class TypedefCollector {
     sourceFile: string,
     span: ISourceSpan,
     arrayDimensions: ReadonlyArray<number | string> = [],
+    isConst = false,
   ): ICTypedefSymbol {
     return {
       kind: "type",
@@ -31,6 +32,7 @@ class TypedefCollector {
       visibility: "public",
       type: baseType,
       ...(arrayDimensions.length > 0 ? { arrayDimensions } : {}),
+      ...(isConst ? { isConst: true } : {}),
     };
   }
 }

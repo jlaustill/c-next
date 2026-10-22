@@ -16,6 +16,9 @@ interface ICTypedefSymbol extends ICBaseSymbol {
    * is element access, not a bit of a scalar.
    */
   readonly arrayDimensions?: ReadonlyArray<number | string>;
+
+  /** #1619: the typedef names a `const` type (`typedef const uint8_t CByte`) */
+  readonly isConst?: boolean;
 }
 
 export default ICTypedefSymbol;

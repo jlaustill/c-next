@@ -3121,14 +3121,6 @@ class FilePlanner {
   }
 
   /**
-   * ADR-029: the typedef name for a function-as-type. One encoder, so the
-   * declaration site and every reference cannot spell it differently.
-   */
-  private static callbackTypedefName(functionName: string): string {
-    return CallbackParameterShape.typedefName(functionName);
-  }
-
-  /**
    * ADR-029: every function this file can see is a type here too, whether it
    * is declared in this file or reached through an include (#1491).
    *
@@ -3222,7 +3214,7 @@ class FilePlanner {
       functionName: cName,
       returnType: CallbackParameterShape.returnType(symbol, facts),
       parameters: CallbackParameterShape.parameters(cName, symbol, facts),
-      typedefName: FilePlanner.callbackTypedefName(cName),
+      typedefName: CallbackParameterShape.typedefName(cName),
     };
   }
 

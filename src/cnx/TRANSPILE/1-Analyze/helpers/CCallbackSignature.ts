@@ -14,7 +14,8 @@
  *
  * A header parameter its lowering does not fully carry -- a pointer to a
  * function or to an array, a function-pointer or array typedef, an inner
- * array dimension that is not a literal -- is "unknown", never a mismatch.
+ * array dimension that is not a literal, a typedef the run never saw declared
+ * (a system header's `time_t`) -- is "unknown", never a mismatch.
  */
 import type ICallbackTypedefParameter from "../../../types/ICallbackTypedefParameter";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
@@ -23,6 +24,7 @@ import type ICParameterInfo from "../../../types/symbols/c/ICParameterInfo";
 import type TExpression from "../../../types/syntax/TExpression";
 import CallbackParameterShape from "../../../utils/CallbackParameterShape";
 import CallbackTypedefFormatter from "../../../utils/CallbackTypedefFormatter";
+import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import type ICallbackShapeFacts from "../../../utils/types/ICallbackShapeFacts";
 import type IAnalysisContext from "../types/IAnalysisContext";
@@ -44,7 +46,15 @@ interface ICType {
   readonly indirection: string;
   /** Whether what the pointer points at is const; meaningless with none */
   readonly pointeeConst: boolean;
+  /** Whether what the pointer points at is volatile; meaningless with none */
+  readonly pointeeVolatile: boolean;
+  /** The base's own qualifiers where there is no pointer: a typedef's `const` */
+  readonly baseConst: boolean;
+  readonly baseVolatile: boolean;
 }
+
+/** Base type names C itself spells, beyond the integer words */
+const BUILTIN_BASES = new Set(["void", "float", "double", "long double"]);
 
 type TSignatureMatch = "match" | "mismatch" | "unknown";
 
@@ -142,6 +152,7 @@ class CCallbackSignature {
         cParameter.type,
         cParameter.isConst,
         cParameter.isArray,
+        cParameter.isVolatile === true,
       ),
       context,
     );
@@ -196,18 +207,24 @@ class CCallbackSignature {
     text: string,
     isConst: boolean,
     isArray: boolean,
+    isVolatile = false,
   ): ICType {
     const stars = (text.match(/\*/g) ?? []).length + (isArray ? 1 : 0);
     const indirection = "*".repeat(stars) + (text.includes("&") ? "&" : "");
     const words = text.replaceAll(/[*&]/g, " ").split(/\s+/).filter(Boolean);
     const qualified = words.includes("const") || isConst;
+    const volatileQualified = words.includes("volatile") || isVolatile;
     const base = words
       .filter((word) => word !== "const" && word !== "volatile")
       .join(" ");
+    const pointed = indirection !== "";
     return {
       base,
       indirection,
-      pointeeConst: indirection !== "" && qualified,
+      pointeeConst: pointed && qualified,
+      pointeeVolatile: pointed && volatileQualified,
+      baseConst: !pointed && qualified,
+      baseVolatile: !pointed && volatileQualified,
     };
   }
 
@@ -227,7 +244,13 @@ class CCallbackSignature {
 
   private static equal(a: ICType, b: ICType, context: IAnalysisContext) {
     if (a.indirection !== b.indirection) return false;
-    if (a.indirection !== "" && a.pointeeConst !== b.pointeeConst) return false;
+    if (
+      a.indirection !== "" &&
+      (a.pointeeConst !== b.pointeeConst ||
+        a.pointeeVolatile !== b.pointeeVolatile)
+    ) {
+      return false;
+    }
     return (
       CCallbackSignature.identity(a.base, context) ===
       CCallbackSignature.identity(b.base, context)
@@ -235,10 +258,11 @@ class CCallbackSignature {
   }
 
   /**
-   * A header typedef followed until its base names none, its own `*`s
-   * counted: `SampleRef` (`typedef Sample *SampleRef`) is `Sample*`. Null
-   * for a typedef of a function pointer or an array, whose shape the
-   * lowering does not carry.
+   * A header typedef followed until its base names none, its own `*`s and
+   * qualifiers counted: `SampleRef` (`typedef Sample *SampleRef`) is
+   * `Sample*`, and `CByte *` (`typedef const uint8_t CByte`) is
+   * `const uint8_t*`. Null for a typedef of a function pointer or an array,
+   * and for a base the run cannot name, whose shape it does not know.
    */
   private static resolve(
     type: ICType,
@@ -251,21 +275,72 @@ class CCallbackSignature {
       if (seen.has(name)) return current;
       seen.add(name);
       const typedef = context.symbolTable.getCSymbol(name);
-      if (typedef?.kind !== "type") return current;
+      if (typedef?.kind !== "type") {
+        return CCallbackSignature.isKnownBase(name, context) ? current : null;
+      }
       if (typedef.type.includes("(") || typedef.arrayDimensions?.length) {
         return null;
       }
-      const inner = CCallbackSignature.parse(typedef.type, false, false);
-      current = {
-        base: inner.base,
-        indirection: inner.indirection + current.indirection,
-        // `const SampleRef` is `Sample * const`: the const is the pointer's
-        pointeeConst:
-          current.indirection === ""
-            ? inner.pointeeConst
-            : current.pointeeConst,
-      };
+      current = CCallbackSignature.through(
+        current,
+        CCallbackSignature.parse(typedef.type, typedef.isConst === true, false),
+      );
     }
+  }
+
+  /** `use` spelled with a typedef whose own type is `inner` */
+  private static through(use: ICType, inner: ICType): ICType {
+    const viaUse = use.indirection !== "";
+    const innerPointer = inner.indirection !== "";
+    // `const SampleRef` is `Sample * const`: the const is the pointer's
+    const pointee = (
+      useQualified: boolean,
+      innerPointee: boolean,
+      innerBase: boolean,
+    ): boolean => {
+      if (innerPointer) return viaUse ? useQualified : innerPointee;
+      return viaUse && (useQualified || innerBase);
+    };
+    return {
+      base: inner.base,
+      indirection: inner.indirection + use.indirection,
+      pointeeConst: pointee(
+        use.pointeeConst,
+        inner.pointeeConst,
+        inner.baseConst,
+      ),
+      pointeeVolatile: pointee(
+        use.pointeeVolatile,
+        inner.pointeeVolatile,
+        inner.baseVolatile,
+      ),
+      baseConst: !viaUse && !innerPointer && (use.baseConst || inner.baseConst),
+      baseVolatile:
+        !viaUse && !innerPointer && (use.baseVolatile || inner.baseVolatile),
+    };
+  }
+
+  /**
+   * A base the run can name: C's own spellings, a `<stdint.h>`-family name
+   * the compiler's macros define, a C symbol a lowered header declares, or a
+   * cnx type. Anything else came from a header the run did not lower.
+   */
+  private static isKnownBase(name: string, context: IAnalysisContext) {
+    if (name.split(/\s+/).every((word) => INTEGER_WORDS.has(word))) {
+      return true;
+    }
+    if (BUILTIN_BASES.has(name) || name === "bool" || name === "_Bool") {
+      return true;
+    }
+    const { program, symbolTable, symbols } = context;
+    if (program.headerIntegerType(name) !== null) return true;
+    if (symbolTable.getCSymbol(name) != null) return true;
+    if (DeclaredTypeFacts.isStruct(symbols, symbolTable, name)) return true;
+    if (program.knownEnums().has(name)) return true;
+    return (
+      name.endsWith("_fp") &&
+      program.symbolByCName(name.slice(0, -3))?.kind === "function"
+    );
   }
 
   /**

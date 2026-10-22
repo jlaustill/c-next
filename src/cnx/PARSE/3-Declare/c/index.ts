@@ -46,6 +46,7 @@ interface IDeclarationContext {
   readonly isExtern: boolean;
   /** A variable's or typedef's spelling keeps it, as a field's does */
   readonly isVolatile: boolean;
+  readonly isConst?: boolean;
   readonly symbols: TCSymbol[];
 }
 
@@ -97,6 +98,7 @@ class CResolver {
       isTypedef: decl.isTypedef,
       isExtern: decl.isExtern,
       isVolatile: decl.isVolatile,
+      isConst: decl.isConst,
       symbols,
     };
     if (decl.struct) {
@@ -190,6 +192,7 @@ class CResolver {
             ctx.sourceFile,
             ctx.span,
             typedefType === spelled ? [...declarator.arrayDimensions] : [],
+            ctx.isConst === true && typedefType === spelled,
           ),
         );
       } else if (declarator.isFunction) {
@@ -248,7 +251,14 @@ class CResolver {
     );
     ctx.symbols.push(
       ctx.isTypedef
-        ? TypedefCollector.collect(name, baseType, ctx.sourceFile, ctx.span)
+        ? TypedefCollector.collect(
+            name,
+            baseType,
+            ctx.sourceFile,
+            ctx.span,
+            [],
+            ctx.isConst === true,
+          )
         : VariableCollector.collectFromDeclSpecs(
             name,
             baseType,

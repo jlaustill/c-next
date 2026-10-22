@@ -40,6 +40,8 @@ typedef struct Slots {
     tickSink_fp tick;
     tickSink_fp clockFn;
     gridSlot_fp grid;
+    tickSource_fp least;
+    bytesSlot_fp cbytes;
 } Slots;
 
 /* External variables */

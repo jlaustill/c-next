@@ -266,6 +266,7 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     uint32_t: "long unsigned int",
     uint16_t: "short unsigned int",
     uint8_t: "unsigned char",
+    size_t: "unsigned int",
   };
   const X86_64 = { uint32_t: "unsigned int", uint8_t: "unsigned char" };
 
@@ -359,6 +360,33 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
         },
       ]);
     };
+    declare(symbolTable, "sizeClock", "size_t");
+    declare(symbolTable, "timeClock", "time_t");
+    declare(symbolTable, "onVolatileByte", "void", [
+      {
+        name: "b",
+        type: "uint8_t*",
+        isConst: false,
+        isArray: false,
+        isVolatile: true,
+      },
+    ]);
+    symbolTable.addCSymbol({
+      name: "CByte",
+      kind: "type",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type: "uint8_t",
+      isConst: true,
+    });
+    declare(symbolTable, "onCBytes", "void", [
+      { name: "b", type: "CByte*", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onMutBytes", "void", [
+      { name: "b", type: "uint8_t*", isConst: false, isArray: false },
+    ]);
     grid("onGrid44", ["4", "4"]);
     grid("onGrid48", ["4", "8"]);
     grid("onGridMacro", ["4", "WIDTH"]);
@@ -378,7 +406,8 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
         "bool flagSource() { return false; }",
         "void tickSink(tickSource t) { u32 n <- t(); }",
         "void gridSink(u8[4][4] g) { u8 b <- g[0][0]; }",
-        "struct T { tickSource tick; byteSink sink; byteOut out; byteSource byte; halfSource half; flagSource flag; tickSink sinkTick; gridSink grid; }",
+        "void rowSink(u8[4] r) { u8 b <- r[0]; }",
+        "struct T { tickSource tick; byteSink sink; byteOut out; byteSource byte; halfSource half; flagSource flag; tickSink sinkTick; gridSink grid; rowSink row; }",
         `T t <- { ${value} };`,
       ].join("\n"),
       { symbolTable, integerTypes, cppMode },
@@ -479,6 +508,23 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     ]);
     expect(run("grid: onGridFlat", ARM, false)).toEqual([
       "E0879 Function 'onGridFlat' signature does not match callback type 'gridSink'",
+    ]);
+  });
+
+  it("decides a system typedef the compiler names, and leaves one it does not", () => {
+    expect(run("tick: sizeClock", ARM, false)).toEqual([
+      "E0879 Function 'sizeClock' signature does not match callback type 'tickSource'",
+    ]);
+    expect(run("tick: timeClock", ARM, false)).toEqual([]);
+  });
+
+  it("holds a volatile pointee and a typedef's const to the slot", () => {
+    expect(run("out: onVolatileByte", ARM, false)).toEqual([
+      "E0879 Function 'onVolatileByte' signature does not match callback type 'byteOut'",
+    ]);
+    expect(run("row: onCBytes", ARM, false)).toEqual([]);
+    expect(run("row: onMutBytes", ARM, false)).toEqual([
+      "E0879 Function 'onMutBytes' signature does not match callback type 'rowSink'",
     ]);
   });
 

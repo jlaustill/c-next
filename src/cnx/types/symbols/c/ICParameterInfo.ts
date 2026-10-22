@@ -26,6 +26,9 @@ interface ICParameterInfo {
    * is a pointer to a function or to an array, which `type` does not spell.
    */
   readonly isNestedDeclarator?: boolean;
+
+  /** #1619: the pointee is `volatile`, which `type` does not spell */
+  readonly isVolatile?: boolean;
 }
 
 export default ICParameterInfo;

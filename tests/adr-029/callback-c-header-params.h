@@ -21,4 +21,8 @@ typedef uint32_t (*clock_fn)(void);
 void onClockFn(clock_fn t);
 void onGrid(const uint8_t g[4][4]);
 void onGrid48(const uint8_t g[4][8]);
+uint_least32_t leastClock(void);
+typedef const uint8_t CByte;
+void onCBytes(CByte *b);
+void onVolatile(volatile uint32_t *v);
 #endif

@@ -68,8 +68,6 @@ interface IValueReader {
   readonly macroValue: (name: string) => number | null;
 }
 
-const STDINT_TYPE_DEFINE = /^#define __(U?)INT(8|16|32|64)_TYPE__ (.+)$/gm;
-
 class HeaderMacros {
   /**
    * #1619: the C type the compiler gives each exact-width `<stdint.h>` name,
@@ -78,11 +76,42 @@ class HeaderMacros {
    */
   static integerTypes(dump: string): ReadonlyMap<string, string> {
     const types = new Map<string, string>();
-    for (const match of dump.matchAll(STDINT_TYPE_DEFINE)) {
-      const name = `${match[1] === "U" ? "uint" : "int"}${match[2]}_t`;
-      types.set(name, match[3].trim());
+    for (const line of dump.split("\n")) {
+      if (!line.startsWith("#define __")) continue;
+      const space = line.indexOf(" ", 8);
+      if (space < 0) continue;
+      const macro = line.slice(8, space);
+      if (!macro.startsWith("__") || !macro.endsWith("_TYPE__")) continue;
+      const typedefName = HeaderMacros.integerTypedefName(macro.slice(2, -7));
+      if (typedefName !== null) {
+        types.set(typedefName, line.slice(space + 1).trim());
+      }
     }
     return types;
+  }
+
+  /**
+   * The `<stdint.h>`/`<stddef.h>` name a `__<STEM>_TYPE__` macro is the C
+   * type of: `UINT32` is `uint32_t`, `INT_LEAST8` is `int_least8_t`, `SIZE`
+   * is `size_t`; null for a stem no such name has (`CHAR16`, `WCHAR`).
+   */
+  private static integerTypedefName(stem: string): string | null {
+    if (stem === "SIZE") return "size_t";
+    if (stem === "PTRDIFF") return "ptrdiff_t";
+    const unsigned = stem.startsWith("U");
+    const rest = unsigned ? stem.slice(1) : stem;
+    if (!rest.startsWith("INT")) return null;
+    const kind = rest.slice(3);
+    const prefix = unsigned ? "uint" : "int";
+    if (kind === "PTR" || kind === "MAX")
+      return `${prefix}${kind.toLowerCase()}_t`;
+    for (const family of ["", "_LEAST", "_FAST"]) {
+      const width = kind.startsWith(family) ? kind.slice(family.length) : null;
+      if (width !== null && ["8", "16", "32", "64"].includes(width)) {
+        return `${prefix}${family.toLowerCase()}${width}_t`;
+      }
+    }
+    return null;
   }
 
   /** Every object-like macro a `-dM` dump defines, by name */

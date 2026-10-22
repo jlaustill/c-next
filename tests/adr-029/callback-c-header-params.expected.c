@@ -13,7 +13,8 @@
 // and a string through a const pointer (#1619). A pointer typedef counts its
 // own `*`s, and a 2-D array keeps its inner dimension. A function-pointer
 // parameter, written or typedef'd, is a shape the header lowering does not
-// carry, so it is accepted here and gcc is the check.
+// carry, so it is accepted here and gcc is the check. uint_least32_t is the
+// compiler's own type for it, and a typedef's const reaches its pointee.
 #include "callback-c-header-params.h"
 
 #include <stdint.h>
@@ -61,8 +62,8 @@ void gridSlot(const uint8_t g[4][4]) {
 }
 
 Slots Slots_init(void) {
-    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot };
+    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot, .least = tickSource, .cbytes = bytesSlot };
     return value;
 }
 
-const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid };
+const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid, .least = leastClock, .cbytes = onCBytes };

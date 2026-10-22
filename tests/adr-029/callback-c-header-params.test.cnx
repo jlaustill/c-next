@@ -6,7 +6,8 @@
 // and a string through a const pointer (#1619). A pointer typedef counts its
 // own `*`s, and a 2-D array keeps its inner dimension. A function-pointer
 // parameter, written or typedef'd, is a shape the header lowering does not
-// carry, so it is accepted here and gcc is the check.
+// carry, so it is accepted here and gcc is the check. uint_least32_t is the
+// compiler's own type for it, and a typedef's const reaches its pointee.
 #include "callback-c-header-params.h"
 
 void valueSlot(u32 v) {
@@ -62,6 +63,8 @@ struct Slots {
     tickSink tick;
     tickSink clockFn;
     gridSlot grid;
+    tickSource least;
+    bytesSlot cbytes;
 }
 
 Slots slots <- {
@@ -76,5 +79,7 @@ Slots slots <- {
     mutRef: onMutRef,
     tick: onTick,
     clockFn: onClockFn,
-    grid: onGrid
+    grid: onGrid,
+    least: leastClock,
+    cbytes: onCBytes
 };

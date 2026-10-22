@@ -17,6 +17,8 @@ type TCExternalDeclarationSyntax =
       readonly isTypedef: boolean;
       readonly isExtern: boolean;
       readonly isVolatile: boolean;
+      /** #1619: `const` among the specifiers, e.g. `typedef const uint8_t CByte` */
+      readonly isConst?: boolean;
       readonly typeSpecifiers: readonly ICTypeSpecifierSyntax[];
       readonly struct: ICStructSyntax | null;
       readonly enum: ICEnumSyntax | null;
