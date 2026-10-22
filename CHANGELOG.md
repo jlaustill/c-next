@@ -192,7 +192,7 @@ ruling on #1933, 2026-10-17).
   `outDir: ""` used to write the `.h` and silently skip the `.c`. Directories are
   created only when something is written into them.
 
-- **Only a lowercase `.cnx` or `.cnext` is cnx source** (Issue #1833). A
+- **Only a lowercase `.cnx` is cnx source** (Issue #1833). A
   source spelled `Colors.CNX` (or any other case) is now **E0518** at the
   include that names it, or for the run's input, and nothing is written. It
   used to be transpiled with its generated header named `Colors.CNX`, so an
@@ -223,7 +223,7 @@ ruling on #1933, 2026-10-17).
   effect is evaluated once.
 
 - **No shell parses a compiler name** (Issue #1827). A compiler named in
-  `compile_commands.json` or `CNEXT_CROSS_COMPILER`, such as `gcc;touch x;`, ran
+  `compile_commands.json` or `CNX_CROSS_COMPILER`, such as `gcc;touch x;`, ran
   arbitrary commands through `/bin/sh`. Every toolchain process now starts from an
   argument array.
 
@@ -244,7 +244,7 @@ ruling on #1933, 2026-10-17).
 
 - **`--no-cpp`** asks for C, as `cppRequired: false` does (Issue #1844).
 
-- **Targets (ADR-049, Issue #1668).** A program names exactly one target: `#pragma target <name>`, `--target <name>`, `"target"` in `cnext.config.json`, or the board of the PlatformIO environment being built. `targets/targets.cnx` is the catalog (`cnext --help` lists it). A platform it does not name can be described inline, one `#pragma` per field (E0512–E0514). The run prints `Target: <name> (<source>)`.
+- **Targets (ADR-049, Issue #1668).** A program names exactly one target: `#pragma target <name>`, `--target <name>`, `"target"` in `cnx.config.json`, or the board of the PlatformIO environment being built. `targets/targets.cnx` is the catalog (`cnx --help` lists it). A platform it does not name can be described inline, one `#pragma` per field (E0512–E0514). The run prints `Target: <name> (<source>)`.
 - Return values of non-void functions must now be used or explicitly discarded with `(void) f(...)` — new error **E0708** (ADR-070, Issue #847). This is a **breaking change**: 61 call sites across the test suite and examples were migrated.
 
 ### Removed
@@ -278,16 +278,16 @@ ruling on #1933, 2026-10-17).
 
 - **A PlatformIO project's `default_envs` includes the build machine's
   `PLATFORMIO_DEFAULT_ENVS`**, as PlatformIO appends it (ADR-049, Issue #1794).
-  A standalone `cnext` run read the file alone, so it could report a target for
+  A standalone `cnx` run read the file alone, so it could report a target for
   fewer environments than `pio run` builds.
 
 - **A program that names no target is error E0515** (ADR-049, Issue #1668). This is a
   **breaking change** for every existing project. The migration is one line:
-  `"target": "<name>"` in `cnext.config.json` covers every file. `#pragma target <name>`
+  `"target": "<name>"` in `cnx.config.json` covers every file. `#pragma target <name>`
   in the entry file or `--target <name>` also work, and an unknown name is E0510.
 
   A PlatformIO project whose boards map to known targets needs no line, but should
-  **re-run `cnext --pio-install`**. The regenerated `cnext_build.py` passes each build's
+  **re-run `cnx --pio-install`**. The regenerated `cnx_build.py` passes each build's
   environment (`--pio-env`) and shows the target and any warnings in `pio run`. A script
   written before this passes no environment. A project whose environments name different
   targets, and that sets no `default_envs`, then fails every build with E0511.
@@ -313,7 +313,7 @@ ruling on #1933, 2026-10-17).
   directory and remove the per-subdirectory entries it needed to compensate.
 
 - **Removed `--base-path`** and the corresponding `basePath` key in
-  `cnext.config.json` (Issue #1467). It stripped a leading prefix from header
+  `cnx.config.json` (Issue #1467). It stripped a leading prefix from header
   output paths, for a time when the whole project directory was the input; once
   the entry point became a single file, the prefix it removed no longer appeared,
   and passing it became a no-op for the case it was written for. Its only
@@ -321,7 +321,7 @@ ruling on #1933, 2026-10-17).
   producing output no `-I` could reconcile.
 
   `--base-path` now exits 1 with `Unknown arguments`. A `basePath` key left in
-  `cnext.config.json` is currently discarded **silently** — unknown config keys
+  `cnx.config.json` is currently discarded **silently** — unknown config keys
   produce no diagnostic (Issue #1490) — so remove it by hand.
 
 - MISRA C:2012 Rule 17.7 is now **enforced** rather than baselined. Calls the transpiler emits while lowering string operations carry an automatic `(void)` cast; author-written discards are a compile error.
@@ -416,7 +416,7 @@ ruling on #1933, 2026-10-17).
 - MISRA C:2012 Rule 10.8: composite slice sources are lowered in two steps to avoid an incompatible-type cast (Issue #1085)
 - Integer-literal slice sources are now supported (Issue #1085)
 - MISRA C:2012 Rule 21.6: inline suppression is emitted for `stdio.h` includes (Issue #850)
-- External headers are resolved via `compile_commands.json`, recovering full external symbols per translation unit, with a `CNEXT_CROSS_COMPILER` override for cross-compiler preprocessing (PR #1104)
+- External headers are resolved via `compile_commands.json`, recovering full external symbols per translation unit, with a `CNX_CROSS_COMPILER` override for cross-compiler preprocessing (PR #1104)
 
 ### Changed
 
@@ -653,7 +653,7 @@ ruling on #1933, 2026-10-17).
 
 ### Fixed
 
-- Eliminate duplicate typedef forward declarations for cnext include types (Issue #854, PR #889)
+- Eliminate duplicate typedef forward declarations for cnx include types (Issue #854, PR #889)
 - Recursive block scan and scope-qualified names for callback detection
 - Enforce E0701 boolean condition validation for while/if/for statements (Issue #884, PR #887)
 - Prevent concurrent `npm run build` during parallel test runs (PR #886)
@@ -691,7 +691,7 @@ ruling on #1933, 2026-10-17).
 ### Added
 
 - Config include paths support tilde expansion (`~`) and recursive search (`/**`) (PR #871)
-- `--pio-install` now auto-configures `cnext.config.json` with cppRequired setting (PR #830)
+- `--pio-install` now auto-configures `cnx.config.json` with cppRequired setting (PR #830)
 - esbuild-based build for faster CLI startup and CI (PR #838)
 - Auto-rebuild stale `dist/index.js` before running tests (PR #840)
 
@@ -718,7 +718,7 @@ ruling on #1933, 2026-10-17).
 
 ### Changed
 
-- Extract `groupCNextSymbolsByScopeAndKind` helper method for cleaner conflict detection logic
+- Extract `groupCnxSymbolsByScopeAndKind` helper method for cleaner conflict detection logic
 - Remove unused `skipConflictCheck` field from `IPipelineInput`
 
 ## [0.1.71] - 2026-02-14
@@ -1165,8 +1165,8 @@ ruling on #1933, 2026-10-17).
 
 ### Changed
 
-- Extract CNextSourceParser from Pipeline.ts (Issue #509, PR #530)
-- Consolidate parser setup into CNextSourceParser (Issue #513, PR #531)
+- Extract CnxSourceParser from Pipeline.ts (Issue #509, PR #530)
+- Consolidate parser setup into CnxSourceParser (Issue #513, PR #531)
 - Extract shared context from C/C++ symbol collectors (Issue #512, PR #532)
 - Extract shared patterns in AccessPatternHandlers and StringHandlers (Issues #514-515)
 - Extract enum/bitmap type registration helpers (Issue #510, PR #535)
@@ -1425,8 +1425,8 @@ ruling on #1933, 2026-10-17).
 
 ### Documentation
 
-- Removed status markers from learn-cnext-in-y-minutes.md
-- Fixed enum and nested struct syntax examples in learn-cnext doc
+- Removed status markers from learn-cnx-in-y-minutes.md
+- Fixed enum and nested struct syntax examples in learn-cnx doc
 
 ## [0.1.25] - 2026-01-22
 
@@ -1673,7 +1673,7 @@ ruling on #1933, 2026-10-17).
 ### Changed
 
 - Unified parsing is now the only mode - removed obsolete `--project` flag documentation (Issue #46)
-- CLI help now shows directory mode (`cnext src/`) instead of non-existent project mode
+- CLI help now shows directory mode (`cnx src/`) instead of non-existent project mode
 
 ### Added
 

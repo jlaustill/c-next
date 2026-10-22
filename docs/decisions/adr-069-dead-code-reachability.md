@@ -132,7 +132,7 @@ widest view available — never against a guess:
 
 A **project view** means the transpiler can enumerate the project's other translation units —
 from `compile_commands.json` — the build-system-agnostic database every build system emits —
-or from a C/C++ entry point. When `cnext` is handed a single `.cnx` on the command line it has no
+or from a C/C++ entry point. When `cnx` is handed a single `.cnx` on the command line it has no
 such view, and an exported global is therefore **not** flagged. Under-reporting in that case is
 deliberate: a false positive on a legitimately exported global would be a bug the developer
 cannot fix without disabling the rule.

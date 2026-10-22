@@ -16,16 +16,16 @@
 
 ### Implementation Progress
 
-| Phase | Description                                                   | Status      | Issue                                                |
-| ----- | ------------------------------------------------------------- | ----------- | ---------------------------------------------------- |
-| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)          | ✅ Complete | -                                                    |
-| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnext/`) | ✅ Complete | -                                                    |
-| 2     | Build Composable Collectors (7 collectors with tests)         | ✅ Complete | -                                                    |
-| 3     | Create Orchestrator (`CnxResolver`)                           | ✅ Complete | -                                                    |
-| 4     | Add CacheKeyGenerator                                         | ✅ Complete | -                                                    |
-| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)          | ✅ Complete | [#803](https://github.com/smeltworks/cnx/issues/803) |
-| 6     | Repeat for C++/C (`CResolver`, `CppResolver`)                 | ✅ Complete | [#804](https://github.com/smeltworks/cnx/issues/804) |
-| 7     | Typed Symbol Storage in SymbolTable                           | ✅ Complete | [#805](https://github.com/smeltworks/cnx/issues/805) |
+| Phase | Description                                                 | Status      | Issue                                                |
+| ----- | ----------------------------------------------------------- | ----------- | ---------------------------------------------------- |
+| 0     | Parallel Type System (`TSymbol` + `ISymbol` coexist)        | ✅ Complete | -                                                    |
+| 1     | Directory Restructure (`src/transpiler/logic/symbols/cnx/`) | ✅ Complete | -                                                    |
+| 2     | Build Composable Collectors (7 collectors with tests)       | ✅ Complete | -                                                    |
+| 3     | Create Orchestrator (`CnxResolver`)                         | ✅ Complete | -                                                    |
+| 4     | Add CacheKeyGenerator                                       | ✅ Complete | -                                                    |
+| 5     | Migrate Consumers (`TSymbolAdapter` bridges old/new)        | ✅ Complete | [#803](https://github.com/smeltworks/cnx/issues/803) |
+| 6     | Repeat for C++/C (`CResolver`, `CppResolver`)               | ✅ Complete | [#804](https://github.com/smeltworks/cnx/issues/804) |
+| 7     | Typed Symbol Storage in SymbolTable                         | ✅ Complete | [#805](https://github.com/smeltworks/cnx/issues/805) |
 
 ### Phase 7 Implementation Notes
 
@@ -84,14 +84,14 @@ from is not a property of the encoding.
 cnx currently has **two separate cnx symbol collectors** that walk the same AST to extract similar information:
 
 1. `src/codegen/SymbolCollector.ts` (758 lines) - Used by CodeGenerator during code generation
-2. `src/symbols/CNextSymbolCollector.ts` (507 lines) - Used for the unified SymbolTable
+2. `src/symbols/CnxSymbolCollector.ts` (507 lines) - Used for the unified SymbolTable
 
 ### Why Two Collectors Exist
 
-| Collector                      | When It Runs                            | What It Captures                                                                                      | Output Format                                             |
-| ------------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `codegen/SymbolCollector`      | During `CodeGenerator.generate()`       | Detailed type info for code gen (struct field types, enum values, bitmap offsets, register addresses) | Rich Maps (e.g., `Map<structName, Map<fieldName, type>>`) |
-| `symbols/CNextSymbolCollector` | Before code generation (Pipeline stage) | Symbol names and metadata for cross-language lookups                                                  | Flat `ISymbol[]` array                                    |
+| Collector                    | When It Runs                            | What It Captures                                                                                      | Output Format                                             |
+| ---------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `codegen/SymbolCollector`    | During `CodeGenerator.generate()`       | Detailed type info for code gen (struct field types, enum values, bitmap offsets, register addresses) | Rich Maps (e.g., `Map<structName, Map<fieldName, type>>`) |
+| `symbols/CnxSymbolCollector` | Before code generation (Pipeline stage) | Symbol names and metadata for cross-language lookups                                                  | Flat `ISymbol[]` array                                    |
 
 The codegen collector runs **during** generation (single-pass), while the symbols collector runs **before** to populate the SymbolTable. This timing difference exists because CodeGenerator was originally monolithic and had its own symbol collection embedded.
 
@@ -107,8 +107,8 @@ The codegen collector runs **during** generation (single-pass), while the symbol
 ```
 src/
 ├── parser/           # Only ANTLR grammars - misleading name
-├── symbols/          # SymbolTable + 3 collectors (C, C++, CNext)
-├── codegen/          # Code gen + ANOTHER CNext SymbolCollector + TypeResolver
+├── symbols/          # SymbolTable + 3 collectors (C, C++, Cnx)
+├── codegen/          # Code gen + ANOTHER Cnx SymbolCollector + TypeResolver
 └── analysis/         # Static analyzers
 ```
 
@@ -208,7 +208,7 @@ src/symbol_resolution/
 ├── SymbolTable.ts              # Central storage for all languages
 ├── types/                      # Shared types (TSymbol, ISourceSpan, etc.)
 │
-├── cnext/                      # cnx language
+├── cnx/                      # cnx language
 │   ├── index.ts                # CnxResolver (orchestrator)
 │   ├── collectors/
 │   │   ├── ScopeCollector.ts       # ~50-80 lines each
@@ -391,7 +391,7 @@ This isolates the cache invalidation strategy to a single location.
 Each collector is small, focused, stateless, and independently testable:
 
 ```typescript
-// symbol_resolution/cnext/collectors/StructCollector.ts
+// symbol_resolution/cnx/collectors/StructCollector.ts
 
 import * as Parser from "../../antlr_parser/grammar/CnxParser";
 import { IStructSymbol, IStructFieldSymbol } from "../types";
@@ -459,7 +459,7 @@ export default StructCollector;
 ### 8. Orchestrator Composes Collectors
 
 ```typescript
-// symbol_resolution/cnext/index.ts
+// symbol_resolution/cnx/index.ts
 
 import * as Parser from "../antlr_parser/grammar/CnxParser";
 import StructCollector from "./collectors/StructCollector";
@@ -570,7 +570,7 @@ class CodeGenerator {
 
 ### Phase 2: Build Composable Collectors
 
-1. Create `src/symbol_resolution/cnext/collectors/` directory
+1. Create `src/symbol_resolution/cnx/collectors/` directory
 2. Extract `StructCollector` from existing code
 3. Add unit tests for `StructCollector`
 4. Repeat for Enum, Bitmap, Scope, Register, Function, Variable
@@ -578,7 +578,7 @@ class CodeGenerator {
 
 ### Phase 3: Create Orchestrator
 
-1. Create `src/symbol_resolution/cnext/index.ts` (CNextResolver)
+1. Create `src/symbol_resolution/cnx/index.ts` (CnxResolver)
 2. Wire up all collectors
 3. Add integration tests
 4. Orchestrator returns `TSymbol[]`
@@ -597,7 +597,7 @@ class CodeGenerator {
 4. Update `CodeGenerator.ts` to query `SymbolTable` instead of having its own collector
 5. Update `HeaderGenerator.ts` similarly
 6. Remove old `src/codegen/SymbolCollector.ts`
-7. Remove old `src/symbol_resolution/CNextSymbolCollector.ts`
+7. Remove old `src/symbol_resolution/CnxSymbolCollector.ts`
 
 ### Phase 6: Repeat for C++ and C
 
@@ -640,7 +640,7 @@ class CodeGenerator {
 Each collector gets its own test file:
 
 ```typescript
-// symbol_resolution/cnext/__tests__/StructCollector.test.ts
+// symbol_resolution/cnx/__tests__/StructCollector.test.ts
 
 describe("StructCollector", () => {
   const collector = new StructCollector();
@@ -694,7 +694,7 @@ describe("StructCollector", () => {
 ### Integration Tests (Orchestrator)
 
 ```typescript
-// symbol_resolution/cnext/__tests__/CNextResolver.integration.test.ts
+// symbol_resolution/cnx/__tests__/CnxResolver.integration.test.ts
 
 describe("CnxResolver", () => {
   const resolver = new CnxResolver();

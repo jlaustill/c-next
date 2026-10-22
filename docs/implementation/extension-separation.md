@@ -29,7 +29,7 @@ Separate the VS Code extension into its own repository at `github.com/smeltworks
 
 ```
 ┌─────────────────────┐     JSON/stdin/stdout     ┌─────────────────────┐
-│   VS Code Extension │ ◄──────────────────────► │   cnext --serve     │
+│   VS Code Extension │ ◄──────────────────────► │   cnx --serve     │
 │   (vscode-cnx)   │                           │   (language server) │
 └─────────────────────┘                           └─────────────────────┘
 ```
@@ -48,10 +48,10 @@ Separate the VS Code extension into its own repository at `github.com/smeltworks
 
 ### Phase 1: Server Mode in Main Repo
 
-Add `--serve` flag to `cnext` that runs a JSON-RPC server on stdin/stdout.
+Add `--serve` flag to `cnx` that runs a JSON-RPC server on stdin/stdout.
 
 ```bash
-cnext --serve    # Start server mode
+cnx --serve    # Start server mode
 ```
 
 #### Server Protocol
@@ -111,7 +111,7 @@ Key implementation notes:
 ```typescript
 // src/cli/index.ts
 if (args.includes("--serve")) {
-  new CNextServer().start();
+  new CnxServer().start();
 } else {
   // existing CLI logic
 }
@@ -143,9 +143,9 @@ Update `vscode-extension/` to spawn the server instead of importing transpiler d
 
 #### Server Client
 
-Create `vscode-extension/src/server/CNextServerClient.ts`:
+Create `vscode-extension/src/server/CnxServerClient.ts`:
 
-- Spawn `cnext --serve` as child process
+- Spawn `cnx --serve` as child process
 - Track pending requests with timeout (30s default)
 - Auto-restart on crash (once, then show error)
 - Log to output channel for debugging
@@ -155,8 +155,8 @@ Create `vscode-extension/src/server/CNextServerClient.ts`:
 ```typescript
 // Try workspace node_modules first, then global
 const paths = [
-  path.join(workspaceRoot, "node_modules/.bin/cnext"),
-  "cnext", // Fall back to PATH
+  path.join(workspaceRoot, "node_modules/.bin/cnx"),
+  "cnx", // Fall back to PATH
 ];
 ```
 
@@ -170,7 +170,7 @@ If server unavailable, extension still provides:
 - Snippets
 - Language configuration (brackets, comments)
 
-Show warning: "cnx server not found. Install with: npm i -g @jlaustill/cnext"
+Show warning: "cnx server not found. Install with: npm i -g @smeltworks/cnx"
 
 #### Extension Settings
 
@@ -178,12 +178,12 @@ Add to `package.json` contributes.configuration:
 
 ```json
 {
-  "cnext.serverPath": {
+  "cnx.serverPath": {
     "type": "string",
     "default": "",
-    "description": "Custom path to cnext binary"
+    "description": "Custom path to cnx binary"
   },
-  "cnext.serverTimeout": {
+  "cnx.serverTimeout": {
     "type": "number",
     "default": 30000,
     "description": "Request timeout in milliseconds"
@@ -197,7 +197,7 @@ Invalidate cached symbols when files change:
 
 ```typescript
 vscode.workspace.onDidChangeTextDocument((e) => {
-  if (e.document.languageId === "cnext") {
+  if (e.document.languageId === "cnx") {
     symbolCache.invalidate(e.document.uri);
   }
 });
@@ -205,7 +205,7 @@ vscode.workspace.onDidChangeTextDocument((e) => {
 
 #### Phase 2 Deliverables
 
-- [x] `CNextServerClient.ts` in vscode-extension
+- [x] `CnxServerClient.ts` in vscode-extension
 - [x] Update all providers to use client
 - [x] Add extension settings (`serverPath`, `serverTimeout`)
 - [x] Add graceful degradation ("syntax highlighting only mode")
@@ -235,10 +235,10 @@ vscode-cnx/
 ├── src/
 │   ├── extension.ts
 │   ├── server/
-│   │   └── CNextServerClient.ts
+│   │   └── CnxServerClient.ts
 │   └── providers/
 ├── syntaxes/
-│   └── cnext.tmLanguage.json
+│   └── cnx.tmLanguage.json
 ├── package.json
 ├── sonar-project.properties
 └── README.md

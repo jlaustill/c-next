@@ -360,7 +360,7 @@ moved files without updating it would go red on the next step rather than its ow
 | Textual `docs/decisions` occurrences                | 47    | across 32 files                                                                                                 |
 | Hardcoded `decisions` path constants                | 3     | `adr-matrix.ts:28`, `AdrIndependence.ts:288`, `adr-independence.test.ts:215`                                    |
 | Doc-comment mentions in code                        | 5     | `adr-independence.ts:37`, `AdrIndependence.ts:13,280`, `IAdrIndependenceOutcome.ts:4`, `cspell-scope.test.ts:5` |
-| Config and skills                                   | 3     | `.github/ISSUE_TEMPLATE/release.md:28`, `cnext-way/SKILL.md:76`, `start-issue/SKILL.md:293`                     |
+| Config and skills                                   | 3     | `.github/ISSUE_TEMPLATE/release.md:28`, `cnx-way/SKILL.md:76`, `start-issue/SKILL.md:293`                       |
 | References to `docs/architecture/` paths            | 33    | **8 in `src/**` comments\*\*                                                                                    |
 | Hardcoded architecture-doc paths in gates           | 2     | `scope-join-sites.ts:22` (generator), `throw-citations.ts:40` (checker)                                         |
 | References to `docs/implementation/` paths          | 24    | —                                                                                                               |
@@ -422,7 +422,7 @@ Unit tests live in `scripts/__tests__/`, alongside the existing `adr-independenc
   Without this the band decision is stated in the READMEs and enforced by nothing at release time.
 - `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, root `README.md` — path updates; the in/out list
   stays in one home and is not copied
-- `.claude/skills/cnext-way/SKILL.md`, `.claude/skills/start-issue/SKILL.md` — path updates
+- `.claude/skills/cnx-way/SKILL.md`, `.claude/skills/start-issue/SKILL.md` — path updates
 
 Four series READMEs is itself a duplication risk. The numbering rules, the band rules and the
 ledger are defined **once**, in the ADR README; the other three state what belongs in their series

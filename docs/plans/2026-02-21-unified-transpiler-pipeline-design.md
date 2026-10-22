@@ -6,7 +6,7 @@
 
 ## Problem
 
-The `Transpiler` class has two public entry points (`run()` and `transpileSource()`) that each have their own file discovery method (`discoverSources()` and `_discoverFromSource()`). Both produce `IPipelineInput` and delegate to the same `_executePipeline()`, but state propagation (header directives, include tracking) must be manually kept in sync across both paths. Issue #854 was caused by exactly this — cnext include header directives were only propagated in one path.
+The `Transpiler` class has two public entry points (`run()` and `transpileSource()`) that each have their own file discovery method (`discoverSources()` and `_discoverFromSource()`). Both produce `IPipelineInput` and delegate to the same `_executePipeline()`, but state propagation (header directives, include tracking) must be manually kept in sync across both paths. Issue #854 was caused by exactly this — cnx include header directives were only propagated in one path.
 
 Additionally:
 
@@ -47,7 +47,7 @@ Branches on `input.kind`:
 - `'files'` → filesystem scan, DependencyGraph, topological sort, `writeOutputToDisk: true`
 - `'source'` → parse in-memory string, IncludeTreeWalker, `writeOutputToDisk: false`
 
-Header directive storage for both C headers AND cnext includes happens inside `IncludeResolver.resolve()` (already done in #854 fix). The `discoverIncludes()` method reads directives from `resolved.headerIncludeDirectives` in one unified loop — no separate handling per path.
+Header directive storage for both C headers AND cnx includes happens inside `IncludeResolver.resolve()` (already done in #854 fix). The `discoverIncludes()` method reads directives from `resolved.headerIncludeDirectives` in one unified loop — no separate handling per path.
 
 ### 3. Unified Header Generation
 

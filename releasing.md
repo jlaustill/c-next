@@ -15,7 +15,7 @@ checklist; this document carries the reasoning behind each step. See
 - [ ] CHANGELOG.md has entry for new version with date
 - [ ] ADR files have correct status (Accepted → Implemented when code is complete)
 - [ ] `docs/architecture-decisions.md` ADR table matches ADR file statuses
-- [ ] `docs/learn-cnext-in-y-minutes.md` reflects new features (if applicable)
+- [ ] `docs/learn-cnx-in-y-minutes.md` reflects new features (if applicable)
 
 ### 2. VS Code Extension (if grammar changed)
 

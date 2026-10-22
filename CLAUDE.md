@@ -2,8 +2,8 @@
 
 ## Critical Rules
 
-> **The cnx way** is captured as a skill: `.claude/skills/cnext-way/SKILL.md`
-> (`/cnext-way`). Read it before implementing, and again before calling work done —
+> **The cnx way** is captured as a skill: `.claude/skills/cnx-way/SKILL.md`
+> (`/cnx-way`). Read it before implementing, and again before calling work done —
 > it carries the verification discipline these rules depend on.
 
 ### Correctness Over Convenience — ZERO EXCEPTIONS
@@ -245,7 +245,7 @@ root tsconfig's program does not include `scripts/`.
 
 **Do not use the transitively-installed ts-morph 13.** It bundles TypeScript ~4.x, which
 predates `moduleResolution: "bundler"`: it cannot resolve directory-index specifiers such as
-`./cnext` and leaves them broken **with no error**. Import the direct dependency.
+`./cnx` and leaves them broken **with no error**. Import the direct dependency.
 
 This section previously named four `*_by_tsmorph` MCP tools as the first choice. No ts-morph
 MCP server is configured for this repo (`claude mcp list`, and no `mcpServers` entry in any
@@ -591,7 +591,7 @@ and knip names that member.
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
 **Use**: `CnxResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
-**Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
+**Avoid**: Deleted `SymbolCollector`, `CnxSymbolCollector`
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
 
@@ -1116,7 +1116,7 @@ A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
 - [ ] ADR updated: decision, diagnostics, matrix — and it still passes the **rewrite test** above. No `src/**` paths, no module lists, no `file:line` citations, no transpiler identifiers, no TypeScript: they are wrong the moment the next merge shifts a line, and an ADR is the decision record, not a map of the code that currently implements it. Implementation detail goes to `docs/architecture/` or `docs/implementation/`. Enforced by `npm run adr:independence:check`
-- [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
+- [ ] `docs/learn-cnx-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 
 ---

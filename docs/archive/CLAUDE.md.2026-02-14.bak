@@ -242,7 +242,7 @@ The codebase is organized into four layers under `src/transpiler/`:
 
 ### ANTLR Parser Generation
 
-- ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/CNext.g4` → `src/transpiler/logic/parser/grammar/`
+- ANTLR preserves input path structure: `-o src/transpiler/logic/parser grammar/Cnx.g4` → `src/transpiler/logic/parser/grammar/`
 - Grammar directories excluded from prettier/oxlint via ignore patterns
 - `npm run antlr` — cnx grammar, `npm run antlr:all` — All grammars (cnx, C, C++)
 
@@ -297,22 +297,22 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 - `SwitchGenerator.rejectUnqualifiedEnumMember()` — switch cases with non-enum switch type
 - `CodeGenerator._resolveUnqualifiedEnumMember()` — all other contexts (comparisons, args, etc.)
 
-**Use the composable collectors** in `src/transpiler/logic/symbols/cnext/`:
+**Use the composable collectors** in `src/transpiler/logic/symbols/cnx/`:
 
-- `CNextResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
+- `CnxResolver.resolve(tree, file)` → `TSymbol[]` (discriminated union)
 - `TSymbolAdapter.toISymbols(tSymbols, symbolTable)` → `ISymbol[]` (for SymbolTable)
 - `TSymbolInfoAdapter.convert(tSymbols)` → `ISymbolInfo` (for CodeGenerator)
 
 **Do NOT use** the deleted legacy collectors:
 
 - ~~`SymbolCollector`~~ (was in transpiler/output/codegen/)
-- ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
+- ~~`CnxSymbolCollector`~~ (was in transpiler/logic/symbols/)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
 
 ### Test Isolation with SymbolRegistry
 
-- **CNextResolver tests need SymbolRegistry.reset()**: Tests using `CNextResolver.resolve()` must call `SymbolRegistry.reset()` in `beforeEach` - SymbolRegistry is static and scopes persist across parallel tests
+- **CnxResolver tests need SymbolRegistry.reset()**: Tests using `CnxResolver.resolve()` must call `SymbolRegistry.reset()` in `beforeEach` - SymbolRegistry is static and scopes persist across parallel tests
 - **Symptom of state pollution**: Tests pass individually (`npm run unit -- -t "test name"`) but fail when run together
 
 ### TSymbol Naming Convention
@@ -325,7 +325,7 @@ When removing/renaming grammar rules (e.g., `memberAccess`, `arrayAccess`):
 
 - **External struct fields**: `CodeGenState.buildExternalStructFields()` builds from symbolTable in Stage 2b, analyzers read via `getExternalStructFields()`
 - **runAnalyzers() state**: Reads `symbolTable` and `externalStructFields` from CodeGenState by default - no need to pass options
-- **InitializationAnalyzer**: Uses `cnextStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
+- **InitializationAnalyzer**: Uses `cnxStructFields` for current file, `CodeGenState.getExternalStructFields()` for external structs from headers
 - **Scope member checks**: Use `CodeGenState.getScopeMembers(scope)` or `CodeGenState.isCurrentScopeMember(id)` - `scopeMembers` is private
 
 ### Symbol Resolution Type Patterns
@@ -440,9 +440,9 @@ Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
 
 ### Unit Test Parser Imports
 
-- **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"` to access types like `Parser.StatementContext`
-- **Direct parsing in tests**: Use `CNextSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
-- **Parser result structure**: `CNextSourceParser.parse(source)` returns `{ tree, ... }` - access AST via `result.tree.declaration(0)`, not `tree as Parser.ProgramContext`
+- **Parser type namespace**: Use `import * as Parser from "../../transpiler/logic/parser/grammar/CnxParser.js"` to access types like `Parser.StatementContext`
+- **Direct parsing in tests**: Use `CnxSourceParser.parse(source)` instead of `new Transpiler()` when you just need the AST - Transpiler requires inputs configuration
+- **Parser result structure**: `CnxSourceParser.parse(source)` returns `{ tree, ... }` - access AST via `result.tree.declaration(0)`, not `tree as Parser.ProgramContext`
 
 ### Assignment Handler Test Patterns
 
@@ -662,7 +662,7 @@ When `run()` calls `transpileSource()` with a context, it passes a pre-populated
 
 - `README.md` — Must reflect any new features, syntax, or ADR status changes
 - `docs/decisions/adr-*.md` — Relevant ADR must be created/updated
-- `docs/learn-cnext-in-y-minutes.md` — Must include examples of new syntax/features
+- `docs/learn-cnx-in-y-minutes.md` — Must include examples of new syntax/features
 - Memory bank is updated
 
 If implementing a feature, all documents must be current and memory must be updated before the task is done.
@@ -717,7 +717,7 @@ If implementing a feature, all documents must be current and memory must be upda
 
 ## Development Tips
 
-**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnext` binary to test uncommitted transpiler changes.
+**Testing local changes**: Use `npx tsx src/index.ts <file.cnx>` instead of the global `cnx` binary to test uncommitted transpiler changes.
 
 **Testing C++ mode**: Use `npx tsx src/index.ts <file.cnx> --cpp` to test C++ output mode (generates `.cpp` files with reference semantics for struct params).
 

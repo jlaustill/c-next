@@ -1,0 +1,6 @@
+12:0 error[E0519]: `.cnext` no longer names cnx source; rename it to `.cnx`: retired-helper.cnext
+       help: Only `.cnx`, spelled in lowercase, names cnx source (ADR-010); rename the file and this include.
+13:0 error[E0519]: `.cnext` no longer names cnx source; rename it to `.cnx`: retired-helper.cnext
+       help: Only `.cnx`, spelled in lowercase, names cnx source (ADR-010); rename the file and this include.
+14:0 error[E0519]: `.cnext` no longer names cnx source; rename it to `.cnx`: Helper.CNEXT
+       help: Only `.cnx`, spelled in lowercase, names cnx source (ADR-010); rename the file and this include.

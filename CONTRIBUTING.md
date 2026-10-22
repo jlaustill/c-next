@@ -118,7 +118,7 @@ change; that one covers how the change travels.
 1. **Create a feature branch** from `main`
 2. **Make your changes** following code quality standards
 3. **Test thoroughly** using the [Testing Workflow](./docs/TESTING-WORKFLOW.md)
-4. **Update documentation** (README, ADRs, learn-cnext)
+4. **Update documentation** (README, ADRs, learn-cnx)
 5. **Create a Pull Request** with complete description
 6. **Address review feedback** until approved
 7. **Merge** into main with a merge commit (never squash)
@@ -336,7 +336,7 @@ npm run test:update -- tests/my-feature/ # or narrow it to one directory
 
 # Transpile single test file (without running full test validation).
 # Every program names its target (ADR-049); the harness passes host.
-cnext tests/my-feature/basic.test.cnx --target host
+cnx tests/my-feature/basic.test.cnx --target host
 
 # Verify output matches expected
 diff tests/my-feature/basic.test.c tests/my-feature/basic.expected.c
@@ -396,11 +396,11 @@ When implementing a feature, update in this order:
 
 1. **ADR file** (`docs/decisions/adr-NNN.md`) — Record the decision, its diagnostics and its scope-context matrix. It must pass the **rewrite test**: still fully applicable if the transpiler were rebuilt in another language and stack. So `## References` cites fixtures, issues and standards — never `src/` paths or transpiler identifiers. What the test admits is listed once, in `docs/decisions/README.md`; implementation detail goes to `docs/architecture/` or `docs/implementation/`. Mark Implemented
 2. **README.md** — Update feature list to reflect ADR is Implemented
-3. **learn-cnext-in-y-minutes.md** — Add syntax examples
+3. **learn-cnx-in-y-minutes.md** — Add syntax examples
 
 This prevents README and ADR from getting out of sync.
 
-#### 3. Learn cnx (`docs/learn-cnext-in-y-minutes.md`)
+#### 3. Learn cnx (`docs/learn-cnx-in-y-minutes.md`)
 
 Update if your changes add:
 
@@ -455,7 +455,7 @@ git status
 # 4. Documentation
 # - README.md updated (if feature-visible)
 # - ADR passes the rewrite test; References cite fixtures, not src/
-# - learn-cnext-in-y-minutes.md updated (if syntax changed)
+# - learn-cnx-in-y-minutes.md updated (if syntax changed)
 # - Test README created (tests/[feature]/README.md)
 ```
 
@@ -471,7 +471,7 @@ git add src/codegen/CodeGenerator.ts
 git add grammar/Cnx.g4
 git add tests/my-feature/
 git add docs/decisions/adr-050-critical-sections.md
-git add docs/learn-cnext-in-y-minutes.md
+git add docs/learn-cnx-in-y-minutes.md
 git add README.md
 
 # Do NOT stage unrelated changes
@@ -535,7 +535,7 @@ Docs: Update contributing guide with PR workflow
 
 - [ ] README.md updated (if feature-visible)
 - [ ] ADR passes the rewrite test; References cite the asserting fixtures — not `src/` paths, not a Files-Modified inventory
-- [ ] learn-cnext-in-y-minutes.md updated (if syntax changed)
+- [ ] learn-cnx-in-y-minutes.md updated (if syntax changed)
 - [ ] Test README created
 
 ## Related Issues
@@ -682,7 +682,7 @@ on the board — see [`docs/WORKFLOW.md`](./docs/WORKFLOW.md).
 - [ ] README.md updated if feature is user-visible
 - [ ] ADR passes the rewrite test; References cite fixtures, not `src/` (if applicable)
 - [ ] ADR status changes have explicit approval (if applicable)
-- [ ] learn-cnext-in-y-minutes.md updated if syntax changed
+- [ ] learn-cnx-in-y-minutes.md updated if syntax changed
 - [ ] Code comments explain "why", not "what"
 
 #### 4. Correctness
@@ -736,7 +736,7 @@ Added `critical { }` block syntax with PRIMASK save/restore:
 Documentation:
 - Updated README.md with critical section example
 - Updated ADR-050: decision, E0853 diagnostic, References cite the asserting fixtures
-- Added examples to learn-cnext-in-y-minutes.md
+- Added examples to learn-cnx-in-y-minutes.md
 
 Testing:
 - Test count: 251 → 260 (+9)
@@ -851,7 +851,7 @@ git push origin feature/my-feature
 # Documentation
 □ README.md updated (if needed)
 □ ADR passes the rewrite test; References cite fixtures, not src/
-□ learn-cnext-in-y-minutes.md updated (if syntax changed)
+□ learn-cnx-in-y-minutes.md updated (if syntax changed)
 □ Test README created
 
 # Git Hygiene
@@ -868,7 +868,7 @@ git push origin feature/my-feature
 - **Project Instructions**: See `/CLAUDE.md`
 - **Testing Methodology**: See `/docs/TESTING-WORKFLOW.md`
 - **Architecture Decisions**: See `/docs/decisions/adr-*.md`
-- **Language Guide**: See `/docs/learn-cnext-in-y-minutes.md`
+- **Language Guide**: See `/docs/learn-cnx-in-y-minutes.md`
 
 ---
 

@@ -113,7 +113,7 @@ Clicking opens the file and jumps to the specified line.
 
 3. **`vscode-extension/src/lib/types/ISymbolInfo.ts`**
    - Add `sourceFile?: string` field (if not present)
-   - Add `language?: 'cnext' | 'c' | 'cpp'` field
+   - Add `language?: 'cnx' | 'c' | 'cpp'` field
 
 ### Implementation Steps
 

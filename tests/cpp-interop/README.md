@@ -44,7 +44,7 @@ cpp-interop/
 npm test -- tests/cpp-interop/
 
 # Manual comprehensive test
-cnext tests/cpp-interop/comprehensive-cpp.test.cnx --cpp --target host -o /tmp/out/
+cnx tests/cpp-interop/comprehensive-cpp.test.cnx --cpp --target host -o /tmp/out/
 g++ -std=c++14 -fsyntax-only /tmp/out/comprehensive-cpp.test.cpp -I tests/cpp-interop/
 
 # Check specific patterns in output

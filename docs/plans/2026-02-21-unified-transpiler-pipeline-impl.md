@@ -340,20 +340,20 @@ async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
 
     if (input.kind === "files") {
       // File discovery from config.inputs
-      const { cnextFiles, headerFiles } = await this.discoverSources();
-      if (cnextFiles.length === 0) {
+      const { cnxFiles, headerFiles } = await this.discoverSources();
+      if (cnxFiles.length === 0) {
         return this._finalizeResult(result, "No cnx source files found");
       }
 
       this._ensureOutputDirectories();
 
-      const pipelineFiles: IPipelineFile[] = cnextFiles.map((f) => ({
+      const pipelineFiles: IPipelineFile[] = cnxFiles.map((f) => ({
         path: f.path,
         discoveredFile: f,
       }));
 
       const pipelineInput: IPipelineInput = {
-        cnextFiles: pipelineFiles,
+        cnxFiles: pipelineFiles,
         headerFiles,
         writeOutputToDisk: true,
       };
@@ -421,7 +421,7 @@ Replace `discoverSources()` and `_discoverFromSource()` with a single `discoverI
  * - 'source': parse in-memory string, walk include tree
  *
  * Header directive storage happens via IncludeResolver.resolve() for both
- * C headers and cnext includes (Issue #854).
+ * C headers and cnx includes (Issue #854).
  */
 private async discoverIncludes(input: TTranspileInput): Promise<IPipelineInput> {
   if (input.kind === "files") {
@@ -436,7 +436,7 @@ private async discoverIncludes(input: TTranspileInput): Promise<IPipelineInput> 
 }
 ```
 
-Then rename `discoverSources()` → `_discoverFromFiles()` (it returns `{cnextFiles, headerFiles}` which needs wrapping into `IPipelineInput`).
+Then rename `discoverSources()` → `_discoverFromFiles()` (it returns `{cnxFiles, headerFiles}` which needs wrapping into `IPipelineInput`).
 
 **Step 2: Update `transpile()` to use `discoverIncludes()`**
 
@@ -450,7 +450,7 @@ async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
     await this._initializeRun();
 
     const pipelineInput = await this.discoverIncludes(input);
-    if (pipelineInput.cnextFiles.length === 0) {
+    if (pipelineInput.cnxFiles.length === 0) {
       return this._finalizeResult(result, "No cnx source files found");
     }
 
@@ -468,7 +468,7 @@ async transpile(input: TTranspileInput): Promise<ITranspilerResult> {
 
 **Step 3: Move header directive propagation into `discoverIncludes()`**
 
-The duplicate loops that store header directives in `_discoverFromSource()` (lines 544-558) and `_processCnextIncludes()` (lines 869-874) should converge. Since `IncludeResolver.resolve()` now stores directives for both C headers and cnext includes (Issue #854), the propagation loop in `discoverIncludes()` can be a single pass over `resolved.headerIncludeDirectives` regardless of path.
+The duplicate loops that store header directives in `_discoverFromSource()` (lines 544-558) and `_processCnxIncludes()` (lines 869-874) should converge. Since `IncludeResolver.resolve()` now stores directives for both C headers and cnx includes (Issue #854), the propagation loop in `discoverIncludes()` can be a single pass over `resolved.headerIncludeDirectives` regardless of path.
 
 **Step 4: Delete old `discoverSources()` (now `_discoverFromFiles()` handles files path)**
 
@@ -520,7 +520,7 @@ private generateHeaderForFile(file: IPipelineFile): string | null {
     return null;
   }
 
-  const headerName = basename(sourcePath).replace(/\.cnx$|\.cnext$/, ".h");
+  const headerName = basename(sourcePath).replace(/\.cnx$/, ".h");
   const typeInput = this.state.getSymbolInfo(sourcePath);
   const passByValueParams =
     this.state.getPassByValueParams(sourcePath) ??
@@ -682,7 +682,7 @@ Always returns `ITranspilerResult`. `DualCodePaths.test.ts` verifies parity betw
 Also update the header state propagation note:
 
 ```markdown
-**Header directive propagation**: Handled by `IncludeResolver.resolve()` for all include types (C headers and cnext includes). No path-specific code.
+**Header directive propagation**: Handled by `IncludeResolver.resolve()` for all include types (C headers and cnx includes). No path-specific code.
 ```
 
 **Step 5: Run full verification**

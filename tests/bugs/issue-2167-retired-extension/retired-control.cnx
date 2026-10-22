@@ -1,0 +1,4 @@
+// Negative control for #2167: the same helper, spelled `.cnx`.
+u32 retiredControlFn() {
+    return 3;
+}

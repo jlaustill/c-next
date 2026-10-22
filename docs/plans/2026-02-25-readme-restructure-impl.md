@@ -166,7 +166,7 @@ Other memory-safe languages require adopting an entirely new toolchain, build sy
 cnx integrates seamlessly with PlatformIO. Quick setup:
 
 ```bash
-cnext --pio-install
+cnx --pio-install
 ```
 ````
 
@@ -193,13 +193,13 @@ _Using cnx in your project? Open an issue to get listed!_
 ```markdown
 ## Documentation
 
-| Resource                                                   | Description                             |
-| ---------------------------------------------------------- | --------------------------------------- |
-| [Language Guide](docs/language-guide.md)                   | Complete reference for all cnx features |
-| [Architecture Decisions](docs/architecture-decisions.md)   | 50+ ADRs documenting design choices     |
-| [Learn cnx in Y Minutes](docs/learn-cnext-in-y-minutes.md) | Quick syntax overview                   |
-| [Error Codes](docs/error-codes.md)                         | Compiler error reference                |
-| [MISRA Compliance](docs/misra-compliance.md)               | MISRA C:2012 compliance details         |
+| Resource                                                 | Description                             |
+| -------------------------------------------------------- | --------------------------------------- |
+| [Language Guide](docs/language-guide.md)                 | Complete reference for all cnx features |
+| [Architecture Decisions](docs/architecture-decisions.md) | 50+ ADRs documenting design choices     |
+| [Learn cnx in Y Minutes](docs/learn-cnx-in-y-minutes.md) | Quick syntax overview                   |
+| [Error Codes](docs/error-codes.md)                       | Compiler error reference                |
+| [MISRA Compliance](docs/misra-compliance.md)             | MISRA C:2012 compliance details         |
 ```
 
 **Step 2: Verify README length**

@@ -16,8 +16,8 @@
   - Extension name: `cnx`
   - Display name: `cnx`
   - Publisher: `jlaustill`
-  - Activation events: `onLanguage:cnext`
-  - File associations: `.cnx` → `cnext`
+  - Activation events: `onLanguage:cnx`
+  - File associations: `.cnx` → `cnx`
 - [x] Set up TypeScript configuration
 - [x] Add `.vscodeignore` for clean packaging
 
@@ -36,7 +36,7 @@
 
 ### 2.1 TextMate Grammar
 
-- [x] Create `syntaxes/cnext.tmLanguage.json`
+- [x] Create `syntaxes/cnx.tmLanguage.json`
 - [x] Define language scopes for:
   - Comments (line and block)
   - Preprocessor directives
@@ -122,12 +122,12 @@
 ### 4.2 Register Commands
 
 - [x] Add `contributes.commands` to `package.json`:
-  - `cnext.openPreview` — Open preview in current column
-  - `cnext.openPreviewToSide` — Open preview beside editor
+  - `cnx.openPreview` — Open preview in current column
+  - `cnx.openPreviewToSide` — Open preview beside editor
 - [x] Implement command handlers in `extension.ts`
 - [x] Add keybindings:
-  - `Ctrl+Shift+V` → `cnext.openPreview`
-  - `Ctrl+K V` → `cnext.openPreviewToSide`
+  - `Ctrl+Shift+V` → `cnx.openPreview`
+  - `Ctrl+K V` → `cnx.openPreviewToSide`
 - [x] Add editor title menu button for `.cnx` files
 
 ### 4.3 Link Preview to Editor
@@ -175,12 +175,12 @@
 - [x] Add `contributes.configuration` to `package.json`:
   ```json
   {
-    "cnext.preview.updateDelay": {
+    "cnx.preview.updateDelay": {
       "type": "number",
       "default": 300,
       "description": "Delay in ms before updating preview"
     },
-    "cnext.preview.showLineNumbers": {
+    "cnx.preview.showLineNumbers": {
       "type": "boolean",
       "default": true
     }
@@ -217,7 +217,7 @@
 
 - [x] Add `ISymbolInfo` interface to transpiler types
 - [x] Add `parseWithSymbols()` function to transpiler
-- [x] Use existing `CNextSymbolCollector` for symbol extraction
+- [x] Use existing `CnxSymbolCollector` for symbol extraction
 - [x] Transform symbols to simplified format for extension use
 
 ### 7.2 Autocomplete Provider
@@ -262,7 +262,7 @@ cnx/
 │   │   └── types/
 │   │       └── ITranspileResult.ts # Includes ISymbolInfo
 │   ├── symbols/
-│   │   └── CNextSymbolCollector.ts # Symbol extraction
+│   │   └── CnxSymbolCollector.ts # Symbol extraction
 │   ├── index.ts                    # CLI entry point
 │   ├── codegen/
 │   │   └── CodeGenerator.ts        # Code generator
@@ -272,7 +272,7 @@ cnx/
 │   ├── package.json                # Extension manifest (v0.3.0)
 │   ├── tsconfig.json
 │   ├── syntaxes/
-│   │   └── cnext.tmLanguage.json
+│   │   └── cnx.tmLanguage.json
 │   ├── language-configuration.json
 │   ├── src/
 │   │   ├── extension.ts            # Extension entry

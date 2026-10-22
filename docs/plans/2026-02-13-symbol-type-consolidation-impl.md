@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Consolidate all symbol types into `src/transpiler/types/symbols/` with `IBaseSymbol` as base interface and proper `TSymbolKindCNext` typing.
+**Goal:** Consolidate all symbol types into `src/transpiler/types/symbols/` with `IBaseSymbol` as base interface and proper `TSymbolKindCnx` typing.
 
-**Architecture:** All symbol interfaces extend `IBaseSymbol` which has `kind: TSymbolKindCNext`. Each concrete interface narrows `kind` to its literal type. Types use `TType` instead of strings. `SymbolGuards` static class replaces `typeGuards.ts` functions.
+**Architecture:** All symbol interfaces extend `IBaseSymbol` which has `kind: TSymbolKindCnx`. Each concrete interface narrows `kind` to its literal type. Types use `TType` instead of strings. `SymbolGuards` static class replaces `typeGuards.ts` functions.
 
 **Tech Stack:** TypeScript, Vitest for unit tests, ts-morph MCP tools for safe refactoring.
 
@@ -33,32 +33,32 @@ mkdir -p src/transpiler/types/symbols/__tests__
 // src/transpiler/types/symbols/__tests__/IBaseSymbol.test.ts
 import { describe, it, expect } from "vitest";
 import type IBaseSymbol from "../IBaseSymbol";
-import type TSymbolKindCNext from "../../symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../../symbol-kinds/TSymbolKindCnx";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 describe("IBaseSymbol", () => {
-  it("accepts valid symbol with TSymbolKindCNext kind", () => {
+  it("accepts valid symbol with TSymbolKindCnx kind", () => {
     // Create a mock scope for circular reference
     const mockScope = {} as IBaseSymbol & { kind: "scope" };
     mockScope.scope = mockScope; // self-reference for global scope
 
     const symbol: IBaseSymbol = {
-      kind: "function" as TSymbolKindCNext,
+      kind: "function" as TSymbolKindCnx,
       name: "testFunc",
       scope: mockScope as any,
       sourceFile: "test.cnx",
       sourceLine: 10,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       isExported: true,
     };
 
     expect(symbol.kind).toBe("function");
     expect(symbol.name).toBe("testFunc");
-    expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+    expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
   });
 
-  it("kind field accepts all TSymbolKindCNext values", () => {
-    const validKinds: TSymbolKindCNext[] = [
+  it("kind field accepts all TSymbolKindCnx values", () => {
+    const validKinds: TSymbolKindCnx[] = [
       "function",
       "variable",
       "struct",
@@ -89,7 +89,7 @@ Expected: FAIL with "Cannot find module '../IBaseSymbol'"
 
 ```typescript
 // src/transpiler/types/symbols/IBaseSymbol.ts
-import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../symbol-kinds/TSymbolKindCnx";
 import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 /**
@@ -98,7 +98,7 @@ import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
  */
 interface IBaseSymbol {
   /** Symbol kind - discriminator for type narrowing */
-  readonly kind: TSymbolKindCNext;
+  readonly kind: TSymbolKindCnx;
 
   /** Symbol name */
   readonly name: string;
@@ -112,7 +112,7 @@ interface IBaseSymbol {
   /** Line number in the source file */
   readonly sourceLine: number;
 
-  /** Source language (CNext, C, Cpp) */
+  /** Source language (Cnx, C, Cpp) */
   readonly sourceLanguage: ESourceLanguage;
 
   /** Whether this symbol is exported/public */
@@ -131,7 +131,7 @@ Expected: PASS
 
 ```bash
 git add src/transpiler/types/symbols/
-git commit -m "feat(symbols): add IBaseSymbol with TSymbolKindCNext kind"
+git commit -m "feat(symbols): add IBaseSymbol with TSymbolKindCnx kind"
 ```
 
 ---
@@ -579,7 +579,7 @@ describe("SymbolGuards", () => {
       scope: mockScope,
       sourceFile: "test.cnx",
       sourceLine: 1,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       isExported: true,
     } as TSymbol;
   };
@@ -711,13 +711,13 @@ Create a checklist of files that need import updates. Group by directory.
 
 ---
 
-### Task 3.2: Update Imports in logic/symbols/cnext/
+### Task 3.2: Update Imports in logic/symbols/cnx/
 
 **Files to modify:**
 
-- `src/transpiler/logic/symbols/cnext/adapters/TSymbolAdapter.ts`
-- `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`
-- `src/transpiler/logic/symbols/cnext/collectors/FunctionCollector.ts`
+- `src/transpiler/logic/symbols/cnx/adapters/TSymbolAdapter.ts`
+- `src/transpiler/logic/symbols/cnx/adapters/TSymbolInfoAdapter.ts`
+- `src/transpiler/logic/symbols/cnx/collectors/FunctionCollector.ts`
 
 **Step 1: Update TSymbolAdapter.ts imports**
 
@@ -750,8 +750,8 @@ Expected: No type errors in updated files
 **Step 4: Commit**
 
 ```bash
-git add src/transpiler/logic/symbols/cnext/
-git commit -m "refactor(symbols): update imports in logic/symbols/cnext to use types/symbols"
+git add src/transpiler/logic/symbols/cnx/
+git commit -m "refactor(symbols): update imports in logic/symbols/cnx to use types/symbols"
 ```
 
 ---
@@ -959,7 +959,7 @@ git commit -m "chore: fix linting issues after symbol consolidation"
 After completing all tasks:
 
 1. ✅ All symbol types live in `src/transpiler/types/symbols/`
-2. ✅ All symbols extend `IBaseSymbol` with `kind: TSymbolKindCNext`
+2. ✅ All symbols extend `IBaseSymbol` with `kind: TSymbolKindCnx`
 3. ✅ `SymbolGuards` static class replaces `typeGuards.ts`
 4. ✅ Old duplicate types deleted
 5. ✅ All tests pass

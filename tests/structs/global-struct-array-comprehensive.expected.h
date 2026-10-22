@@ -18,27 +18,27 @@ typedef struct GlobalStruct__Outer {
     ExternalStruct inner;
     uint8_t direct[8];
 } GlobalStruct__Outer;
-typedef struct CNextStruct {
+typedef struct CnxStruct {
     uint8_t buffer[16];
     uint32_t values[4];
-} CNextStruct;
+} CnxStruct;
 
 /* External variables */
 extern const ExternalStruct globalExternal;
-extern const CNextStruct globalCNext;
+extern const CnxStruct globalCnx;
 extern const GlobalStruct__Outer globalOuter;
 
 /* Function prototypes */
 uint8_t ArrayTests__testGlobalExternal(void);
-uint8_t ArrayTests__testGlobalCNext(void);
-uint32_t ArrayTests__testGlobalCNextU32(void);
+uint8_t ArrayTests__testGlobalCnx(void);
+uint32_t ArrayTests__testGlobalCnxU32(void);
 uint8_t ArrayTests__testNestedViaGlobal(void);
 uint8_t ArrayTests__testNestedDirect(void);
 uint8_t ArrayTests__testThisExternal(void);
-uint8_t ArrayTests__testThisCNext(void);
+uint8_t ArrayTests__testThisCnx(void);
 uint8_t ArrayTests__testMultipleIndex(void);
 uint8_t ArrayTests__testParameter(const ExternalStruct* param);
-uint8_t ArrayTests__testParameterCNext(const CNextStruct* param);
+uint8_t ArrayTests__testParameterCnx(const CnxStruct* param);
 
 #ifdef __cplusplus
 }

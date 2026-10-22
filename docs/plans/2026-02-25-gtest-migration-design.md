@@ -28,7 +28,7 @@ tests/
 
 Build flow:
 1. CMake configures project
-2. For each .test.cnx, add_custom_command runs: cnext file.test.cnx
+2. For each .test.cnx, add_custom_command runs: cnx file.test.cnx
 3. Generated .test.c/.test.h are compiled
 4. GTest links and runs tests
 5. ctest or gtest runs test discovery
@@ -40,7 +40,7 @@ Build flow:
 
 ```cmake
 # Function to add a cnx test
-function(add_cnext_test TEST_NAME CNX_FILE)
+function(add_cnx_test TEST_NAME CNX_FILE)
   # Get paths
   get_filename_component(CNX_DIR ${CNX_FILE} DIRECTORY)
   get_filename_component(CNX_BASE ${CNX_FILE} NAME_WE)
@@ -51,7 +51,7 @@ function(add_cnext_test TEST_NAME CNX_FILE)
   # Custom command: transpile .cnx -> .c/.h
   add_custom_command(
     OUTPUT ${GENERATED_C} ${GENERATED_H}
-    COMMAND cnext ${CNX_FILE}
+    COMMAND cnx ${CNX_FILE}
     DEPENDS ${CNX_FILE}
     WORKING_DIRECTORY ${CNX_DIR}
     COMMENT "Transpiling ${CNX_FILE}"
@@ -74,7 +74,7 @@ endfunction()
 
 ```cmake
 cmake_minimum_required(VERSION 3.14)
-project(cnext_tests)
+project(cnx_tests)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -89,11 +89,11 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-# Find cnext binary (installed globally or local)
-find_program(CNEXT_COMPILER cnext REQUIRED)
+# Find cnx binary (installed globally or local)
+find_program(CNX_COMPILER cnx REQUIRED)
 
 # Function to add cnx test
-function(add_cnext_test TEST_NAME)
+function(add_cnx_test TEST_NAME)
   set(CNX_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.cnx")
   set(GENERATED_C "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.c")
   set(GENERATED_H "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.test.h")
@@ -101,7 +101,7 @@ function(add_cnext_test TEST_NAME)
   # Transpile .cnx to .c/.h
   add_custom_command(
     OUTPUT ${GENERATED_C} ${GENERATED_H}
-    COMMAND ${CNEXT_COMPILER} ${CNX_FILE}
+    COMMAND ${CNX_COMPILER} ${CNX_FILE}
     DEPENDS ${CNX_FILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Transpiling ${TEST_NAME}.test.cnx"
@@ -121,9 +121,9 @@ function(add_cnext_test TEST_NAME)
 endfunction()
 
 # Add tests
-add_cnext_test(led)
-add_cnext_test(scope)
-add_cnext_test(enum)
+add_cnx_test(led)
+add_cnx_test(scope)
+add_cnx_test(enum)
 # ... etc
 ```
 
@@ -196,11 +196,11 @@ ctest --test-dir build --output-on-failure
 For tests that need to verify both C and C++ output:
 
 ```cmake
-function(add_cnext_dual_test TEST_NAME)
+function(add_cnx_dual_test TEST_NAME)
   # C mode
   add_custom_command(
     OUTPUT ${TEST_NAME}.c ${TEST_NAME}.h
-    COMMAND ${CNEXT_COMPILER} ${TEST_NAME}.test.cnx
+    COMMAND ${CNX_COMPILER} ${TEST_NAME}.test.cnx
     DEPENDS ${TEST_NAME}.test.cnx
     COMMENT "Transpiling ${TEST_NAME} (C mode)"
   )
@@ -208,7 +208,7 @@ function(add_cnext_dual_test TEST_NAME)
   # C++ mode
   add_custom_command(
     OUTPUT ${TEST_NAME}.cpp.out ${TEST_NAME}.hpp
-    COMMAND ${CNEXT_COMPILER} ${TEST_NAME}.test.cnx --cpp
+    COMMAND ${CNX_COMPILER} ${TEST_NAME}.test.cnx --cpp
     DEPENDS ${TEST_NAME}.test.cnx
     COMMENT "Transpiling ${TEST_NAME} (C++ mode)"
   )
@@ -226,11 +226,11 @@ endfunction()
 For tests expecting compilation errors:
 
 ```cmake
-function(add_cnext_error_test TEST_NAME EXPECTED_ERROR)
+function(add_cnx_error_test TEST_NAME EXPECTED_ERROR)
   add_test(
     NAME ${TEST_NAME}_error
     COMMAND ${CMAKE_COMMAND} -E env
-      ${CNEXT_COMPILER} ${TEST_NAME}.test.cnx
+      ${CNX_COMPILER} ${TEST_NAME}.test.cnx
   )
 
   set_tests_properties(${TEST_NAME}_error PROPERTIES
@@ -240,7 +240,7 @@ function(add_cnext_error_test TEST_NAME EXPECTED_ERROR)
 endfunction()
 
 # Usage
-add_cnext_error_test(invalid-syntax "E0001")
+add_cnx_error_test(invalid-syntax "E0001")
 ```
 
 ## Snapshot Testing
@@ -248,7 +248,7 @@ add_cnext_error_test(invalid-syntax "E0001")
 For verifying generated output matches expected:
 
 ```cmake
-function(add_cnext_snapshot_test TEST_NAME)
+function(add_cnx_snapshot_test TEST_NAME)
   add_test(
     NAME ${TEST_NAME}_snapshot
     COMMAND ${CMAKE_COMMAND} -E compare_files
@@ -268,18 +268,18 @@ PlatformIO uses its own build system but can integrate with external test runner
 platform = native
 test_framework = googletest
 
-; Pre-build script to run cnext
-extra_scripts = pre:transpile_cnext.py
+; Pre-build script to run cnx
+extra_scripts = pre:transpile_cnx.py
 ```
 
 ```python
-# transpile_cnext.py
+# transpile_cnx.py
 Import("env")
 import subprocess
 import glob
 
 for cnx_file in glob.glob("test/**/*.test.cnx", recursive=True):
-    subprocess.run(["cnext", cnx_file], check=True)
+    subprocess.run(["cnx", cnx_file], check=True)
 ```
 
 ## Migration Path

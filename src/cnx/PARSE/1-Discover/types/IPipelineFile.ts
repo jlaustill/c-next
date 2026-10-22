@@ -44,7 +44,7 @@ interface IPipelineFile {
    * decline to answer. Computed from the resolver's own categorization during
    * discovery, which is the authoritative answer -- deriving it from `#include`
    * token text in the analyzer made a third spelling of "is this a cnx
-   * include?" and that spelling missed `.cnext`.
+   * include?", and that spelling disagreed with the resolver's.
    */
   readonly reachesForeignHeader: boolean;
 }

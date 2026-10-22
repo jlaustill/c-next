@@ -108,7 +108,7 @@ export function transpile(source: string): TranspileResult;
 vscode-extension/
 ├── package.json              # Extension manifest
 ├── syntaxes/
-│   └── cnext.tmLanguage.json # TextMate grammar for highlighting
+│   └── cnx.tmLanguage.json # TextMate grammar for highlighting
 ├── src/
 │   ├── extension.ts          # Extension entry point
 │   └── previewProvider.ts    # Webview panel for C output
@@ -123,7 +123,7 @@ vscode-extension/
 
 ### Phase 1: Syntax Highlighting
 
-1. Create TextMate grammar (`cnext.tmLanguage.json`)
+1. Create TextMate grammar (`cnx.tmLanguage.json`)
 2. Define scopes for:
    - Keywords (`register`, `namespace`, `void`, types)
    - Operators (`<-`, `@`)
@@ -142,7 +142,7 @@ vscode-extension/
 ### Phase 3: Preview Provider
 
 1. Create Webview panel for C output
-2. Implement `CNextPreviewProvider` class
+2. Implement `CnxPreviewProvider` class
 3. Register preview command (like markdown: "Open Preview to the Side")
 4. Style C output with syntax highlighting (use Prism.js or similar)
 
@@ -177,9 +177,9 @@ vscode-extension/
 
 ```json
 {
-  "cnext.preview.updateDelay": 300,
-  "cnext.preview.showLineNumbers": true,
-  "cnext.preview.theme": "auto"
+  "cnx.preview.updateDelay": 300,
+  "cnx.preview.showLineNumbers": true,
+  "cnx.preview.theme": "auto"
 }
 ```
 
@@ -232,7 +232,7 @@ Add a third pane showing assembly output:
 **Architecture Selection:**
 
 - Read from `platformio.ini` if available
-- Or VS Code setting: `cnext.assembly.architecture`
+- Or VS Code setting: `cnx.assembly.architecture`
 - Common targets: ARM Cortex-M4, AVR, x86-64
 
 ### Language Server Protocol (LSP)

@@ -307,7 +307,7 @@ Your current approach is **exactly what successful compilers do:**
 **Implementation:**
 
 ```typescript
-class CoverageListener extends CNextBaseListener {
+class CoverageListener extends CnxBaseListener {
   visitedRules = new Set<string>();
 
   enterEveryRule(ctx: ParserRuleContext) {

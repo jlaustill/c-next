@@ -868,10 +868,10 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 
 **Files:**
 
-- Modify: `docs/learn-cnext-in-y-minutes.md`
+- Modify: `docs/learn-cnx-in-y-minutes.md`
 - Modify: `README.md` (if ADR list needs updating)
 
-**Step 1: Update learn-cnext-in-y-minutes.md**
+**Step 1: Update learn-cnx-in-y-minutes.md**
 
 Add section on variable resolution in scopes:
 
@@ -922,10 +922,10 @@ scope Motor {
 **Step 2: Commit**
 
 ```bash
-git add docs/learn-cnext-in-y-minutes.md README.md
+git add docs/learn-cnx-in-y-minutes.md README.md
 git commit -m "docs: document implicit scope resolution
 
-Updated learn-cnext-in-y-minutes with variable resolution rules
+Updated learn-cnx-in-y-minutes with variable resolution rules
 and cross-scope access examples.
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"

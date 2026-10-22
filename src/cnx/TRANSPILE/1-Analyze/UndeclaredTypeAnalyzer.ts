@@ -132,7 +132,7 @@ class UndeclaredTypeAnalyzer {
     // #1399 review: the answer is computed during discovery from the
     // resolver's own categorization and is TRANSITIVE. An earlier version
     // walked this file's own `#include` token text, which made a third
-    // spelling of "is this a cnx include?" (it missed `.cnext`) and stopped
+    // spelling of "is this a cnx include?" (not the resolver's) and stopped
     // at one hop -- so a macro reached through a `.cnx` include was REJECTED,
     // code that main compiles.
     this.knowsEveryName = !this.context.reachesForeignHeader;

@@ -283,8 +283,8 @@ git commit -m "feat(symbols): detect forward-declared structs as opaque types (I
 **Files:**
 
 - Modify: `src/transpiler/types/ICodeGenSymbols.ts`
-- Modify: `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`
-- Test: `src/transpiler/logic/symbols/cnext/__tests__/TSymbolInfoAdapter.test.ts`
+- Modify: `src/transpiler/logic/symbols/cnx/adapters/TSymbolInfoAdapter.ts`
+- Test: `src/transpiler/logic/symbols/cnx/__tests__/TSymbolInfoAdapter.test.ts`
 
 **Step 1: Add interface field**
 
@@ -322,13 +322,13 @@ opaqueTypes,
 
 **Step 3: Run existing tests to verify no breakage**
 
-Run: `npm run unit -- src/transpiler/logic/symbols/cnext/__tests__/TSymbolInfoAdapter.test.ts`
+Run: `npm run unit -- src/transpiler/logic/symbols/cnx/__tests__/TSymbolInfoAdapter.test.ts`
 Expected: PASS
 
 **Step 4: Commit**
 
 ```bash
-git add src/transpiler/types/ICodeGenSymbols.ts src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts
+git add src/transpiler/types/ICodeGenSymbols.ts src/transpiler/logic/symbols/cnx/adapters/TSymbolInfoAdapter.ts
 git commit -m "feat(types): add opaqueTypes to ICodeGenSymbols interface (Issue #948)"
 ```
 

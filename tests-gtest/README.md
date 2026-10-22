@@ -6,12 +6,12 @@ This directory contains cnx tests using Google Test framework.
 
 - CMake 3.14+
 - C++17 compiler (gcc, clang, or MSVC)
-- Node.js (for cnext transpiler)
+- Node.js (for cnx transpiler)
 
 ## Building and Running Tests
 
 ```bash
-# From project root, ensure cnext is built
+# From project root, ensure cnx is built
 npm install
 npm run build
 
@@ -53,10 +53,10 @@ TEST(MyTest, SomeFeature) {
 3. Add to CMakeLists.txt or subdirectory CMakeLists.txt:
 
 ```cmake
-add_cnext_test(mytest)
+add_cnx_test(mytest)
 ```
 
 ## Test Functions
 
-- `add_cnext_test(name)` - C mode test
-- `add_cnext_cpp_test(name)` - C++ mode test
+- `add_cnx_test(name)` - C mode test
+- `add_cnx_cpp_test(name)` - C++ mode test

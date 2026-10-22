@@ -424,7 +424,7 @@ SVD is an XML format standardized by ARM (CMSIS-SVD). Example:
 </peripheral>
 ```
 
-### Specification: svd2cnext Tool
+### Specification: svd2cnx Tool
 
 #### Contract
 
@@ -747,7 +747,7 @@ This ADR covers five features for safe hardware abstraction in cnx:
 2. **Data registers** — Instantiate a register in normal memory (no address) for wire/buffer formats
 3. **Scaled fields** — `multiplier`/`divisor` + `offset` on fields; reads return the engineering value
 4. **w1c/wo/w1s codegen fix** — Generate direct writes instead of RMW for write-only registers
-5. **svd2cnext tool** — Import register definitions from ARM SVD files
+5. **svd2cnx tool** — Import register definitions from ARM SVD files
 
 ### Out of Scope (Future ADRs if needed)
 
@@ -764,7 +764,7 @@ This ADR covers five features for safe hardware abstraction in cnx:
 
 2. **w1c/wo/w1s codegen fix** — Bit-field and bitmap-field writes generate direct writes, not RMW. Writing `false` to a w1c bit is a compiler error.
 
-3. **svd2cnext tool** — TypeScript tool to generate cnx from SVD files. Auto-generates bitmap types from field definitions with good naming.
+3. **svd2cnx tool** — TypeScript tool to generate cnx from SVD files. Auto-generates bitmap types from field definitions with good naming.
 
 ### Proposed (2026-07-04 revision — not yet accepted)
 

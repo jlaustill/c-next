@@ -116,8 +116,8 @@ CJSON_PUBLIC(cJSON *) cJSON_CreateArray(void);
 cnx does not collect these macro-wrapped declarations as direct callable symbols from the raw header. The same ADR-061 pattern works: expose plain typed wrapper prototypes in a C boundary header, and delegate to cJSON from the `.c` implementation.
 
 ```c
-cJSON* cnext_cjson_parse(const char* text);
-cJSON* cnext_cjson_create_array(void);
+cJSON* cjson_api_parse(const char* text);
+cJSON* cjson_api_create_array(void);
 ```
 
 This also keeps cJSON ownership details (`cJSON_Delete`, `cJSON_free`) in the C boundary layer while cnx uses typed `cJSON` handles inferred as `cJSON*`.

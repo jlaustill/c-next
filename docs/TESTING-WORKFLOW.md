@@ -254,7 +254,7 @@ npm run antlr
 npm run typecheck
 
 # Test fix (every program names its target, ADR-049)
-cnext [test-file].cnx --target host
+cnx [test-file].cnx --target host
 ````
 
 **Code Generator Bugs:**
@@ -267,7 +267,7 @@ vim src/cnx/TRANSPILE/3-Render/codegen/CodeGenerator.ts
 npm run typecheck
 
 # Test fix
-cnext [test-file].cnx --target host
+cnx [test-file].cnx --target host
 
 # Compare output
 diff [test].test.c [test].expected.c

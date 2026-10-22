@@ -5,7 +5,7 @@
 
 ## Problem Statement
 
-Currently, developers wanting to incrementally adopt cnx face a frustrating workflow. If they convert a single leaf file to `.cnx` and try to run `cnext main.cpp`, they get:
+Currently, developers wanting to incrementally adopt cnx face a frustrating workflow. If they convert a single leaf file to `.cnx` and try to run `cnx main.cpp`, they get:
 
 ```
 Error: Cannot process implementation file 'main.cpp'. cnx only compiles .cnx files.
@@ -26,13 +26,13 @@ Allow C/C++ implementation files (`.c`, `.cpp`, `.cc`, `.cxx`, `.c++`) as entry 
 
 ```bash
 # Step 1: Convert a leaf file to cnx
-cnext led.cnx              # Generates led.h (with marker) and led.c
+cnx led.cnx              # Generates led.h (with marker) and led.c
 
 # Step 2: Include generated header in existing C/C++ code
 # main.cpp: #include "led.h"
 
 # Step 3: Run transpiler on entry point
-cnext main.cpp             # Discovers and re-transpiles led.cnx
+cnx main.cpp             # Discovers and re-transpiles led.cnx
 ```
 
 ## Design Decisions
@@ -76,7 +76,7 @@ Transpile in dependency order
 
 ### 3. Bootstrap Requirement
 
-Developers must run `cnext file.cnx` once initially to generate the header with the marker. This is intentional:
+Developers must run `cnx file.cnx` once initially to generate the header with the marker. This is intentional:
 
 - Avoids false positives from coincidental `.cnx`/`.h` name matches
 - Provides explicit confirmation that a file is cnx managed
@@ -106,9 +106,9 @@ Transpiling config.cnx... done
 Scanning main.cpp for cnx includes...
 No cnx files found in include tree. To get started:
   1. Create a .cnx file (e.g., led.cnx)
-  2. Run: cnext led.cnx
+  2. Run: cnx led.cnx
   3. Include the generated header in your C/C++ code
-  4. Re-run: cnext main.cpp
+  4. Re-run: cnx main.cpp
 ```
 
 ## Error Handling

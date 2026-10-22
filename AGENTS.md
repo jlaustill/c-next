@@ -95,7 +95,7 @@ the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#199
 **Do NOT use** the deleted legacy collectors:
 
 - ~~`SymbolCollector`~~ (was in TRANSPILE/3-Render/codegen/)
-- ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
+- ~~`CnxSymbolCollector`~~ (was in transpiler/logic/symbols/)
 - ~~`TSymbolAdapter`~~ (removed in symbol-resolution Phase 7)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
@@ -300,7 +300,7 @@ When adding features involving cross-file symbols (enums, structs, types):
 
 - `README.md` — Must reflect any new features, syntax, or ADR status changes
 - `docs/decisions/adr-*.md` — Relevant ADR must be created/updated
-- `docs/learn-cnext-in-y-minutes.md` — Must include examples of new syntax/features
+- `docs/learn-cnx-in-y-minutes.md` — Must include examples of new syntax/features
 - Memory bank is updated
 
 If implementing a feature, all documents must be current and memory must be updated before the task is done.
@@ -360,7 +360,7 @@ what you move by hand — is documented once in
 
 ## Development Tips
 
-**Testing local changes**: Use `npx tsx src/cli/index.ts <file.cnx> --target host` instead of the global `cnext` binary to test uncommitted transpiler changes. Every program names its target (ADR-049), so drop `--target` only for a file with its own `#pragma target`.
+**Testing local changes**: Use `npx tsx src/cli/index.ts <file.cnx> --target host` instead of the global `cnx` binary to test uncommitted transpiler changes. Every program names its target (ADR-049), so drop `--target` only for a file with its own `#pragma target`.
 
 ## Dead Code Detection
 

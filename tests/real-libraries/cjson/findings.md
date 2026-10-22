@@ -27,8 +27,8 @@ CJSON_PUBLIC(cJSON *) cJSON_CreateArray(void);
 cnx does not collect those declarations as callable C symbols directly from the raw header. The ADR-061 boundary layer exposes plain C prototypes instead:
 
 ```c
-cJSON* cnext_cjson_parse(const char* text);
-cJSON* cnext_cjson_create_array(void);
+cJSON* cjson_api_parse(const char* text);
+cJSON* cjson_api_create_array(void);
 ```
 
 The wrapper implementation delegates to the real cJSON APIs, keeping the `.cnx` tests focused on type-safe calls.
@@ -38,8 +38,8 @@ The wrapper implementation delegates to the real cJSON APIs, keeping the `.cnx` 
 cJSON returns heap-owned `cJSON*` trees and `char*` print buffers. The C boundary layer centralizes cleanup helpers:
 
 ```c
-void cnext_cjson_delete(cJSON* item);
-void cnext_cjson_free_string(char* text);
+void cjson_api_delete(cJSON* item);
+void cjson_api_free_string(char* text);
 ```
 
 cnx code calls those typed wrappers rather than handling allocator-specific details.
@@ -49,8 +49,8 @@ cnx code calls those typed wrappers rather than handling allocator-specific deta
 Declaring local variables as `cJSON` in cnx is inferred as `cJSON*` when initialized from wrapper functions returning `cJSON*`:
 
 ```cnx
-cJSON root <- global.cnext_cjson_parse(payload);
-cJSON first <- global.cnext_cjson_get_array_item(root, 0);
+cJSON root <- global.cjson_api_parse(payload);
+cJSON first <- global.cjson_api_get_array_item(root, 0);
 ```
 
 Generated C uses pointer locals (`cJSON* root`, `cJSON* first`), validating pointer return inference against a real library type.
@@ -61,7 +61,7 @@ Bounded cnx strings compile to `char[N]` buffers and pass cleanly to wrappers ex
 
 ```cnx
 string<64> payload <- "[10,20,30]";
-cJSON root <- global.cnext_cjson_parse(payload);
+cJSON root <- global.cjson_api_parse(payload);
 ```
 
 This supports JSON payload parsing and object key lookup without exposing unsafe pointer casts in cnx.

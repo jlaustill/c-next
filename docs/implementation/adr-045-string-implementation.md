@@ -296,7 +296,7 @@ After all phases complete:
 
 1. **ADR-045**: Change status to "Implemented"
 2. **README.md**: Add Bounded Strings to Core Features
-3. **learn-cnext-in-y-minutes.md**: Add string examples
+3. **learn-cnx-in-y-minutes.md**: Add string examples
 
 ---
 

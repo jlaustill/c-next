@@ -27,7 +27,7 @@ Parse all source files with their native ANTLR grammar, building a unified symbo
 
 ```
 ┌─────────────┐     ┌─────────────────┐
-│  .cnx files │────▶│  CNext Grammar  │────┐
+│  .cnx files │────▶│  Cnx Grammar    │────┐
 └─────────────┘     └─────────────────┘    │
                                            │
 ┌─────────────┐     ┌─────────────────┐    │     ┌─────────────┐
@@ -407,7 +407,7 @@ project/
 Build process:
 
 1. Preprocess all .h files
-2. Parse .cnx with CNext grammar → symbol table
+2. Parse .cnx with Cnx grammar → symbol table
 3. Parse .c/.h with C grammar → symbol table
 4. Resolve all cross-references
 5. Generate .c + .h for each .cnx file
@@ -448,7 +448,7 @@ Build process:
 3. **Build system integration** ✅
    - **Decision:** Remove `--project` flag, always use unified parsing
    - **Behavior:**
-     - `cnext src/main.cnx` → Parses entry point + discovers and parses all files referenced by `#include` directives
+     - `cnx src/main.cnx` → Parses entry point + discovers and parses all files referenced by `#include` directives
      - Always builds unified symbol table
    - **Include Path Resolution:**
      - Parse .cnx files first, extract `#include "..."` and `#include <...>` directives

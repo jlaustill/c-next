@@ -5,7 +5,7 @@
 
 ## Summary
 
-Replace the `ESymbolKind` enum with language-specific string union types (`TSymbolKindCNext`, `TSymbolKindC`, `TSymbolKindCpp`) and a combined union type (`TSymbolKind`).
+Replace the `ESymbolKind` enum with language-specific string union types (`TSymbolKindCnx`, `TSymbolKindC`, `TSymbolKindCpp`) and a combined union type (`TSymbolKind`).
 
 ## Motivation
 
@@ -19,7 +19,7 @@ Replace the `ESymbolKind` enum with language-specific string union types (`TSymb
 
 ```
 src/transpiler/types/symbol-kinds/
-  TSymbolKindCNext.ts   → default export TSymbolKindCNext
+  TSymbolKindCnx.ts   → default export TSymbolKindCnx
   TSymbolKindC.ts       → default export TSymbolKindC
   TSymbolKindCpp.ts     → default export TSymbolKindCpp
   TSymbolKind.ts        → imports above 3, default export TSymbolKind (union)
@@ -31,10 +31,10 @@ src/transpiler/types/symbol-kinds/
 
 ## Type Definitions
 
-### TSymbolKindCNext
+### TSymbolKindCnx
 
 ```typescript
-type TSymbolKindCNext =
+type TSymbolKindCnx =
   | "function"
   | "variable"
   | "struct"
@@ -76,7 +76,7 @@ type TSymbolKindCpp =
 ### TSymbolKind
 
 ```typescript
-type TSymbolKind = TSymbolKindCNext | TSymbolKindC | TSymbolKindCpp;
+type TSymbolKind = TSymbolKindCnx | TSymbolKindC | TSymbolKindCpp;
 ```
 
 ## Migration Plan

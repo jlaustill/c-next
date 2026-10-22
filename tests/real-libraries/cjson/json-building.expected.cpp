@@ -17,46 +17,46 @@ int main(void) {
     const char rpmKey[33] = "rpm";
     const char samplesKey[33] = "samples";
     const int32_t samples[3] = {1000, 1250, 1500};
-    cJSON* root = cnext_cjson_create_object();
-    cJSON* rpm = cnext_cjson_create_number(1250.0);
-    cJSON* sampleArray = cnext_cjson_create_int_array(samples, 3);
-    const bool addedRpm = cnext_cjson_add_item_to_object(root, rpmKey, rpm) != 0;
-    const bool addedSamples = cnext_cjson_add_item_to_object(root, samplesKey, sampleArray) != 0;
+    cJSON* root = cjson_api_create_object();
+    cJSON* rpm = cjson_api_create_number(1250.0);
+    cJSON* sampleArray = cjson_api_create_int_array(samples, 3);
+    const bool addedRpm = cjson_api_add_item_to_object(root, rpmKey, rpm) != 0;
+    const bool addedSamples = cjson_api_add_item_to_object(root, samplesKey, sampleArray) != 0;
     if (addedRpm == false) {
-        cnext_cjson_delete(root);
+        cjson_api_delete(root);
         return 1U;
     }
     if (addedSamples == false) {
-        cnext_cjson_delete(root);
+        cjson_api_delete(root);
         return 2U;
     }
-    const cJSON* savedRpm = cnext_cjson_get_object_item(root, rpmKey);
-    const int32_t savedRpmValue = cnext_cjson_get_valueint(savedRpm);
+    const cJSON* savedRpm = cjson_api_get_object_item(root, rpmKey);
+    const int32_t savedRpmValue = cjson_api_get_valueint(savedRpm);
     if (savedRpmValue != 1250) {
-        cnext_cjson_delete(root);
+        cjson_api_delete(root);
         return 3U;
     }
-    const cJSON* savedSamples = cnext_cjson_get_object_item(root, samplesKey);
-    const int32_t sampleCount = cnext_cjson_get_array_size(savedSamples);
+    const cJSON* savedSamples = cjson_api_get_object_item(root, samplesKey);
+    const int32_t sampleCount = cjson_api_get_array_size(savedSamples);
     if (sampleCount != 3) {
-        cnext_cjson_delete(root);
+        cjson_api_delete(root);
         return 4U;
     }
-    const cJSON* finalSample = cnext_cjson_get_array_item(savedSamples, 2);
-    const int32_t finalValue = cnext_cjson_get_valueint(finalSample);
+    const cJSON* finalSample = cjson_api_get_array_item(savedSamples, 2);
+    const int32_t finalValue = cjson_api_get_valueint(finalSample);
     if (finalValue != 1500) {
-        cnext_cjson_delete(root);
+        cjson_api_delete(root);
         return 5U;
     }
-    char* jsonText = cnext_cjson_print_unformatted(root);
+    char* jsonText = cjson_api_print_unformatted(root);
     const char expectedJson[65] = "{\"rpm\":1250,\"samples\":[1000,1250,1500]}";
-    const bool jsonMatches = cnext_cjson_string_equals(jsonText, expectedJson) != 0;
+    const bool jsonMatches = cjson_api_string_equals(jsonText, expectedJson) != 0;
     if (jsonMatches == false) {
-        cnext_cjson_free_string(jsonText);
-        cnext_cjson_delete(root);
+        cjson_api_free_string(jsonText);
+        cjson_api_delete(root);
         return 6U;
     }
-    cnext_cjson_free_string(jsonText);
-    cnext_cjson_delete(root);
+    cjson_api_free_string(jsonText);
+    cjson_api_delete(root);
     return 0U;
 }

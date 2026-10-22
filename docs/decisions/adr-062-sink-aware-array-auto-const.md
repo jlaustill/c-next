@@ -171,14 +171,14 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 
 ## Comments
 
-- **2026-07-10 — prerequisite unblocked.** This decision — "cnext depends on the
+- **2026-07-10 — prerequisite unblocked.** This decision — "cnx depends on the
   compiler-invocation contract (`compile_commands.json`), not on any build system" —
   is exactly the thing that unblocks this ADR: its sink analysis needs external
-  callee signatures (parameter const-ness), which only resolve reliably once cnext
+  callee signatures (parameter const-ness), which only resolve reliably once cnx
   sees the compiler's includes. Without that, every framework/C-API callee falls into
   the "sink cannot be resolved → fail-safe mutable" bucket (Decision table, row 4),
   collapsing back to #986's blanket for exactly the external-C-API case #986 was worried
-  about. cnext now reads `compile_commands.json` — the build-system-agnostic database
+  about. cnx now reads `compile_commands.json` — the build-system-agnostic database
   every build system emits and clangd/clang-tidy consume — for the exact include paths,
   defines, and compiler the real build uses (Issue #985). With external signatures
   resolving, rule 1 can read real const-ness from the callee's declaration rather than

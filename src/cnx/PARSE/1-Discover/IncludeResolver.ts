@@ -42,8 +42,8 @@ interface IResolvedIncludes {
    * #1399 review: consumed by the E0426/E0427 precondition. Recorded HERE
    * because this class already decides what each directive IS; the analyzer's
    * own attempt re-derived it from `#include` token text, became a third
-   * spelling of "is this a cnx include?", and was the one that missed
-   * `.cnext`. `headers` alone cannot answer it -- `<stdio.h>` resolves to
+   * spelling of "is this a cnx include?", and was the one that disagreed
+   * with this class. `headers` alone cannot answer it -- `<stdio.h>` resolves to
    * nothing on most systems and so appears in no list at all, which is exactly
    * how `FILE` slipped through.
    */
@@ -270,7 +270,7 @@ class IncludeResolver {
 
     // After every directive is resolved, so each `.cnx` include's header is
     // known. Issue #1467 review: one predicate for "is this a cnx
-    // include?" -- a substring test answered NO for `<utils.cnext>`. #1444:
+    // include?" -- a substring test disagreed with the resolver. #1444:
     // and that predicate is the kind recorded above.
     for (const directive of directives) {
       if (IncludeRewriter.namesCnx(directive, result.kinds)) {

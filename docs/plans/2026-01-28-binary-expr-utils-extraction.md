@@ -339,8 +339,8 @@ Add to `BinaryExprUtils.ts`:
  * ADR-001: Map cnx equality operator to C.
  * cnx uses = for equality (mathematical notation), C uses ==.
  */
-const mapEqualityOperator = (cnextOp: string): string =>
-  cnextOp === "=" ? "==" : cnextOp;
+const mapEqualityOperator = (cnxOp: string): string =>
+  cnxOp === "=" ? "==" : cnxOp;
 ```
 
 Update class to add the method.

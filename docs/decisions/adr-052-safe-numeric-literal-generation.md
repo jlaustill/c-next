@@ -481,5 +481,5 @@ This provides educational safety for the most dangerous edge cases while automat
 
 - [ ] Verify generated C compiles without warnings
 - [ ] Verify runtime behavior matches cnx semantics
-- [ ] Update documentation (learn-cnext-in-y-minutes.md) with MIN/MAX constants
+- [ ] Update documentation (learn-cnx-in-y-minutes.md) with MIN/MAX constants
 - [ ] Update #111 with implementation details

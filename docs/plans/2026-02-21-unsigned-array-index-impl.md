@@ -6,7 +6,7 @@
 
 **Architecture:** New `ArrayIndexTypeAnalyzer` in `src/transpiler/logic/analysis/` following the two-pass `FloatModuloAnalyzer` pattern. Pass 1 collects variable type declarations, Pass 2 walks `postfixOp`/`postfixTargetOp` nodes and validates index expression types against the allowed set (unsigned integers, bool, enum, literals).
 
-**Tech Stack:** ANTLR4 ParseTreeWalker, CNextListener, vitest
+**Tech Stack:** ANTLR4 ParseTreeWalker, CnxListener, vitest
 
 ---
 
@@ -186,20 +186,20 @@ git commit -m "feat: add UNSIGNED_INDEX_TYPES and SIGNED_TYPES to TypeConstants"
 
 **Step 1: Write the test file**
 
-Follow the `DivisionByZeroAnalyzer.test.ts` pattern. Use `CharStream.fromString` → `CNextLexer` → `CommonTokenStream` → `CNextParser` → `parser.program()` to parse source.
+Follow the `DivisionByZeroAnalyzer.test.ts` pattern. Use `CharStream.fromString` → `CnxLexer` → `CommonTokenStream` → `CnxParser` → `parser.program()` to parse source.
 
 ```typescript
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../parser/grammar/CNextLexer";
-import { CNextParser } from "../../parser/grammar/CNextParser";
+import { CnxLexer } from "../../parser/grammar/CnxLexer";
+import { CnxParser } from "../../parser/grammar/CnxParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   return parser.program();
 }
 
@@ -474,8 +474,8 @@ Follow the `FloatModuloAnalyzer` two-pass pattern exactly:
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener";
-import * as Parser from "../parser/grammar/CNextParser";
+import { CnxListener } from "../parser/grammar/CnxListener";
+import * as Parser from "../parser/grammar/CnxParser";
 import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
@@ -484,7 +484,7 @@ import TypeConstants from "../../../utils/constants/TypeConstants";
 /**
  * First pass: Collect variable and parameter declarations with their types
  */
-class VariableTypeCollector extends CNextListener {
+class VariableTypeCollector extends CnxListener {
   private readonly varTypes: Map<string, string> = new Map();
 
   public getVarTypes(): Map<string, string> {
@@ -521,7 +521,7 @@ class VariableTypeCollector extends CNextListener {
 /**
  * Second pass: Validate index expressions in subscript operations
  */
-class IndexTypeListener extends CNextListener {
+class IndexTypeListener extends CnxListener {
   private readonly analyzer: ArrayIndexTypeAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members

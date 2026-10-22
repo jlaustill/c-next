@@ -21,7 +21,7 @@
 
 - [ ] README.md updated (if feature-visible)
 - [ ] ADR updated with implementation details (if applicable)
-- [ ] `learn-cnext-in-y-minutes.md` updated (if syntax changed)
+- [ ] `learn-cnx-in-y-minutes.md` updated (if syntax changed)
 - [ ] Test README created in `tests/[feature]/README.md`
 
 **Git Hygiene**

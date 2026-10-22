@@ -294,7 +294,7 @@
     "LDREXB",
     "LDREXH",
     "LDREXW",
-    "learncnext",
+    "learncnx",
     "lexer",
     "libatomic",
     "libc",

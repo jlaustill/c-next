@@ -155,7 +155,7 @@ half. cnx resolves a type name at **two points** (CLAUDE.md, _"Two resolution
 points, one decision"_): the **symbols layer**, which produces the header, and the
 **codegen layer**, which produces the body. Both must see the same scope types.
 If they disagree, the prototype and the definition disagree — a bare `Point` in a
-parameter reaches the `.h` as `Point` and the `.c` as `Lib__Point`, `cnext` exits 0,
+parameter reaches the `.h` as `Point` and the `.c` as `Lib__Point`, `cnx` exits 0,
 and the C compiler rejects the pair.
 
 The two axes multiply rather than add: a kind that is visible in one layer and not
