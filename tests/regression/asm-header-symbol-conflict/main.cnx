@@ -1,5 +1,5 @@
 #include "coreasm_stub.h"
 
 // The assembler header above defines `loop` inside a `.macro` body. That must
-// not be collected as a C symbol conflicting with this C-Next `loop()`.
+// not be collected as a C symbol conflicting with this cnx `loop()`.
 void loop() {}

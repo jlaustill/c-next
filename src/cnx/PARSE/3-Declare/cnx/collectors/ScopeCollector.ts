@@ -101,7 +101,7 @@ class ScopeCollector {
       mutableScope.sourceFile = sourceFile;
       mutableScope.span = span;
     }
-    mutableScope.sourceLanguage = ESourceLanguage.CNext;
+    mutableScope.sourceLanguage = ESourceLanguage.Cnx;
     // A scope is a container, not a declaration -- it is never marked private,
     // and `PublicInterface` excludes kind "scope" from the header regardless.
     mutableScope.visibility = "public";

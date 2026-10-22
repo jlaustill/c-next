@@ -20,12 +20,12 @@ import NodeFileSystem from "../NodeFileSystem";
 
 /** The include directories discovered from `inputFile`. */
 function includePaths(inputFile: string, fs: IFileSystem): readonly string[] {
-  return IncludeDiscovery.discoverIncludePaths(inputFile, fs).paths;
+  return IncludeDiscovery.discoverIncludePaths(inputFile, fs);
 }
 
 /** The project root found from `startDir`, or null. */
 function projectRoot(startDir: string, fs: IFileSystem): string | null {
-  return IncludeDiscovery.findProjectRoot(startDir, fs).root;
+  return IncludeDiscovery.findProjectRoot(startDir, fs);
 }
 
 describe("IncludeDiscovery", () => {
@@ -103,31 +103,6 @@ describe("IncludeDiscovery", () => {
       const result = projectRoot(innerDir, NodeFileSystem.instance);
 
       expect(result).toBe(resolve(innerDir));
-    });
-
-    // #2165: an old-name config is not a marker; the walk passes it and
-    // returns it for discovery to report
-    it("passes an old-name config, returning it, and stops at the next marker", () => {
-      const files = new Set([
-        "/p/.git",
-        "/p/app/cnext.config.json",
-        "/cnext.config.json",
-      ]);
-      const fs = TestFileSystem.with({
-        exists: (path: string) => files.has(path),
-        isFile: (path: string) => files.has(path),
-      });
-
-      expect(IncludeDiscovery.findProjectRoot("/p/app/src", fs)).toEqual({
-        root: "/p",
-        renamedConfigs: [
-          {
-            path: "/p/app/cnext.config.json",
-            successor: "cnx.config.json",
-            besideConfig: null,
-          },
-        ],
-      });
     });
 
     it("returns null when no marker found", () => {
@@ -323,10 +298,10 @@ describe("IncludeDiscovery", () => {
   });
 
   // ==========================================================================
-  // extractCNextIncludes (#1745)
+  // extractCnxIncludes (#1745)
   // ==========================================================================
 
-  describe("extractCNextIncludes", () => {
+  describe("extractCnxIncludes", () => {
     // Each case beside its opposite: a directive the grammar reads, and the
     // same text in a place the grammar does not, where the text scan above
     // read one anyway.
@@ -359,7 +334,7 @@ describe("IncludeDiscovery", () => {
         [["a>b.h", true]],
       ],
     ])("reads %s", (_label, source, expected) => {
-      const result = IncludeDiscovery.extractCNextIncludes(source as string);
+      const result = IncludeDiscovery.extractCnxIncludes(source as string);
       expect(result.map((r) => [r.path, r.isLocal])).toEqual(expected);
     });
 
@@ -371,15 +346,13 @@ describe("IncludeDiscovery", () => {
       ["mismatched delimiters", '#include <a.h"\n'],
       ["an empty path", "#include <>\n"],
     ])("reads no directive from %s", (_label, source) => {
-      expect(IncludeDiscovery.extractCNextIncludes(source as string)).toEqual(
-        [],
-      );
+      expect(IncludeDiscovery.extractCnxIncludes(source as string)).toEqual([]);
     });
 
     it("leaves a lexical error for 1.2 to report, printing nothing", () => {
       const printed = vi.spyOn(console, "error").mockImplementation(() => {});
       try {
-        IncludeDiscovery.extractCNextIncludes("#\ninclude <a.h>\n@\n");
+        IncludeDiscovery.extractCnxIncludes("#\ninclude <a.h>\n@\n");
         expect(printed).not.toHaveBeenCalled();
       } finally {
         printed.mockRestore();

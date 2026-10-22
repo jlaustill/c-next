@@ -65,7 +65,7 @@ function declareAndResolve(tree: Parser.ProgramContext): TSymbol[] {
 }
 
 /**
- * Helper to parse C-Next source and return tree + generator ready for testing.
+ * Helper to parse cnx source and return tree + generator ready for testing.
  */
 function setupGenerator(
   source: string,
@@ -504,14 +504,14 @@ describe("CodeGenWalker", () => {
         expect(host.isFloatType("f64")).toBe(true);
       });
 
-      it("should return false for C type float (only C-Next types checked)", () => {
-        // isFloatType only checks C-Next types, not C types
+      it("should return false for C type float (only cnx types checked)", () => {
+        // isFloatType only checks cnx types, not C types
         const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("float")).toBe(false);
       });
 
-      it("should return false for C type double (only C-Next types checked)", () => {
-        // isFloatType only checks C-Next types, not C types
+      it("should return false for C type double (only cnx types checked)", () => {
+        // isFloatType only checks cnx types, not C types
         const { host } = createMinimalGenerator(`void foo() { }`, false);
         expect(host.isFloatType("double")).toBe(false);
       });
@@ -548,7 +548,7 @@ describe("CodeGenWalker", () => {
     });
 
     describe("isCnxFunction()", () => {
-      it("should return true for C-Next defined function", () => {
+      it("should return true for cnx defined function", () => {
         const { host } = createMinimalGenerator(
           `
           void myFunction() { }
@@ -702,7 +702,7 @@ describe("CodeGenWalker", () => {
         expect(host.getScopeSeparator(true)).toBe("::");
       });
 
-      it("should return _ for C-Next access", () => {
+      it("should return _ for cnx access", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 
         expect(host.getScopeSeparator(false)).toBe("__");
@@ -726,7 +726,7 @@ describe("CodeGenWalker", () => {
   });
 
   describe("Type generation", () => {
-    it("should map C-Next types to C types", () => {
+    it("should map cnx types to C types", () => {
       const source = `
         u8 a;
         u16 b;
@@ -1472,7 +1472,7 @@ describe("CodeGenWalker", () => {
     });
 
     it("should generate increment/decrement using compound assignment", () => {
-      // C-Next uses +<- 1 for increment instead of ++
+      // cnx uses +<- 1 for increment instead of ++
       const source = `
         mut wrap u32 a <- 10;
         void main() {
@@ -1700,7 +1700,7 @@ describe("CodeGenWalker", () => {
 
   describe("Float types", () => {
     it("should generate float declarations", () => {
-      // Note: C-Next doesn't use 'f' suffix - float literals are just decimals
+      // Note: cnx doesn't use 'f' suffix - float literals are just decimals
       const source = `
         f32 a <- 1.5;
         f64 b <- 2.5;
@@ -2987,7 +2987,7 @@ describe("CodeGenWalker", () => {
 
   describe("Preprocessor directives", () => {
     it("should reject #define with value in favor of const", () => {
-      // C-Next enforces using const instead of #define for values
+      // cnx enforces using const instead of #define for values
       const source = `
         #define MAX_SIZE 100
         void main() { }
@@ -3928,7 +3928,7 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // C-Next auto-initializes to {0}
+      // cnx auto-initializes to {0}
       expect(code).toContain("Point origin = {0}");
     });
   });
@@ -7259,7 +7259,7 @@ describe("CodeGenWalker", () => {
       // Note: Template type tests skipped - template argument transformation
       // (i32 -> int32_t) is a separate issue to be addressed in another PR
 
-      it("should generate C-Next style array params with dimensions in C++ mode", () => {
+      it("should generate cnx style array params with dimensions in C++ mode", () => {
         const source = `
           void fill(mut u8[8] buf) {
               buf[0] <- 0xFF;
@@ -7280,13 +7280,13 @@ describe("CodeGenWalker", () => {
           cppMode: true,
         });
 
-        // C-Next style u8[8] param should generate uint8_t buf[8], not uint8_t& buf
+        // cnx style u8[8] param should generate uint8_t buf[8], not uint8_t& buf
         expect(code).toContain("uint8_t buf[8]");
         expect(code).not.toContain("uint8_t& buf");
         expect(code).not.toContain("uint8_t&  buf");
       });
 
-      it("should generate const C-Next style array params in C++ mode", () => {
+      it("should generate const cnx style array params in C++ mode", () => {
         const source = `
           u8 read(u8[4] data) {
               return data[0];
@@ -7307,12 +7307,12 @@ describe("CodeGenWalker", () => {
           cppMode: true,
         });
 
-        // Const C-Next style array param should retain dimension
+        // Const cnx style array param should retain dimension
         expect(code).toContain("const uint8_t data[4]");
         expect(code).not.toContain("const uint8_t& data");
       });
 
-      it("should generate C-Next style array params in C mode too", () => {
+      it("should generate cnx style array params in C mode too", () => {
         const source = `
           void fill(mut u8[8] buf) {
               buf[0] <- 0xFF;
@@ -7338,7 +7338,7 @@ describe("CodeGenWalker", () => {
         expect(code).not.toContain("uint8_t* buf");
       });
 
-      it("should generate primitive C-Next style arrays with {} in C++ mode (Issue #1004)", () => {
+      it("should generate primitive cnx style arrays with {} in C++ mode (Issue #1004)", () => {
         const source = `
           void main() {
               u32[8] counters;
@@ -7364,7 +7364,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("uint32_t counters[8] = {}");
       });
 
-      it("should generate unknown user type C-Next style arrays with {} in C++ mode", () => {
+      it("should generate unknown user type cnx style arrays with {} in C++ mode", () => {
         const source = `
           void main() {
               UnknownType[4] items;
@@ -7389,7 +7389,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("UnknownType items[4] = {}");
       });
 
-      it("should generate known C-Next struct arrays with {} in C++ mode (Issue #1004)", () => {
+      it("should generate known cnx struct arrays with {} in C++ mode (Issue #1004)", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void main() {
@@ -9565,7 +9565,7 @@ describe("CodeGenWalker", () => {
 
     describe("callback field types", () => {
       it("should handle callback typedef in struct", () => {
-        // In C-Next, callback types use function name as the type
+        // In cnx, callback types use function name as the type
         const source = `
           void handleClick() { }
           struct Handler {
@@ -12132,7 +12132,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("uint8_t data[3]");
       });
 
-      it("should allow multi-dimensional C-Next style arrays", () => {
+      it("should allow multi-dimensional cnx style arrays", () => {
         const source = `
           void test() {
             mut u8[4][4] matrix;
@@ -12921,7 +12921,7 @@ describe("CodeGenWalker", () => {
     });
 
     describe("user type array parameters", () => {
-      it("should handle struct array parameter with C-Next style", () => {
+      it("should handle struct array parameter with cnx style", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           void processPoints(mut Point[4] points) {
@@ -12973,7 +12973,7 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("multi-dimensional C-Next style array parameters", () => {
+    describe("multi-dimensional cnx style array parameters", () => {
       it("should handle 2D array parameter", () => {
         const source = `
           void processMatrix(mut i32[4][4] matrix) {
@@ -15301,7 +15301,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("const uint8_t data[4]");
       });
 
-      it("should handle struct array with C-Next syntax", () => {
+      it("should handle struct array with cnx syntax", () => {
         const source = `
           struct Point {
             i32 x;
@@ -15332,7 +15332,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("points[0].x = 10");
       });
 
-      it("should handle bitmap array with C-Next syntax", () => {
+      it("should handle bitmap array with cnx syntax", () => {
         const source = `
           bitmap8 Flags {
             active,
@@ -15366,7 +15366,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("flags[0]");
       });
 
-      it("should handle enum array with C-Next syntax", () => {
+      it("should handle enum array with cnx syntax", () => {
         const source = `
           enum Color {
             RED,
@@ -15397,7 +15397,7 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("colors[0] = Color__RED");
       });
 
-      it("should handle struct array initializer with C-Next syntax", () => {
+      it("should handle struct array initializer with cnx syntax", () => {
         const source = `
           struct Item {
             u8 id;

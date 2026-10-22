@@ -26,12 +26,12 @@ import type IHeaderUnit from "./IHeaderUnit";
  */
 interface ISourceGraph {
   /**
-   * The C-Next files, in dependency order: every file after the files it
+   * The cnx files, in dependency order: every file after the files it
    * includes (#580). Each carries its kind, its resolved path, the text
    * discovery read it from (one read, #1835 review) and its direct `.cnx`
    * includes, which are the graph's edges (#1435).
    */
-  readonly cnextFiles: readonly IPipelineFile[];
+  readonly cnxFiles: readonly IPipelineFile[];
 
   /**
    * The C and C++ headers the files reach, transitively. 1.2 reads the ones
@@ -62,10 +62,10 @@ interface ISourceGraph {
   readonly includeSearchPaths: readonly string[];
 
   /**
-   * Per C-Next file, by `path`, what discovery learned about its includes.
+   * Per cnx file, by `path`, what discovery learned about its includes.
    *
    * **The ORDER is significant** and is the order discovery VISITED the
-   * files, not `cnextFiles`' dependency order: a generated header takes its
+   * files, not `cnxFiles`' dependency order: a generated header takes its
    * include spellings from every file in this order, and
    * `ExternalTypeHeaderBuilder` lets the first header declaring a type win.
    *
@@ -99,7 +99,7 @@ interface ISourceGraph {
   readonly writeOutputToDisk: boolean;
 
   /**
-   * #1991: each C-Next file's output paths, by its path, for each mode
+   * #1991: each cnx file's output paths, by its path, for each mode
    * (#1713), so no later stage asks `PathResolver`.
    */
   readonly outputs: IByOutputMode<ReadonlyMap<string, IOutputPaths>>;

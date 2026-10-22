@@ -1,5 +1,5 @@
 /**
- * ADR-001: the one place a C-Next assignment operator becomes its C form.
+ * ADR-001: the one place a cnx assignment operator becomes its C form.
  *
  * #1322 unified the TABLE -- a byte-identical `ASSIGNMENT_OPERATOR_MAP` had
  * stood in `CodeGenerator` beside the shared one. What stayed duplicated was
@@ -32,7 +32,7 @@ import invariant from "../../utils/invariant";
 
 class AssignmentOperatorMapper {
   /**
-   * The C operator for `cnextOp`, recording that ADR-001's rule fired at
+   * The C operator for `cnxOp`, recording that ADR-001's rule fired at
    * `line` so the scope-context matrix can derive which cell it occupied.
    *
    * Takes the operator's TEXT and LINE rather than its parse context on
@@ -41,12 +41,12 @@ class AssignmentOperatorMapper {
    * modules holding a parse tree and forbids it growing, and this one has no
    * question for the tree that a string and a number cannot answer.
    */
-  static toCOperator(cnextOp: string, line: number | undefined): string {
+  static toCOperator(cnxOp: string, line: number | undefined): string {
     AdrProvenance.record("001", line);
-    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp];
+    const cOp = ASSIGNMENT_OPERATOR_MAP[cnxOp];
     invariant(
       cOp !== undefined,
-      `every assignmentOperator alternative in the grammar has an ASSIGNMENT_OPERATOR_MAP entry (missing '${cnextOp}')`,
+      `every assignmentOperator alternative in the grammar has an ASSIGNMENT_OPERATOR_MAP entry (missing '${cnxOp}')`,
     );
     return cOp;
   }

@@ -25,7 +25,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // top-level one is. The analyzer derived that fact by walking only
 // `tree.declaration()`, so it saw no scope member: a parameter typed by a scope
 // function was never registered as callable, and the call through it was
-// reported as E0422 "called before definition". Valid C-Next, rejected.
+// reported as E0422 "called before definition". Valid cnx, rejected.
 //
 // Codegen registered scope functions as callback types all along, so the two
 // derivations of one ADR-029 fact disagreed rather than both being wrong. The

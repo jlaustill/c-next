@@ -1,5 +1,5 @@
 /**
- * Symbol kinds for C-Next language constructs.
+ * Symbol kinds for cnx language constructs.
  */
 type TSymbolKindCnx =
   | "function"

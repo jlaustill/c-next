@@ -30,7 +30,7 @@ describe("BitmapCollector", () => {
       expect(symbol.backingType).toBe("uint8_t");
       expect(symbol.bitWidth).toBe(8);
       expect(symbol.sourceFile).toBe("test.cnx");
-      expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(symbol.visibility).toBe("public");
 
       // Check fields

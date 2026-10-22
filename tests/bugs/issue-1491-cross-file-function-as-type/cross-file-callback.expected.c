@@ -15,7 +15,7 @@
 // asking `allLocalFunctions`, a set that exists to EXCLUDE cross-file functions
 // because ADR-030 define-before-use ordering (#786) needs that distinction.
 // One set, two questions -- so calling through the variable was rejected with
-// `E0422: function 'viaInclude' called before definition`, for valid C-Next.
+// `E0422: function 'viaInclude' called before definition`, for valid cnx.
 //
 // The same-file pair is the CONTROL, not decoration: it is the byte-identical
 // shape with the type's function declared locally. It was accepted before the

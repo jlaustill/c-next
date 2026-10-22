@@ -1,5 +1,5 @@
 /**
- * C-Next to C Type Mapping Utility
+ * cnx to C Type Mapping Utility
  *
  * Provides shared type mapping functionality for both header
  * and implementation code generation.
@@ -10,7 +10,7 @@
 import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 
 /**
- * Map a C-Next type to C type
+ * Map a cnx type to C type
  *
  * Handles:
  * - Direct primitive type mappings (u32 -> uint32_t)
@@ -19,7 +19,7 @@ import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
  * - String types (string<N> -> char[N+1])
  * - User-defined types (pass through unchanged)
  *
- * @param type - The C-Next type string
+ * @param type - The cnx type string
  * @returns The corresponding C type string
  */
 function mapType(type: string): string {
@@ -54,7 +54,7 @@ function mapType(type: string): string {
 }
 
 /**
- * Check if a type is a built-in C-Next type (primitive or string<N>)
+ * Check if a type is a built-in cnx type (primitive or string<N>)
  * Used by header generator to avoid generating forward declarations for built-in types
  */
 function isBuiltInType(typeName: string): boolean {

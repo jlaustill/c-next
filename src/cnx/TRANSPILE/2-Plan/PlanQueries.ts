@@ -40,7 +40,7 @@ class PlanQueries implements IPlanQueries {
   }
 
   isCnxFunction(name: string): boolean {
-    return SymbolLookupHelper.isCNextFunctionCombined(
+    return SymbolLookupHelper.isCnxFunctionCombined(
       this.state.knownFunctions,
       this.state.symbolTable,
       name,

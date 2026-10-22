@@ -11,8 +11,8 @@
  * - E0908: Nullable c_ variable used without prior NULL check (flow analysis)
  *
  * E0902 was reported here and is not any more. Answering it needs to know
- * whether the callee resolved to a C-Next definition, which this analyzer cannot
- * see, so it told `pool_free` -- written in C-Next three lines above its call --
+ * whether the callee resolved to a cnx definition, which this analyzer cannot
+ * see, so it told `pool_free` -- written in cnx three lines above its call --
  * that it had been imported from a header (#1306 review). It belongs to
  * IFunctionCallError.
  */

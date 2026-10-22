@@ -15,18 +15,18 @@ Unions are used in embedded C for:
 
 ## Decision
 
-**C-Next will not support unions.**
+**cnx will not support unions.**
 
 Unions are rejected because:
 
 1. They enable undefined behavior (reading inactive members)
 2. They violate MISRA C guidelines for safety-critical software
-3. Every use case has a safer, more explicit alternative in C-Next
-4. C-Next's philosophy is "TypeScript for C" - removing footguns, not preserving them
+3. Every use case has a safer, more explicit alternative in cnx
+4. cnx's philosophy is "TypeScript for C" - removing footguns, not preserving them
 
 ## Rationale: The "TypeScript for C" Philosophy
 
-C-Next is a safer front-end that generates clean C. Like TypeScript removes JavaScript footguns while compiling to JavaScript, C-Next removes C footguns while compiling to C.
+cnx is a safer front-end that generates clean C. Like TypeScript removes JavaScript footguns while compiling to JavaScript, cnx removes C footguns while compiling to C.
 
 From MISRA C guidelines:
 
@@ -38,7 +38,7 @@ Unions are exactly the kind of "clever" pattern that leads to:
 - Portability bugs (endianness, padding differences)
 - MISRA violations requiring formal deviations
 
-C-Next's value proposition:
+cnx's value proposition:
 
 > "You get a safe abstraction, and we generate the boring C."
 
@@ -60,7 +60,7 @@ union {
 } reg;
 ```
 
-**C-Next Solution (ADR-004):**
+**cnx Solution (ADR-004):**
 
 ```cnx
 register GPIOB @ 0x40020400 {
@@ -100,7 +100,7 @@ receive(&p);
 move_to(p.coords.x, p.coords.y);  // Bug if type != COORDS
 ```
 
-**C-Next Solution (Explicit Parsing):**
+**cnx Solution (Explicit Parsing):**
 
 ```cnx
 // Message types
@@ -155,7 +155,7 @@ Type punning (reinterpreting bits of one type as another) is:
 - Explicitly forbidden by MISRA C
 - A source of subtle, platform-dependent bugs
 
-C-Next does not provide a mechanism for type punning. If you need to reinterpret bits, use explicit byte manipulation as shown above.
+cnx does not provide a mechanism for type punning. If you need to reinterpret bits, use explicit byte manipulation as shown above.
 
 ### 4. Memory-Efficient Variants → Explicit Design
 
@@ -171,12 +171,12 @@ When interfacing with existing C code that uses unions:
 
 - Wrap the C code in an `extern` block
 - Treat it as unsafe/external
-- Do not expose the union type to C-Next code
+- Do not expose the union type to cnx code
 - See ADR-010 for C/C++ interoperability details
 
 ## Summary
 
-| Union Use Case    | C-Next Alternative                      | ADR        |
+| Union Use Case    | cnx Alternative                         | ADR        |
 | ----------------- | --------------------------------------- | ---------- |
 | Register overlays | `register` blocks with access modifiers | ADR-004    |
 | Protocol parsing  | Explicit byte manipulation              | (this ADR) |

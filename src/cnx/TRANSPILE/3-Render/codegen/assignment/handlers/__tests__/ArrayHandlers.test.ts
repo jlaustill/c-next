@@ -47,7 +47,7 @@ function createMockContext(
     foldSubscript: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     isCompound: false,
-    cnextOp: "<-",
+    cnxOp: "<-",
     cOp: "=",
     generatedValue: "value",
     renderTarget: () => resolvedTarget,
@@ -149,7 +149,7 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         isCompound: true,
-        cnextOp: "+<-",
+        cnxOp: "+<-",
         cOp: "+=",
         resolvedTarget: "arr[0]",
       });
@@ -243,7 +243,7 @@ describe("ArrayHandlers", () => {
           { mockValue: "1", start: { line: 1 } } as never,
         ]),
         isCompound: true,
-        cnextOp: "-<-",
+        cnxOp: "-<-",
         cOp: "-=",
         resolvedTarget: "grid[0][1]",
         resolvedBaseIdentifier: "grid",

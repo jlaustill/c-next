@@ -7,7 +7,7 @@
 
 // test-execution
 // #1668 (C12): a C header struct's integer field takes a bit write like a
-// C-Next one. The write path knew only C-Next integer names, so `uint8_t`
+// cnx one. The write path knew only cnx integer names, so `uint8_t`
 // was not an integer to it and `cs.flags[3] <- true` was emitted
 // `cs.flags[3] = true;`, which C rejects.
 #include "cf.h"

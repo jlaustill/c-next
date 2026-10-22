@@ -1,5 +1,5 @@
 /**
- * Which C-Next function a spelling denotes.
+ * Which cnx function a spelling denotes.
  *
  * #1322. Three questions in pass 2.1 end at the program's symbol for one
  * function: "what does this call target?" (E0900's callee, E0708's), "which

@@ -210,7 +210,7 @@ describe("TranspileState", () => {
         cppMode: false,
         registry,
         visibility: {
-          cnextIncludesByFile: new Map([
+          cnxIncludesByFile: new Map([
             ["includer.cnx", [{ path: "declares.cnx" }]],
           ]),
         },

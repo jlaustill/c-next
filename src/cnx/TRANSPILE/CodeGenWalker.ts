@@ -1991,7 +1991,7 @@ class CodeGenWalker {
     }
 
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
-    // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
+    // Both spellings count: C-style trailing dimensions and the cnx arrayType.
     // ADR-071: read-only unless declared `mut`
     const isConst = !decl.modifiers.mut;
     const arrayDims = decl.dimensions;
@@ -2289,7 +2289,7 @@ class CodeGenWalker {
       return "{}";
     }
 
-    // For C-Next/C structs, generate designated initializer.
+    // For cnx/C structs, generate designated initializer.
     // #1997: reported as the form emitted, in both modes. What it costs (C99 in
     // C, C++20 in C++) is 2.2's decision, made from this fact and the mode.
     // The text is identical in both modes, so no probe over the output could
@@ -2642,7 +2642,7 @@ class CodeGenWalker {
   /**
    * The two spellings of "this declaration is an array", read once.
    *
-   * C-Next admits trailing C-style dimensions (`u32 a[4]`) and the arrayType
+   * cnx admits trailing C-style dimensions (`u32 a[4]`) and the arrayType
    * prefix (`u32[4] a`), so "is this an array" is their disjunction --
    * `IPlannedArrayDeclaration` says it is decided once, and it was being
    * re-derived at a second site from the same node.
@@ -2718,7 +2718,7 @@ class CodeGenWalker {
 
   /**
    * Issue #500: both spellings make an array -- C-style trailing dimensions
-   * and the C-Next array type. The one predicate for a local, a scope member
+   * and the cnx array type. The one predicate for a local, a scope member
    * and a file-scope variable.
    */
   private static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
@@ -3144,8 +3144,8 @@ class CodeGenWalker {
       expressionType: (expr) => this.planner.directTypeOf(expr),
       integerExpressionType: (expr) => this.planner.integerTypeOf(expr),
       hasFloatingOperand: (expr) => this.planner.hasFloatingLeaf(expr),
-      toCOperator: (cnextOp, line) =>
-        AssignmentOperatorMapper.toCOperator(cnextOp, line),
+      toCOperator: (cnxOp, line) =>
+        AssignmentOperatorMapper.toCOperator(cnxOp, line),
     });
     // ADR-065: the classifier and handlers reach 2.3's state through the context
     const assignmentKind = AssignmentClassifier.classify(assignCtx);

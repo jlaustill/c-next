@@ -1,4 +1,4 @@
-// C-Next alternative to cnx-alt-helper-cpp.hpp
+// cnx alternative to cnx-alt-helper-cpp.hpp
 // Used to test E0504 error detection for .hpp files
 
 struct CppAltHelper {

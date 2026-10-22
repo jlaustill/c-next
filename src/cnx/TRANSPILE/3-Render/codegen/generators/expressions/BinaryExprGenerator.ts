@@ -78,7 +78,7 @@ const joinWithOperators = (
  * Issue #1152: Fold a chain of operands into saturating helper calls when the
  * expression's operands are of a `clamp` integer type.
  *
- * `clamp` is C-Next's default overflow behavior (ADR-044), but it used to apply
+ * `clamp` is cnx's default overflow behavior (ADR-044), but it used to apply
  * only to compound assignment (`+<-`), so `c <- a + b` wrapped while
  * `c +<- b` saturated -- and `wrap` was indistinguishable from `clamp` in every
  * expression. Routing here makes the modifier mean the same thing wherever the

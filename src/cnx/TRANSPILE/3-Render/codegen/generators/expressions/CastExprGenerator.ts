@@ -2,7 +2,7 @@
  * Cast Expression Generator
  *
  * Renders `(type)expr`, including ADR-024's float-to-integer clamp (#632):
- * C leaves an out-of-range float-to-int conversion undefined, and C-Next's
+ * C leaves an out-of-range float-to-int conversion undefined, and cnx's
  * default is to saturate, so the cast expands to a bounded ternary.
  *
  * #1445 box 3: takes the target type and the operand ALREADY RENDERED, not
@@ -42,7 +42,7 @@ function generateCast(plan: IPlannedCast, state: TranspileState): string {
   // type and the type whose limit macros the saturating form compares against.
   if (plan.clampForm === null) return cast(plan.targetType, plan.operandCode);
 
-  // The plan saturates only a float source into a C-Next integer target
+  // The plan saturates only a float source into a cnx integer target
   // (`CastRequirement.requiresClamping`), and every one of those has limit
   // macros. Render re-checked the limits and fell back to a raw cast, a path
   // the plan's decision left unreachable (#1668 review).

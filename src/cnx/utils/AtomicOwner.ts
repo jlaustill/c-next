@@ -65,7 +65,7 @@ class AtomicOwner {
 
   /**
    * What an atomic value of type `t` is accessed as: a bitmap as its backing
-   * integer, an enum as its C type, a C-Next type as itself, a C header type
+   * integer, an enum as its C type, a cnx type as itself, a C header type
    * by its declared C type -- `size_t` stays `size_t` even where the typer
    * names it `u32`, as `uint32_t` may be another C type (#2155 review 9)
    */

@@ -256,7 +256,7 @@ describe("generateMarkdownReport", () => {
     reportGenerator.generateMarkdownReport(report, outputPath);
 
     const content = readFileSync(outputPath, "utf-8");
-    expect(content).toContain("# C-Next Coverage Report");
+    expect(content).toContain("# cnx Coverage Report");
     expect(content).toContain("## Summary");
     expect(content).toContain("| Total Points | 1 | 100% |");
     expect(content).toContain("| Tested | 1 | 100% |");

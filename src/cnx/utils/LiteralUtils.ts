@@ -89,7 +89,7 @@ class LiteralUtils {
   /**
    * Parse an integer literal string to a numeric value.
    *
-   * Handles all C-Next integer formats:
+   * Handles all cnx integer formats:
    * - Decimal: 42, -17
    * - Hex: 0x2A, 0X2a
    * - Binary: 0b101010, 0B101010
@@ -141,7 +141,7 @@ class LiteralUtils {
   /**
    * ADR-044 "Integer Literals" (owner ruling, 2026-10-03, #1728): whether a
    * decimal literal, with or without its type suffix, has a leading zero.
-   * C-Next has no octal literal, so 1.2 reports one (E0912), and no reading
+   * cnx has no octal literal, so 1.2 reports one (E0912), and no reading
    * gives it a value before then -- not the decimal one, which C, reading
    * octal, would disagree with. The one rule every reading asks.
    */
@@ -150,7 +150,7 @@ class LiteralUtils {
   }
 
   /**
-   * The value of an integer literal as written in C-Next source, with any
+   * The value of an integer literal as written in cnx source, with any
    * width suffix (`9u8`, `3i32`): decimal, hex or binary. Null for anything
    * else, and for a leading-zero literal (`010`, E0912).
    */

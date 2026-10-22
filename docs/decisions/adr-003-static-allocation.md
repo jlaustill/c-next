@@ -2,13 +2,13 @@
 
 **Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2025-12-26
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-Dynamic memory allocation introduces non-determinism and failure modes that are unacceptable in safety-critical embedded systems. Industry standards explicitly prohibit it, and C-Next v1 follows this restriction for its target use case.
+Dynamic memory allocation introduces non-determinism and failure modes that are unacceptable in safety-critical embedded systems. Industry standards explicitly prohibit it, and cnx v1 follows this restriction for its target use case.
 
-> **Note:** C-Next v1 targets the most restrictive embedded use case (MISRA-compliant, safety-critical). Dynamic allocation for desktop and less-constrained targets is planned for v2 - see [ADR-101: Heap Allocation](adr-101-heap-allocation.md).
+> **Note:** cnx v1 targets the most restrictive embedded use case (MISRA-compliant, safety-critical). Dynamic allocation for desktop and less-constrained targets is planned for v2 - see [ADR-101: Heap Allocation](adr-101-heap-allocation.md).
 
 ### The Problems with Dynamic Allocation
 
@@ -26,8 +26,8 @@ Dynamic memory allocation introduces non-determinism and failure modes that are 
 
 ## Decision: What a `.cnx` File May Not Call
 
-A C-Next file has no dynamic memory allocation, and it may not **import** one
-either. The prohibition is not "C-Next has a `malloc` and disallows it" — C-Next
+A cnx file has no dynamic memory allocation, and it may not **import** one
+either. The prohibition is not "cnx has a `malloc` and disallows it" — cnx
 has no such function at all. What is rejected is bringing one in from a C or C++
 header and calling it from a `.cnx` file. Code that genuinely needs the heap is
 written in C or C++, where the surrounding project's own rules govern it.
@@ -64,12 +64,12 @@ without swallowing ordinary code:
 | `my_free`            | a hand-written equivalent — the case Dir 4.12 names |
 | `spi_bus_free`       | see the limits below                                |
 
-| Accepted         | Why                                          |
-| ---------------- | -------------------------------------------- |
-| `myfree`         | no separator — an ordinary name              |
-| `saferealloc`    | no separator                                 |
-| `free_list_init` | the listed name is not at the end            |
-| `pool_free`      | **defined in C-Next** — nothing was imported |
+| Accepted         | Why                                       |
+| ---------------- | ----------------------------------------- |
+| `myfree`         | no separator — an ordinary name           |
+| `saferealloc`    | no separator                              |
+| `free_list_init` | the listed name is not at the end         |
+| `pool_free`      | **defined in cnx** — nothing was imported |
 
 ### Limits of a name rule, stated rather than implied
 
@@ -85,16 +85,16 @@ pretending otherwise is worse than the gap:
   frees no memory and is still rejected. The diagnostic stays truthful — such a
   function genuinely is imported from C or C++ — and the remedy is the one this
   ADR already asks for: call it from the C or C++ side.
-- **It applies only to imports.** A function _defined in C-Next_ whose name fits
+- **It applies only to imports.** A function _defined in cnx_ whose name fits
   the rule is the author's own code and is accepted, because nothing was
-  imported. Whether a callee is a C-Next definition is therefore part of the
+  imported. Whether a callee is a cnx definition is therefore part of the
   decision, not an optimization.
 
 ### Memory pools are the alternative
 
 The **Memory Pools** pattern below is what this ADR points authors toward, and a
 pool has a release operation. `pool_free` on a statically-sized pool is the
-recommended shape, not a workaround — which is why a C-Next definition is never
+recommended shape, not a workaround — which is why a cnx definition is never
 treated as an import.
 
 ---
@@ -341,13 +341,13 @@ The honest truth about static allocation:
 3. You can calculate exact worst-case memory usage at compile time
 4. Certification requires proving memory bounds
 
-### Key Insight for C-Next
+### Key Insight for cnx
 
 > **"Dynamic" in embedded usually means "variable content in fixed container", not "variable container size."**
 
 A UART buffer doesn't grow and shrink — it's always 256 bytes. The _content_ varies (5 bytes received, then 100, then 12), but the _container_ is fixed.
 
-This suggests C-Next should provide bounded collection types:
+This suggests cnx should provide bounded collection types:
 
 ```
 // Bounded string type (like Ada, like Rust's heapless::String)
@@ -454,7 +454,7 @@ Strings are notoriously variable-length. Options:
 
 The user notes:
 
-> "This is a feature unique to embedded development... something that would need adjusted to use c-next for, say, a CLI application for a linux desktop that handled videos."
+> "This is a feature unique to embedded development... something that would need adjusted to use cnx for, say, a CLI application for a linux desktop that handled videos."
 
 Options:
 
@@ -502,7 +502,7 @@ Arduino's model maps naturally to the MISRA static allocation pattern:
 
 **Key insight:** `setup()` isn't where allocation happens — it's where _configuration_ happens. The memory is already reserved at compile time via global declarations.
 
-Example in C-Next:
+Example in cnx:
 
 ```
 // Memory reserved at compile time (global scope)
@@ -532,13 +532,13 @@ void loop() {
 }
 ```
 
-This is how well-written embedded C already works. Arduino's `String` class is the footgun — it heap-allocates in `loop()`. C-Next simply wouldn't have that option.
+This is how well-written embedded C already works. Arduino's `String` class is the footgun — it heap-allocates in `loop()`. cnx simply wouldn't have that option.
 
-**Transpilation note:** Even scoped variables like `Console.uart` become globals in the generated C (`Console_uart`). C-Next enforces the `private` visibility at compile time, but the generated C uses `static` for file-level privacy. The safety is enforced by C-Next's compiler, not the C output.
+**Transpilation note:** Even scoped variables like `Console.uart` become globals in the generated C (`Console_uart`). cnx enforces the `private` visibility at compile time, but the generated C uses `static` for file-level privacy. The safety is enforced by cnx's compiler, not the C output.
 
 ### Q7: Memory pools — language feature or library?
 
-Should C-Next provide built-in pool types?
+Should cnx provide built-in pool types?
 
 ```
 Pool<Message, 32> messagePool;  // Pool of 32 Message-sized blocks
@@ -562,7 +562,7 @@ If init() runs out of memory, what happens?
 2. **Prototype the init() pattern** — Try implementing in current C projects
 3. **Survey embedded developers** — What do they find most painful about static allocation?
 4. **Evaluate Zig's approach** — Is explicit allocator parameter better than init()?
-5. **Design bounded collections** — Like Rust's heapless, but for C-Next
+5. **Design bounded collections** — Like Rust's heapless, but for cnx
 
 ---
 

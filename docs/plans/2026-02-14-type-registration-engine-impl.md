@@ -28,7 +28,7 @@
  * other type-dependent operations regardless of declaration order.
  */
 
-import * as Parser from "../parser/grammar/CNextParser.js";
+import * as Parser from "../parser/grammar/CnxParser.js";
 import TIncludeHeader from "../../output/codegen/generators/TIncludeHeader.js";
 
 /**
@@ -93,13 +93,13 @@ git commit -m "feat(#791): add TypeRegistrationEngine skeleton"
 
 import { describe, it, expect } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
-import CNextSourceParser from "../../parser/CNextSourceParser";
+import CnxSourceParser from "../../parser/CnxSourceParser";
 
 /**
  * Helper to parse a variable declaration and get its arrayType context
  */
 function parseArrayType(source: string): Parser.ArrayTypeContext | null {
-  const tree = CNextSourceParser.parse(source);
+  const tree = CnxSourceParser.parse(source);
   const decl = tree.declaration(0)?.variableDeclaration();
   return decl?.type()?.arrayType() ?? null;
 }
@@ -187,13 +187,13 @@ git commit -m "feat(#791): add parseArrayTypeDimension pure helper"
 Add to the test file:
 
 ```typescript
-import * as Parser from "../../parser/grammar/CNextParser";
+import * as Parser from "../../parser/grammar/CnxParser";
 
 /**
  * Helper to parse a variable declaration and get its type context
  */
 function parseTypeContext(source: string): Parser.TypeContext | null {
-  const tree = CNextSourceParser.parse(source);
+  const tree = CnxSourceParser.parse(source);
   const decl = tree.declaration(0)?.variableDeclaration();
   return decl?.type() ?? null;
 }
@@ -311,7 +311,7 @@ git commit -m "feat(#791): add resolveBaseType pure helper"
 Update the imports section:
 
 ```typescript
-import * as Parser from "../parser/grammar/CNextParser.js";
+import * as Parser from "../parser/grammar/CnxParser.js";
 import TIncludeHeader from "../../output/codegen/generators/TIncludeHeader.js";
 import TOverflowBehavior from "../../output/codegen/types/TOverflowBehavior.js";
 import TYPE_WIDTH from "../../output/codegen/types/TYPE_WIDTH.js";
@@ -1039,7 +1039,7 @@ describe("register orchestration", () => {
 
   it("registers global variable types", () => {
     const source = `u32 counter;`;
-    const tree = CNextSourceParser.parse(source);
+    const tree = CnxSourceParser.parse(source);
 
     TypeRegistrationEngine.register(tree, mockCallbacks);
 
@@ -1052,7 +1052,7 @@ describe("register orchestration", () => {
   it("tracks const values", () => {
     mockCallbacks.tryEvaluateConstant.mockReturnValue(10);
     const source = `const u32 SIZE <- 10;`;
-    const tree = CNextSourceParser.parse(source);
+    const tree = CnxSourceParser.parse(source);
 
     TypeRegistrationEngine.register(tree, mockCallbacks);
 
@@ -1061,7 +1061,7 @@ describe("register orchestration", () => {
 
   it("requires string include for string types", () => {
     const source = `string<64> message;`;
-    const tree = CNextSourceParser.parse(source);
+    const tree = CnxSourceParser.parse(source);
 
     TypeRegistrationEngine.register(tree, mockCallbacks);
 

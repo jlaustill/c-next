@@ -63,10 +63,7 @@ describe("CachedSymbolReader", () => {
         "a kind its language does not define",
         { ...C_FUNCTION, kind: "bitmap" },
       ],
-      [
-        "a C-Next symbol",
-        { ...C_FUNCTION, sourceLanguage: ESourceLanguage.CNext },
-      ],
+      ["a cnx symbol", { ...C_FUNCTION, sourceLanguage: ESourceLanguage.Cnx }],
       ["a missing sourceFile", { ...C_FUNCTION, sourceFile: undefined }],
       // #1318: `sourceLine` became a four-integer `span`, so one typeof check
       // became four. Each branch of `isSpan` gets its own row -- a single

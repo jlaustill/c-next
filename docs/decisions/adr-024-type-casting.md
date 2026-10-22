@@ -91,7 +91,7 @@ the conclusion to expressions, where it does not hold.
 
 This is exactly what **MISRA C:2012 Rule 10.8** prohibits: _"The value of a
 composite expression shall not be cast to a different essential type category or
-a wider essential type."_ C-Next already claims to address Rule 10.8;
+a wider essential type."_ cnx already claims to address Rule 10.8;
 `docs/misra-compliance.md` lists it as **Not Enforced**, and #846 reports 37
 violations in generated output. So the original decision is in conflict with a
 rule the project has already committed to, not merely with a preference.
@@ -227,7 +227,7 @@ f32 y <- (f32)i * 2.5;   // OK: 7.5
 
 Until this ruling the mix was accepted, and it computed the wrong value. The integer operand selected integer saturating arithmetic (ADR-044), which converted the float operand to the integer type before multiplying, so `u32` 3 × 2.5 evaluated to 6.0.
 
-**The categories are MISRA C:2012 Rule 10.4's essential type categories** (owner ruling, 2026-09-26, #1668: "follow misra 10.4"): signed, unsigned, floating, Boolean, character, and **each named enum type as a category of its own**. They apply to C-Next types and to C and C++ header types alike. MISRA's exception is kept: `+` and `+<-` may combine a character operand with a signed or unsigned one.
+**The categories are MISRA C:2012 Rule 10.4's essential type categories** (owner ruling, 2026-09-26, #1668: "follow misra 10.4"): signed, unsigned, floating, Boolean, character, and **each named enum type as a category of its own**. They apply to cnx types and to C and C++ header types alike. MISRA's exception is kept: `+` and `+<-` may combine a character operand with a signed or unsigned one.
 
 ```cnx
 u32 a <- 1;
@@ -245,7 +245,7 @@ u8 d <- (u8)'0' + digit;   // OK
 u32 e <- a + 'A';          // OK: MISRA's + exception
 ```
 
-**An exempt character and integer pair is essentially character** (owner ruling, 2026-09-28, in the #1760 review; MISRA C:2012 Appendix D.7). The pair's result carries the character category into the rest of the expression. A later operand of either signedness is therefore exempt beside it, so `u32 a + 'A' + i32 s` is legal under Rule 10.4. Its value is the exact sum, converted into the destination once, under the destination's ADR-044 overflow behavior (owner ruling, 2026-09-28). With `a = 3` and `s = -100`, a `u32` destination under clamp holds 0. C-Next does not compute that yet: it saturates in the first operand's type. This is tracked as #1809.
+**An exempt character and integer pair is essentially character** (owner ruling, 2026-09-28, in the #1760 review; MISRA C:2012 Appendix D.7). The pair's result carries the character category into the rest of the expression. A later operand of either signedness is therefore exempt beside it, so `u32 a + 'A' + i32 s` is legal under Rule 10.4. Its value is the exact sum, converted into the destination once, under the destination's ADR-044 overflow behavior (owner ruling, 2026-09-28). With `a = 3` and `s = -100`, a `u32` destination under clamp holds 0. cnx does not compute that yet: it saturates in the first operand's type. This is tracked as #1809.
 
 A comparison with an enum operand is ADR-017's question, and is reported once, as ADR-017's diagnostic.
 
@@ -286,14 +286,14 @@ A subscript into a scalar is a bit index and has no declared type, so the bit-in
 
 **A header macro is typed from its replacement tokens** _(owner ruling 2026-10-04, #1688)_. An object-like macro named as an operand is read as the preprocessor will expand it, following the macros it names: The macros a file sees are the ones C sees for it: the preprocessor's macro dump (`-dM`) of that file's C includes, system headers and compiler builtins included _(owner ruling 2026-10-05)_, so `M_PI` and `FLT_EPSILON` are read as a local header's macro is, and another file's includes do not reach it.
 
-- **Floating:** a floating literal anywhere in an expansion that holds no cast, call or other unreadable part, such as `2.5f`, `(2.5)`, `1e3` or `(VREF / 4096.0)`. Combined with an integer it is E0810, as any integer and floating mix is, so `u32 i * SCALE_F` with `#define SCALE_F 2.5f` is rejected. Its type is C's: `float` when every floating literal in it is `f`-suffixed, `long double` (which C-Next does not name) when any is `L`-suffixed, `double` otherwise.
+- **Floating:** a floating literal anywhere in an expansion that holds no cast, call or other unreadable part, such as `2.5f`, `(2.5)`, `1e3` or `(VREF / 4096.0)`. Combined with an integer it is E0810, as any integer and floating mix is, so `u32 i * SCALE_F` with `#define SCALE_F 2.5f` is rejected. Its type is C's: `float` when every floating literal in it is `f`-suffixed, `long double` (which cnx does not name) when any is `L`-suffixed, `double` otherwise.
 - **Integer:** only integer literals, arithmetic and bitwise operators, parentheses and other integer macros, such as `#define LIMIT 10`. It keeps the handling it had, an unsuffixed literal's, ADR-044 clamping included.
 - **Character:** a character constant alone, parenthesized or not, such as `#define DELIM ','`, is typed as the same constant written inline, category character _(owner ruling 2026-10-05)_. Mixed with anything else it is unreadable.
-- **Unreadable:** anything else, such as a call, a cast, a pointer dereference like avr-libc's `PINB`, or a name no header defines. A cast or call decides the type whatever it holds _(owner ruling 2026-10-05)_, so `((uint16_t)(F_CPU / 1000.0))` is unreadable, not floating. Combined with an integer it asks for a cast, `(u32)M` or `(f32)M` _(owner ruling 2026-10-05)_: E0811 for `+ - *` and their compound assignments, which would hand it to an integer clamp helper untyped, and E0812 for every other operator E0810 covers, `/` and `%` included, and a conditional's value arms, where C's usual arithmetic conversions decide the result from a type C-Next cannot see (an unsigned `3 < -1` is true, and `3U / -1` is 0) _(owner ruling 2026-10-05)_. Beside any other operand it is left to C, as before.
+- **Unreadable:** anything else, such as a call, a cast, a pointer dereference like avr-libc's `PINB`, or a name no header defines. A cast or call decides the type whatever it holds _(owner ruling 2026-10-05)_, so `((uint16_t)(F_CPU / 1000.0))` is unreadable, not floating. Combined with an integer it asks for a cast, `(u32)M` or `(f32)M` _(owner ruling 2026-10-05)_: E0811 for `+ - *` and their compound assignments, which would hand it to an integer clamp helper untyped, and E0812 for every other operator E0810 covers, `/` and `%` included, and a conditional's value arms, where C's usual arithmetic conversions decide the result from a type cnx cannot see (an unsigned `3 < -1` is true, and `3U / -1` is 0) _(owner ruling 2026-10-05)_. Beside any other operand it is left to C, as before.
 
 Including a header is not an error by itself. A name the preprocessor does not define for the file is not a macro here and stays untyped. When a file's C includes were not all read -- the preprocessor cannot read them together -- a name nothing declares may be a macro of any type, so it is unreadable _(owner ruling 2026-10-05)_; a name a header declares keeps its declaration's type. Whether a macro that dereferences a pointer should be rejected outright is a separate question, not decided here.
 
-**Three header operands are not typed yet.** Each has a declared C type, so each is an operand with a category under the ruling above. C-Next does not read that type yet, so an integer combined with one that is floating is not rejected:
+**Three header operands are not typed yet.** Each has a declared C type, so each is an operand with a category under the ruling above. cnx does not read that type yet, so an integer combined with one that is floating is not rejected:
 
 - an element of a C pointer: `u32 i * fp[0]`, with `extern float *fp;`;
 - a variable whose type is a typedef declared in a C++ header: `i * r`, with `typedef float real_t; extern real_t r;` in a `.hpp`. The same typedef in a C header is typed;

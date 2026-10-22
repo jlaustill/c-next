@@ -6,7 +6,7 @@
 // test-execution
 // test-adr: 058
 // A C header's layouts (#1975 review 2): the memory row is the C compiler's,
-// so it answers where C-Next cannot sum -- a pointer, a union, bit-fields --
+// so it answers where cnx cannot sum -- a pointer, a union, bit-fields --
 // and a bit-field member's type length is its declared width.
 #include "kinds-layouts.h"
 

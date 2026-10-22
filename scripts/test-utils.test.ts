@@ -251,7 +251,7 @@ describe("TestUtils.hasCppFeatures", () => {
       expect(TestUtils.hasCppFeatures("map<string, int> m;")).toBe(true);
     });
 
-    it("should NOT detect string<N> (C-Next bounded string)", () => {
+    it("should NOT detect string<N> (cnx bounded string)", () => {
       expect(TestUtils.hasCppFeatures("string<64> name;")).toBe(false);
     });
 

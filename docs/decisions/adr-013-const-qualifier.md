@@ -2,16 +2,16 @@
 
 **Status:** Superseded
 **Date:** 2025-12-28
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Superseded By:** ADR-071 (Read-Only by Default)
 
 ## Context
 
-C-Next's mission is to provide "a safer C for embedded systems." The `const` qualifier is fundamental to this mission—it allows developers to explicitly declare that a value should not be modified after initialization.
+cnx's mission is to provide "a safer C for embedded systems." The `const` qualifier is fundamental to this mission—it allows developers to explicitly declare that a value should not be modified after initialization.
 
 ### The Current Situation
 
-C-Next's grammar already supports `const` syntax:
+cnx's grammar already supports `const` syntax:
 
 ```antlr
 // grammar/Cnx.g4 lines 152-158, 167-169
@@ -45,11 +45,11 @@ void process(const i32 value) {
 
 1. **Memory Safety Statistics**: In a [2019 Microsoft study](https://msrc-blog.microsoft.com/2019/07/16/a-proactive-approach-to-more-secure-code/), 70% of all security vulnerabilities were memory safety issues. [Google reported](https://www.chromium.org/Home/chromium-security/memory-safety/) that 70% of severe security bugs in Chromium were memory safety problems. While `const` doesn't prevent all memory issues, it prevents accidental mutation of read-only data—a common source of subtle, hard-to-diagnose bugs.
 
-2. **Federal Government Concern**: In February 2024, [CISA and the White House](https://www.cisa.gov/news-events/news/urgent-need-memory-safety-software-products) urged developers to move away from memory-unsafe languages like C/C++. C-Next aims to be a safer alternative that generates MISRA-compliant C.
+2. **Federal Government Concern**: In February 2024, [CISA and the White House](https://www.cisa.gov/news-events/news/urgent-need-memory-safety-software-products) urged developers to move away from memory-unsafe languages like C/C++. cnx aims to be a safer alternative that generates MISRA-compliant C.
 
-3. **ADR-006 Interaction**: C-Next uses pass-by-reference for all parameters. Without `const` enforcement, every function can modify every argument—a dangerous default. ADR-006's Open Question Q1 explicitly asks: "Should there be a `const` keyword for read-only parameters?"
+3. **ADR-006 Interaction**: cnx uses pass-by-reference for all parameters. Without `const` enforcement, every function can modify every argument—a dangerous default. ADR-006's Open Question Q1 explicitly asks: "Should there be a `const` keyword for read-only parameters?"
 
-4. **MISRA C Alignment**: [MISRA C:2023 Rule 8.13](https://www.perforce.com/resources/qac/misra-c-cpp) states that "A pointer should point to a const-qualified type whenever possible." C-Next can enforce this automatically.
+4. **MISRA C Alignment**: [MISRA C:2023 Rule 8.13](https://www.perforce.com/resources/qac/misra-c-cpp) states that "A pointer should point to a const-qualified type whenever possible." cnx can enforce this automatically.
 
 ---
 
@@ -198,16 +198,16 @@ obj = {}; // ERROR: Assignment to constant variable
 
 ### Comparison Matrix
 
-| Language              | Default            | Immutable Syntax   | Mutable Syntax    | Enforcement         | Deep Immutability |
-| --------------------- | ------------------ | ------------------ | ----------------- | ------------------- | ----------------- |
-| **C**                 | Mutable            | `const T`          | `T`               | Compile-time        | Yes (value)       |
-| **Rust**              | Immutable          | `let x`            | `let mut x`       | Borrow checker      | Yes (ownership)   |
-| **Swift**             | Immutable (params) | `let x` / param    | `var x` / `inout` | Compile-time        | Yes               |
-| **Ada/SPARK**         | Mode-based         | `in` mode          | `out`/`in out`    | Formal verification | Yes               |
-| **Go**                | Mutable            | N/A (no var const) | `var x`           | N/A                 | No                |
-| **JS/TS**             | Mutable            | `const x`          | `let x`           | Runtime             | No (binding only) |
-| **C-Next (current)**  | Mutable            | `const T`          | `T`               | **NONE**            | N/A               |
-| **C-Next (proposed)** | Mutable            | `const T`          | `T`               | Compile-time        | Yes               |
+| Language           | Default            | Immutable Syntax   | Mutable Syntax    | Enforcement         | Deep Immutability |
+| ------------------ | ------------------ | ------------------ | ----------------- | ------------------- | ----------------- |
+| **C**              | Mutable            | `const T`          | `T`               | Compile-time        | Yes (value)       |
+| **Rust**           | Immutable          | `let x`            | `let mut x`       | Borrow checker      | Yes (ownership)   |
+| **Swift**          | Immutable (params) | `let x` / param    | `var x` / `inout` | Compile-time        | Yes               |
+| **Ada/SPARK**      | Mode-based         | `in` mode          | `out`/`in out`    | Formal verification | Yes               |
+| **Go**             | Mutable            | N/A (no var const) | `var x`           | N/A                 | No                |
+| **JS/TS**          | Mutable            | `const x`          | `let x`           | Runtime             | No (binding only) |
+| **cnx (current)**  | Mutable            | `const T`          | `T`               | **NONE**            | N/A               |
+| **cnx (proposed)** | Mutable            | `const T`          | `T`               | Compile-time        | Yes               |
 
 ---
 
@@ -271,13 +271,13 @@ void logError() {
 
 MISRA C:2012 Rule 8.13 (Advisory): "A pointer should point to a const-qualified type whenever possible."
 
-Currently, C-Next emits `const` to C but doesn't enforce it. This means:
+Currently, cnx emits `const` to C but doesn't enforce it. This means:
 
 1. Generated C has correct `const` qualifiers
 2. C compiler enforces them
-3. But C-Next developer gets no feedback about violations
+3. But cnx developer gets no feedback about violations
 
-The error appears in the C compiler output, not the C-Next transpiler—confusing for developers.
+The error appears in the C compiler output, not the cnx transpiler—confusing for developers.
 
 ---
 
@@ -487,12 +487,12 @@ void increment(mut i32 value) {
 
 **Why Rejected:**
 
-- Breaks familiarity with C (C-Next's core principle)
-- Would break all existing C-Next code
+- Breaks familiarity with C (cnx's core principle)
+- Would break all existing cnx code
 - Requires new keyword (`mut`)
-- Too aggressive for embedded C developers transitioning to C-Next
+- Too aggressive for embedded C developers transitioning to cnx
 
-**Future Consideration**: May revisit as C-Next matures and community provides feedback.
+**Future Consideration**: May revisit as cnx matures and community provides feedback.
 Adopted for every binding by ADR-071, which supersedes this ADR.
 
 ### Alternative 2: Ada-style Parameter Modes
@@ -523,7 +523,7 @@ Emit warnings instead of errors for const violations.
 - Warnings are often ignored
 - Doesn't provide the safety guarantee
 - MISRA requires enforcement, not suggestions
-- C-Next's philosophy is "make bugs impossible"
+- cnx's philosophy is "make bugs impossible"
 
 ### Alternative 4: Runtime Enforcement
 
@@ -543,7 +543,7 @@ Generate runtime checks for const violations.
 ### Positive
 
 1. **Eliminates accidental mutation bugs**: Const violations become compile-time errors
-2. **MISRA Rule 8.13 alignment**: C-Next enforces what MISRA recommends
+2. **MISRA Rule 8.13 alignment**: cnx enforces what MISRA recommends
 3. **Clear intent documentation**: `const` signals to readers that value won't change
 4. **Better static analysis**: the `constParameterPointer` warning class over generated C is resolved
 5. **ADR-006 integration**: Read-only references are now truly read-only
@@ -559,7 +559,7 @@ Generate runtime checks for const violations.
 ### Neutral
 
 1. **No runtime cost**: All enforcement at compile time
-2. **Generated C unchanged**: `const` already emitted, just now enforced in C-Next
+2. **Generated C unchanged**: `const` already emitted, just now enforced in cnx
 3. **Grammar unchanged**: `const` already in grammar
 
 ---
@@ -648,7 +648,7 @@ void test6() {
 
 ### Q1: Missing const is an ERROR (Aggressive Safety)
 
-MISRA Rule 8.13 says pointers SHOULD point to const-qualified types when possible. C-Next takes the aggressive approach:
+MISRA Rule 8.13 says pointers SHOULD point to const-qualified types when possible. cnx takes the aggressive approach:
 
 - **Decision**: ERROR if const is missing where it could be used
 - **Rationale**: Forces developers to intentionally remove `const` if they need mutability
@@ -711,13 +711,13 @@ void modifyFlags(u8 f) {    // Non-const parameter - can modify
 modifyFlags(flags);  // ERROR: cannot pass const 'flags' to non-const parameter 'f'
 ```
 
-**Rationale**: In C-Next, all parameters are passed by reference (ADR-006). If a function takes a non-const parameter, it has the right to modify it. Passing a const value to such a function would violate the const contract.
+**Rationale**: In cnx, all parameters are passed by reference (ADR-006). If a function takes a non-const parameter, it has the right to modify it. Passing a const value to such a function would violate the const contract.
 
 **Implementation**: When generating function calls, check if any const argument is being passed to a non-const parameter. If so, error.
 
 ### Q5: Future consideration—default immutability?
 
-As C-Next matures, consider making parameters `const` by default (like Swift/Rust) and requiring explicit `mut` for mutable parameters. This would be a major breaking change requiring community consensus.
+As cnx matures, consider making parameters `const` by default (like Swift/Rust) and requiring explicit `mut` for mutable parameters. This would be a major breaking change requiring community consensus.
 
 Adopted by ADR-071: every binding is read-only unless declared `mut`.
 
@@ -727,7 +727,7 @@ Adopted by ADR-071: every binding is read-only unless declared `mut`.
 
 **Status:** Implemented
 
-Instead of erroring on missing `const` (aggressive approach), C-Next automatically infers `const` for pointer parameters that are never modified within the function body. This eliminates cppcheck `constParameterPointer` warnings while maintaining developer ergonomics.
+Instead of erroring on missing `const` (aggressive approach), cnx automatically infers `const` for pointer parameters that are never modified within the function body. This eliminates cppcheck `constParameterPointer` warnings while maintaining developer ergonomics.
 
 ### How It Works
 
@@ -742,7 +742,7 @@ The transpiler tracks parameter modifications during function body generation:
 ### Example
 
 ```cnx
-// C-Next source - no explicit const needed
+// cnx source - no explicit const needed
 void readOnly(u32 value) {
     u32 local <- value;  // Only reads, never assigns
 }
@@ -840,7 +840,7 @@ Auto-const is NOT applied to:
 - **Parameters of a function used as a callback** - a function assigned to a
   callback typedef must keep that typedef's parameter shape. Inferring `const`
   narrows the shape, so the function stops matching the typedef it is handed
-  to, and the C compiler rejects the assignment. C-Next does not own that
+  to, and the C compiler rejects the assignment. cnx does not own that
   contract and so does not quietly change it. A developer who wants `const` on
   such a parameter writes it explicitly, and the rule above honors it.
 
@@ -866,7 +866,7 @@ style: Parameter 'divisor' can be declared as pointer to const [constParameterPo
 ...
 ```
 
-**After**: These warnings indicate parameters that aren't modified. Developers can now add `const` and C-Next will enforce it, or the generated C will not have `const` (matching intent).
+**After**: These warnings indicate parameters that aren't modified. Developers can now add `const` and cnx will enforce it, or the generated C will not have `const` (matching intent).
 
 ---
 
@@ -893,7 +893,7 @@ style: Parameter 'divisor' can be declared as pointer to const [constParameterPo
 - [SPARK User's Guide: Specification Features](https://docs.adacore.com/spark2014-docs/html/ug/en/source/specification_features.html)
 - [Ada Memory Safety](https://www.adacore.com/blog/memory-safety-in-ada-and-spark-through-language-features-and-tool-support)
 
-### C-Next Related ADRs
+### cnx Related ADRs
 
 - [ADR-004: Register Bindings](adr-004-register-bindings.md) — ro/wo/rw access modifiers
 - [ADR-006: Simplified References](adr-006-simplified-references.md) — Pass-by-reference model

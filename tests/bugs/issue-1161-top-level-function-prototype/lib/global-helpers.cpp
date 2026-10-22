@@ -27,7 +27,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // other .cnx that included this file called them with no declaration in scope:
 // a warning under C99, an error under -Werror=implicit-function-declaration and
 // under GCC 14 / C23 defaults. Neither `public` nor `private` parses at top
-// level -- scopes are how C-Next expresses privacy.
+// level -- scopes are how cnx expresses privacy.
 uint8_t readStructField(const Point& point) {
     return point.value;
 }

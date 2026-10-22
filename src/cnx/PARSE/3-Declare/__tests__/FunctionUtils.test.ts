@@ -1,5 +1,5 @@
 /**
- * Tests for IFunctionSymbol - C-Next function symbol representation
+ * Tests for IFunctionSymbol - cnx function symbol representation
  */
 import { describe, it, expect } from "vitest";
 import FunctionUtils from "./FunctionUtils";

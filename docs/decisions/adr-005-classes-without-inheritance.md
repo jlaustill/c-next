@@ -3,25 +3,25 @@
 **Status:** Rejected
 **Date:** 2025-12-26
 **Updated:** 2025-12-29
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Prerequisites:** ADR-014 (Structs), ADR-015 (Null State)
-**Superseded By:** ADR-016 (How to Handle Scope in C-Next?)
+**Superseded By:** ADR-016 (How to Handle Scope in cnx?)
 
 ## Rejection Rationale
 
-This ADR is rejected because the term "class" inherently implies C++ OOP patterns that conflict with C-Next's philosophy:
+This ADR is rejected because the term "class" inherently implies C++ OOP patterns that conflict with cnx's philosophy:
 
 - **Instances with bound methods** — The `obj.method()` syntax implies methods belong to objects
 - **Constructors** — Implies object creation semantics and lifecycle management
 - **Data + behavior bundling** — Encourages OOP thinking over C-style thinking
 - **Hidden `this`/`self`** — Obscures what's actually happening in generated code
 
-**The underlying problem remains valid** — multiple instances of hardware (8 UARTs, 3 ADCs) need DRY code reuse. However, C-Next will solve this the C way:
+**The underlying problem remains valid** — multiple instances of hardware (8 UARTs, 3 ADCs) need DRY code reuse. However, cnx will solve this the C way:
 
 1. **Define data with ADR-014 structs** — Pure data containers
 2. **Define behavior with free functions** — Explicit struct pointer parameter
 
-This approach aligns with C-Next's "readable generated C" principle — what you write maps obviously to what you get.
+This approach aligns with cnx's "readable generated C" principle — what you write maps obviously to what you get.
 
 See ADR-016 for the C-style instance model using structs + free functions.
 
@@ -238,16 +238,16 @@ The Gang of Four (Design Patterns, 1994) established this principle:
 
 ## Initial Design Direction
 
-C-Next classes will have a **narrow, focused purpose**: bundling data and methods for multiple instances of the same thing.
+cnx classes will have a **narrow, focused purpose**: bundling data and methods for multiple instances of the same thing.
 
-### What C-Next Classes WILL Have
+### What cnx Classes WILL Have
 
 1. **Encapsulation**: Private members, public interface
 2. **Multiple instances**: UART1, UART2, ..., UART8 from one class definition
 3. **Methods**: Functions that operate on instance data
 4. **Constructors**: Initialization at creation time
 
-### What C-Next Classes WILL NOT Have
+### What cnx Classes WILL NOT Have
 
 1. **Inheritance**: No `extends`, no parent classes
 2. **Virtual functions**: No vtables, no dynamic dispatch overhead
@@ -308,13 +308,13 @@ void init() {
 Instead of:
 
 ```cpp
-// Traditional OOP - NOT in C-Next
+// Traditional OOP - NOT in cnx
 class ErrorHandlingUART extends UART {
     void handleError() { ... }
 }
 ```
 
-C-Next uses composition:
+cnx uses composition:
 
 ```
 class UART {
@@ -396,7 +396,7 @@ No vtables. No inheritance overhead. Just clean, predictable C structs with asso
 
 **Decision:** No interfaces or traits.
 
-**Rationale:** Classes in C-Next serve ONE purpose: keeping code DRY by allowing multiple instances of the same thing. No polymorphism, no inheritance, no slippery slope into OOP complexity.
+**Rationale:** Classes in cnx serve ONE purpose: keeping code DRY by allowing multiple instances of the same thing. No polymorphism, no inheritance, no slippery slope into OOP complexity.
 
 If polymorphism is ever needed, it can be added later. For now, simplicity wins.
 
@@ -503,13 +503,13 @@ UART uart2 <- UART(UART2_BASE, SLOW_BAUD);   // baudRate = 9600
 - Order of initialization is non-obvious
 - Scattered initialization logic
 
-Rust and Go require explicit initialization. C-Next follows this philosophy with the ergonomic addition of default parameters in constructors.
+Rust and Go require explicit initialization. cnx follows this philosophy with the ergonomic addition of default parameters in constructors.
 
 ---
 
 ## Summary: Why This Approach?
 
-| Feature            | Traditional OOP   | C-Next                      |
+| Feature            | Traditional OOP   | cnx                         |
 | ------------------ | ----------------- | --------------------------- |
 | Encapsulation      | ✅                | ✅                          |
 | Multiple instances | ✅                | ✅                          |

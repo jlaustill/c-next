@@ -1,10 +1,10 @@
 /**
  * Issue #1833, owner ruling of 2026-10-13: only a lowercase `.cnx` is cnx
- * source. A `.cnx` spelled in any other case is rejected with E0518, and
- * `.cnext` in any case with E0519 (#2167) -- at the include that names it, or
- * as the run's input -- and nothing is written. Before the ruling 1.1 Discover lowercased the extension
- * while every output-naming site matched it case-sensitively, so an in-place
- * build wrote generated C over `Colors.CNX` and exited 0.
+ * source. A `.cnx` spelled in any other case is rejected with E0518 -- at the
+ * include that names it, or as the run's input -- and nothing is written.
+ * Before the ruling 1.1 Discover lowercased the extension while every
+ * output-naming site matched it case-sensitively, so an in-place build wrote
+ * generated C over `Colors.CNX` and exited 0.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -33,11 +33,11 @@ void main() {
 `;
 }
 
-describe("a cnx extension is a lowercase .cnx (#1833, #2167)", () => {
+describe("a cnx extension is a lowercase .cnx (#1833)", () => {
   let src: string;
 
   beforeEach(() => {
-    src = join(mkdtempSync(join(tmpdir(), "cnext-1833-")), "src");
+    src = join(mkdtempSync(join(tmpdir(), "cnx-1833-")), "src");
     mkdirSync(src);
   });
 
@@ -59,8 +59,6 @@ describe("a cnx extension is a lowercase .cnx (#1833, #2167)", () => {
   for (const [name, code] of [
     ["Colors.CNX", "E0518"],
     ["Colors.Cnx", "E0518"],
-    ["Colors.cnext", "E0519"],
-    ["Colors.CNEXT", "E0519"],
   ] as const) {
     it(`rejects an include of ${name} and writes nothing`, async () => {
       writeFileSync(join(src, name), COLORS);
@@ -102,17 +100,14 @@ describe("a cnx extension is a lowercase .cnx (#1833, #2167)", () => {
     });
   }
 
-  it.each([
-    ["Colors.CNX", "E0518"],
-    ["Colors.cnext", "E0519"],
-  ])("rejects a source run's text named %s with %s", async (name, code) => {
-    const result = await buildSource(name);
+  it("rejects a source run's text named Colors.CNX with E0518", async () => {
+    const result = await buildSource("Colors.CNX");
 
     expect(result.success).toBe(false);
-    expect(codesOf(result.errors)).toEqual([code]);
+    expect(codesOf(result.errors)).toEqual(["E0518"]);
   });
 
-  // Its self-include, which a path with no C-Next extension leaves as it was
+  // Its self-include, which a path with no cnx extension leaves as it was
   // before #1833 (`<string>` itself is #1204).
   for (const [name, selfInclude] of [
     ["Colors.cnx", "Colors.h"],

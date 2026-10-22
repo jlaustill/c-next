@@ -6,13 +6,13 @@
 
 ## Problem
 
-The `tests/cpp-interop/comprehensive-cpp.test.cnx` had Section 13 (Callbacks) defined in the C++ header but never tested. Additionally, C-Next was generating pointer-based parameters (`const T*`) even in C++ mode, which prevented callbacks from matching idiomatic C++ function pointer signatures that use references (`const T&`).
+The `tests/cpp-interop/comprehensive-cpp.test.cnx` had Section 13 (Callbacks) defined in the C++ header but never tested. Additionally, cnx was generating pointer-based parameters (`const T*`) even in C++ mode, which prevented callbacks from matching idiomatic C++ function pointer signatures that use references (`const T&`).
 
 ## Solution
 
 ### 1. Added Callback Interop Tests (Section 15)
 
-Added new test section that exercises passing C-Next callbacks to C++ registration functions:
+Added new test section that exercises passing cnx callbacks to C++ registration functions:
 
 ```cnx
 void simpleCallback() { }
@@ -31,7 +31,7 @@ void testCallbackInterop() {
 
 In C++ mode, the transpiler now generates idiomatic C++ code:
 
-| C-Next              | C Mode          | C++ Mode       |
+| cnx                 | C Mode          | C++ Mode       |
 | ------------------- | --------------- | -------------- |
 | Parameter `const T` | `const T*`      | `const T&`     |
 | Member access       | `param->member` | `param.member` |

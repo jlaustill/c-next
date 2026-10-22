@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-689 fixture(s) assert a diagnostic; 679 carry a code.
+687 fixture(s) assert a diagnostic; 677 carry a code.
 
 | Fixture                                                                                                   | Codes               |
 | --------------------------------------------------------------------------------------------------------- | ------------------- |
@@ -560,7 +560,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1802-struct-initializer-target/pointer-and-function-types.test.cnx                       | E0358               |
 | tests/bugs/issue-1802-struct-initializer-target/whole-array-positions.test.cnx                            | E0866               |
 | tests/bugs/issue-1808-bit-index-width/bit-index-width-error.test.cnx                                      | E0920               |
-| tests/bugs/issue-1833-miscased-cnext-extension/miscased-include-error.test.cnx                            | E0518               |
+| tests/bugs/issue-1833-miscased-cnx-extension/miscased-include-error.test.cnx                              | E0518               |
 | tests/bugs/issue-1866-scope-member-is-not-external/bare-call-outside-scope.test.cnx                       | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/global-call-to-scope-member.test.cnx                   | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-file-scope.test.cnx               | E0422               |
@@ -607,8 +607,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2096-inactive-header-branch/inactive-branch-error.test.cnx                               | E0422               |
 | tests/bugs/issue-2157-array-parameter-list/non-array-argument-error.test.cnx                              | E0866               |
 | tests/bugs/issue-2157-array-parameter-list/transitive-argument-error.test.cnx                             | E0866               |
-| tests/bugs/issue-2165-renamed-config/renamed-config-beside-include.test.cnx                               | E0918               |
-| tests/bugs/issue-2167-cnext-extension/cnext-include-error.test.cnx                                        | E0519               |
 | tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx                                      | E0921               |
 | tests/bugs/issue-2191-assignment-capacity/assignment-capacity-every-target-error.test.cnx                 | E0864               |
 | tests/bugs/issue-2194-array-argument-shape/shape-error.test.cnx                                           | E0866               |

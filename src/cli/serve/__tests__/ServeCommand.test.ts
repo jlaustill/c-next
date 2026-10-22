@@ -6,13 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  mkdirSync,
-  mkdtempSync,
-  renameSync,
-  writeFileSync,
-  rmSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ServeCommand from "../ServeCommand";
@@ -99,143 +93,12 @@ describe("ServeCommand", () => {
         },
       });
     });
-
-    it("fails with E0918 for a workspace config under an old name (#2165)", async () => {
-      const workspace = mkdtempSync(join(tmpdir(), "serve-renamed-config-"));
-      try {
-        writeFileSync(join(workspace, ".cnextrc"), "{}");
-
-        const response = await sendRequest({
-          id: 12,
-          method: "initialize",
-          params: { workspacePath: workspace },
-        });
-
-        expect(response).toMatchObject({
-          id: 12,
-          error: {
-            code: JsonRpcHandler.ERROR_INVALID_PARAMS,
-            message: expect.stringContaining(
-              "error[E0918]: a config file has its old name: .cnextrc is now .cnxrc",
-            ),
-          },
-        });
-      } finally {
-        rmSync(workspace, { recursive: true, force: true });
-      }
-    });
-  });
-
-  // #2221 review: the editor drops initialize's error and initializes once,
-  // so a transpile is where it learns of E0918, and where the rename lands
-  describe("a workspace config under an old name (#2165)", () => {
-    let workspace: string;
-
-    beforeEach(() => {
-      workspace = mkdtempSync(join(tmpdir(), "serve-renamed-workspace-"));
-      writeFileSync(join(workspace, ".cnextrc"), '{ "target": "host" }');
-    });
-
-    afterEach(() => {
-      rmSync(workspace, { recursive: true, force: true });
-    });
-
-    async function transpileAfterInitialize(): Promise<object> {
-      await sendRequest({
-        id: 13,
-        method: "initialize",
-        params: { workspacePath: workspace },
-      });
-      stdoutWriteSpy.mockClear();
-      return transpile();
-    }
-
-    function transpilerOf(): unknown {
-      return (ServeCommand as unknown as { transpiler: unknown }).transpiler;
-    }
-
-    async function transpile(): Promise<object> {
-      stdoutWriteSpy.mockClear();
-      return sendRequest({
-        id: 14,
-        method: "transpile",
-        params: { source: "u8 x <- 5;" },
-      });
-    }
-
-    it("answers each transpile with its E0918", async () => {
-      const response = await transpileAfterInitialize();
-
-      expect(response).toMatchObject({
-        id: 14,
-        result: {
-          success: false,
-          code: "",
-          errors: [
-            expect.objectContaining({
-              message:
-                "error[E0918]: a config file has its old name: .cnextrc is now .cnxrc",
-              sourcePath: join(workspace, ".cnextrc"),
-            }),
-          ],
-        },
-      });
-    });
-
-    it("transpiles with the config once it is renamed, with no second initialize", async () => {
-      await transpileAfterInitialize();
-      renameSync(join(workspace, ".cnextrc"), join(workspace, ".cnxrc"));
-
-      const response = await transpile();
-      const loaded = transpilerOf();
-      await transpile();
-
-      // Loaded once: the next request reuses it
-      expect(transpilerOf()).toBe(loaded);
-      // The config's target is what lets a program that names none generate
-      expect(response).toMatchObject({
-        id: 14,
-        result: {
-          success: true,
-          code: expect.stringContaining("uint8_t x = 5U;"),
-          errors: [],
-        },
-      });
-    });
-
-    it("answers with E0918, not with an earlier workspace's transpiler", async () => {
-      const earlier = mkdtempSync(join(tmpdir(), "serve-earlier-workspace-"));
-      try {
-        writeFileSync(join(earlier, ".cnxrc"), '{ "target": "host" }');
-        await sendRequest({
-          id: 15,
-          method: "initialize",
-          params: { workspacePath: earlier },
-        });
-
-        const response = await transpileAfterInitialize();
-
-        expect(response).toMatchObject({
-          id: 14,
-          result: {
-            success: false,
-            errors: [
-              expect.objectContaining({
-                sourcePath: join(workspace, ".cnextrc"),
-              }),
-            ],
-          },
-        });
-      } finally {
-        rmSync(earlier, { recursive: true, force: true });
-      }
-    });
   });
 
   describe("transpile", () => {
     it("returns error when server not initialized", async () => {
       // Reset the workspace state by accessing private fields
-      Object.assign(ServeCommand, { transpiler: null, renamedWorkspace: null });
+      Object.assign(ServeCommand, { transpiler: null });
       stdoutWriteSpy.mockClear();
 
       const response = await sendRequest({
@@ -253,7 +116,7 @@ describe("ServeCommand", () => {
       });
     });
 
-    it("transpiles valid C-Next source", async () => {
+    it("transpiles valid cnx source", async () => {
       // Initialize first (required for transpile)
       await sendRequest({
         id: 100,
@@ -314,7 +177,7 @@ describe("ServeCommand", () => {
       // Run from the project, so the relative path climbs nothing: one that
       // climbs to `/` would hide the second resolution, which `resolve`
       // clamps at the root.
-      const project = mkdtempSync(join(tmpdir(), "cnext-serve-1435-"));
+      const project = mkdtempSync(join(tmpdir(), "cnx-serve-1435-"));
       const cwd = process.cwd();
       try {
         mkdirSync(join(project, "src"));

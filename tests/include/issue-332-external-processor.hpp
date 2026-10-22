@@ -1,17 +1,17 @@
 // Issue #332: External C++ class with pointer parameters
-// Tests both C-Next struct pointers and C header struct pointers
+// Tests both cnx struct pointers and C header struct pointers
 
 #ifndef ISSUE_332_EXTERNAL_PROCESSOR_HPP
 #define ISSUE_332_EXTERNAL_PROCESSOR_HPP
 
 #include <stdint.h>
-// Include the generated header for Issue332AppData (will be issue-332-cnx-types.h)
-#include "issue-332-cnx-types.h"
+// Include the generated header for Issue332AppData (issue-332-cnx-types.hpp in C++ mode)
+#include "issue-332-cnx-types.hpp"
 #include "issue-332-c-header-types.h"
 
 class Issue332DataProcessor {
 public:
-    // Takes pointer to C-Next struct (Issue332AppData from .cnx file)
+    // Takes pointer to cnx struct (Issue332AppData from .cnx file)
     static void processData(Issue332AppData* data) {
         if (data) {
             data->value = data->value * 2.0f;

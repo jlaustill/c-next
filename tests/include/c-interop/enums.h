@@ -3,7 +3,7 @@
 
 /*
  * C Interop Test Enums
- * Test enum definitions for C-Next interop testing
+ * Test enum definitions for cnx interop testing
  */
 
 /* Named enum with sequential values (0, 1, 2) */

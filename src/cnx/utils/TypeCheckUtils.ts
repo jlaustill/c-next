@@ -1,5 +1,5 @@
 /**
- * Type checking utilities for C-Next types.
+ * Type checking utilities for cnx types.
  * Pure predicate functions for type classification.
  *
  * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
@@ -26,7 +26,7 @@ const STANDARD_WIDTHS = [8, 16, 32] as const;
 
 class TypeCheckUtils {
   /**
-   * Check if a type name is a C-Next integer type.
+   * Check if a type name is a cnx integer type.
    *
    * @param typeName - The type name to check
    * @returns true if it's u8, u16, u32, u64, i8, i16, i32, or i64
@@ -57,7 +57,7 @@ class TypeCheckUtils {
 
   /**
    * The values an integer type holds, `[min, max]`, or null for a type that
-   * is not a C-Next integer. BigInt, because a u64 bound is past 2^53, where
+   * is not a cnx integer. BigInt, because a u64 bound is past 2^53, where
    * a double stops being exact.
    */
   static integerRange(typeName: string): readonly [bigint, bigint] | null {

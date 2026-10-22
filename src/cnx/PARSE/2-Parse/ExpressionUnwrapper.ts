@@ -1,8 +1,8 @@
 /**
  * Expression Unwrapper Utility
  *
- * Navigates through the C-Next expression tree hierarchy to extract
- * inner expressions. The C-Next grammar has a deep expression hierarchy:
+ * Navigates through the cnx expression tree hierarchy to extract
+ * inner expressions. The cnx grammar has a deep expression hierarchy:
  *
  * expression -> ternary -> or -> and -> equality -> relational ->
  * bitwiseOr -> bitwiseXor -> bitwiseAnd -> shift -> additive ->

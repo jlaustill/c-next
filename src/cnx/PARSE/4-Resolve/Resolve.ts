@@ -3,7 +3,7 @@
  * file is declared, with the declared files carried forward for 2.1.
  *
  * What 1.4 reads off each declared file -- whether it reaches a foreign header,
- * its C-Next includes, its target directives -- is taken here, from 1.3's
+ * its cnx includes, its target directives -- is taken here, from 1.3's
  * artifact, not handed in by the host.
  */
 import type IDeclaredSources from "../3-Declare/types/IDeclaredSources";
@@ -59,11 +59,8 @@ class Resolve {
             .map((entry) => entry.fileSymbols.sourceFile),
         ),
         visibility: {
-          cnextIncludesByFile: new Map(
-            declared.map((entry) => [
-              entry.file.path,
-              entry.file.cnextIncludes,
-            ]),
+          cnxIncludesByFile: new Map(
+            declared.map((entry) => [entry.file.path, entry.file.cnxIncludes]),
           ),
         },
         // #1713: ADR-049's one target, which 1.2 chose

@@ -1,4 +1,4 @@
-/** How C declares one C-Next parameter, and so how a call passes it */
+/** How C declares one cnx parameter, and so how a call passes it */
 interface IParameterPassing {
   /** The C parameter is the value itself: no `*` or `&` is added */
   readonly byValue: boolean;

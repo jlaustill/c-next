@@ -1,10 +1,10 @@
 /**
- * QualifiedCName - the single source of truth for how C-Next builds C identifiers
+ * QualifiedCName - the single source of truth for how cnx builds C identifiers
  * from scope-qualified names.
  *
  * ADR-016 gives scope members the C name `Scope_member`; ADR-017 does the same for
  * enum members. ADR-063 reserves the separator so that join is injective: because a
- * C-Next identifier may not end with `_` or contain `__`, a name built from N
+ * cnx identifier may not end with `_` or contain `__`, a name built from N
  * components splits back into exactly those N components, and a plain identifier can
  * never collide with a qualified one.
  *
@@ -21,13 +21,13 @@ class QualifiedCName {
   /**
    * The separator between components of a qualified C name.
    *
-   * ADR-063 reserves this sequence: no C-Next identifier may contain it, which is
+   * ADR-063 reserves this sequence: no cnx identifier may contain it, which is
    * what makes the join injective. Enforced by E0201 (1.2's IdentifierForm).
    */
   static readonly SEPARATOR = "__";
 
   /**
-   * The separator used in C-Next source to qualify a name (`Scope.member`).
+   * The separator used in cnx source to qualify a name (`Scope.member`).
    */
   static readonly SOURCE_SEPARATOR = ".";
 
@@ -57,7 +57,7 @@ class QualifiedCName {
 
   /**
    * Build the SOURCE-language qualified name from its components, outermost
-   * first — `Outer.Inner.tick`, the way a C-Next author would write it.
+   * first — `Outer.Inner.tick`, the way a cnx author would write it.
    *
    * The counterpart to fromParts(). The two namespaces are separate on purpose:
    * `Outer__Inner__tick` is what the C compiler sees, `Outer.Inner.tick` is what

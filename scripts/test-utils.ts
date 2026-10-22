@@ -77,7 +77,7 @@ function isDistFresh(): boolean {
 // Only the main process should rebuild — workers (created via fork()) have
 // process.send, so we skip the build check in them to avoid 24 concurrent builds.
 //
-// CNEXT_SKIP_DIST_REBUILD is the same exemption for a child that is NOT a fork
+// CNX_SKIP_DIST_REBUILD is the same exemption for a child that is NOT a fork
 // and so has no process.send: a test that spawns this harness to observe how it
 // REPORTS would otherwise make its own suite build the project as a side effect,
 // and a concurrent `npm test` would have dist/index.js rewritten underneath it
@@ -85,7 +85,7 @@ function isDistFresh(): boolean {
 // not asserting on transpiler output -- and every gate builds before it runs.
 if (
   !process.send &&
-  !process.env.CNEXT_SKIP_DIST_REBUILD &&
+  !process.env.CNX_SKIP_DIST_REBUILD &&
   existsSync(DIST_ENTRY) &&
   !isDistFresh()
 ) {
@@ -174,7 +174,7 @@ function renderDiagnostic(
 }
 
 /**
- * Transpile a C-Next file using the CLI (not library imports).
+ * Transpile a cnx file using the CLI (not library imports).
  *
  * This ensures tests exercise the exact same code path as real users.
  * Previously tests imported Transpiler directly, which bypassed conflict
@@ -630,7 +630,7 @@ class TestUtils {
     }
 
     // Issue #291: Check for C++ template types (Type<Args>)
-    // Excludes string<N> which is C-Next bounded string syntax
+    // Excludes string<N> which is cnx bounded string syntax
     if (/\b(?!string\b)\w+<[^;=<>]+>/.test(cCode)) {
       return true;
     }

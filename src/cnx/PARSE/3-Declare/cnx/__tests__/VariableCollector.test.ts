@@ -86,7 +86,7 @@ describe("VariableCollector", () => {
       expect(symbol.isConst).toBe(true);
       expect(symbol.isArray).toBe(false);
       expect(symbol.sourceFile).toBe("test.cnx");
-      expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(symbol.visibility).toBe("public");
     });
 
@@ -284,7 +284,7 @@ describe("VariableCollector", () => {
       ]);
     });
 
-    it("collects C-Next style array with dimensions in type (u8[8] arr)", () => {
+    it("collects cnx style array with dimensions in type (u8[8] arr)", () => {
       const code = `
         u8[8] buffer;
       `;
@@ -301,7 +301,7 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([8]);
     });
 
-    it("collects C-Next style multi-dimensional array (u8[4][4] arr)", () => {
+    it("collects cnx style multi-dimensional array (u8[4][4] arr)", () => {
       const code = `
         u8[4][4] matrix;
       `;
@@ -318,7 +318,7 @@ describe("VariableCollector", () => {
       expect(symbol.arrayDimensions).toEqual([4, 4]);
     });
 
-    it("keeps a const reference in a C-Next style array as written", () => {
+    it("keeps a const reference in a cnx style array as written", () => {
       const code = `
         u8[SIZE] buffer;
       `;
@@ -336,7 +336,7 @@ describe("VariableCollector", () => {
       expect(ConstExprShape.list(symbol.arrayDimensionExprs)).toEqual(["SIZE"]);
     });
 
-    it("keeps an unresolved macro as written in a C-Next style array", () => {
+    it("keeps an unresolved macro as written in a cnx style array", () => {
       const code = `
         u8[BUFFER_SIZE] buffer;
       `;

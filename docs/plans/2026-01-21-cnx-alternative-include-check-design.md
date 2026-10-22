@@ -1,15 +1,15 @@
-# E0504: C-Next Alternative Include Check
+# E0504: cnx Alternative Include Check
 
 ## Overview
 
-Add a compiler error (E0504) when the transpiler encounters `#include <file.h>` or `#include "file.h"` and a `file.cnx` exists at the same location. This helps developers migrating existing codebases to C-Next by catching includes that should be updated to use the C-Next version.
+Add a compiler error (E0504) when the transpiler encounters `#include <file.h>` or `#include "file.h"` and a `file.cnx` exists at the same location. This helps developers migrating existing codebases to cnx by catching includes that should be updated to use the cnx version.
 
 ## Motivation
 
-During codebase migration to C-Next:
+During codebase migration to cnx:
 
 1. Developers may forget to update includes after converting a file to `.cnx`
-2. Using the old `.h` include means missing out on C-Next features
+2. Using the old `.h` include means missing out on cnx features
 3. Same-named files could cause accidental overwrites during transpilation
 
 This check provides immediate feedback during the migration process.
@@ -26,7 +26,7 @@ This check provides immediate feedback during the migration process.
 
 ```
 E0504: Found #include "utils.h" but 'utils.cnx' exists at the same location.
-       Use #include "utils.cnx" instead to use the C-Next version. Line N
+       Use #include "utils.cnx" instead to use the cnx version. Line N
 ```
 
 ### Path Resolution
@@ -98,7 +98,7 @@ transformIncludeDirective()             ← existing transformation
 
 ### Test Fixtures
 
-- `tests/include/helper.cnx` — Minimal C-Next file to trigger the check
+- `tests/include/helper.cnx` — Minimal cnx file to trigger the check
 - `tests/include/helper.h` — Corresponding header file
 
 ## Design Decisions
@@ -107,5 +107,5 @@ transformIncludeDirective()             ← existing transformation
 | --------------------- | ------------------------------------------------------------------------ |
 | Exact path match only | Avoids false positives from similarly-named files in different locations |
 | Hard error            | During migration, these should not be ignored                            |
-| Both include styles   | Libraries will ship with both `.h` and `.cnx` as C-Next adoption grows   |
+| Both include styles   | Libraries will ship with both `.h` and `.cnx` as cnx adoption grows      |
 | Grouped with E0503    | Keeps include validation errors together                                 |

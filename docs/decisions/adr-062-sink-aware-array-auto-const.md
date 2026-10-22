@@ -2,13 +2,13 @@
 
 **Status:** Proposed
 **Date:** 2026-07-07
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Amends:** ADR-006 (Simplified Reference Model) — array-parameter auto-const behavior
 **Supersedes:** the blanket approach introduced in #986 ("array params no longer get auto-const")
 
 ## Context
 
-C-Next infers `const` on pass-by-reference parameters a function only reads
+cnx infers `const` on pass-by-reference parameters a function only reads
 ("auto-const", Issue #268). A parameter is const-qualified unless it is _modified_ —
 directly (`p[i] <- x`) or transitively (passed to a callee that modifies its
 corresponding parameter, Issue #269).
@@ -29,7 +29,7 @@ blanket rule: _arrays never auto-const; only explicit `const` in source qualifie
 ### Why the blanket rule is a shortcut
 
 The passthrough break has a precise cause: the transitive modification analysis tracks
-mutation through **C-Next callees it can see the body of**, but an **external** callee has
+mutation through **cnx callees it can see the body of**, but an **external** callee has
 no body, so it never contributes a modification — the forwarded array looks read-only and
 is wrongly const-qualified. The correct signal was available all along: the external
 callee's **signature**. A non-`const` pointer parameter is, by contract, a "may modify"
@@ -45,7 +45,7 @@ locally-available signal (callee parameter const-ness) in favor of "give up on a
 3. **The deviation/migration signal is thrown away** (see Decision) — the one place the
    transpiler could tell you _why_ a buffer can't be const, and what to do about it.
 
-C-Next's no-raw-pointers / no-address-of design makes the precise analysis uniquely
+cnx's no-raw-pointers / no-address-of design makes the precise analysis uniquely
 tractable: an array can only escape a function by being passed as a call argument. There is
 no `&buf`, no pointer arithmetic, no aliasing through casts. **The complete set of a
 parameter's sinks is exactly its set of call-site argument positions** — a closed,
@@ -80,9 +80,9 @@ This is deliberately valuable, in two ways:
 1. **Automated MISRA deviation evidence.** Rule 8.13 is advisory; a compliant project must
    _document every deviation with rationale and location_. This diagnostic **is** that
    record, generated mechanically — no hand-maintained deviation ledger.
-2. **A C→C-Next migration worklist.** Every line names an external (typically C/C++)
+2. **A C→cnx migration worklist.** Every line names an external (typically C/C++)
    consumer whose mutable-pointer signature is the _only_ thing blocking const-correctness.
-   That is a prioritized list of "convert this consumer to C-Next next, and the buffer
+   That is a prioritized list of "convert this consumer to cnx next, and the buffer
    becomes `const` for free." For a project mid-migration this signal is the point, not noise.
 
 The diagnostic is informational (never fails the build), shown by default, and suppressible
@@ -95,9 +95,9 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 - **No new kind of analysis.** Transitive modification is already tracked: a parameter
   passed to a callee that modifies its corresponding parameter is itself modified. An
   external callee is the same relation with the callee's const-ness read from its
-  declaration instead of from C-Next source, so mutability propagates backward through a
+  declaration instead of from cnx source, so mutability propagates backward through a
   forwarding chain of any length by the rule that already exists.
-- **Feasible because of C-Next's safety model.** No `&`, no pointer arithmetic, no casts to
+- **Feasible because of cnx's safety model.** No `&`, no pointer arithmetic, no casts to
   alias → sinks are exactly the argument positions. The analysis is sound without escape
   analysis that would be intractable in raw C.
 - **`const`-by-default is the MISRA-aligned default;** deviations become the exception,
@@ -106,7 +106,7 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 ## Implementation
 
 1. **An external callee's parameter is a mutation sink unless its declaration says
-   otherwise.** Const-ness comes from the callee's declaration -- a C-Next signature, or a
+   otherwise.** Const-ness comes from the callee's declaration -- a cnx signature, or a
    parsed C/C++ header per ADR-061 interop. A non-`const` pointer or array parameter is
    treated as modified, and that requirement propagates backward to every caller.
 2. **Arrays follow the same rule as structs.** An array parameter is const-qualified when
@@ -127,7 +127,7 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 **Positive**
 
 - Read-only array parameters are `const` again by default (MISRA 8.13 satisfied for free).
-- The transpiler emits an auditable MISRA-8.13 deviation ledger and a C→C-Next migration
+- The transpiler emits an auditable MISRA-8.13 deviation ledger and a C→cnx migration
   worklist as a byproduct of the const analysis.
 - Explicit `const` on an array is now _verified_ against dataflow rather than trusted.
 - Uses existing infrastructure; the propagator core is unchanged.
@@ -171,14 +171,14 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 
 ## Comments
 
-- **2026-07-10 — prerequisite unblocked.** This decision — "cnext depends on the
+- **2026-07-10 — prerequisite unblocked.** This decision — "cnx depends on the
   compiler-invocation contract (`compile_commands.json`), not on any build system" —
   is exactly the thing that unblocks this ADR: its sink analysis needs external
-  callee signatures (parameter const-ness), which only resolve reliably once cnext
+  callee signatures (parameter const-ness), which only resolve reliably once cnx
   sees the compiler's includes. Without that, every framework/C-API callee falls into
   the "sink cannot be resolved → fail-safe mutable" bucket (Decision table, row 4),
   collapsing back to #986's blanket for exactly the external-C-API case #986 was worried
-  about. cnext now reads `compile_commands.json` — the build-system-agnostic database
+  about. cnx now reads `compile_commands.json` — the build-system-agnostic database
   every build system emits and clangd/clang-tidy consume — for the exact include paths,
   defines, and compiler the real build uses (Issue #985). With external signatures
   resolving, rule 1 can read real const-ness from the callee's declaration rather than

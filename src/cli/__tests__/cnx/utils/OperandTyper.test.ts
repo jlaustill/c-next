@@ -1039,8 +1039,8 @@ extern Frame frame;`,
       ).toMatchObject({ category: "character" });
     });
 
-    it("keeps a C-Next scalar's subscript a bit", () => {
-      // The control: the header rule does not reach C-Next's own values
+    it("keeps a cnx scalar's subscript a bit", () => {
+      // The control: the header rule does not reach cnx's own values
       expect(
         subscriptOf("u32 w <- 16;\nbool r <- w[4];", new SymbolTable()),
       ).toBe("bit_single");
@@ -1074,7 +1074,7 @@ describe("OperandTyper.chainOf: a field named like a property", () => {
     ).steps.at(-1);
   }
 
-  it("types a C-Next struct's field as the field", () => {
+  it("types a cnx struct's field as the field", () => {
     const step = lastStep(
       "u32 r <- b.length;",
       new SymbolTable(),

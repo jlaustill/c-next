@@ -16,11 +16,11 @@ interface IIncludeContext {
   readonly resolutions: ReadonlyMap<string, string | null>;
 
   /**
-   * For each include of a header whose C-Next source the same form of include
+   * For each include of a header whose cnx source the same form of include
    * would find, that source's spelling: E0504's question. An include with no
    * entry has none.
    */
-  readonly cnextAlternatives: ReadonlyMap<string, string>;
+  readonly cnxAlternatives: ReadonlyMap<string, string>;
 
   /**
    * The kind of file each directive's spelling names (#1444, owner ruling 1):

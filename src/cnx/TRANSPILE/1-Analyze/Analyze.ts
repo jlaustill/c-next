@@ -84,7 +84,7 @@ class Analyze {
       },
       includes: {
         resolutions: includes.resolutions,
-        cnextAlternatives: includes.cnextAlternatives,
+        cnxAlternatives: includes.cnxAlternatives,
         kinds: includes.kinds,
       },
     };

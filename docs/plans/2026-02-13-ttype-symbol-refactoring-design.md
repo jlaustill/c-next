@@ -47,7 +47,7 @@ All symbol types live in `src/transpiler/types/symbols/`:
 
 ```
 src/transpiler/types/symbols/
-├── IBaseSymbol.ts          # Base interface with kind: TSymbolKindCNext
+├── IBaseSymbol.ts          # Base interface with kind: TSymbolKindCnx
 ├── IFunctionSymbol.ts      # extends IBaseSymbol
 ├── IScopeSymbol.ts         # extends IBaseSymbol
 ├── IStructSymbol.ts        # extends IBaseSymbol
@@ -101,12 +101,12 @@ Location: `src/transpiler/types/symbols/`
 **IBaseSymbol.ts** - Base interface for all symbol types
 
 ```typescript
-import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
+import type TSymbolKindCnx from "../symbol-kinds/TSymbolKindCnx";
 import type IScopeSymbol from "./IScopeSymbol";
 import type ESourceLanguage from "../../utils/types/ESourceLanguage";
 
 interface IBaseSymbol {
-  readonly kind: TSymbolKindCNext;
+  readonly kind: TSymbolKindCnx;
   readonly name: string;
   readonly scope: IScopeSymbol;
   readonly sourceFile: string;
@@ -260,7 +260,7 @@ export default SymbolGuards;
 
 Key design decisions:
 
-- All symbols extend `IBaseSymbol` which has `kind: TSymbolKindCNext`
+- All symbols extend `IBaseSymbol` which has `kind: TSymbolKindCnx`
 - Each concrete interface narrows `kind` to its specific literal type
 - `scope` is always non-null on `IBaseSymbol`; global scope is explicit
 - `scope Test` in multiple files merges into single `IScopeSymbol`
@@ -405,7 +405,7 @@ Each phase is a separate mergeable PR.
 ### Phase 2: Create Symbol Types Directory
 
 - Create `src/transpiler/types/symbols/` directory
-- Create `IBaseSymbol.ts` with `kind: TSymbolKindCNext`
+- Create `IBaseSymbol.ts` with `kind: TSymbolKindCnx`
 - Create all symbol interfaces extending `IBaseSymbol`:
   - `IFunctionSymbol.ts`, `IScopeSymbol.ts`, `IStructSymbol.ts`
   - `IEnumSymbol.ts`, `IVariableSymbol.ts`, `IBitmapSymbol.ts`, `IRegisterSymbol.ts`

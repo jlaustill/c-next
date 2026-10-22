@@ -14,7 +14,7 @@ import type TParameterInfo from "../../../../types/TParameterInfo";
  * An argument takes one of three mutually exclusive routes: the Issue #937
  * callback-promoted branch returns the identifier and renders NOTHING; a C
  * function's argument renders with the target parameter's type expected; a
- * C-Next parameter renders either by value or by reference. Rendering the
+ * cnx parameter renders either by value or by reference. Rendering the
  * losing route would register that route's includes and `needs*` flags on
  * `TranspileState` -- and on the by-reference route, `ArgumentGenerator`'s C++
  * member conversion draws `TranspileState.getNextTempVarName()` and pushes onto

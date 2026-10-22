@@ -7,7 +7,7 @@
 
 // test-transpile-only
 // Issue #895: Callback functions with pointer parameters
-// Tests that C-Next functions assigned to C callback typedefs
+// Tests that cnx functions assigned to C callback typedefs
 // generate the correct pointer signatures
 #include "widget.h"
 

@@ -12,7 +12,7 @@
  * answer. `Program` supplies that input, and after 1.4 nothing else derives it.
  *
  * The three arrays stay separate rather than arriving pre-merged. Report order
- * is name-first-seen across C-Next, then C, then C++, and each name's
+ * is name-first-seen across cnx, then C, then C++, and each name's
  * definitions are listed in that same language order. Both orderings are
  * observable — they decide which definition a diagnostic reports at — so
  * merging at the call site would hand an unstated invariant to every caller.
@@ -32,29 +32,29 @@ class ConflictDetector {
   /**
    * Every conflict among these symbols.
    *
-   * Names are visited in the order first seen — C-Next, then C, then C++ — and
+   * Names are visited in the order first seen — cnx, then C, then C++ — and
    * each name's definitions gathered in that same order.
    */
   static detect(
     registry: SymbolRegistry | null,
-    cnext: ReadonlyArray<TSymbol>,
+    cnx: ReadonlyArray<TSymbol>,
     c: ReadonlyArray<TCSymbol>,
     cpp: ReadonlyArray<TCppSymbol>,
   ): IConflict[] {
-    const cnextByName = ConflictDetector.indexByName(cnext);
+    const cnxByName = ConflictDetector.indexByName(cnx);
     const cByName = ConflictDetector.indexByName(c);
     const cppByName = ConflictDetector.indexByName(cpp);
 
     const conflicts: IConflict[] = [];
     const allNames = new Set<string>();
-    for (const name of cnextByName.keys()) allNames.add(name);
+    for (const name of cnxByName.keys()) allNames.add(name);
     for (const name of cByName.keys()) allNames.add(name);
     for (const name of cppByName.keys()) allNames.add(name);
 
     for (const name of allNames) {
       const symbols = ConflictDetector.overloadsOf(
         name,
-        cnextByName,
+        cnxByName,
         cByName,
         cppByName,
       );
@@ -69,15 +69,15 @@ class ConflictDetector {
     return conflicts;
   }
 
-  /** Every definition of one name, in C-Next, then C, then C++ order. */
+  /** Every definition of one name, in cnx, then C, then C++ order. */
   private static overloadsOf(
     name: string,
-    cnextByName: ReadonlyMap<string, TAnySymbol[]>,
+    cnxByName: ReadonlyMap<string, TAnySymbol[]>,
     cByName: ReadonlyMap<string, TAnySymbol[]>,
     cppByName: ReadonlyMap<string, TAnySymbol[]>,
   ): TAnySymbol[] {
     return [
-      ...(cnextByName.get(name) ?? []),
+      ...(cnxByName.get(name) ?? []),
       ...(cByName.get(name) ?? []),
       ...(cppByName.get(name) ?? []),
     ];
@@ -108,15 +108,12 @@ class ConflictDetector {
    * Issue #221: function parameters must not count as conflicting definitions.
    * They have a parent, but their name is not qualified with the parent prefix.
    *
-   * Only C/C++ symbols are filtered. A C-Next variable is always kept: at this
+   * Only C/C++ symbols are filtered. A cnx variable is always kept: at this
    * point a scope-level variable and a function parameter are indistinguishable,
    * so the original code returned true down both of its branches.
    */
   private static isNotFunctionParameter(def: TAnySymbol): boolean {
-    if (
-      def.sourceLanguage === ESourceLanguage.CNext &&
-      def.kind === "variable"
-    ) {
+    if (def.sourceLanguage === ESourceLanguage.Cnx && def.kind === "variable") {
       return true;
     }
     if ("parent" in def && def.parent) {
@@ -208,7 +205,7 @@ class ConflictDetector {
    */
   private static languageName(symbol: TAnySymbol): string {
     const names: Record<ESourceLanguage, string> = {
-      [ESourceLanguage.CNext]: "cnx",
+      [ESourceLanguage.Cnx]: "cnx",
       [ESourceLanguage.C]: "C",
       [ESourceLanguage.Cpp]: "C++",
     };
@@ -262,9 +259,9 @@ class ConflictDetector {
       return null;
     }
 
-    // Check for cross-language conflict (C-Next vs C or C++)
-    const cnextDefs = globalDefinitions.filter(
-      (s) => s.sourceLanguage === ESourceLanguage.CNext,
+    // Check for cross-language conflict (cnx vs C or C++)
+    const cnxDefs = globalDefinitions.filter(
+      (s) => s.sourceLanguage === ESourceLanguage.Cnx,
     );
     const cDefs = globalDefinitions.filter(
       (s) => s.sourceLanguage === ESourceLanguage.C,
@@ -273,19 +270,19 @@ class ConflictDetector {
       (s) => s.sourceLanguage === ESourceLanguage.Cpp,
     );
 
-    // Issue #967: Only global-scope C-Next symbols can conflict with C/C++ symbols.
+    // Issue #967: Only global-scope cnx symbols can conflict with C/C++ symbols.
     // Scoped symbols (e.g., Touch.read) live in a namespace and don't compete
     // with C's global symbols (e.g., POSIX read()).
-    const conflictingCnextDefs = cnextDefs.filter((s) => {
+    const conflictingCnxDefs = cnxDefs.filter((s) => {
       const tSymbol = s as TSymbol;
       return ScopeUtils.isGlobalScopePath(tSymbol.scopePath);
     });
 
     if (
-      conflictingCnextDefs.length > 0 &&
+      conflictingCnxDefs.length > 0 &&
       (cDefs.length > 0 || cppDefs.length > 0)
     ) {
-      const conflictingDefs = [...conflictingCnextDefs, ...cDefs, ...cppDefs];
+      const conflictingDefs = [...conflictingCnxDefs, ...cDefs, ...cppDefs];
       // #1334: both conflict kinds render the location the same way, through
       // `locationOf` -- these producers used to spell it differently (`LANG
       // (file:line)` here, bare `file:line` below), which is one decision written
@@ -327,12 +324,9 @@ class ConflictDetector {
     }
 
     // Multiple definitions in same language (excluding overloads) = ERROR
-    const cnextConflict = ConflictDetector.detectCNextDuplicate(
-      registry,
-      cnextDefs,
-    );
-    if (cnextConflict) {
-      return cnextConflict;
+    const cnxConflict = ConflictDetector.detectCnxDuplicate(registry, cnxDefs);
+    if (cnxConflict) {
+      return cnxConflict;
     }
 
     // Same symbol in C and C++ - typically OK (same symbol)
@@ -344,7 +338,7 @@ class ConflictDetector {
   }
 
   /**
-   * Two definitions of the same C-Next symbol in the same scope = ERROR.
+   * Two definitions of the same cnx symbol in the same scope = ERROR.
    *
    * Issue #817: grouped by scope AND kind — symbols in different scopes do not
    * conflict (`Foo.enabled` and `Bar.enabled` generate distinct C names), and
@@ -354,16 +348,16 @@ class ConflictDetector {
    * Extracted from detectConflict so that method stays under SonarCloud's
    * cognitive-complexity limit; the #1333 scope-reopening branch pushed it over.
    */
-  private static detectCNextDuplicate(
+  private static detectCnxDuplicate(
     registry: SymbolRegistry | null,
-    cnextDefs: TAnySymbol[],
+    cnxDefs: TAnySymbol[],
   ): IConflict | null {
-    if (cnextDefs.length <= 1) {
+    if (cnxDefs.length <= 1) {
       return null;
     }
 
     const byScopeAndKind =
-      ConflictDetector.groupCNextSymbolsByScopeAndKind(cnextDefs);
+      ConflictDetector.groupCnxSymbolsByScopeAndKind(cnxDefs);
 
     for (const symbols of byScopeAndKind.values()) {
       if (symbols.length <= 1) {
@@ -422,16 +416,16 @@ class ConflictDetector {
   }
 
   /**
-   * Issue #817: Group C-Next symbols by scope name and kind.
+   * Issue #817: Group cnx symbols by scope name and kind.
    *
    * Symbols in different scopes don't conflict (Foo.enabled vs Bar.enabled
    * generate Foo_enabled and Bar_enabled). Symbols with different kinds also
    * don't conflict (variable LED vs scope LED are distinct).
    *
-   * @param symbols C-Next symbols to group (must all be TSymbol)
+   * @param symbols cnx symbols to group (must all be TSymbol)
    * @returns Map from "scopeName:kind" key to array of symbols
    */
-  private static groupCNextSymbolsByScopeAndKind(
+  private static groupCnxSymbolsByScopeAndKind(
     symbols: TAnySymbol[],
   ): Map<string, TSymbol[]> {
     const byScopeAndKind = new Map<string, TSymbol[]>();

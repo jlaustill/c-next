@@ -71,7 +71,7 @@ describe("cache parity (integration, #1225)", () => {
   let dir: string;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-cache-parity-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-cache-parity-"));
     // A project marker is what enables caching at all: determineProjectRoot
     // walks up for one, and returns undefined (caching off) if it finds none.
     // Putting it in the temp dir also keeps this test's cache out of the repo.

@@ -3,7 +3,7 @@
  * Detects modulo operator usage with floating-point types at compile time
  *
  * The modulo operator (%) is only valid for integer types in C.
- * C-Next catches this early with a clear error message.
+ * cnx catches this early with a clear error message.
  *
  * Each operand is typed by the one operand typer (#1668), which binds names
  * through Program's lexical frames and types every operand shape -- a field,

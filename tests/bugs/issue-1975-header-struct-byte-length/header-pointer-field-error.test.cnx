@@ -1,5 +1,5 @@
 // test-error
-// Issue #1975 (owner ruling): C-Next has no pointers, so it cannot size one.
+// Issue #1975 (owner ruling): cnx has no pointers, so it cannot size one.
 // A header struct's pointer field has no length, and neither has a struct
 // holding one -- E0867, never the target's pointer size. On main
 // `o.p.type_byte_length` reached the C unchanged, at exit 0, and gcc rejected it.

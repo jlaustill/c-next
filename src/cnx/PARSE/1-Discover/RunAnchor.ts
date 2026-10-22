@@ -40,7 +40,7 @@ class RunAnchor {
    * reads the same database, and the same database needs no second read. The
    * root is walked again on every run, as discovery's tiers are: a marker
    * created or renamed between runs moves it (#2221 review: a reuse keyed on
-   * the path alone kept the root from before E0918's rename). The compiler it
+   * the path alone kept the root from before a config's rename). The compiler it
    * names reads the headers only of a target that names none (#1713, owner
    * ruling 2026-10-16: the target's own compiler reads its headers).
    */
@@ -146,10 +146,7 @@ class RunAnchor {
     }
 
     // No project root disables caching, so no .cnx directory is left behind.
-    // #2165: the walk's renamed configs are discovery's to report. An anchor
-    // is reused across runs, so a finding kept here would outlive the rename
-    // that fixed it; `Discover.run` walks the anchor's directory fresh.
-    return IncludeDiscovery.findProjectRoot(startDir, fs).root ?? undefined;
+    return IncludeDiscovery.findProjectRoot(startDir, fs) ?? undefined;
   }
 }
 

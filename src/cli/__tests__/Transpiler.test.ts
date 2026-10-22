@@ -140,7 +140,7 @@ describe("Transpiler", () => {
         // vars become C identifiers". That was the defect written down as an
         // expectation -- the name reached the generated C unresolved and the C
         // compiler was the only thing that caught it, which inverts what
-        // C-Next is for. E0427 covered the read position and not the write.
+        // cnx is for. E0427 covered the read position and not the write.
         //
         // What the case is actually here to pin is unchanged: a semantically
         // invalid source is REPORTED, as a structured result, rather than
@@ -211,7 +211,7 @@ describe("Transpiler", () => {
         expect(parsed.column).toBe(4);
       });
 
-      it("transpiles various C-Next types correctly", async () => {
+      it("transpiles various cnx types correctly", async () => {
         const transpiler = new Transpiler(
           { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
@@ -632,7 +632,7 @@ describe("Transpiler", () => {
         expect(result.filesProcessed).toBe(0);
       });
 
-      it("returns warning when no C-Next files found", async () => {
+      it("returns warning when no cnx files found", async () => {
         mockFs.addDirectory("/project/empty");
 
         const transpiler = new Transpiler(

@@ -12,7 +12,7 @@
 //
 // #1322: this file was the negative-control half of `struct-redundant-type-error`,
 // which asserted E0356 on a WRITTEN type (`Point { x: 0 }`). That grammar
-// alternative is removed -- it was never valid C-Next, because every position
+// alternative is removed -- it was never valid cnx, because every position
 // that consumes a value already declares a type -- so the controls are now the
 // whole fixture, and they COMPILE rather than sitting inside an error fixture
 // that never reached codegen. Their generated C is snapshotted, which is a

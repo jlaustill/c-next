@@ -30,7 +30,7 @@ function isReservedParameterName(
   // unrepresentable — a scope member now generates `process__value`, which E0201
   // already rejects as a parameter name. So this rule is arguably obsolete.
   //
-  // Retiring it would change what C-Next accepts, which needs its own ADR, so the
+  // Retiring it would change what cnx accepts, which needs its own ADR, so the
   // existing behavior is preserved verbatim here. Tracked separately.
   return parameterName.startsWith(functionName + "_");
 }

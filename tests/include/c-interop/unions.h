@@ -5,7 +5,7 @@
 
 /*
  * C Interop Test Unions
- * Test union definitions for C-Next interop testing
+ * Test union definitions for cnx interop testing
  */
 
 /* Named union (requires 'union' keyword in C) */

@@ -1,7 +1,7 @@
 // test-error
 // test-adr: 036
 // Test: C-style array declaration should be rejected (E0874)
-// C-Next requires array dimensions in the type position: u16[8] not u16 arr[8]
+// cnx requires array dimensions in the type position: u16[8] not u16 arr[8]
 //
 // #1322 relocated this from `output/`; it already carried a position.
 

@@ -10,7 +10,6 @@ import IFileConfig from "./types/IFileConfig";
 import CONFIG_FILE_NAMES from "../cnx/types/CONFIG_FILE_NAMES";
 import type IFileSystem from "../cnx/types/IFileSystem";
 import ConfigLoader from "./ConfigLoader";
-import ResultPrinter from "./ResultPrinter";
 import type TConfigObject from "./types/TConfigObject";
 import PlatformIOIni from "../cnx/PARSE/1-Discover/PlatformIOIni";
 import type IPlatformIOIniOption from "../cnx/PARSE/1-Discover/types/IPlatformIOIniOption";
@@ -18,12 +17,6 @@ import packageJson from "../../package.json" with { type: "json" };
 
 /** The pre-build script `--pio-install` writes. */
 const BUILD_SCRIPT = "cnx_build.py";
-
-/** The name the script had before the rename (#2174): uninstall still removes it. */
-const OLD_BUILD_SCRIPT = "cnext_build.py";
-
-/** Every name uninstall removes, the current one first. */
-const BUILD_SCRIPTS = [BUILD_SCRIPT, OLD_BUILD_SCRIPT] as const;
 
 /** The `extra_scripts` entry that runs the script `name` before a build. */
 function entryOf(name: string): string {
@@ -77,32 +70,14 @@ class PlatformIOCommand {
    * Setup PlatformIO integration
    * Creates cnx_build.py and modifies platformio.ini
    *
-   * #2174: a project that still has the old cnext_build.py integration stops
-   * before anything is written. Adding cnx_build.py beside it would leave
-   * every build running the old script, which calls a `cnext` that no longer
-   * exists.
-   *
-   * #2165: a config under an old name stops it with E0918 before anything is
-   * written. Writing a new-name config beside the old one would leave the
-   * project failing every run on the pair. So does a config it cannot read or
-   * that holds no config object (#2221 review): it used to write on, dropping
-   * the settings or shadowing the file.
+   * A config it cannot read, or that holds no config object, stops it before
+   * anything is written (#2221 review): it used to write on, dropping the
+   * settings or shadowing the file.
    */
   static install(fs: IFileSystem = NodeFileSystem.instance): void {
     const pioIniPath = getPioIniPath(fs);
     const scriptPath = inProject(BUILD_SCRIPT);
     const pioIni = fs.readFile(pioIniPath);
-    if (
-      fs.exists(inProject(OLD_BUILD_SCRIPT)) ||
-      hasEntry(pioIni, OLD_BUILD_SCRIPT)
-    ) {
-      PlatformIOCommand.stopBeforeWriting(
-        [
-          `this project has the old ${OLD_BUILD_SCRIPT} integration, which runs \`cnext\``,
-        ],
-        "Run cnx --pio-uninstall, then cnx --pio-install.",
-      );
-    }
     const scripts = extraScripts(pioIni).at(0);
     if (
       scripts !== undefined &&
@@ -117,12 +92,6 @@ class PlatformIOCommand {
       );
     }
     const config = ConfigLoader.inDirectory(process.cwd(), fs);
-    if (config.kind === "renamed") {
-      for (const error of config.errors) {
-        ResultPrinter.printError(error);
-      }
-      process.exit(1);
-    }
     // #2221 review: a config it cannot read was only a warning, so install
     // wrote on: a crash half-installed, or a cnx.config.json shadowing it
     if (config.unreadable.length > 0) {
@@ -299,18 +268,15 @@ transpile_cnx()
 
   /**
    * Remove PlatformIO integration
-   * Deletes cnx_build.py, and cnext_build.py from before the rename (#2174),
-   * and removes their extra_scripts entries from platformio.ini
+   * Deletes cnx_build.py and removes its extra_scripts entry from platformio.ini
    */
   static uninstall(fs: IFileSystem = NodeFileSystem.instance): void {
     const pioIniPath = getPioIniPath(fs);
 
     let hasChanges = false;
 
-    const scriptPaths = BUILD_SCRIPTS.map(inProject).filter((path) =>
-      fs.exists(path),
-    );
-    for (const scriptPath of scriptPaths) {
+    const scriptPath = inProject(BUILD_SCRIPT);
+    if (fs.exists(scriptPath)) {
       try {
         Write.remove(fs, scriptPath);
         console.log(`✓ Removed: ${scriptPath}`);
@@ -319,13 +285,12 @@ transpile_cnx()
         console.error(`Error removing ${scriptPath}:`, err);
         process.exit(1);
       }
-    }
-    if (scriptPaths.length === 0) {
+    } else {
       console.log(`✓ ${BUILD_SCRIPT} not found (already removed)`);
     }
 
     const pioIni = fs.readFile(pioIniPath);
-    const cleaned = PlatformIOCommand.withoutBuildScripts(pioIni);
+    const cleaned = PlatformIOCommand.withoutBuildScript(pioIni);
     if (cleaned !== pioIni) {
       Write.file(fs, pioIniPath, cleaned);
       console.log(`✓ Modified: ${pioIniPath}`);
@@ -347,19 +312,19 @@ transpile_cnx()
   }
 
   /**
-   * `pioIni` with no `extra_scripts` item running either script, every other
-   * item left in place (#2174 review: removing the line
-   * `extra_scripts = pre:cnext_build.py` left the indented scripts below it
-   * with no key).
+   * `pioIni` with no `extra_scripts` item running the script, every other item
+   * left in place (#2174 review: removing the line
+   * `extra_scripts = pre:cnx_build.py` left the indented scripts below it with
+   * no key).
    */
-  private static withoutBuildScripts(pioIni: string): string {
-    const entries: string[] = BUILD_SCRIPTS.map(entryOf);
+  private static withoutBuildScript(pioIni: string): string {
+    const entry = entryOf(BUILD_SCRIPT);
     const options = extraScripts(pioIni);
     let cleaned = pioIni;
     // Last first, so each option's line numbers still hold when it is edited
     for (let index = options.length - 1; index >= 0; index -= 1) {
       const items = PlatformIOIni.list(options[index].value);
-      const kept = items.filter((item) => !entries.includes(item));
+      const kept = items.filter((item) => item !== entry);
       if (kept.length < items.length) {
         cleaned = PlatformIOIni.withItems(cleaned, options[index], kept);
       }

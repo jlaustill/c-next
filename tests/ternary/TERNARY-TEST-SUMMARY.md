@@ -180,12 +180,12 @@ All 8 integer types correctly transpile and execute with the ternary operator:
 
 Transpiles to valid C code with correct type mappings.
 
-### ✅ C-Next Equality Operator Correctly Transpiles
+### ✅ cnx Equality Operator Correctly Transpiles
 
-C-Next uses `=` for equality, which correctly transpiles to C's `==`:
+cnx uses `=` for equality, which correctly transpiles to C's `==`:
 
 ```cnx
-u8 equal_test <- (a = 10) ? 100 : 200;  // C-Next
+u8 equal_test <- (a = 10) ? 100 : 200;  // cnx
 ```
 
 ```c

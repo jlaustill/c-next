@@ -77,7 +77,7 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
     ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-header-language-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-header-language-"));
     // A project root, so the cache is on and the second run is warm.
     writeFileSync(join(dir, "cnx.config.json"), "{}");
   });
@@ -321,7 +321,7 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
 
     const INACTIVE = (enabled: 0 | 1): Record<string, string> => ({
       "lib.h": `#define USE_IMPL ${enabled}\n#if USE_IMPL\n#include "impl.h"\n#endif\nint lib(void);\n`,
-      "impl.h": "#include <cnext_no_such_header_zzz.h>\n",
+      "impl.h": "#include <cnx_no_such_header_zzz.h>\n",
     });
 
     it("settles no header behind a false #if, so one that cannot preprocess is no error", async (ctx) => {
@@ -370,7 +370,7 @@ describe("a header's language is decided once, in 1.1 (#1844)", () => {
       const runs = await coldThenWarmMain(
         {
           "c.h": '#if 0\n#include "bad.h"\n#endif\nint c(void);\n',
-          "bad.h": "#include <cnext_no_such_header_zzz.h>\n",
+          "bad.h": "#include <cnx_no_such_header_zzz.h>\n",
         },
         '#include "c.h"\n#include "bad.h"\n\nvoid main() { }\n',
       );

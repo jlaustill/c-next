@@ -21,11 +21,11 @@ import CastRequirement from "./CastRequirement";
 const PROMOTED_TO_INT = new Set(["u8", "i8", "u16", "i16", "bool"]);
 
 /**
- * Float types for cross-category detection -- C-Next's `f32`/`f64` AND the C
+ * Float types for cross-category detection -- cnx's `f32`/`f64` AND the C
  * spellings a header brings in, because MISRA 10.3's essential type categories
  * do not stop at the interop boundary.
  *
- * #1450: deliberately WIDER than `types/FLOAT_TYPES`, which is C-Next only and
+ * #1450: deliberately WIDER than `types/FLOAT_TYPES`, which is cnx only and
  * is what `TypeResolver.isFloatType` answers from. Two different questions; the
  * predicates below used to share `TypeResolver`'s names, so picking the wrong
  * one silently answered the other question. `parseArrayTypeDimension` is what
@@ -92,7 +92,7 @@ class NarrowingCastHelper {
    * - u8, i8, u16, i16, bool -> int (32-bit)
    * - u32, i32, u64, i64 -> no promotion (already >= int width)
    *
-   * @param baseType - The C-Next type of the operand
+   * @param baseType - The cnx type of the operand
    * @returns "int" for promoted types, or the original type
    */
   static getPromotedType(baseType: string): string {
@@ -105,7 +105,7 @@ class NarrowingCastHelper {
   /**
    * Is this type in the FLOAT category, C spellings included?
    *
-   * Not `TypeResolver.isFloatType`, which answers about C-Next types alone:
+   * Not `TypeResolver.isFloatType`, which answers about cnx types alone:
    * `double` is true here and false there, on purpose.
    */
   static isFloatCategory(typeName: string): boolean {
@@ -140,7 +140,7 @@ class NarrowingCastHelper {
   }
 
   /**
-   * Get the appropriate C float type for a C-Next type.
+   * Get the appropriate C float type for a cnx type.
    */
   static getCFloatType(typeName: string): string {
     if (typeName === "f32" || typeName === "float") {

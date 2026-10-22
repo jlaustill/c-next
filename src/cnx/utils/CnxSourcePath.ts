@@ -3,15 +3,13 @@ import invariant from "./invariant";
 
 /** The one extension that names cnx source, exactly as spelled (#1833). */
 const CNX_EXTENSION = ".cnx";
-/** The extension cnx source had before the rename; E0519 in any case (#2167). */
-const RETIRED_EXTENSION = ".cnext";
 
-/** The rule both rejections state, before what to rename at their site. */
+/** The rule the rejection states, before what to rename at its site. */
 const RULE = "Only `.cnx`, spelled in lowercase, names cnx source (ADR-010)";
 
 /** Why a path that looks like cnx source is not, as its site reports it. */
 interface ISourceRejection {
-  readonly code: "E0518" | "E0519";
+  readonly code: "E0518";
   readonly message: string;
   readonly helpText: string;
 }
@@ -25,8 +23,8 @@ interface ISourceRejection {
  * cnx source. Discovery used to lowercase it while each naming site matched
  * it exactly, so `Colors.CNX` was transpiled and its "header" was named
  * `Colors.CNX`: an in-place build wrote generated C over the source. A path
- * that is `.cnx` in any other case is E0518; `.cnext`, in any case, is E0519
- * (#2167). Each is `isRejected`, and every site reports `rejection`.
+ * that is `.cnx` in any other case is E0518. It is `isRejected`, and every site
+ * reports `rejection`.
  */
 class CnxSourcePath {
   /** Whether `path` names cnx source. */
@@ -34,9 +32,10 @@ class CnxSourcePath {
     return extname(path) === CNX_EXTENSION;
   }
 
-  /** Whether `path` looks like cnx source but is E0518 or E0519. */
+  /** Whether `path` looks like cnx source but is E0518. */
   static isRejected(path: string): boolean {
-    return CnxSourcePath.rejectedCode(path) !== null;
+    const ext = extname(path);
+    return ext.toLowerCase() === CNX_EXTENSION && ext !== CNX_EXTENSION;
   }
 
   /**
@@ -44,25 +43,24 @@ class CnxSourcePath {
    * what to change at the reporting site: the file, an include, a header.
    */
   static rejection(name: string, rename: string): ISourceRejection | null {
-    const code = CnxSourcePath.rejectedCode(name);
-    if (code === null) return null;
-    const message =
-      code === "E0519"
-        ? `\`.cnext\` no longer names cnx source; rename it to \`.cnx\`: ${name}`
-        : `cnx source extension must be lowercase: ${name}`;
-    return { code, message, helpText: `${RULE}; ${rename}` };
+    if (!CnxSourcePath.isRejected(name)) return null;
+    return {
+      code: "E0518",
+      message: `cnx source extension must be lowercase: ${name}`,
+      helpText: `${RULE}; ${rename}`,
+    };
   }
 
   /**
    * `path` without its cnx extension: `src/led.cnx` is `src/led`. A path
    * with none is its own stem: a source run's text may have no path
    * (`<string>`) or an editor's (`notes.txt`). A rejected path never gets
-   * here; it was E0518 or E0519 at discovery.
+   * here; it was E0518 at discovery.
    */
   static stem(path: string): string {
     invariant(
       !CnxSourcePath.isRejected(path),
-      `a rejected cnx path is E0518 or E0519 before it is named (${path})`,
+      `a rejected cnx path is E0518 before it is named (${path})`,
     );
     return CnxSourcePath.isSource(path)
       ? path.slice(0, -extname(path).length)
@@ -78,14 +76,6 @@ class CnxSourcePath {
     return CnxSourcePath.isSource(path)
       ? CnxSourcePath.stem(path) + ext
       : CnxSourcePath.stem(path);
-  }
-
-  private static rejectedCode(path: string): "E0518" | "E0519" | null {
-    const ext = extname(path);
-    const lowered = ext.toLowerCase();
-    if (lowered === RETIRED_EXTENSION) return "E0519";
-    if (lowered === CNX_EXTENSION && ext !== CNX_EXTENSION) return "E0518";
-    return null;
   }
 }
 

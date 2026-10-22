@@ -6,7 +6,7 @@
 
 **Architecture:** Pass `cppMode` through the existing `IIncludeTransformOptions` interface so `IncludeGenerator` can emit `.hpp` instead of `.h` when in C++ mode. This matches the pattern already used in `CodeGenerator.ts:2212` for self-includes.
 
-**Tech Stack:** TypeScript, Vitest, C-Next transpiler
+**Tech Stack:** TypeScript, Vitest, cnx transpiler
 
 ---
 
@@ -213,7 +213,7 @@ const transformQuoteInclude = (
 
     if (!CnxFileResolver.cnxFileExists(cnxPath)) {
       throw new Error(
-        `Error: Included C-Next file not found: ${filepath}.cnx\n` +
+        `Error: Included cnx file not found: ${filepath}.cnx\n` +
           `  Searched at: ${cnxPath}\n` +
           `  Referenced in: ${sourcePath}`,
       );

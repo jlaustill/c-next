@@ -15,7 +15,7 @@
  * `a - b` is the other trap: `false - true` is -1, which stores back into a
  * bool as `true`, so subtracting from a false flag sets it.
  *
- * Equality is deliberately NOT checked: C-Next requires conditions to be
+ * Equality is deliberately NOT checked: cnx requires conditions to be
  * explicit comparisons, so `if (flag = true)` is the idiomatic test and must
  * stay legal. `!flag` likewise remains the way to negate.
  *
@@ -146,7 +146,7 @@ class BooleanOperandAnalyzer {
 
   /**
    * MISRA C:2012 Rule 10.1: whether an operator level may take an essentially
-   * Boolean operand. Only equality may -- comparing a flag is how C-Next tests
+   * Boolean operand. Only equality may -- comparing a flag is how cnx tests
    * it. Every other level, and every compound assignment, is this rule's:
    * E0807, or E0806 for a bool target. E0810 asks, so that a Boolean mix is
    * one defect reported under one code (#1668).

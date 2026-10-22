@@ -1,5 +1,5 @@
 /**
- * ADR-049: the ARM STREX (Store-Exclusive) intrinsic for each C-Next type an
+ * ADR-049: the ARM STREX (Store-Exclusive) intrinsic for each cnx type an
  * exclusive access can hold, beside `LDREX_MAP`.
  */
 const STREX_MAP: Readonly<Record<string, string>> = {

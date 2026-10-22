@@ -434,7 +434,7 @@ class ScopeJoinSites {
       "read a leaf-keyed map -- so a site takes the FIRST kind above that applies,",
       "which makes them a partition rather than labels. **Nothing computes this.**",
       "The order is an instruction to whoever writes the row. The worked example",
-      "was `cnext/index.ts`'s `scopeName`, deleted with 1.3's const pass (#1664",
+      "was the old symbol collector index's `scopeName`, deleted with 1.3's const pass (#1664",
       "box 7): source text from a parse-tree identifier, so `path` by description,",
       "though it was long filed as `leaf-keyed` on the grounds that it was paired",
       "with a collection. #1295 argued that the pairing did not exist -- the",

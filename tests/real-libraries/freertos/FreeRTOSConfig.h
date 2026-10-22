@@ -1,8 +1,8 @@
 /*
- * FreeRTOS Configuration for C-Next Integration Tests
+ * FreeRTOS Configuration for cnx Integration Tests
  *
  * This is a plain C file (per ADR-061: C is the escape hatch).
- * C-Next code includes this directly to get FreeRTOS configuration.
+ * cnx code includes this directly to get FreeRTOS configuration.
  */
 
 #ifndef FREERTOS_CONFIG_H

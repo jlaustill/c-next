@@ -1,13 +1,13 @@
 # How other compilers hold symbol facts
 
-Prior art for the symbol layer, surveyed during the [#1431](https://github.com/jlaustill/c-next/issues/1431)
-spike. Its companion, [`symbol-view-scopes.md`](symbol-view-scopes.md), records what C-Next's
+Prior art for the symbol layer, surveyed during the [#1431](https://github.com/smeltworks/cnx/issues/1431)
+spike. Its companion, [`symbol-view-scopes.md`](symbol-view-scopes.md), records what cnx's
 own containers do and what the spike measured about them. This document records what everyone
 else does, so the survey does not have to be run twice.
 
 **Read this before proposing a database, a query engine, or a state-management library for the
 symbol layer.** The instinct is a good one and the modelling is sound; the survey's conclusion
-was that C-Next should adopt several of the _techniques_ and none of the _engines_, and the
+was that cnx should adopt several of the _techniques_ and none of the _engines_, and the
 reasons are specific enough to be worth keeping.
 
 Everything below was read from a primary source or measured. The verified/unverified split is
@@ -71,14 +71,14 @@ its diagnostic run once per identifier.
 
 **Cycles use an explicit resolution stack, never the memo.** On a real cycle every frame from
 the cycle start is marked failed and the caller emits a circularity error _instead of memoizing
-garbage_. That is exactly [#1433](https://github.com/jlaustill/c-next/issues/1433), where a
+garbage_. That is exactly [#1433](https://github.com/smeltworks/cnx/issues/1433), where a
 cycle-cut `false` is cached and a diagnostic then falsely rejects. The general rule — **never
 memoize a value computed inside an unresolved cycle** — is worth more than the one-site fix.
 
 **Visibility is not stored anywhere.** Resolution walks upward from the _use site_ through
 `locals`, then `exports`, then `globals`, filtering every hit through a `meaning` bitmask. An
 exported declaration produces **two symbols in two tables**, so "what a file can see" and "what
-a file publishes" are physically different tables rather than one table with a flag. C-Next's
+a file publishes" are physically different tables rather than one table with a flag. cnx's
 `knownEnums` / `knownStructs` / `knownBitmaps` are the opposite shape: one table whose
 membership implies both existence and kind.
 
@@ -130,7 +130,7 @@ All four normalize code to facts and query declaratively, so the modelling insti
 **They are built for a different question.** These exist so that facts about millions of lines
 _across repositories_ need not be re-derived, and so that consumers nobody anticipated can ask
 questions later. Glean is an out-of-process server managing databases on disk, write-once then
-query-later, serving many clients. C-Next is a single batch process with no external consumers.
+query-later, serving many clients. cnx is a single batch process with no external consumers.
 No production compiler was found using any of them as the primary in-process store for its own
 passes.
 

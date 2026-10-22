@@ -66,7 +66,7 @@ describe("NameExistence.isTypeName", () => {
     ).toBe(false);
   });
 
-  describe("the C-Next / foreign split (#1312)", () => {
+  describe("the cnx / foreign split (#1312)", () => {
     it("accepts a C symbol from the run-wide table", () => {
       const table = tableWith([{ name: "FILE", language: ESourceLanguage.C }]);
       expect(NameExistence.isTypeName("FILE", createMockSymbols(), table)).toBe(
@@ -87,12 +87,12 @@ describe("NameExistence.isTypeName", () => {
       ).toBe(true);
     });
 
-    it("does NOT accept a C-Next symbol from the run-wide table", () => {
+    it("does NOT accept a cnx symbol from the run-wide table", () => {
       // The whole point of #1312: a sibling that was never included is still in
-      // the run-wide table. Consulting it for a C-Next name would answer "yes"
+      // the run-wide table. Consulting it for a cnx name would answer "yes"
       // in the file that cannot see it, and the diagnostic would never fire.
       const table = tableWith([
-        { name: "Mode", language: ESourceLanguage.CNext },
+        { name: "Mode", language: ESourceLanguage.Cnx },
       ]);
       expect(NameExistence.isTypeName("Mode", createMockSymbols(), table)).toBe(
         false,

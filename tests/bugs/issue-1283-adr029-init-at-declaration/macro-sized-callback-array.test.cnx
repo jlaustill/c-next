@@ -2,7 +2,7 @@
 // test-no-warnings
 // test-adr: 029
 // #1283 review: a callback array sized by a C macro still holds the default
-// function in every element. C-Next reads the macro's integer value from the
+// function in every element. cnx reads the macro's integer value from the
 // header, so it can spell each element; the dimension stays the macro.
 #include "handler_sizes.h"
 

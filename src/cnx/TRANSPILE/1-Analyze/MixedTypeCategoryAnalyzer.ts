@@ -3,7 +3,7 @@
  *
  * Detects operators whose two operands have different essential type
  * categories at compile time: signed, unsigned, floating, and -- per MISRA
- * C:2012 Rule 10.4, for C-Next and header types alike (#1668, ruling 2) --
+ * C:2012 Rule 10.4, for cnx and header types alike (#1668, ruling 2) --
  * character, Boolean, and each named enum as a category of its own.
  *
  * MISRA C:2012 Rule 10.4: "Both operands of an operator in which the usual
@@ -72,7 +72,7 @@ type Category = string | null;
 type TOperatorSite = "binary" | "conditional" | "compound";
 
 /**
- * #1688 (ADR-024): a header macro C-Next cannot type. Not a Rule 10.4
+ * #1688 (ADR-024): a header macro cnx cannot type. Not a Rule 10.4
  * category -- it is rejected beside an integer only, as E0811 or E0812
  */
 const UNREADABLE_MACRO = "unreadable macro";
@@ -235,7 +235,7 @@ class MixedCategoryCheck {
   /**
    * Whether ADR-017 reports this pair (E0434, with its own message), so that
    * one defect has one code. Asked of E0434's own reading, so the two cannot
-   * disagree about what is a C-Next enum: a header's enum is not one there,
+   * disagree about what is a cnx enum: a header's enum is not one there,
    * and its comparison with an integer is this rule's mix.
    */
   private enumComparison(
@@ -442,7 +442,7 @@ class MixedTypeCategoryAnalyzer {
     });
   }
 
-  /** E0811 or E0812: an integer beside a header macro C-Next cannot type (#1688, ADR-024) */
+  /** E0811 or E0812: an integer beside a header macro cnx cannot type (#1688, ADR-024) */
   private addUnreadableMacroError(
     line: number,
     column: number,

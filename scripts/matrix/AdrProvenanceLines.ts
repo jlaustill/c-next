@@ -24,7 +24,7 @@ import NodeFileSystem from "../../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 /** Throwaway output directory; the matrix cares about provenance, not files. */
 function scratchDir(): string {
-  return mkdtempSync(join(tmpdir(), "cnext-matrix-"));
+  return mkdtempSync(join(tmpdir(), "cnx-matrix-"));
 }
 
 /**

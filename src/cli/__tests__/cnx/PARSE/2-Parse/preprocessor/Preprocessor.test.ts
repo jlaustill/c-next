@@ -222,7 +222,7 @@ describe("Preprocessor", () => {
       );
       // A board-name macro whose value contains spaces and parentheses — valid
       // for the compiler, but would break /bin/sh if the command were routed
-      // through a shell (Issue: cnext preprocessor must invoke via argv).
+      // through a shell (Issue: cnx preprocessor must invoke via argv).
       await preprocessor.preprocess("/path/to/file.h", {
         defines: {
           ARDUINO_BOARD: '"Espressif ESP32-S3 (8 MB QD, No PSRAM)"',
@@ -415,7 +415,7 @@ int y = 10;
         settingsFor(new MockFileSystem()),
       );
 
-      await preprocessor.preprocessString("int x;", "cnext-include.hpp");
+      await preprocessor.preprocessString("int x;", "cnx-include.hpp");
 
       expect(seen[0].slice(-3)).toEqual(["-x", "c++-header", "-"]);
     });

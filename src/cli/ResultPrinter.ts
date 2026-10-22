@@ -68,7 +68,7 @@ class ResultPrinter {
   /**
    * Issue #1143: Report what THIS project needs from its toolchain.
    *
-   * A static compatibility matrix can only say what C-Next might need. This
+   * A static compatibility matrix can only say what cnx might need. This
    * says what the code just transpiled actually needs, and where each cost came
    * from -- the number someone choosing a toolchain is really asking for.
    * Printed only when something exceeds the mode's baseline, so an ordinary

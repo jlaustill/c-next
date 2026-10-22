@@ -1,5 +1,5 @@
 /**
- * A generated header's marker: the C-Next source it records, and where in
+ * A generated header's marker: the cnx source it records, and where in
  * the header that name is written (#1542), so a fault about the source --
  * E0509, a source that is not there -- is reported at the marker.
  */

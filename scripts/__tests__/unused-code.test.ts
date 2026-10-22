@@ -20,7 +20,7 @@ const SCRIPTS: Record<string, string> = {
 
 describe("UnusedCode.generatedRoots (#1556)", () => {
   it("collects EVERY antlr script's -o, not just the first", () => {
-    // The C and C++ roots nest under the C-Next one, so reading only `antlr`
+    // The C and C++ roots nest under the cnx one, so reading only `antlr`
     // covered them by accident. Move either out and the accident stops
     // holding -- a dozen generated findings become "authored dead code" with
     // nothing pointing at the cause (#1580 review).

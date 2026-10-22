@@ -20,7 +20,7 @@ describe("a rejected program plans no file, including a clean one (#1320)", () =
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-rejected-program-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-rejected-program-"));
   });
 
   afterEach(() => {

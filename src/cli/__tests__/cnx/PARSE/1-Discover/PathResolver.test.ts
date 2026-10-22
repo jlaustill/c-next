@@ -34,7 +34,7 @@ describe("PathResolver", () => {
   function createFile(path: string): IDiscoveredFile {
     return {
       path: resolve(path),
-      type: EFileType.CNext,
+      type: EFileType.Cnx,
     };
   }
 

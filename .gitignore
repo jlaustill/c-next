@@ -11,7 +11,7 @@ dist/
 # Test coverage (CI publishes it to Pages; nothing is committed)
 coverage/
 
-# C-Next local cache (Pipeline symbol cache - Issue #183)
+# cnx local cache (Pipeline symbol cache - Issue #183)
 .cnx/
 
 # Test builds
@@ -104,7 +104,7 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 
-# Temporary C-Next test files
+# Temporary cnx test files
 temp.cnx
 *.ctu-info
 
@@ -144,3 +144,8 @@ cppcheck-addon-ctu-file-list*
 # settings.json) stay committed. `.cspell.json` ignores this path too, so the
 # spell checker stays quiet for contributors whose git has no global rule.
 .claude/settings.local.json
+
+# Drawn on demand by `npm run analyze:madge:graph` and `npm run depcruise:graph`.
+# Nothing links or regenerates a committed copy, so one only goes stale.
+docs/architecture/dependency-graph.svg
+dependency-graph.svg

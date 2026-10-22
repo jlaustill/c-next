@@ -17,7 +17,7 @@ describe("SymbolGuards", () => {
       scopePath: "",
       sourceFile: "test.cnx",
       span: TestSourceSpan.at(1),
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public",
     } as TSymbol;
   };

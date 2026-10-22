@@ -1,7 +1,7 @@
 import IDiscoveredFile from "./IDiscoveredFile";
 
 /**
- * One C-Next file of the `SourceGraph` 1.1 Discover emits.
+ * One cnx file of the `SourceGraph` 1.1 Discover emits.
  *
  * A files run and a source run build the same record: discovery read every
  * file's text, or was handed the root's, and 1.2 parses exactly that.
@@ -32,7 +32,7 @@ interface IPipelineFile {
    * over exactly this graph. It was set in source mode only, so every file on
    * the CLI path had 1.4 re-read it from disk under a weaker search path.
    */
-  readonly cnextIncludes: ReadonlyArray<{ path: string }>;
+  readonly cnxIncludes: ReadonlyArray<{ path: string }>;
 
   /**
    * Whether this file can see a C/C++ header, directly or through any `.cnx`
@@ -43,8 +43,8 @@ interface IPipelineFile {
    * and a `#define` never reaches it at all, so a file that can see one must
    * decline to answer. Computed from the resolver's own categorization during
    * discovery, which is the authoritative answer -- deriving it from `#include`
-   * token text in the analyzer made a third spelling of "is this a C-Next
-   * include?" and that spelling missed `.cnext`.
+   * token text in the analyzer made a third spelling of "is this a cnx
+   * include?", and that spelling disagreed with the resolver's.
    */
   readonly reachesForeignHeader: boolean;
 }

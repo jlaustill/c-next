@@ -42,7 +42,7 @@ type TOperandForm =
   | { readonly kind: "foreign"; readonly indeterminate: boolean }
   /**
    * A header macro whose replacement tokens are not a literal expression --
-   * a call, a cast, a pointer dereference -- so it has no type C-Next can
+   * a call, a cast, a pointer dereference -- so it has no type cnx can
    * read (#1688, ADR-024)
    */
   | { readonly kind: "unreadableMacro" };
@@ -60,9 +60,9 @@ interface IOperandType {
    */
   readonly typeName: string | null;
   /**
-   * The C type a header spelled for an integer or float whose width C-Next
+   * The C type a header spelled for an integer or float whose width cnx
    * does not fix: one the target's data model sizes (`size_t`, `long`,
-   * `double`) or none does (`int_fast16_t`). Null for a C-Next value and for
+   * `double`) or none does (`int_fast16_t`). Null for a cnx value and for
    * a fixed-width spelling, which `typeName` says the same way on every
    * target. It is how the value's type is named when output must not depend
    * on the target (#1760 review): what an unfixed-width bit write casts back
@@ -76,7 +76,7 @@ interface IOperandType {
   readonly bitWidth: number | null;
   /** `N` of a `string<N>` value */
   readonly stringCapacity: number | null;
-  /** The enum's C name, for a value of a named C-Next enum */
+  /** The enum's C name, for a value of a named cnx enum */
   readonly enumTypeName: string | null;
   /** The bitmap's C name, for a whole bitmap value */
   readonly bitmapTypeName: string | null;

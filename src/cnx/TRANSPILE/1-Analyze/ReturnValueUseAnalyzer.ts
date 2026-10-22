@@ -13,15 +13,15 @@
  * lowering string operations -- is codegen, and is cast to void at the single
  * emit site in StringUtils. The two never disagree because neither re-derives
  * the other's decision: an author-written call reaches this analyzer, a
- * transpiler-emitted one never exists at the C-Next source level at all.
+ * transpiler-emitted one never exists at the cnx source level at all.
  *
- * Domain boundary: a callee whose return type C-Next cannot resolve is outside
+ * Domain boundary: a callee whose return type cnx cannot resolve is outside
  * the rule, not an exception to it -- you cannot check a return type you cannot
  * see. This is ADR-070's "enforce where resolvable" boundary.
  *
  * `safe_div`/`safe_mod` (ADR-051) are deliberately NOT exempt. An earlier draft
  * of ADR-070 carved them out on the premise that they have "no bound return" at
- * the C-Next level; authors bind it constantly (`err <- safe_div(...)`), and the
+ * the cnx level; authors bind it constantly (`err <- safe_div(...)`), and the
  * same ADR names "a discarded `safe_div` outcome" as a motivating example of the
  * bug this rule prevents. They are ordinary non-void functions here.
  */
@@ -90,7 +90,7 @@ class ReturnValueUseAnalyzer {
   }
 
   /**
-   * True only when C-Next can see a non-void return type for `name`.
+   * True only when cnx can see a non-void return type for `name`.
    * Unresolvable names answer false: outside the rule's domain, not exempt.
    */
   static returnsAValue(name: string, context: IAnalysisContext): boolean {
@@ -127,7 +127,7 @@ class ReturnValueUseAnalyzer {
    * Return type of a function declared in an included C/C++ header.
    *
    * C symbols carry their types as plain strings and live in a different part
-   * of the symbol table from C-Next symbols (`getCSymbol`, not the TSymbol
+   * of the symbol table from cnx symbols (`getCSymbol`, not the TSymbol
    * index), so they need their own lookup. ADR-070 rejects blanket-exempting
    * external C precisely because these returns are visible -- they just arrive
    * by a different route than CodeGenState.symbols, which merges only .cnx

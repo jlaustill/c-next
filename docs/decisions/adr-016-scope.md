@@ -1,15 +1,15 @@
-# ADR-016: How to Handle Scope in C-Next?
+# ADR-016: How to Handle Scope in cnx?
 
 **Status:** Implemented
 **Date:** 2025-12-29
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Supersedes:** ADR-002 (Namespaces), ADR-005 (Classes Without Inheritance)
 **Related:** ADR-014 (Structs), ADR-063 (Identifier Syntax — amends the qualified-name separator, see below)
 **Amended by:** ADR-057 (Implicit Scope Resolution — withdraws this ADR's requirement that `this.` and `global.` be explicit), ADR-111 (Safe Hardware Abstraction Primitives — `Research`; on acceptance, replaces the `@ address` form used throughout `### Scoped Registers`)
 **Amends:** ADR-002 (Namespaces — carries forward its file-independence rule, see _Scope Composition_)
 
 > **Amended by ADR-063 (Issue #1117).** Members are named `Scope__member` in
-> generated C. The separator is two underscores, and ADR-063 forbids a C-Next
+> generated C. The separator is two underscores, and ADR-063 forbids a cnx
 > identifier from ending with `_` or containing `__`, which makes the join
 > injective: a global `Reg_flags` and a `scope Reg` member `flags` are now
 > distinct C symbols, as are the members of `scope A_B { c }` and
@@ -17,12 +17,12 @@
 
 ## Context
 
-After reflection on the language design, the terms "namespace" and "class" carry significant C++ baggage and expectations that C-Next explicitly wants to avoid. These terms imply:
+After reflection on the language design, the terms "namespace" and "class" carry significant C++ baggage and expectations that cnx explicitly wants to avoid. These terms imply:
 
 - **namespace:** C++ module systems, `using namespace`, ADL (Argument Dependent Lookup), inline namespaces
 - **class:** Object-oriented programming, class instances, constructors/destructors, inheritance hierarchies, methods bound to types, `this` pointers, virtual functions
 
-C-Next's philosophy is "safety through removal, not addition" and alignment with C's mental model. The C++ terminology conflicts with this goal.
+cnx's philosophy is "safety through removal, not addition" and alignment with C's mental model. The C++ terminology conflicts with this goal.
 
 ### The Problem with "namespace"
 
@@ -30,7 +30,7 @@ While ADR-002's _behavior_ is correct (singleton services, private by default, n
 
 - Developers expect C++ namespace semantics
 - Questions arise about nested namespaces, `using` directives, anonymous namespaces
-- The concept carries OOP baggage C-Next doesn't want
+- The concept carries OOP baggage cnx doesn't want
 
 ### The Problem with "class"
 
@@ -41,7 +41,7 @@ ADR-005 attempted to provide "classes without inheritance" but the term "class" 
 - Data and behavior bundled together
 - An OOP mental model
 
-This conflicts with C-Next's goal of embracing C patterns with safety improvements.
+This conflicts with cnx's goal of embracing C patterns with safety improvements.
 
 The argument above is stated rather than demonstrated. **[The comparison matrix in the
 language guide](../language-guide.md#how-a-scope-compares-to-a-class-a-namespace-and-a-struct)**
@@ -57,7 +57,7 @@ Introduce a `scope` keyword to replace `namespace`. The term "scope" has minimal
 
 ### Visibility Defaults
 
-C-Next uses **member-type-aware visibility defaults** to reduce boilerplate:
+cnx uses **member-type-aware visibility defaults** to reduce boilerplate:
 
 - **Functions**: Public by default (API surface), use `private` keyword to hide
 - **Variables/types**: Private by default (internal state), use `public` keyword to expose
@@ -151,11 +151,11 @@ if enums are visible and structs are not, `Mode` and `Point` declared side by si
 in one file resolve differently in another, and the second does not compile.
 
 The same obligation holds over a second axis, and missing it is the more dangerous
-half. C-Next resolves a type name at **two points** (CLAUDE.md, _"Two resolution
+half. cnx resolves a type name at **two points** (CLAUDE.md, _"Two resolution
 points, one decision"_): the **symbols layer**, which produces the header, and the
 **codegen layer**, which produces the body. Both must see the same scope types.
 If they disagree, the prototype and the definition disagree — a bare `Point` in a
-parameter reaches the `.h` as `Point` and the `.c` as `Lib__Point`, `cnext` exits 0,
+parameter reaches the `.h` as `Point` and the `.c` as `Lib__Point`, `cnx` exits 0,
 and the C compiler rejects the pair.
 
 The two axes multiply rather than add: a kind that is visible in one layer and not
@@ -212,7 +212,7 @@ uint32_t Counter__getValue(void) {
 
 ### Thread Safety and Reentrancy (Issue #313)
 
-Scope variables use static storage, which means functions accessing them are **not reentrant** by design. This is intentional and safe in C-Next because:
+Scope variables use static storage, which means functions accessing them are **not reentrant** by design. This is intentional and safe in cnx because:
 
 1. **Compiler enforcement**: If a scope variable is accessed from multiple execution contexts (threads, RTOS tasks, interrupts), the compiler requires it to be marked `atomic`. This prevents accidental unsafe sharing.
 
@@ -245,7 +245,7 @@ scope CRC {
 A previous optimization attempted to convert scope variables used by only one function into function-local variables. This was **incorrect** because it changed observable behavior — a counter would reset on each call instead of persisting. The optimization was removed because:
 
 - It violated the semantic contract of scope variables (static-like persistence)
-- C-Next's `atomic` enforcement already prevents unsafe multi-context access
+- cnx's `atomic` enforcement already prevents unsafe multi-context access
 - Users who need reentrant functions should explicitly use local variables
 
 ### Scoped Registers
@@ -303,7 +303,7 @@ This pattern is useful for:
 
 ## Instance Model: C-Style with ADR-014 Structs
 
-Instead of "classes," C-Next embraces the C approach for instances:
+Instead of "classes," cnx embraces the C approach for instances:
 
 1. **Define data with structs** (ADR-014)
 2. **Define behavior with free functions** that take struct pointers
@@ -365,7 +365,7 @@ The following questions remain open and require further exploration:
 
 ### DECIDED: Name Resolution with `this.` and `global.`
 
-C-Next requires **explicit qualification** for all non-local references inside a scope. This eliminates ambiguity entirely and aligns with C-Next's safety-first philosophy.
+cnx requires **explicit qualification** for all non-local references inside a scope. This eliminates ambiguity entirely and aligns with cnx's safety-first philosophy.
 
 #### The Rule
 
@@ -573,7 +573,7 @@ bound. `Hw__Gpio__init` is 14 characters and fits comfortably, while a flat
 budget neither forbids depth 2 nor rescues a flat name. Flatness is chosen because
 one level is a namespace and more than one is a hierarchy: a hierarchy needs
 resolution rules, shadowing rules, and a visibility model per level, and every one of
-those is a place a reader can be wrong about where a name comes from. C-Next declines
+those is a place a reader can be wrong about where a name comes from. cnx declines
 to have them. A proposal for depth-2 nesting is not answered by arithmetic and is not
 reopened by it either (#1306 review).
 
@@ -711,7 +711,7 @@ they cannot exist.
 
 | Code  | Reported when                                                                                                                                                                               | Asserted by                                                                                                                                                                                                            |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one                                                                                         | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`                                                |
+| E0425 | Two definitions of the same member name in one scope, or a cnx symbol colliding with a C/C++ one                                                                                            | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`                                                |
 | E0430 | A scope is declared inside another scope, in the entry file or in an included one                                                                                                           | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                                                                    |
 | E0431 | `this` used outside a scope, as a value or as a case label (#2075), or `global` used at file level, outside a scope and outside a function (#2087), in the entry file or in an included one | `tests/adr-016/this-outside-scope-error`, `tests/adr-016/this-outside-scope-imported-error`, `tests/adr-016/global-outside-scope-error`, `tests/adr-016/global-outside-scope-imported-error`                           |
 | E0435 | A scope's own member reached through the scope's name                                                                                                                                       | `tests/adr-016/self-scope-bare-error`, `tests/adr-016/mixed-access-ultimate-error`, `tests/adr-016/scope-access-uncovered-arms-error`                                                                                  |
@@ -821,4 +821,4 @@ const is named -- an expression, `this.`, or a `case` label.
 ### Design Principles
 
 - [KISS Principle](https://en.wikipedia.org/wiki/KISS_principle)
-- [C-Next Philosophy: Safety through removal, not addition](../README.md)
+- [cnx Philosophy: Safety through removal, not addition](../README.md)

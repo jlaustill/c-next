@@ -6,16 +6,16 @@
 #include "external-template-interop.test.hpp"
 
 // test-cpp-only
-// Issue #291: Test C++ template interop with C-Next scope
+// Issue #291: Test C++ template interop with cnx scope
 // This demonstrates that template types come from C++ headers (external)
-// while scope types are defined in C-Next itself
+// while scope types are defined in cnx itself
 #include "template-stubs.h"
 
 // External C++ template type (simulating FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16>)
 // In real usage this would come from FlexCAN_T4.h
 extern const TemplateType<Param1,Param2,Param3> canBus = {};
 
-// C-Next defined scope with its own types
+// cnx defined scope with its own types
 /* Scope: CANHandler */
 
 void CANHandler__init(void) {

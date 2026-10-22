@@ -5,7 +5,7 @@
  * requires each value in its initializer to be a constant expression (C99
  * 6.7.8p4): a `const` object is not one, and neither is ADR-044's clamp helper
  * call. Each is a value fixed at compile time (ADR-044, #1175), `mut` or not.
- * One of a C-Next number or bool type that is not written as a literal is
+ * One of a cnx number or bool type that is not written as a literal is
  * folded here, at the type its position holds it at: the one answer 2.1
  * rejects (E0909, E0910) and 2.2 spells. One of any other type (an enum, a
  * struct) has no typed fold, but is asked the same question untyped, so one
@@ -87,7 +87,7 @@ class StaticInitializers {
   }
 
   /**
-   * `settle`, reading each header macro C-Next can: what 2.1 checks, so a
+   * `settle`, reading each header macro cnx can: what 2.1 checks, so a
    * macro's arithmetic clamps or wraps no more silently than a const's
    * (#1735 review 2). C is still given the macro.
    */
@@ -122,7 +122,7 @@ class StaticInitializers {
 
   /**
    * Whether the value has none C can be given, which 2.1 reports (E0909):
-   * one of a number or bool type that C-Next cannot fold and C cannot
+   * one of a number or bool type that cnx cannot fold and C cannot
    * evaluate; one of any other type that reads a variable or calls a function
    */
   static lacksValue(value: IStaticValue, settled: TSettledConst): boolean {
@@ -133,8 +133,8 @@ class StaticInitializers {
   }
 
   /**
-   * A value C evaluates that reads a C-Next const, written as dimensions are
-   * (`ConstantFold.settled`): each C-Next name as its value, each header name
+   * A value C evaluates that reads a cnx const, written as dimensions are
+   * (`ConstantFold.settled`): each cnx name as its value, each header name
    * as C spells it -- since C cannot read the const object (#1735 review)
    */
   static cText(
@@ -149,7 +149,7 @@ class StaticInitializers {
   }
 
   /**
-   * Whether the value does arithmetic that can clamp or wrap: what C-Next
+   * Whether the value does arithmetic that can clamp or wrap: what cnx
    * must see every operand of to check (#1735 review 2)
    */
   static wraps(value: IStaticValue): boolean {
@@ -218,7 +218,7 @@ class StaticInitializers {
   }
 
   /**
-   * Whether C has a value C-Next does not: a char literal, or a name only a
+   * Whether C has a value cnx does not: a char literal, or a name only a
    * header declares, reached directly or through the consts it is read from
    */
   static cHasValue(settled: TSettledConst): boolean {
@@ -232,7 +232,7 @@ class StaticInitializers {
 
   /**
    * The const a value names alone, as `CH` or `S.LIMIT` -- what C is given
-   * when C-Next has no value for it but C does (`cHasValue`) -- or null
+   * when cnx has no value for it but C does (`cHasValue`) -- or null
    */
   static namedConst(
     value: TExpression,

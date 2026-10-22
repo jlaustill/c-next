@@ -1,7 +1,7 @@
 /**
- * SymbolRegistry - Central registry for C-Next symbol management
+ * SymbolRegistry - Central registry for cnx symbol management
  *
- * Provides centralized storage and lookup for all symbols in the C-Next transpiler.
+ * Provides centralized storage and lookup for all symbols in the cnx transpiler.
  *
  * Design decisions:
  * - One instance per RUN, threaded; there is no global to clear (#1452 box 3)
@@ -174,8 +174,8 @@ class SymbolRegistry {
    * functions in ONE scope share a name", which is the stronger result: it holds
    * even if the encoder changes.
    *
-   * E0425 is what supplies it. C-Next has no function overloads, so two functions
-   * sharing a name in a scope are rejected by `SymbolTable.detectCNextDuplicate`
+   * E0425 is what supplies it. cnx has no function overloads, so two functions
+   * sharing a name in a scope are rejected by `SymbolTable.detectCnxDuplicate`
    * before anything reads this list, whether their signatures differ or not --
    * gated by tests/bugs/issue-1358-declare-idempotence/. The same holds in the
    * global scope, where two same-named top-level functions in different files

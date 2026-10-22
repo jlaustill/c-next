@@ -24,7 +24,7 @@ describe("IBaseSymbol", () => {
 
     expect(symbol.kind).toBe("function");
     expect(symbol.name).toBe("testFunc");
-    expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+    expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
     expect(ScopeUtils.isGlobalScopePath(symbol.scopePath)).toBe(true);
   });
 

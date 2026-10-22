@@ -4,7 +4,7 @@ import type ITranspileError from "./ITranspileError";
 import type IProgramSyntax from "./syntax/IProgramSyntax";
 
 /**
- * What 1.2 Parse hands 1.3 for one C-Next file: plain data, no tree (#1991).
+ * What 1.2 Parse hands 1.3 for one cnx file: plain data, no tree (#1991).
  *
  * "The tree never leaves 1.2": everything a later pass reads is here, read
  * off the tree while 1.2 still holds it. `IParsedFile` is this plus the tree

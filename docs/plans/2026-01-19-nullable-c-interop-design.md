@@ -6,7 +6,7 @@
 
 ## Problem
 
-C-Next eliminates null bugs by design for native types. However, C library functions commonly return nullable pointers (`FILE*`, `char*`, etc.). The current ADR-047 approach is too restrictive:
+cnx eliminates null bugs by design for native types. However, C library functions commonly return nullable pointers (`FILE*`, `char*`, etc.). The current ADR-047 approach is too restrictive:
 
 - Cannot store nullable returns in variables (E0904)
 - Functions like `fopen`, `getenv` are forbidden (E0902)
@@ -21,7 +21,7 @@ Allow nullable C pointer types with a mandatory `c_` prefix that signals "this i
 
 1. **`c_` prefix required** for variables storing nullable C pointer returns
 2. **NULL comparisons allowed** only for `c_` prefixed variables
-3. **C-Next native types unchanged** — `string`, `u32`, structs remain non-nullable
+3. **cnx native types unchanged** — `string`, `u32`, structs remain non-nullable
 4. **Compiler enforces** correct prefix usage and NULL checks before use
 
 ### Examples
@@ -39,7 +39,7 @@ if (c_file != NULL) {
     fclose(c_file);
 }
 
-// Non-nullable C-Next variable - no prefix, no NULL
+// Non-nullable cnx variable - no prefix, no NULL
 string<64> buffer;  // Always valid, zero-initialized
 ```
 
@@ -51,7 +51,7 @@ string<64> buffer;  // Always valid, zero-initialized
 | C function returning int/value   | No                 | `i32 count <- get_count()`          |
 | C struct with pointer members    | Yes                | `CRecord c_rec <- get_record()`     |
 | C struct with only value members | No                 | `SimpleRecord rec <- make_record()` |
-| C-Next native types              | No (and forbidden) | `string<64> buffer`                 |
+| cnx native types                 | No (and forbidden) | `string<64> buffer`                 |
 
 ## Struct Member Access
 
@@ -169,7 +169,7 @@ if (c_result != NULL) {
 
 - E0901 → Replaced by E0908 (more general)
 - E0902 → Removed (functions now allowed)
-- E0903 → Keep (NULL invalid for C-Next types)
+- E0903 → Keep (NULL invalid for cnx types)
 - E0904 → Removed (storage allowed with `c_` prefix)
 
 **The E0702 stream function exemption can be removed** — users choose to store or check inline.
@@ -177,7 +177,7 @@ if (c_result != NULL) {
 ## Benefits
 
 1. **Self-documenting code** — `c_` prefix tells readers "nullable C territory"
-2. **Maintains null safety** — C-Next native types remain non-nullable
+2. **Maintains null safety** — cnx native types remain non-nullable
 3. **Unlocks practical I/O** — File handling, environment variables now usable
 4. **Simpler rules** — No special exemptions needed for stream functions
 5. **Clear errors** — Compiler guides correct usage

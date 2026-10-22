@@ -95,7 +95,7 @@ describe("generateTernaryExpr", () => {
 
       generate({
         kind: "ternary",
-        // ADR-001: C-Next uses "=" for equality, which maps to C's "==". That
+        // ADR-001: cnx uses "=" for equality, which maps to C's "==". That
         // translation is the operand generator's, so the plan carries its
         // result.
         renderCondition: () => {

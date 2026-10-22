@@ -7,7 +7,7 @@
 
 // test-execution
 // test-adr: 014
-// ADR-014 / #895 (#1530 review): a C-Next function used as a C callback whose
+// ADR-014 / #895 (#1530 review): a cnx function used as a C callback whose
 // typedef takes the struct by value has a by-value parameter in C as well, so
 // a struct argument goes to it by value -- a literal as `(VPt){ ... }`, not
 // `&(VPt){ ... }`, and a variable as itself, not `&a`. The call reads the

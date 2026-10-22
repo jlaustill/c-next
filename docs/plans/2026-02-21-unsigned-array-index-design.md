@@ -5,7 +5,7 @@
 
 ## Problem
 
-C-Next currently accepts any expression as an array or bit index with zero type validation. Signed integers, floats, strings, and structs are all silently passed through to generated C. This contradicts C-Next's safety-by-construction philosophy and allows negative index bugs (CWE-787).
+cnx currently accepts any expression as an array or bit index with zero type validation. Signed integers, floats, strings, and structs are all silently passed through to generated C. This contradicts cnx's safety-by-construction philosophy and allows negative index bugs (CWE-787).
 
 ## Decision
 
@@ -54,7 +54,7 @@ Use `TypeResolver.getExpressionType()` to determine the type of the index expres
 
 ### ADR-054 Updates
 
-1. Fix all C-Next syntax examples (e.g., `wrap u8[256] rxBuffer;` not `wrap u8 rxBuffer[256];`)
+1. Fix all cnx syntax examples (e.g., `wrap u8[256] rxBuffer;` not `wrap u8 rxBuffer[256];`)
 2. Add unsigned index types as a design element
 3. Keep status as Research (no status change)
 4. Update code blocks to use `<-` for assignment, `=` for comparison

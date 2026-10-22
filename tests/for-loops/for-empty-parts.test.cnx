@@ -28,7 +28,7 @@ void testEmptyInitAndUpdate() {
 }
 
 // Test 4: Use explicit condition instead of infinite loop + break
-// C-Next doesn't have break; use structured conditions
+// cnx doesn't have break; use structured conditions
 void testExplicitCondition() {
     mut u32 count <- 0;
     for (mut u32 i <- 0; i < 5; i <- i + 1) {
@@ -38,7 +38,7 @@ void testExplicitCondition() {
 }
 
 // Test 5: All parts present (structured approach)
-// C-Next doesn't have break; always use explicit loop conditions
+// cnx doesn't have break; always use explicit loop conditions
 void testStructuredLoop() {
     mut u32 i <- 0;
     for (; i < 3; ) {

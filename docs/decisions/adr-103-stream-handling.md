@@ -2,7 +2,7 @@
 
 **Status:** Research
 **Date:** 2026-01-06
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
@@ -14,14 +14,14 @@ FILE* f = fopen("data.txt", "r");  // Returns FILE* or NULL
 fclose(f);                          // Must close to avoid resource leak
 ```
 
-This pattern is problematic for C-Next because:
+This pattern is problematic for cnx because:
 
-1. **FILE\* is an opaque pointer** - Cannot be stored in a C-Next type
+1. **FILE\* is an opaque pointer** - Cannot be stored in a cnx type
 2. **Dynamic resource** - Requires explicit cleanup (fclose)
-3. **No RAII** - C-Next doesn't have destructors
+3. **No RAII** - cnx doesn't have destructors
 4. **NULL return** - Must handle file-not-found gracefully
 
-This ADR researches how C-Next should handle file I/O and other stream-based resources.
+This ADR researches how cnx should handle file I/O and other stream-based resources.
 
 ## Use Cases
 
@@ -36,7 +36,7 @@ Most embedded systems don't have filesystems, but some do:
 
 ### Desktop Targets (Future)
 
-Full file I/O for desktop C-Next targets:
+Full file I/O for desktop cnx targets:
 
 - Reading/writing files
 - Configuration management

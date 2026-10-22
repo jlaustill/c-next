@@ -1,5 +1,5 @@
 /**
- * #1688: each C-Next file's header macros, as the preprocessor's `-dM` dump of
+ * #1688: each cnx file's header macros, as the preprocessor's `-dM` dump of
  * that file's own C includes -- so a file sees the macros C sees for it, system
  * headers and compiler builtins included, and no other file's.
  *
@@ -17,7 +17,7 @@ import type IHeaderMacroDump from "./types/IHeaderMacroDump";
 import type IPipelineFile from "../1-Discover/types/IPipelineFile";
 
 class HeaderMacroDumps {
-  /** Every C-Next file with a C include, to its dump */
+  /** Every cnx file with a C include, to its dump */
   static async read(
     files: readonly IPipelineFile[],
     includes: ReadonlyMap<string, IFileIncludes>,

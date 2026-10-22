@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Reject signed/float/non-integer types as array and bit indexes at compile time (E0850), and update ADR-054 syntax to match current C-Next conventions.
+**Goal:** Reject signed/float/non-integer types as array and bit indexes at compile time (E0850), and update ADR-054 syntax to match current cnx conventions.
 
 **Architecture:** New `ArrayIndexTypeAnalyzer` in `src/transpiler/logic/analysis/` following the two-pass `FloatModuloAnalyzer` pattern. Pass 1 collects variable type declarations, Pass 2 walks `postfixOp`/`postfixTargetOp` nodes and validates index expression types against the allowed set (unsigned integers, bool, enum, literals).
 
-**Tech Stack:** ANTLR4 ParseTreeWalker, CNextListener, vitest
+**Tech Stack:** ANTLR4 ParseTreeWalker, CnxListener, vitest
 
 ---
 
@@ -16,7 +16,7 @@
 
 - Modify: `docs/decisions/adr-054-array-index-overflow.md`
 
-**Step 1: Fix all C-Next syntax in the ADR**
+**Step 1: Fix all cnx syntax in the ADR**
 
 Apply these changes throughout the file:
 
@@ -58,7 +58,7 @@ All bracket subscript expressions require unsigned integer types. Signed integer
 | `i8`, `i16`, `i32`, `i64` | **Compile error** | Negative indexes are undefined behavior |
 | `f32`, `f64`              | **Compile error** | Not valid index types                   |
 
-This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using C-Next's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
+This follows the same approach as Rust (`usize` only) and Zig (`usize` only), but using cnx's fixed-width unsigned types instead of a platform-sized type (see ADR-020).
 
 ```cnx
 u8[100] buffer;
@@ -86,7 +86,7 @@ palette[EColor.RED] <- 0xFF;   // OK: enum member
 
 ```bash
 git add docs/decisions/adr-054-array-index-overflow.md
-git commit -m "docs: update ADR-054 syntax to match C-Next conventions
+git commit -m "docs: update ADR-054 syntax to match cnx conventions
 
 Fix array declarations to type[size] name format and add
 Index Type Safety section for unsigned-only index restriction."
@@ -186,20 +186,20 @@ git commit -m "feat: add UNSIGNED_INDEX_TYPES and SIGNED_TYPES to TypeConstants"
 
 **Step 1: Write the test file**
 
-Follow the `DivisionByZeroAnalyzer.test.ts` pattern. Use `CharStream.fromString` → `CNextLexer` → `CommonTokenStream` → `CNextParser` → `parser.program()` to parse source.
+Follow the `DivisionByZeroAnalyzer.test.ts` pattern. Use `CharStream.fromString` → `CnxLexer` → `CommonTokenStream` → `CnxParser` → `parser.program()` to parse source.
 
 ```typescript
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../parser/grammar/CNextLexer";
-import { CNextParser } from "../../parser/grammar/CNextParser";
+import { CnxLexer } from "../../parser/grammar/CnxLexer";
+import { CnxParser } from "../../parser/grammar/CnxParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
+  const lexer = new CnxLexer(charStream);
   const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
+  const parser = new CnxParser(tokenStream);
   return parser.program();
 }
 
@@ -474,8 +474,8 @@ Follow the `FloatModuloAnalyzer` two-pass pattern exactly:
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../parser/grammar/CNextListener";
-import * as Parser from "../parser/grammar/CNextParser";
+import { CnxListener } from "../parser/grammar/CnxListener";
+import * as Parser from "../parser/grammar/CnxParser";
 import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
@@ -484,7 +484,7 @@ import TypeConstants from "../../../utils/constants/TypeConstants";
 /**
  * First pass: Collect variable and parameter declarations with their types
  */
-class VariableTypeCollector extends CNextListener {
+class VariableTypeCollector extends CnxListener {
   private readonly varTypes: Map<string, string> = new Map();
 
   public getVarTypes(): Map<string, string> {
@@ -521,7 +521,7 @@ class VariableTypeCollector extends CNextListener {
 /**
  * Second pass: Validate index expressions in subscript operations
  */
-class IndexTypeListener extends CNextListener {
+class IndexTypeListener extends CnxListener {
   private readonly analyzer: ArrayIndexTypeAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
@@ -814,7 +814,7 @@ consistent with the new unsigned index restriction (E0850)."
 
 `tests/analysis/signed-array-index.test.cnx`:
 
-```c-next
+```cnx
 // EXPECT-ERROR: Signed integer used as array index
 void test_signed_index() {
     u8[10] buffer;
@@ -835,7 +835,7 @@ Note: The exact line:column will need to be verified by running the test and che
 
 `tests/analysis/float-array-index.test.cnx`:
 
-```c-next
+```cnx
 // EXPECT-ERROR: Float used as array index
 void test_float_index() {
     u8[10] buffer;
@@ -878,7 +878,7 @@ git commit -m "test: add integration tests for signed/float array index errors"
 
 `tests/analysis/signed-bit-index.test.cnx`:
 
-```c-next
+```cnx
 // EXPECT-ERROR: Signed integer used as bit index
 void test_signed_bit() {
     u8 flags <- 0xFF;

@@ -1,5 +1,5 @@
 /**
- * Maps C-Next types to C types
+ * Maps cnx types to C types
  *
  * Re-exports shared type mapping for backwards compatibility.
  * Source of truth: src/constants/TypeMappings.ts

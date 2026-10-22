@@ -28,7 +28,7 @@ scope Lib {
     // which produces the `.h`. Pass 0b walks one parse tree, so before the fix it
     // could not see the half of this scope declared in span-lib.cnx: the `.h` said
     // `const Point*` while the `.c` said `const Lib__Point*`, and gcc rejected the
-    // pair. `cnext` exited 0 (CLAUDE.md, "Two resolution points, one decision").
+    // pair. `cnx` exited 0 (CLAUDE.md, "Two resolution points, one decision").
     public u32 sumThrough(Point p) {
         return p.x + p.y;
     }

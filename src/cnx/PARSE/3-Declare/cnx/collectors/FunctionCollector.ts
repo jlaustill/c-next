@@ -69,7 +69,7 @@ class FunctionCollector {
       visibility,
       sourceFile,
       span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
     };
   }
 
@@ -130,7 +130,7 @@ class FunctionCollector {
       // ADR-071: read-only unless declared `mut`
       const isConst = !p.mut;
 
-      // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
+      // Check for cnx style array type (u8[8] param, u8[4][4] param, u8[] param)
       const arrayTypeDimensions =
         p.type.kind === "array" ? p.type.dimensions : null;
       // #1668: and the C-style dimensions E0874 admits for `main(string

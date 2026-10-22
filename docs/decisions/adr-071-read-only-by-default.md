@@ -70,7 +70,7 @@ files) with the transpiler's own analysis, not a text search: for a parameter, t
 direct-and-transitive answer that decides the generated signatures above; for every other
 binding, the binder that decides which declaration each assignment target, `safe_div`/
 `safe_mod` output and call argument names, with a call argument counted as a write when the
-C-Next callee writes that parameter. Parameters were counted in the 1942 files that reach
+cnx callee writes that parameter. Parameters were counted in the 1942 files that reach
 whole-program analysis; other bindings in the 1449 that reach the const check (the other 533
 are 519 fixtures that stop at an earlier error and 14 helpers that do not transpile alone).
 
@@ -84,7 +84,7 @@ are 519 fixtures that stop at an earlier error and 14 helpers that do not transp
 | **all**        | **8477** |              **2284** |               **199** |          **534** |                    **5694** |
 
 - 20 of the 73 parameters written only through a call are written through a callee that is
-  not C-Next (a C/C++ header).
+  not cnx (a C/C++ header).
 - 35 bindings are both written and `const`; they are the fixtures that assert E0877.
 - 97 more bindings are passed to a C/C++ function or a builtin and written nowhere else. Each
   needs `mut` only if that parameter is a non-`const` pointer, which the count does not
@@ -130,7 +130,7 @@ an unwritten parameter, local, global and scope member as not written.
    global that C code writes.
 7. A read-only binding is generated with C's `const` (`const uint32_t LIMIT = 5U;`,
    `void show(const uint32_t v)`), so the generated C and the header a C file includes say
-   what the C-Next says. For a struct or array parameter, passed by pointer, that is also
+   what the cnx says. For a struct or array parameter, passed by pointer, that is also
    MISRA C:2012 Rule 8.13's `const` on the pointed-to type.
 
 _(Clarified 2026-10-19, owner ruling on #2233: an `atomic` binding is writable without `mut`, since only a value something writes needs a read or write that cannot be torn (ADR-049). `atomic mut` is E0919. Decision 6 still applies: an `atomic` local or private scope member nothing writes is E0899, which asks for `atomic` to be removed.)_
@@ -168,8 +168,8 @@ more than the code needs — with two exemptions:
 
 - a function used as a callback type (ADR-029): its body is the default and is often empty,
   while the functions assigned to it may write; its `mut` is part of the type;
-- a global another language writes: a C-Next global a C file or an interrupt handler written
-  in C assigns is written in no C-Next code, so the analysis would call its `mut` unused.
+- a global another language writes: a cnx global a C file or an interrupt handler written
+  in C assigns is written in no cnx code, so the analysis would call its `mut` unused.
 
 ### Q3 and Q4: Passing a binding to a parameter that writes — decided (Decision 2)
 
@@ -186,7 +186,7 @@ becomes that diagnostic: there is no longer a "non-const" parameter that is not 
 parameter that is a non-`const` pointer (ADR-061): 20 parameters are writable today only for
 that reason, and up to 97 other bindings are passed to C/C++ or builtin parameters.
 
-A callee nothing declares does not reach this rule: calling a function with no C-Next
+A callee nothing declares does not reach this rule: calling a function with no cnx
 definition and no header declaration is already an error (E0422, "function 'g' called before
 definition"), so every call has a signature to check.
 
@@ -226,7 +226,7 @@ Three read-only bindings are generated without `const`, with the owner's approva
   function-pointer parameter in a declaration. `ISR const cb` and `void (* const cb)(void)` are
   reported too.
 
-The C-Next rule does not change for any of them: writing one is still E0900.
+The cnx rule does not change for any of them: writing one is still E0900.
 
 ### Q7: Which bindings — decided
 
@@ -270,11 +270,11 @@ typedef's pointer constness. Both are fixed, and the script's `mut` for them is 
 
 ## Diagnostics
 
-| Code  | Meaning                                                                                                                                                                                                                                                                                                                                            | Asserted by                                                                                                                                                                                                                      |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0898 | `const` written on a declaration (Decision 5)                                                                                                                                                                                                                                                                                                      | `tests/adr-071/`                                                                                                                                                                                                                 |
-| E0899 | A `mut` binding nothing writes, outside the two exemptions (Decision 6)                                                                                                                                                                                                                                                                            | `tests/adr-071/`                                                                                                                                                                                                                 |
-| E0900 | A write to a binding not declared `mut`: an assignment to or through it, a `safe_div`/`safe_mod` output, an argument to a `mut` C-Next parameter or a C/C++ pointer or array parameter that is not const (Decision 2), or an opaque handle (ADR-030) stored in a `mut` binding, which can then write what it refers to. It retires E0877 and E0878 | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-051/safe-division-const-output-error.test.cnx`, `tests/bugs/issue-1977-struct-to-c-byte-pointer/`, `tests/bugs/issue-1722-opaque-param-forwarding/scope-this-callee.test.cnx` |
+| Code  | Meaning                                                                                                                                                                                                                                                                                                                                         | Asserted by                                                                                                                                                                                                                      |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0898 | `const` written on a declaration (Decision 5)                                                                                                                                                                                                                                                                                                   | `tests/adr-071/`                                                                                                                                                                                                                 |
+| E0899 | A `mut` binding nothing writes, outside the two exemptions (Decision 6)                                                                                                                                                                                                                                                                         | `tests/adr-071/`                                                                                                                                                                                                                 |
+| E0900 | A write to a binding not declared `mut`: an assignment to or through it, a `safe_div`/`safe_mod` output, an argument to a `mut` cnx parameter or a C/C++ pointer or array parameter that is not const (Decision 2), or an opaque handle (ADR-030) stored in a `mut` binding, which can then write what it refers to. It retires E0877 and E0878 | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-051/safe-division-const-output-error.test.cnx`, `tests/bugs/issue-1977-struct-to-c-byte-pointer/`, `tests/bugs/issue-1722-opaque-param-forwarding/scope-this-callee.test.cnx` |
 
 ## Scope-Context Matrix (#1219)
 
@@ -331,7 +331,7 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
   binding says `mut`, and every `const` stops compiling until it is removed (Decision 5).
   In the corpus that is 2284 and 534 declarations (Context).
 - **`mut` is a reserved word.** A C field or function named `mut` (`l.mut`, `global.mut()`)
-  can no longer be named from C-Next: it is a parse error, where before this ADR it compiled.
+  can no longer be named from cnx: it is a parse error, where before this ADR it compiled.
 - **The common case gets shorter.** 5694 corpus bindings are already read-only and unmarked; they
   keep their spelling and gain a guarantee they did not have.
 - **A constant can be passed to a read-only function** without the callee writing `const`.
@@ -341,7 +341,7 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
   rejected then as too aggressive for C developers — is what this adopts; its opt-in `const`
   is what this replaces.
 - **ADR-062** is revisited (Q3 and Q4).
-- **Learning C-Next:** every tutorial and example that writes a variable changes.
+- **Learning cnx:** every tutorial and example that writes a variable changes.
 
 ## References
 

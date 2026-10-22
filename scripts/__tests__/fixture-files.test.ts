@@ -49,7 +49,7 @@ describe("FixtureFiles.sourceOf", () => {
   });
 
   it.each([
-    ["a vendored header with no C-Next source", "FreeRTOS.h"],
+    ["a vendored header with no cnx source", "FreeRTOS.h"],
     ["something that is not a header at all", "notes.md"],
   ])("refuses %s", (_label, header) => {
     expect(FixtureFiles.sourceOf(header, () => false)).toBeNull();

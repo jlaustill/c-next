@@ -9,10 +9,10 @@ first line, not by a list of directories. Most of what follows is #1322's audit 
 as the record of how that directory was emptied. Buckets 1 and 2 each gain an "Outside
 `3-Render/`" section, and bucket 4 is new.
 
-Deliverable of [#1321](https://github.com/jlaustill/c-next/issues/1321). Resolves open
-question 4 of [#1313](https://github.com/jlaustill/c-next/issues/1313) — _"Does Render really
+Deliverable of [#1321](https://github.com/smeltworks/cnx/issues/1321). Resolves open
+question 4 of [#1313](https://github.com/smeltworks/cnx/issues/1313) — _"Does Render really
 own nothing?"_ — and is the input that splits
-[#1322](https://github.com/jlaustill/c-next/issues/1322) into workable pieces.
+[#1322](https://github.com/smeltworks/cnx/issues/1322) into workable pieces.
 
 [`README.md`](README.md) states the rule these sites violate:
 
@@ -156,7 +156,7 @@ Each citation row therefore carries an **`anchor`** beside its `file:line`: a ve
 substring of the throw's argument, at least eight characters, which the gate holds to the
 statement at the cited line. The line stays the key and the anchor corroborates it — two rows
 cannot trade line numbers between sites that say different things and stay green, which is the
-shape #1322's delete work produces ([#1374](https://github.com/jlaustill/c-next/issues/1374)).
+shape #1322's delete work produces ([#1374](https://github.com/smeltworks/cnx/issues/1374)).
 Sites with identical messages carry identical anchors and remain interchangeable, the limitation
 the table above records. The gate also checks the property directly: no two rows in one file may
 carry anchors that each match the other's throw, so an anchor that stops just short of the text
@@ -250,7 +250,7 @@ Each is a rejection a user can see. It is thrown rather than reported, so it rea
 **Empty.** #1844 (2026-10-07): E0507 is no longer thrown. 1.1 reports it as data, at the `.cnx`
 include through which the run reached the C++ header.
 
-#1542 (2026-10-07): E0509 is no longer thrown. A generated header that names a C-Next source that
+#1542 (2026-10-07): E0509 is no longer thrown. A generated header that names a cnx source that
 is not there is reported by 1.1's entry-point scan as data, at the header's marker line.
 
 #1669 (2026-10-03): `ExpressionEvaluator`'s `Invalid constant expression` is gone. An enum member's
@@ -281,7 +281,7 @@ Two things the relocation had to settle, both recorded because the row above cou
 - **The angle branch's search path could not be re-derived.** Codegen built its own from the
   source file's directory, where discovery had already built one that also carries the
   invocation's added include directories. The two agreed only when nothing was added, so a
-  header and its C-Next twin sitting together in an added directory transpiled at exit 0
+  header and its cnx twin sitting together in an added directory transpiled at exit 0
   while the same two files beside the source were rejected. Discovery's list is recorded per
   file now and read by the rule.
 - **The current source path is not readable from shared state at analyzer time.**
@@ -358,13 +358,13 @@ anchored on what the throw says. It remains tier A — the line is a parameter a
 
 Added by #1531. Each of these throws is about the run itself: its invocation, its installation, or
 a tool it calls. No line of a program is the cause, so pass 2.1 is not their home, and a position
-cannot be given. Only `--clean`'s E0518 (#1833) and E0519 (#2167) reach the user with a code today. #1847 decides
+cannot be given. Only `--clean`'s E0518 (#1833) reaches the user with a code today. #1847 decides
 the format for an error that names no file and no line, and codes the rest.
 
 | file:line                           | anchor                                | what the user sees                                                                                                                                                                                                                                                                                                                                                                                                                                                                | card  |
 | ----------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | `1-Discover/InputExpansion.ts:32`   | `Input not found`                     | nothing. The CLI checks that the entry exists before this runs, with its own message, so this copy is unreachable and the check is decided twice                                                                                                                                                                                                                                                                                                                                  | #1847 |
-| `1-Discover/InputExpansion.ts:61`   | `rejection.code`                      | only through `--clean Colors.CNX` or `--clean Colors.cnext`, as `Error: Error: error[E0518]: …` or `error[E0519]` at exit 0; a compile run reports them at `1:0` through 1.1 instead                                                                                                                                                                                                                                                                                              | #1847 |
+| `1-Discover/InputExpansion.ts:61`   | `rejection.code`                      | only through `--clean Colors.CNX`, as `Error: Error: error[E0518]: …` at exit 0; a compile run reports it at `1:0` through 1.1 instead                                                                                                                                                                                                                                                                                                                                            | #1847 |
 | `1-Discover/InputExpansion.ts:69`   | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                                                                                                                                                                                                                                                                                                                                                     | #1847 |
 | `1-Discover/Installation.ts:28`     | `was not found above`                 | a broken installation. The CLI's usage text reads the catalog first (`TargetResolver.names` ← `TargetCatalogFile.locate`), so a run prints `Unexpected error: Error: The target catalog … the compiler installation is broken` and a stack trace, exit 1 (measured 2026-10-14, `targets/targets.cnx` moved aside)                                                                                                                                                                 | #1847 |
 | `2-Parse/TargetDescriptions.ts:215` | `the compiler installation is broken` | an invalid catalog (an alias naming no description, or a PlatformIO platform the catalog lacks). The CLI's usage text reads it first (`TargetResolver.names` ← `TargetCatalogFile.targets` ← `TargetDescriptions.catalog`), so every run, `--help` included, prints `Unexpected error: Error: The target catalog … is invalid; the compiler installation is broken:` and the bad line, then a stack trace, exit 1 (measured 2026-10-14, alias `teensy41` pointed at `cortex-m99`) | #1847 |
@@ -393,7 +393,7 @@ actually an undeclared identifier, rather than allocating codes that record the 
   `tests/string-array-init/string-array-init-error-mismatch.expected.error`, which had no
   `.test.cnx` and could never run. The fixture is written and
   `diagnostics:manifest:check` now fails on any orphaned assertion.
-- **#1277** — `CodeGenerator`'s `Cannot infer struct type` throw fires on valid C-Next
+- **#1277** — `CodeGenerator`'s `Cannot infer struct type` throw fires on valid cnx
   (`return { x: 1, y: 2 };` from a struct-returning function). Being fixed in this card: the
   literal types from the declared return type and the throw disappears.
 - **ADR-022's nesting rule was enforced on two of a ternary's three children.**

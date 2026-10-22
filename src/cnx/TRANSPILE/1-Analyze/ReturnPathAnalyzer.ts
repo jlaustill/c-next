@@ -8,7 +8,7 @@
  * that loops are infinite or that a switch over an enum is exhaustive. Where it
  * cannot prove a return, an explicit `return <value>` is required.
  *
- * C-Next has no break/continue (ADR-026), so loop bodies have no early
+ * cnx has no break/continue (ADR-026), so loop bodies have no early
  * structural exits to reason about.
  */
 
@@ -49,7 +49,7 @@ function statementDefinitelyReturns(statement: TStatement): boolean {
       // The body always executes at least once.
       return statementsDefinitelyReturn(statement.body.statements);
     case "forever":
-      // ADR-068: a `forever` loop is divergent — C-Next has no break/continue
+      // ADR-068: a `forever` loop is divergent — cnx has no break/continue
       // (ADR-026), so control never passes beyond it. It is therefore a
       // terminal path, like an unconditional return, and the function never
       // falls through here. This is the shared "divergence" primitive ADR-069

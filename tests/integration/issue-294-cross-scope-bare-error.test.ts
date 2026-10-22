@@ -53,7 +53,7 @@ void main() {
 `;
 
 async function runTest() {
-  const testDir = "/tmp/c-next-test-294";
+  const testDir = "/tmp/cnx-test-294";
 
   // Clean up any previous test run
   if (existsSync(testDir)) {

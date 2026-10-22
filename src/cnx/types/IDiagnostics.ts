@@ -1,7 +1,7 @@
 import type ITranspileError from "./ITranspileError";
 
 /**
- * 2.1 Analyze's artifact: every rejection C-Next makes about a whole program.
+ * 2.1 Analyze's artifact: every rejection cnx makes about a whole program.
  *
  * `docs/architecture/README.md` §1 -- "**2.1 authors every rejection that
  * survives to it.** A diagnostic carries a code and a position, which means it

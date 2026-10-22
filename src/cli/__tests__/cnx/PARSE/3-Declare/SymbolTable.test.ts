@@ -27,7 +27,7 @@ describe("SymbolTable", () => {
   });
 
   // ========================================================================
-  // TSymbol (C-Next) Operations
+  // TSymbol (cnx) Operations
   // ========================================================================
 
   describe("addTSymbol and getTSymbol", () => {
@@ -39,7 +39,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -71,7 +71,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "first.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -89,7 +89,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "second.cnx",
           span: TestSourceSpan.at(5),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -115,7 +115,7 @@ describe("SymbolTable", () => {
             scopePath: "",
             sourceFile: "test.cnx",
             span: TestSourceSpan.at(1),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("u32"),
@@ -132,7 +132,7 @@ describe("SymbolTable", () => {
             scopePath: "",
             sourceFile: "test.cnx",
             span: TestSourceSpan.at(2),
-            sourceLanguage: ESourceLanguage.CNext,
+            sourceLanguage: ESourceLanguage.Cnx,
             visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("i32"),
@@ -214,11 +214,11 @@ describe("SymbolTable", () => {
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "variable",
-          name: "cnextVar",
+          name: "cnxVar",
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
@@ -263,7 +263,7 @@ describe("SymbolTable", () => {
           scopePath: "",
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
           visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
@@ -651,7 +651,7 @@ describe("SymbolTable", () => {
       expect(conflicts[0].column).toBe(0);
     });
 
-    it("names the C-Next names the author wrote, not the generated ones", () => {
+    it("names the cnx names the author wrote, not the generated ones", () => {
       // #1292: `TemperatureSensorController__calibrationOffsetValue` appears in
       // no source file, so pointing at it does not help anyone rename anything.
       const table = new SymbolTable();

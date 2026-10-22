@@ -6,7 +6,7 @@
 
 ## Problem
 
-Two issues with `include` paths in `cnext.config.json`:
+Two issues with `include` paths in `cnx.config.json`:
 
 1. **Tilde not expanded**: `~/.platformio/packages/foo/include` is used literally instead of expanding `~` to home directory
 2. **No recursive search**: Only the exact directory is searched, not subdirectories
@@ -25,7 +25,7 @@ Create a `PathNormalizer` utility class that handles ALL path normalization for 
 ## Architecture
 
 ```
-cnext.config.json (raw paths)
+cnx.config.json (raw paths)
         ↓
     ConfigLoader.load()  ← returns raw config
         ↓

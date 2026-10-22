@@ -5,7 +5,7 @@ import type TNameMove from "../../types/TNameMove";
  * 2.2 Plan -- which safety-standard rule shaped a construct, and how that is
  * said in the generated C.
  *
- * CLAUDE.md makes this a C-Next standard, not a nicety:
+ * CLAUDE.md makes this a cnx standard, not a nicety:
  *
  *   Whenever codegen emits code whose shape is dictated by a safety standard
  *   ... rather than by the obvious/naive translation, it MUST emit an
@@ -17,7 +17,7 @@ import type TNameMove from "../../types/TNameMove";
  * to trace each non-obvious construct back to the rule that shaped it -- and,
  * separately, to enumerate every rule the transpiler cites at all. Three sites
  * used to build these strings by hand, and one of them had drifted off the
- * house form: no trailing period, and a parenthetical naming the C-Next
+ * house form: no trailing period, and a parenthetical naming the cnx
  * construct rather than what the naive C would have done. Nothing could have
  * noticed, because the form was a convention in prose and the text was a string
  * literal three files apart.
@@ -72,7 +72,7 @@ class ComplianceAnnotations {
 
   /**
    * #1735, #1765: a value in a file-scope or scope variable's initializer
-   * that reads a name, written as the value C-Next folded it to.
+   * that reads a name, written as the value cnx folded it to.
    */
   static readonly STATIC_VALUE: IComplianceAnnotation = {
     citation: "C11 6.7.9p4",

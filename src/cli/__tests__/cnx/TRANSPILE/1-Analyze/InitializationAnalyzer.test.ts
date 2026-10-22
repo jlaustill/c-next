@@ -19,7 +19,7 @@ import type IProgram from "../../../../../cnx/types/IProgram";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
- * Parse C-Next source code into an AST
+ * Parse cnx source code into an AST
  */
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -85,7 +85,7 @@ describe("InitializationAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should still flag C-Next structs as uninitialized", () => {
+    it("should still flag cnx structs as uninitialized", () => {
       const code = `
         struct MyStruct {
           u16 value;
@@ -97,7 +97,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
 
-      // No C++ symbols in symbol table - MyStruct is a C-Next struct
+      // No C++ symbols in symbol table - MyStruct is a cnx struct
       const symbolTable = new SymbolTable();
 
       const analyzer = new InitializationAnalyzer(
@@ -105,7 +105,7 @@ describe("InitializationAnalyzer", () => {
       );
       const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
-      // SHOULD have an error - C-Next struct is NOT initialized
+      // SHOULD have an error - cnx struct is NOT initialized
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].code).toBe("E0381");
       expect(errors[0].variable).toContain("value");

@@ -1,9 +1,9 @@
 /**
- * Maps C-Next types to C limit macros from limits.h
+ * Maps cnx types to C limit macros from limits.h
  */
 
 /**
- * Maps C-Next types to C max value macros
+ * Maps cnx types to C max value macros
  */
 const TYPE_MAX: Record<string, string> = {
   u8: "UINT8_MAX",
@@ -17,7 +17,7 @@ const TYPE_MAX: Record<string, string> = {
 };
 
 /**
- * Maps C-Next types to C min value macros
+ * Maps cnx types to C min value macros
  */
 const TYPE_MIN: Record<string, string> = {
   u8: "0",

@@ -29,7 +29,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-overlap-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-overlap-"));
     mkdirSync(join(tempDir, "src"));
     // `#if EXPR` is what sends a header to the preprocessor.
     writeFileSync(

@@ -35,7 +35,7 @@
 //
 // Both defects below are invisible in a single file: there the header's second pass still
 // sees the right state, and the per-file knownFunctions set answers the
-// C-Next-function question before the broken SymbolTable lookup is reached.
+// cnx-function question before the broken SymbolTable lookup is reached.
 #include "lib/sensors.h"
 
 #include <stdint.h>

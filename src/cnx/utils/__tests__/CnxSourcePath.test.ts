@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import CnxSourcePath from "../CnxSourcePath";
 
-describe("CnxSourcePath (#1833, #2167)", () => {
+describe("CnxSourcePath (#1833)", () => {
   it.each(["led.cnx", "src/led.cnx", "a.b.cnx"])("%s is source", (path) => {
     expect(CnxSourcePath.isSource(path)).toBe(true);
     expect(CnxSourcePath.isRejected(path)).toBe(false);
@@ -22,21 +22,7 @@ describe("CnxSourcePath (#1833, #2167)", () => {
     },
   );
 
-  it.each(["led.cnext", "src/led.CNEXT", "led.cNext"])(
-    "%s is the retired extension: E0519, not source",
-    (path) => {
-      expect(CnxSourcePath.isSource(path)).toBe(false);
-      expect(CnxSourcePath.isRejected(path)).toBe(true);
-      expect(CnxSourcePath.rejection(path, "rename it.")).toEqual({
-        code: "E0519",
-        message: `\`.cnext\` no longer names cnx source; rename it to \`.cnx\`: ${path}`,
-        helpText:
-          "Only `.cnx`, spelled in lowercase, names cnx source (ADR-010); rename it.",
-      });
-    },
-  );
-
-  it.each(["led.h", "led.c", "led.cnx.h", "led.cnext.h", "cnx", "led"])(
+  it.each(["led.h", "led.c", "led.cnx.h", "cnx", "led"])(
     "%s is neither",
     (path) => {
       expect(CnxSourcePath.isSource(path)).toBe(false);
@@ -58,10 +44,9 @@ describe("CnxSourcePath (#1833, #2167)", () => {
     expect(CnxSourcePath.withExtension("notes.txt", ".h")).toBe("notes.txt");
   });
 
-  it.each(["Colors.CNX", "Colors.cnext"])(
-    "gives no stem to %s, which is rejected first",
-    (path) => {
-      expect(() => CnxSourcePath.stem(path)).toThrow(/E0518 or E0519/);
-    },
-  );
+  it("gives no stem to a miscased path, which is rejected first", () => {
+    expect(() => CnxSourcePath.stem("Colors.CNX")).toThrow(
+      /is E0518 before it is named/,
+    );
+  });
 });

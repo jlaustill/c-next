@@ -27,7 +27,7 @@ describe("EnumCollector", () => {
       expect(symbol.kind).toBe("enum");
       expect(symbol.name).toBe("Color");
       expect(symbol.sourceFile).toBe("test.cnx");
-      expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(symbol.visibility).toBe("public");
       expect(symbol.scopePath).toBe("");
 

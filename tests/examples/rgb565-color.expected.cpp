@@ -8,7 +8,7 @@
 // Example: RGB565 Color Manipulation
 // test-execution
 //
-// Demonstrates C-Next's bit indexing syntax with a real-world use case.
+// Demonstrates cnx's bit indexing syntax with a real-world use case.
 // RGB565 is a common 16-bit color format used in embedded displays,
 // game consoles, and graphics applications.
 //
@@ -21,7 +21,7 @@
 // green-sensitive cone cells, so displays allocate more precision
 // to green for better perceived color quality.
 //
-// C-Next syntax:  pixel[start, width]
+// cnx syntax:  pixel[start, width]
 // Meaning:        "width bits starting at bit position start"
 int main(void) {
     const uint16_t pixel = 0x7BEFU;

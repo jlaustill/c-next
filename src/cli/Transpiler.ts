@@ -214,7 +214,7 @@ class Transpiler {
         result.success = false;
         return this._finalizeResult(result);
       }
-      if (pipelineInput.cnextFiles.length === 0) {
+      if (pipelineInput.cnxFiles.length === 0) {
         return this._finalizeResult(result, "No cnx source files found");
       }
 
@@ -271,7 +271,7 @@ class Transpiler {
     const headerFactsByPath = new Map<string, IHeaderEmissionFacts>();
     const diagnostics = analysis.diagnostics;
 
-    // Stage 5: Plan and Render each C-Next file
+    // Stage 5: Plan and Render each cnx file
     //
     // #1233: the .c of a file that succeeded is NOT written as we go. A later
     // file can still fail the run, and Stage 6 gates headers on
@@ -286,9 +286,9 @@ class Transpiler {
     // unchanged either way -- both `pendingWrites` and Stage 6 are already
     // gated on `result.success`.
     const rejected = diagnostics.hasErrors();
-    Transpiler._reportWarnings(input.cnextFiles, diagnostics, result);
+    Transpiler._reportWarnings(input.cnxFiles, diagnostics, result);
     const pendingWrites: IRenderedOutput[] = [];
-    for (const file of input.cnextFiles) {
+    for (const file of input.cnxFiles) {
       if (!Transpiler._producesOutput(file)) {
         continue;
       }
@@ -324,7 +324,7 @@ class Transpiler {
     if (result.success && input.writeOutputToDisk) {
       const headers = Transpiler._headerOutputs(
         analysis.discovery,
-        input.cnextFiles,
+        input.cnxFiles,
         renderedFiles,
       );
       // 3.1 Write takes what 2.3 rendered, and nothing else (#1991)
@@ -556,7 +556,7 @@ class Transpiler {
   }
 
   /**
-   * Stage 3: 1.4 Resolve over every declared C-Next file; `Program.build`
+   * Stage 3: 1.4 Resolve over every declared cnx file; `Program.build`
    * publishes each file's resolved symbols into 1.3's table.
    * @returns 1.4's artifact, or null if errors occurred
    */
@@ -627,7 +627,7 @@ class Transpiler {
   }
 
   /**
-   * Stage 5: Plan and Render a single C-Next file.
+   * Stage 5: Plan and Render a single cnx file.
    *
    * Assumes the symbol table is already populated (stages 2-3 complete) and
    * that 2.1 Analyze has already accepted the whole program -- #1320 moved
@@ -896,10 +896,10 @@ class Transpiler {
    */
   private static _headerOutputs(
     discovery: TRunFacts,
-    cnextFiles: readonly IPipelineFile[],
+    cnxFiles: readonly IPipelineFile[],
     renderedFiles: ReadonlyMap<string, IRenderedFile>,
   ): IRenderedOutput[] {
-    return cnextFiles.flatMap((file) => {
+    return cnxFiles.flatMap((file) => {
       const content = Transpiler._producesOutput(file)
         ? renderedFiles.get(file.path)?.header
         : undefined;

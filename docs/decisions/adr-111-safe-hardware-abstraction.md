@@ -15,7 +15,7 @@
 
 ## Context
 
-C-Next's register and bitmap primitives (ADR-004, ADR-034) provide the foundation for type-safe hardware access. However, several gaps prevent achieving **100% statically typed, memory-safe hardware access**:
+cnx's register and bitmap primitives (ADR-004, ADR-034) provide the foundation for type-safe hardware access. However, several gaps prevent achieving **100% statically typed, memory-safe hardware access**:
 
 1. **No parameterized register blocks** — MCUs have multiple instances of identical peripherals (9 GPIO ports, 8 UARTs, etc.). Currently requires copy-pasting definitions.
 
@@ -114,7 +114,7 @@ Uses macros and base address offsets:
 
 ### Recommendation: Parameterized Register Blocks
 
-Parameterized registers follow C-Next's function-like patterns and are straightforward to implement — the base address is just a compile-time constant parameter.
+Parameterized registers follow cnx's function-like patterns and are straightforward to implement — the base address is just a compile-time constant parameter.
 
 ### Specification: Parameterized Registers
 
@@ -324,7 +324,7 @@ Bit-field and bitmap-field writes to w1c/wo/w1s registers must generate **direct
 
 #### Correct Codegen for w1c
 
-| C-Next                     | Generated C              |
+| cnx                        | Generated C              |
 | -------------------------- | ------------------------ |
 | `INT.STATUS <- 0x0F`       | `INT_STATUS = 0x0F;`     |
 | `INT.STATUS[3] <- true`    | `INT_STATUS = (1 << 3);` |
@@ -357,7 +357,7 @@ DMA.ERR.Chan0Err <- 0xF;          // OK: literal fits in 4 bits
 DMA.ERR.Chan0Err <- 0x1F;         // ERROR: literal exceeds 4 bits
 ```
 
-This follows C-Next's philosophy of explicit bit extraction (`value[start, width]`) rather than C's implicit truncating casts.
+This follows cnx's philosophy of explicit bit extraction (`value[start, width]`) rather than C's implicit truncating casts.
 
 #### Generated C
 
@@ -390,7 +390,7 @@ hardware ignores.
 
 ### Problem
 
-Every Cortex-M microcontroller ships with an SVD (System View Description) file that describes all peripherals, registers, fields, and access types. Manual transcription to C-Next is:
+Every Cortex-M microcontroller ships with an SVD (System View Description) file that describes all peripherals, registers, fields, and access types. Manual transcription to cnx is:
 
 - **Error-prone** — Typos in addresses, field widths, access types
 - **Tedious** — Thousands of registers per chip
@@ -424,11 +424,11 @@ SVD is an XML format standardized by ARM (CMSIS-SVD). Example:
 </peripheral>
 ```
 
-### Specification: svd2cnext Tool
+### Specification: svd2cnx Tool
 
 #### Contract
 
-The importer takes one SVD file and an output directory, and writes C-Next register
+The importer takes one SVD file and an output directory, and writes cnx register
 definitions. It selects which peripherals to emit -- an SVD for a full part
 describes hundreds, and a project uses a handful:
 
@@ -457,9 +457,9 @@ src/hal/imxrt1062/
 └── _raw/             # Optional: raw per-peripheral files
 ```
 
-#### SVD to C-Next Mapping
+#### SVD to cnx Mapping
 
-| SVD                                           | C-Next                               |
+| SVD                                           | cnx                                  |
 | --------------------------------------------- | ------------------------------------ |
 | `<peripheral>` (any)                          | Parameterized register + instance(s) |
 | `<peripheral>` with `derivedFrom`             | Additional instance of same template |
@@ -505,7 +505,7 @@ Input SVD:
 </register>
 ```
 
-Generated C-Next:
+Generated cnx:
 
 ```cnx
 bitmap32 UartCr1 {
@@ -568,7 +568,7 @@ Input SVD:
 </peripheral>
 ```
 
-Generated C-Next:
+Generated cnx:
 
 ```cnx
 /// GPIO - General Purpose Input/Output
@@ -597,7 +597,7 @@ GpioPort GPIO2(0x401BC000);
 The importer has four stages, whatever it is written in: read the SVD, resolve it into
 the register model this ADR defines, emit `.cnx`, and carry the part's own type
 definitions through. Naming them is useful because the second is where the work is --
-an SVD describes memory, and a C-Next register declares intent, so the mapping is a
+an SVD describes memory, and a cnx register declares intent, so the mapping is a
 decision rather than a transcription.
 
 Key considerations:
@@ -606,13 +606,13 @@ Key considerations:
 
 2. **Reserved field generation** — Calculate gaps between fields and emit `Reserved[N]`
 
-3. **Field name sanitization** — SVD field names may conflict with C-Next keywords
+3. **Field name sanitization** — SVD field names may conflict with cnx keywords
 
 4. **Cluster handling** — SVD `<cluster>` elements represent register arrays; emit with appropriate indexing
 
-5. **Dim handling** — SVD `<dim>`, `<dimIncrement>`, `<dimIndex>` represent register arrays (e.g., GPT timer's `OCR1`, `OCR2`, `OCR3` with dim=3). Default: expand to individual registers. Future: emit array syntax if C-Next adds register arrays.
+5. **Dim handling** — SVD `<dim>`, `<dimIncrement>`, `<dimIndex>` represent register arrays (e.g., GPT timer's `OCR1`, `OCR2`, `OCR3` with dim=3). Default: expand to individual registers. Future: emit array syntax if cnx adds register arrays.
 
-6. **Alternate registers** — SVD `<alternateGroup>` and `<alternateRegister>` handle registers sharing the same address with different access (e.g., UART THR/RBR). Emit as two register fields at same offset with `wo` and `ro` — C-Next already supports this.
+6. **Alternate registers** — SVD `<alternateGroup>` and `<alternateRegister>` handle registers sharing the same address with different access (e.g., UART THR/RBR). Emit as two register fields at same offset with `wo` and `ro` — cnx already supports this.
 
 7. **Layout deduplication** — SVD files with layout-identical peripherals (without `derivedFrom`) are automatically consolidated into one template with multiple instances. The compiler enforces this: duplicate register definitions are an error.
 
@@ -741,13 +741,13 @@ library.
 
 ## Summary
 
-This ADR covers five features for safe hardware abstraction in C-Next:
+This ADR covers five features for safe hardware abstraction in cnx:
 
 1. **Registers** — Define layouts once (byte offsets, implicit base), instantiate at multiple addresses
 2. **Data registers** — Instantiate a register in normal memory (no address) for wire/buffer formats
 3. **Scaled fields** — `multiplier`/`divisor` + `offset` on fields; reads return the engineering value
 4. **w1c/wo/w1s codegen fix** — Generate direct writes instead of RMW for write-only registers
-5. **svd2cnext tool** — Import register definitions from ARM SVD files
+5. **svd2cnx tool** — Import register definitions from ARM SVD files
 
 ### Out of Scope (Future ADRs if needed)
 
@@ -764,7 +764,7 @@ This ADR covers five features for safe hardware abstraction in C-Next:
 
 2. **w1c/wo/w1s codegen fix** — Bit-field and bitmap-field writes generate direct writes, not RMW. Writing `false` to a w1c bit is a compiler error.
 
-3. **svd2cnext tool** — TypeScript tool to generate C-Next from SVD files. Auto-generates bitmap types from field definitions with good naming.
+3. **svd2cnx tool** — TypeScript tool to generate cnx from SVD files. Auto-generates bitmap types from field definitions with good naming.
 
 ### Proposed (2026-07-04 revision — not yet accepted)
 

@@ -35,7 +35,7 @@ interface IReadHeaders {
   /** `HeaderCompiler.identity` of what read the headers, which a cache record is only good for */
   readonly reader: string;
 
-  /** #1688: each C-Next file with a C include, to its header macro dump */
+  /** #1688: each cnx file with a C include, to its header macro dump */
   readonly macroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 
   /** E0516, E0517 and E0507 */

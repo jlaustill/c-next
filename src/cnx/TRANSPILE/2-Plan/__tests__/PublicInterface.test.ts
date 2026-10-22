@@ -38,7 +38,7 @@ const base = <K extends "register" | "bitmap">(
     scopePath,
     sourceFile: FILE,
     span: TestSourceSpan.at(1),
-    sourceLanguage: ESourceLanguage.CNext,
+    sourceLanguage: ESourceLanguage.Cnx,
     visibility,
   });
 

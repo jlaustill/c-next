@@ -48,8 +48,8 @@ class StructDefault {
 
   /**
    * The facts every reader asks this with (#1283 review), so 2.1 and 3 cannot
-   * disagree on what a callback is: the 1.3 struct table, and the C-Next
-   * functions (`functionReturnTypes`, which 1.3 fills from C-Next functions
+   * disagree on what a callback is: the 1.3 struct table, and the cnx
+   * functions (`functionReturnTypes`, which 1.3 fills from cnx functions
    * only -- the set codegen's `callbackTypes` is registered from).
    */
   static factsOf(

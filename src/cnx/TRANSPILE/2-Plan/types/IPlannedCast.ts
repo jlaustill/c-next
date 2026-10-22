@@ -9,7 +9,7 @@ interface IPlannedCast {
   readonly targetType: string;
 
   /**
-   * The target type's C-NEXT source text, e.g. `u8`.
+   * The target type's cnx source text, e.g. `u8`.
    *
    * ADR-024's clamp rule and `TYPE_LIMITS` both key on this spelling, not on
    * the C one -- `TYPE_MAX` is indexed by `u8`, never by `uint8_t`.

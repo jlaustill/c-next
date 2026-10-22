@@ -10,7 +10,7 @@
 // test-execution
 // Header and implementation must derive an array dimension the same way.
 //
-// The dimension arrives at the header adapter as C-Next SOURCE (`State.COUNT`),
+// The dimension arrives at the header adapter as cnx SOURCE (`State.COUNT`),
 // not as a generated C name, so it has to be resolved with the same scope
 // awareness the .c path uses. Sharing the join function is not enough — both
 // sides must also agree on WHAT to join.

@@ -14,7 +14,7 @@ Inline functions suggest the compiler embed function body at call site:
 
 ## Decision
 
-**Do not implement `inline` keyword in C-Next.** Trust the compiler to make inlining decisions.
+**Do not implement `inline` keyword in cnx.** Trust the compiler to make inlining decisions.
 
 ## Rationale
 
@@ -29,7 +29,7 @@ Without `static`, inline functions cause:
 - **Undefined behavior** if declared but not defined in a translation unit
 - **Unspecified behavior** — compiler may inline OR call externally, affecting timing
 
-This means C-Next would be **forced to always generate `static inline`** anyway, providing no flexibility to the developer.
+This means cnx would be **forced to always generate `static inline`** anyway, providing no flexibility to the developer.
 
 ### 2. Compilers Ignore the Keyword
 
@@ -51,7 +51,7 @@ The C standard explicitly compares `inline` to `register`:
 
 > "In this respect, it is analogous to the `register` storage class specifier, which similarly provides an optimization hint."
 
-C-Next doesn't support `register` because compilers do better register allocation than humans. The same logic applies to inlining.
+cnx doesn't support `register` because compilers do better register allocation than humans. The same logic applies to inlining.
 
 ### 4. Common Bugs and Edge Cases
 
@@ -65,7 +65,7 @@ C-Next doesn't support `register` because compilers do better register allocatio
 
 ### 5. Philosophy Alignment
 
-C-Next's guiding principle: **"Safety through removal, not addition."**
+cnx's guiding principle: **"Safety through removal, not addition."**
 
 Adding `inline` provides:
 
@@ -108,7 +108,7 @@ u32 getFlag(u32 reg, u32 bit) {
 
 No inline keyword — trust the compiler.
 
-**Accepted:** Simple, aligns with C-Next philosophy, no false promises.
+**Accepted:** Simple, aligns with cnx philosophy, no false promises.
 
 ## References
 

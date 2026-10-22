@@ -6,7 +6,7 @@
 
 **Architecture:** Types (`TType`) and symbols (`IFunctionSymbol`, `IScopeSymbol`) live in `src/transpiler/types/`. A central `SymbolRegistry` manages symbol storage and lookup. Mutation analysis is computed on-demand by traversing the symbol graph. Qualified names (e.g., `Test_fillData`) are generated only in the output layer.
 
-**Tech Stack:** TypeScript, Vitest for unit tests, existing C-Next integration test suite.
+**Tech Stack:** TypeScript, Vitest for unit tests, existing cnx integration test suite.
 
 **Design Doc:** `docs/plans/2026-02-13-ttype-symbol-refactoring-design.md`
 
@@ -29,7 +29,7 @@ import { describe, it, expect } from "vitest";
 import TPrimitiveKind, { PRIMITIVE_BIT_WIDTHS } from "../TPrimitiveKind";
 
 describe("TPrimitiveKind", () => {
-  it("includes all C-Next primitive types", () => {
+  it("includes all cnx primitive types", () => {
     const primitives: TPrimitiveKind[] = [
       "void",
       "bool",
@@ -108,7 +108,7 @@ Expected: PASS
 
 ```bash
 git add src/transpiler/types/TPrimitiveKind.ts src/transpiler/types/__tests__/TPrimitiveKind.test.ts
-git commit -m "feat: add TPrimitiveKind type for C-Next primitive types"
+git commit -m "feat: add TPrimitiveKind type for cnx primitive types"
 ```
 
 ---
@@ -300,7 +300,7 @@ Expected: PASS
 
 ```bash
 git add src/transpiler/types/TType.ts src/transpiler/types/__tests__/TType.test.ts
-git commit -m "feat: add TType discriminated union for C-Next type system"
+git commit -m "feat: add TType discriminated union for cnx type system"
 ```
 
 ---
@@ -328,7 +328,7 @@ git push -u origin <branch-name>
 ```bash
 gh pr create --title "feat: Phase 1 - Add TType foundation for type system refactor" --body "$(cat <<'EOF'
 ## Summary
-- Adds `TPrimitiveKind` type for C-Next primitive types
+- Adds `TPrimitiveKind` type for cnx primitive types
 - Adds `TType` discriminated union as foundation for proper type representation
 - Includes factory functions and type guards
 - Part of #797 architectural improvement

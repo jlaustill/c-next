@@ -1,11 +1,11 @@
 /**
- * #1283 review: how many elements an array dimension has, as C-Next must know
+ * #1283 review: how many elements an array dimension has, as cnx must know
  * it to spell each element (ADR-029 gives every element of a callback array
  * its default function, and every element of a struct array its default;
  * ADR-017 gives every element of an enum array its zero enumerator).
  *
  * The dimension is folded the way 1.4 folds every constant, reading each
- * header macro C-Next can (`ConstantFold.readingHeaderMacros`).
+ * header macro cnx can (`ConstantFold.readingHeaderMacros`).
  */
 import type IProgram from "../types/IProgram";
 import type TConstExpr from "../types/TConstExpr";

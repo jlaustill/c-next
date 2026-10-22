@@ -2,11 +2,11 @@
 
 **Status:** Implemented
 **Date:** 2025-12-30
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 
 ## Context
 
-C-Next needs well-defined primitive types that:
+cnx needs well-defined primitive types that:
 
 1. **Guarantee fixed widths** - Unlike C's `int` which varies by platform (16-bit on AVR, 32-bit on ARM)
 2. **Map cleanly to C99 stdint.h types** - For interoperability and portability

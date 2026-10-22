@@ -1,5 +1,5 @@
 /**
- * Nested struct test configuration for C-Next
+ * Nested struct test configuration for cnx
  * Test header for issue #103 - .length property on nested C struct members
  */
 #ifndef NESTED_TEST_CONFIG_H

@@ -5,7 +5,7 @@
  * operandCode, operandType }`, so there is no node to fake and no orchestrator
  * to stand in for the recursion.
  *
- * `targetTypeName` is the C-NEXT spelling (`u8`) and `targetType` is the C one
+ * `targetTypeName` is the cnx spelling (`u8`) and `targetType` is the C one
  * (`uint8_t`). They are separate fields because `TYPE_LIMITS` is indexed by the
  * former and the emitted cast uses the latter -- a test that passed the same
  * string for both would pass while conflating them, so every case below gives
@@ -117,7 +117,7 @@ describe("CastExprGenerator", () => {
     });
 
     it("casts plainly into a target the plan does not saturate", () => {
-      // Issue #644: `bool` is not a C-Next integer target, so the plan does
+      // Issue #644: `bool` is not a cnx integer target, so the plan does
       // not saturate a float into it and the plain cast is the answer.
       expect(generateCast(plan("bool", "bool", "f", "f32"), state)).toBe(
         "(bool)f",

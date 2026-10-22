@@ -5,7 +5,7 @@
 
 ## Summary
 
-Replace the `ESymbolKind` enum with language-specific string union types (`TSymbolKindCNext`, `TSymbolKindC`, `TSymbolKindCpp`) and a combined union type (`TSymbolKind`).
+Replace the `ESymbolKind` enum with language-specific string union types (`TSymbolKindCnx`, `TSymbolKindC`, `TSymbolKindCpp`) and a combined union type (`TSymbolKind`).
 
 ## Motivation
 
@@ -19,7 +19,7 @@ Replace the `ESymbolKind` enum with language-specific string union types (`TSymb
 
 ```
 src/transpiler/types/symbol-kinds/
-  TSymbolKindCNext.ts   → default export TSymbolKindCNext
+  TSymbolKindCnx.ts   → default export TSymbolKindCnx
   TSymbolKindC.ts       → default export TSymbolKindC
   TSymbolKindCpp.ts     → default export TSymbolKindCpp
   TSymbolKind.ts        → imports above 3, default export TSymbolKind (union)
@@ -31,10 +31,10 @@ src/transpiler/types/symbol-kinds/
 
 ## Type Definitions
 
-### TSymbolKindCNext
+### TSymbolKindCnx
 
 ```typescript
-type TSymbolKindCNext =
+type TSymbolKindCnx =
   | "function"
   | "variable"
   | "struct"
@@ -76,33 +76,33 @@ type TSymbolKindCpp =
 ### TSymbolKind
 
 ```typescript
-type TSymbolKind = TSymbolKindCNext | TSymbolKindC | TSymbolKindCpp;
+type TSymbolKind = TSymbolKindCnx | TSymbolKindC | TSymbolKindCpp;
 ```
 
 ## Migration Plan
 
 ### Change Patterns
 
-| Before                          | After                                     |
-| ------------------------------- | ----------------------------------------- |
-| `import ESymbolKind from "..."` | Remove or replace with `TSymbolKind`      |
-| `ESymbolKind.Function`          | `"function"`                              |
-| `ESymbolKind.Variable`          | `"variable"`                              |
-| `ESymbolKind.Struct`            | `"struct"`                                |
-| `ESymbolKind.Enum`              | `"enum"`                                  |
-| `ESymbolKind.EnumMember`        | `"enum_member"`                           |
-| `ESymbolKind.Bitmap`            | `"bitmap"`                                |
-| `ESymbolKind.BitmapField`       | `"bitmap_field"`                          |
-| `ESymbolKind.Register`          | `"register"`                              |
-| `ESymbolKind.RegisterMember`    | `"register_member"`                       |
-| `ESymbolKind.Namespace`         | `"scope"` (C-Next) or `"namespace"` (C++) |
-| `ESymbolKind.Type`              | `"type"`                                  |
-| `ESymbolKind.Class`             | `"class"`                                 |
+| Before                          | After                                  |
+| ------------------------------- | -------------------------------------- |
+| `import ESymbolKind from "..."` | Remove or replace with `TSymbolKind`   |
+| `ESymbolKind.Function`          | `"function"`                           |
+| `ESymbolKind.Variable`          | `"variable"`                           |
+| `ESymbolKind.Struct`            | `"struct"`                             |
+| `ESymbolKind.Enum`              | `"enum"`                               |
+| `ESymbolKind.EnumMember`        | `"enum_member"`                        |
+| `ESymbolKind.Bitmap`            | `"bitmap"`                             |
+| `ESymbolKind.BitmapField`       | `"bitmap_field"`                       |
+| `ESymbolKind.Register`          | `"register"`                           |
+| `ESymbolKind.RegisterMember`    | `"register_member"`                    |
+| `ESymbolKind.Namespace`         | `"scope"` (cnx) or `"namespace"` (C++) |
+| `ESymbolKind.Type`              | `"type"`                               |
+| `ESymbolKind.Class`             | `"class"`                              |
 
 ### Special Case: Namespace vs Scope
 
-- `ESymbolKind.Namespace` was used for both C++ namespaces and C-Next scopes
-- C-Next scopes become `"scope"` (matches `scope LED {}` syntax)
+- `ESymbolKind.Namespace` was used for both C++ namespaces and cnx scopes
+- cnx scopes become `"scope"` (matches `scope LED {}` syntax)
 - C++ namespaces remain `"namespace"`
 - Files using `ESymbolKind.Namespace` need review to determine correct replacement
 

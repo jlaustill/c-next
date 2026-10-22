@@ -1,5 +1,5 @@
 /**
- * ADR-049: the ARM LDREX (Load-Exclusive) intrinsic for each C-Next type an
+ * ADR-049: the ARM LDREX (Load-Exclusive) intrinsic for each cnx type an
  * exclusive access can hold. 2.2 decides an atomic takes the LDREX/STREX loop
  * only for these types; 2.3 writes the intrinsic.
  */

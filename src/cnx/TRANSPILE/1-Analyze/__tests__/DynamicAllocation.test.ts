@@ -46,7 +46,7 @@ describe("DynamicAllocation.matches", () => {
   });
 
   // The separator is what makes the rule safe. Without it these were rejected
-  // as `free`/`realloc`, which is valid C-Next refused by the transpiler.
+  // as `free`/`realloc`, which is valid cnx refused by the transpiler.
   it.each([
     ["myfree"],
     ["saferealloc"],

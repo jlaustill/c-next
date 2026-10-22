@@ -2,7 +2,7 @@
 #define CPP_POINTERS_HPP
 
 /*
- * #2058: C++ declarators whose pointer depth C-Next must keep, as it does
+ * #2058: C++ declarators whose pointer depth cnx must keep, as it does
  * for the same declarations in a C header. Defined static so the execution
  * fixture needs no companion source file.
  */

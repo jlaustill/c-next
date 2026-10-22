@@ -34,7 +34,7 @@ const NO_READING = {
 
 type THeaderGraph = Pick<
   ISourceGraph,
-  | "cnextFiles"
+  | "cnxFiles"
   | "headerFiles"
   | "headerTexts"
   | "headerIncludes"
@@ -178,7 +178,7 @@ class HeaderReading {
       { cppMode, reader },
       HeaderReading._cachedHeaders(headerFiles, services.headerCache, reader),
       await HeaderMacroDumps.read(
-        graph.cnextFiles,
+        graph.cnxFiles,
         graph.includes.c,
         preprocessor,
         {

@@ -1,12 +1,12 @@
 // test-execution
 // test-adr: 044
-// Issue #1735: a file-scope initializer that names a const C-Next has no
+// Issue #1735: a file-scope initializer that names a const cnx has no
 // value for, and C does -- a char literal, a header macro -- is written as
 // that const is where it is used: the literal or the macro, never the const
 // object, which is not a C constant expression. A const a scope declares
 // (`S.CH`), in this file or across the include, is the same.
 //
-// A value that mixes a header's name with a C-Next const is C's to evaluate,
+// A value that mixes a header's name with a cnx const is C's to evaluate,
 // as a dimension is: the const is written as its value, never read.
 #include "static-limit.h"
 #include "static-provider.cnx"

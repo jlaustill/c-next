@@ -12,7 +12,7 @@
 // test-execution
 // test-target-xfail: host cortex-m7 atmega328p #1062 "integer constant is so large that it is unsigned"
 // Test: ADR-016 this. accessor with all primitive types
-// Verifies that this. works correctly with every C-Next primitive type inside scope methods
+// Verifies that this. works correctly with every cnx primitive type inside scope methods
 /* Scope: AllTypesTest */
 static uint8_t AllTypesTest__valU8 = 255U;
 static float AllTypesTest__valF32 = 3.14;

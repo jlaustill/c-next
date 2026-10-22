@@ -1,5 +1,5 @@
 /**
- * TypeUtils - Utilities for extracting and converting C-Next types.
+ * TypeUtils - Utilities for extracting and converting cnx types.
  */
 
 import type TTypeSyntax from "../../../../types/syntax/TTypeSyntax";
@@ -10,7 +10,7 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
 import type TType from "../../../../types/TType";
 
 /**
- * Static utility class for extracting and converting C-Next type names.
+ * Static utility class for extracting and converting cnx type names.
  */
 class TypeUtils {
   /**

@@ -12,7 +12,7 @@ import type IChainStep from "../types/IChainStep";
 import type IOperandType from "../types/IOperandType";
 import type ILengthSubject from "./types/ILengthSubject";
 
-/** Whether a C type name is a struct: a C-Next one, or a header's */
+/** Whether a C type name is a struct: a cnx one, or a header's */
 type TIsStruct = (typeName: string) => boolean;
 
 class LengthSubject {
@@ -33,8 +33,8 @@ class LengthSubject {
   }
 
   /**
-   * ADR-058's structs, which count their fields (#1535): a C-Next struct, or
-   * a header's whose fields C-Next counts -- not a union (#1975 review)
+   * ADR-058's structs, which count their fields (#1535): a cnx struct, or
+   * a header's whose fields cnx counts -- not a union (#1975 review)
    */
   static structTest(
     lookup: (cName: string) => TSymbol | undefined,

@@ -59,7 +59,7 @@ describe("a header reached through another file's include (#1725)", () => {
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-1725-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-1725-"));
   });
 
   afterEach(() => {
@@ -140,7 +140,7 @@ describe("a quoted include spelled from the generated file (#2272)", () => {
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-2272-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-2272-"));
   });
 
   afterEach(() => {
@@ -196,7 +196,7 @@ describe("a C header beside the .cnx, wherever the output goes (#1746)", () => {
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-1746-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-1746-"));
     mkdirSync(join(project, "src", "lib"), { recursive: true });
     writeFileSync(join(project, "src", "lib", "dev.h"), DEV_H);
     writeFileSync(

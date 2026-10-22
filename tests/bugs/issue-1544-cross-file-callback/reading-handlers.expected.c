@@ -38,7 +38,7 @@ void onEventSameFile(SensorReading* reading) {
 }
 
 // NEGATIVE CONTROL: identical body, never used as a callback anywhere, so
-// ordinary C-Next parameter rules apply and the `const` must STAY. A fix that
+// ordinary cnx parameter rules apply and the `const` must STAY. A fix that
 // marks every function callback-compatible fails here.
 void neverWired(const SensorReading* reading) {
     global_witness = reading->value;

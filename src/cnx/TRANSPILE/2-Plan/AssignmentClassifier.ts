@@ -543,7 +543,7 @@ class AssignmentClassifier {
    */
   static clampOfWrite(
     written: IOperandType | null,
-    cnextOp: string,
+    cnxOp: string,
     hasFloatingOperand: () => boolean,
   ): { operation: string; cnxType: string } | null {
     if (written?.typeName == null || written.dimensions.length > 0) {
@@ -552,22 +552,22 @@ class AssignmentClassifier {
     return AssignmentClassifier.clampOf(
       written.typeName,
       written.overflow,
-      cnextOp,
+      cnxOp,
       hasFloatingOperand,
     );
   }
 
-  /** ADR-044: the clamp helper a compound `cnextOp` write of this type calls, or null */
+  /** ADR-044: the clamp helper a compound `cnxOp` write of this type calls, or null */
   static clampOf(
     baseType: string,
     overflowBehavior: TOverflowBehavior | null,
-    cnextOp: string,
+    cnxOp: string,
     hasFloatingOperand: () => boolean,
   ): { operation: string; cnxType: string } | null {
     if (overflowBehavior !== "clamp") return null;
     if (!TypeCheckUtils.isInteger(baseType)) return null;
     if (hasFloatingOperand()) return null;
-    const operator = CompoundOperator.binaryOf(cnextOp);
+    const operator = CompoundOperator.binaryOf(cnxOp);
     const operation =
       operator === null ? undefined : CLAMP_HELPER_FOR_OPERATOR[operator];
     return operation ? { operation, cnxType: baseType } : null;

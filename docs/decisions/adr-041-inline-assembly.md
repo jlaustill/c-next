@@ -6,9 +6,9 @@
 
 ## Decision
 
-**No inline assembly in C-Next.** When assembly is needed, write it in C.
+**No inline assembly in cnx.** When assembly is needed, write it in C.
 
-> **Note (#1143).** This ADR governs C-Next _source_ syntax: a user cannot write
+> **Note (#1143).** This ADR governs cnx _source_ syntax: a user cannot write
 > inline assembly. The transpiler itself does emit it — `generateIrqWrappers()`
 > produces GNU extended assembly on PRIMASK for the ARM arm of a `critical`
 > block (ADR-050). That is a toolchain requirement of the generated output, not
@@ -17,11 +17,11 @@
 
 ## Rationale
 
-C-Next transpiles to C, so inline assembly can be handled at the C level:
+cnx transpiles to C, so inline assembly can be handled at the C level:
 
-1. **Write assembly in C files** — Create a `.c` file with inline asm, link with C-Next output
+1. **Write assembly in C files** — Create a `.c` file with inline asm, link with cnx output
 2. **Use existing C intrinsics** — CMSIS, compiler builtins already exist and work
-3. **Keep C-Next simple** — Assembly is rare, platform-specific, and bypasses all safety guarantees
+3. **Keep cnx simple** — Assembly is rare, platform-specific, and bypasses all safety guarantees
 
 ### Example Workflow
 
@@ -60,7 +60,7 @@ This approach:
 
 - Uses battle-tested GCC/Clang inline asm syntax
 - Keeps platform-specific code isolated
-- Requires no new C-Next grammar or codegen
+- Requires no new cnx grammar or codegen
 - Works today with extern declarations
 
 ## Original Context
@@ -125,7 +125,7 @@ Call out to .s files for any assembly.
 3. **Option C** (intrinsics only) — Can't cover all cases; C intrinsics already exist
 4. **Option D** (no inline asm, use .s files) — This is essentially what we chose, but with C files instead
 
-The key insight: C-Next transpiles to C, so there's no need to reinvent inline assembly syntax. Developers who need assembly can write it in C and link it.
+The key insight: cnx transpiles to C, so there's no need to reinvent inline assembly syntax. Developers who need assembly can write it in C and link it.
 
 ## References
 

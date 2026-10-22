@@ -115,13 +115,13 @@ interface IContextBuilderDeps {
    * ADR-001's assignment operator mapping, injected rather than imported.
    *
    * This module moved to 2.2 Plan (#1445 box 3) and `AssignmentOperatorMapper`
-   * did not: it is the one place a C-Next operator BECOMES its C form, which
+   * did not: it is the one place a cnx operator BECOMES its C form, which
    * is text, and `2-2-plan-reads-no-later-pass` is `error` and `reachable`. It
    * arrives through the deps the same way the seven render thunks above do --
    * that is what this interface has always been for, not a new indirection
    * invented to satisfy the rule.
    */
-  toCOperator(cnextOp: string, line: number | undefined): string;
+  toCOperator(cnxOp: string, line: number | undefined): string;
 }
 
 /**
@@ -243,8 +243,8 @@ function buildAssignmentContext(
   const valueExpr = site.value;
 
   // Extract operator info
-  const cnextOp = site.operator;
-  const cOp = deps.toCOperator(cnextOp, site.operatorSpan.line);
+  const cnxOp = site.operator;
+  const cOp = deps.toCOperator(cnxOp, site.operatorSpan.line);
   const isCompound = cOp !== "=";
 
   const generatedValue = deps.generatedValue();
@@ -368,7 +368,7 @@ function buildAssignmentContext(
     hasMemberAccess,
     hasArrayAccess,
     postfixOpsCount: postfixOps.length,
-    cnextOp,
+    cnxOp,
     cOp,
     isCompound,
     generatedValue,

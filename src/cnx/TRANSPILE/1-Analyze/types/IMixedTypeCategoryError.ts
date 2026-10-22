@@ -4,7 +4,7 @@
  *
  * Error codes:
  * - E0810: Mixed essential type category in a binary operation
- * - E0811: An integer combined with a header macro whose type C-Next cannot
+ * - E0811: An integer combined with a header macro whose type cnx cannot
  *   read, by an operator that reaches a clamp helper (#1688, ADR-024)
  * - E0812: The same, by any other Rule 10.4 operator or a conditional's arms
  *

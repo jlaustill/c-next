@@ -10,7 +10,7 @@
 
 // test-adr: 049
 // #2155 review 8: an `atomic` of a C header integer type, which has no
-// C-Next name, is atomic all the same. Its compound and bit writes take the
+// cnx name, is atomic all the same. Its compound and bit writes take the
 // masked region: LDREX/STREX names no header type. On `main` this emitted the
 // masked region; an earlier head of #2155 wrote a plain `f += 1;`.
 // The atomics are locals: a public global of a header type is #2248's.

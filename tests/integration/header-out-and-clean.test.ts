@@ -33,7 +33,7 @@ u32 main() {
 `;
 
 // Test directory paths
-const testDir = "/tmp/c-next-test-header-out-clean";
+const testDir = "/tmp/cnx-test-header-out-clean";
 const sourceDir = join(testDir, "source");
 const codeOutDir = join(testDir, "out/src");
 const headerOutDir = join(testDir, "out/include");

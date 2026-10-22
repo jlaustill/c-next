@@ -1,7 +1,7 @@
 /**
  * Unit tests for LiteralGenerator
  *
- * Tests C-Next literal transformations:
+ * Tests cnx literal transformations:
  * - Boolean literals (true/false) → stdbool.h include effect
  * - Float suffixes: f32 → f, f64 → stripped
  * - Integer suffixes: u64 → ULL, i64 → LL, 8/16/32-bit → stripped

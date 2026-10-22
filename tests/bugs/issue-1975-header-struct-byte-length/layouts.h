@@ -2,7 +2,7 @@
 #define LAYOUTS_H
 #include <stdint.h>
 
-/* An unnamed member: its fields are the struct's, but C-Next records none */
+/* An unnamed member: its fields are the struct's, but cnx records none */
 typedef struct {
     uint8_t a;
     union {

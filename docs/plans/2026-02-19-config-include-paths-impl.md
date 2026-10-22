@@ -681,12 +681,12 @@ describe("path normalization", () => {
   it("expands tilde in config include paths", () => {
     // Create config with tilde path
     writeFileSync(
-      join(tempDir, "cnext.config.json"),
+      join(tempDir, "cnx.config.json"),
       JSON.stringify({ include: ["~/sdk/include"] }),
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
 
-    process.argv = ["node", "cnext", join(tempDir, "test.cnx")];
+    process.argv = ["node", "cnx", join(tempDir, "test.cnx")];
 
     const result = Cli.run();
 
@@ -697,12 +697,12 @@ describe("path normalization", () => {
     // Create directory structure
     mkdirSync(join(tempDir, "include", "sub"), { recursive: true });
     writeFileSync(
-      join(tempDir, "cnext.config.json"),
+      join(tempDir, "cnx.config.json"),
       JSON.stringify({ include: [`${tempDir}/include/**`] }),
     );
     writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
 
-    process.argv = ["node", "cnext", join(tempDir, "test.cnx")];
+    process.argv = ["node", "cnx", join(tempDir, "test.cnx")];
 
     const result = Cli.run();
 
@@ -717,7 +717,7 @@ describe("path normalization", () => {
 
     process.argv = [
       "node",
-      "cnext",
+      "cnx",
       join(tempDir, "test.cnx"),
       "--include",
       "~/my-libs",

@@ -28,8 +28,8 @@ describe("AssignmentOperatorMapper", () => {
         ["<<<-", "<<="],
         [">><-", ">>="],
       ];
-      for (const [cnextOp, cOp] of expected) {
-        expect(AssignmentOperatorMapper.toCOperator(cnextOp, 1)).toBe(cOp);
+      for (const [cnxOp, cOp] of expected) {
+        expect(AssignmentOperatorMapper.toCOperator(cnxOp, 1)).toBe(cOp);
       }
     });
 

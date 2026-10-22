@@ -4,7 +4,7 @@
 **Date:** 2026-01-03
 **Accepted:** 2026-01-04
 **Implemented:** 2026-01-06
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Parent ADR:** [ADR-009: ISR Safety](adr-009-isr-safety.md)
 
 ## Context
@@ -138,14 +138,14 @@ critical {
 2. **Single exit point**: Works perfectly with Q5 decision to forbid early exits - the block has exactly one exit point (the end)
 3. **RAII-style cleanup**: Transpiled C uses save/restore pattern that automatically handles cleanup
 4. **Familiar to C developers**: Looks like a normal block statement
-5. **Consistent with C-Next**: `atomic` modifies types, `critical` modifies regions - clear separation of concerns
+5. **Consistent with cnx**: `atomic` modifies types, `critical` modifies regions - clear separation of concerns
 
 **Alternatives Considered:**
 
 | Option               | Why Not Chosen                                                   |
 | -------------------- | ---------------------------------------------------------------- |
 | Explicit enter/exit  | Easy to forget exit, doesn't align with "wrong thing impossible" |
-| Closure-based (Rust) | C-Next doesn't have first-class closures                         |
+| Closure-based (Rust) | cnx doesn't have first-class closures                            |
 | Automatic (Ada)      | Complex implementation, may defer to v2 for protected objects    |
 
 > **Toolchain note (#1143).** The `__cnx_*` wrappers are emitted as a three-arm
@@ -277,7 +277,7 @@ If all accessors have the **same priority**, no critical section overhead needed
 
 **Rationale:**
 
-This approach makes C-Next shine by providing **correct-by-construction** concurrency:
+This approach makes cnx shine by providing **correct-by-construction** concurrency:
 
 - Developer writes simple `critical { }` blocks
 - Compiler guarantees race-free, optimal code
@@ -423,7 +423,7 @@ warning[W0852]: Nested critical sections detected
 
 **Decision: Forbid early exits (`return`, `break`, `continue`) inside critical blocks**
 
-Critical sections must have exactly one exit point: the end of the block. This aligns with MISRA's single entry/exit point preference and C-Next's "wrong thing impossible" ethos.
+Critical sections must have exactly one exit point: the end of the block. This aligns with MISRA's single entry/exit point preference and cnx's "wrong thing impossible" ethos.
 
 #### Compile Errors
 
@@ -521,7 +521,7 @@ The workarounds make code **clearer** - the reader sees exactly what happens bef
 
 **Decision: Deferred to v2 (ADR-102)**
 
-For v1, critical section complexity is the developer's responsibility. C-Next trusts the developer to keep critical sections short.
+For v1, critical section complexity is the developer's responsibility. cnx trusts the developer to keep critical sections short.
 
 **Rationale:**
 
@@ -599,7 +599,7 @@ Since Q2 uses automatic ceiling computation, platform fallback is handled transp
 
 **Rationale:**
 
-The developer shouldn't need to know or care about BASEPRI vs PRIMASK. C-Next generates the best possible code for the target platform automatically. This aligns with "right thing easy" - write once, works everywhere.
+The developer shouldn't need to know or care about BASEPRI vs PRIMASK. cnx generates the best possible code for the target platform automatically. This aligns with "right thing easy" - write once, works everywhere.
 
 > **Added 2026-10-17 (#1789, owner ruling recorded on the issue).** "Works everywhere" holds for every target whose description has `interrupt_mask: true`. On a target where disabling interrupts does not shut out every other execution context, a `critical` block has no lowering and is rejected, not compiled as a plain block. That covers host (user space cannot disable interrupts) and esp32 (it can, but only on one of its two cores; multi-core exclusion stays with ADR-100):
 >
@@ -646,11 +646,11 @@ Is the variable shared between ISR and main code?
 
 ### Comparison
 
-| Mechanism      | Purpose                             | When to Use                                |
-| -------------- | ----------------------------------- | ------------------------------------------ |
-| `volatile` (C) | Prevent compiler optimization       | **Never in C-Next** - use `atomic` instead |
-| `atomic`       | Single-variable ISR-safe operations | Counters, flags, single values             |
-| `critical { }` | Multi-variable atomic updates       | State machines, buffer + index pairs       |
+| Mechanism      | Purpose                             | When to Use                             |
+| -------------- | ----------------------------------- | --------------------------------------- |
+| `volatile` (C) | Prevent compiler optimization       | **Never in cnx** - use `atomic` instead |
+| `atomic`       | Single-variable ISR-safe operations | Counters, flags, single values          |
+| `critical { }` | Multi-variable atomic updates       | State machines, buffer + index pairs    |
 
 ### Examples
 
@@ -673,23 +673,23 @@ critical {
 
 ### Why Not `volatile`?
 
-C-Next doesn't have a `volatile` keyword. Here's why:
+cnx doesn't have a `volatile` keyword. Here's why:
 
-| C's `volatile`      | C-Next Alternative                      |
+| C's `volatile`      | cnx Alternative                         |
 | ------------------- | --------------------------------------- |
 | Prevents caching    | `atomic` provides this + atomicity      |
 | For MMIO registers  | Register bindings (ADR-004) handle this |
 | For ISR-shared data | `atomic` or `critical` required         |
 
-C-Next's type system makes the right thing explicit rather than relying on a modifier that's often misunderstood.
+cnx's type system makes the right thing explicit rather than relying on a modifier that's often misunderstood.
 
 ---
 
 ## Testing Recommendations
 
-While C-Next provides compile-time safety guarantees, testing remains important.
+While cnx provides compile-time safety guarantees, testing remains important.
 
-### What C-Next Guarantees
+### What cnx Guarantees
 
 - **No data races on atomic variables** - compiler enforces atomic operations
 - **No forgotten interrupt restore** - Q5 forbids early exits

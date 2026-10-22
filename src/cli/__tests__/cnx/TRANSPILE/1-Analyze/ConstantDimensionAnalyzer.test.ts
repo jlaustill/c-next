@@ -117,7 +117,7 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
       ]);
     });
 
-    it("has no size for a struct holding a pointer (C-Next has none)", () => {
+    it("has no size for a struct holding a pointer (cnx has none)", () => {
       const { errors: found } = headerErrors(
         "u8[Odd.i.type_byte_length] ok;\nu8[Odd.type_byte_length] a;",
       );
@@ -234,7 +234,7 @@ describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
       "an enum in a struct with a default",
       `${callback}enum Mode { IDLE, RUN }\nstruct S {\n    onSample h;\n    Mode[N_UNREADABLE] modes;\n}`,
     ],
-  ])("rejects %s sized by a macro C-Next cannot read", (_label, source) => {
+  ])("rejects %s sized by a macro cnx cannot read", (_label, source) => {
     const found = errorsWith(source);
     expect(found.map((error) => error.code)).toEqual(["E0359"]);
     expect(found[0].message).toContain("'N_UNREADABLE'");

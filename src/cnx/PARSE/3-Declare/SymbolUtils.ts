@@ -4,7 +4,7 @@
  */
 
 /**
- * Reserved field names that conflict with C-Next built-in properties.
+ * Reserved field names that conflict with cnx built-in properties.
  * These should not be used as struct field names.
  *
  * Note: "length" was removed from this list (ADR-058) since .length is now deprecated.
@@ -61,10 +61,10 @@ function getTypeWidth(typeName: string): number {
 }
 
 /**
- * Check if a field name is reserved in C-Next.
+ * Check if a field name is reserved in cnx.
  *
  * @param fieldName - The field name to check
- * @returns true if the field name conflicts with C-Next built-in properties
+ * @returns true if the field name conflicts with cnx built-in properties
  */
 function isReservedFieldName(fieldName: string): boolean {
   return RESERVED_FIELD_NAMES.has(fieldName);

@@ -61,7 +61,7 @@ describe("1.1 Discover and the parser agree on a file's includes (#1745)", () =>
   let project: string;
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "cnext-1745-"));
+    project = mkdtempSync(join(tmpdir(), "cnx-1745-"));
   });
 
   afterEach(() => {

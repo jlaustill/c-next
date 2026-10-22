@@ -1,8 +1,8 @@
 /**
- * Dynamic memory functions C-Next does not admit from C or C++.
+ * Dynamic memory functions cnx does not admit from C or C++.
  *
- * ADR-003 allows static allocation only. The prohibition is not "C-Next has a
- * `malloc` and forbids it" -- C-Next has no such function at all. What is
+ * ADR-003 allows static allocation only. The prohibition is not "cnx has a
+ * `malloc` and forbids it" -- cnx has no such function at all. What is
  * rejected is IMPORTING one from a C or C++ header into a `.cnx` file, and the
  * diagnostic says so. Code that genuinely needs the heap belongs in C or C++.
  *
@@ -52,11 +52,11 @@
  * ## Where the decision is made -- deliberately not here
  *
  * This class owns the LIST and the MATCH RULE. It does not own the consequence:
- * a match only means E0902 when the callee did not resolve to a C-Next
+ * a match only means E0902 when the callee did not resolve to a cnx
  * definition, and that is known in exactly one place, the call analyzer's
  * resolution ladder. Asking `matches()` from anywhere else re-derives the
  * consequence from a name alone -- which is how `pool_free` and `slot_is_free`,
- * both written in C-Next three lines above their call, came to be told they had
+ * both written in cnx three lines above their call, came to be told they had
  * been imported from a header (#1306 review). Sharing the predicate made the two
  * sites agree on the letters and left them disagreeing on the meaning.
  */
@@ -112,11 +112,11 @@ class DynamicAllocation {
    * without it call analysis got there first. The author's mistake does not
    * change because a header happened to be present, and neither does the
    * diagnostic; what the split actually bought was a second site with no idea
-   * whether the callee was C-Next code.
+   * whether the callee was cnx code.
    */
   static readonly CODE = "E0902";
 
-  /** What the user did wrong. The IMPORT is forbidden, not a C-Next function. */
+  /** What the user did wrong. The IMPORT is forbidden, not a cnx function. */
   static message(name: string): string {
     return `Importing dynamic memory function '${name}' from C/C++ is forbidden`;
   }

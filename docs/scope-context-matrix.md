@@ -84,11 +84,10 @@ cell is declared by the ADR that owns it.
 | scope method       | -         | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-14 linked fixtures with no derivable context:
+13 linked fixtures with no derivable context:
 
 - `bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx`
-- `bugs/issue-1833-miscased-cnext-extension/miscased-include-error.test.cnx`
-- `bugs/issue-2167-cnext-extension/cnext-include-error.test.cnx`
+- `bugs/issue-1833-miscased-cnx-extension/miscased-include-error.test.cnx`
 - `external-types/external-struct-fields.test.cnx`
 - `include/cnx-alternative-error-angle.test.cnx`
 - `include/cnx-alternative-error-hpp.test.cnx`

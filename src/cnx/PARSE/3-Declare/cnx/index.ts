@@ -1,5 +1,5 @@
 /**
- * CnxResolver - Orchestrates symbol collection from C-Next parse trees.
+ * CnxResolver - Orchestrates symbol collection from cnx parse trees.
  * Uses two-pass collection to handle forward references (bitmaps before registers).
  *
  * Produces TType-based symbols with proper IScopeSymbol references.
@@ -46,7 +46,7 @@ const MEMBER_SYMBOL_KIND: Readonly<
 
 class CnxResolver {
   /**
-   * Resolve all symbols from a C-Next program, as 1.2 lowered it.
+   * Resolve all symbols from a cnx program, as 1.2 lowered it.
    *
    * @param program The file as 1.2 lowered it; 1.3 reads no parse tree
    * @param sourceFile Source file path

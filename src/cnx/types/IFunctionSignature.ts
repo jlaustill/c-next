@@ -7,7 +7,7 @@ interface IFunctionSignature {
   name: string;
   parameters: Array<{
     name: string;
-    baseType: string; // The C-Next type (e.g., 'u32', 'f32')
+    baseType: string; // The cnx type (e.g., 'u32', 'f32')
     isConst: boolean;
     isArray: boolean;
   }>;

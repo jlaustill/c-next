@@ -1,5 +1,5 @@
 // test-error
-// /cnext-way audit of #1183: the subscript step stripped every dimension at
+// /cnx-way audit of #1183: the subscript step stripped every dimension at
 // once, which is indistinguishable from correct for a 1-D array and wrong for
 // any other. `flags[0][1]` resolved to nothing, so this divide by zero was
 // accepted while the 1-D form was rejected.

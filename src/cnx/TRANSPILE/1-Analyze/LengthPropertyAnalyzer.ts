@@ -209,9 +209,9 @@ class LengthPropertyCheck {
   ): void {
     const subject = LengthSubject.spelling(typed);
     const element = typed.typeName ?? "";
-    // #1975 (owner ruling): a C-Next struct and a header's are each their
+    // #1975 (owner ruling): a cnx struct and a header's are each their
     // fields' sizes together, one rule, a header struct's field too; a
-    // pointer field has none -- C-Next has no pointers
+    // pointer field has none -- cnx has no pointers
     const headerBits = ForeignTypeFacts.headerBits(
       this.context.symbolTable,
       OperandTyper.target(this.context),

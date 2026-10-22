@@ -1,5 +1,5 @@
 /**
- * Maps C-Next types to wider C types for clamp helper operands
+ * Maps cnx types to wider C types for clamp helper operands
  * Issue #94: Prevents silent truncation when operand exceeds target type range
  */
 const WIDER_TYPE_MAP: Record<string, string> = {

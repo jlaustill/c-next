@@ -33,7 +33,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Every if/while/for/do-while condition below is an explicit comparison or a
 // logical combination of comparisons (never a bare value), so the generated C
 // is 14.4-compliant. This is the regression anchor for #848, which had 29
-// violations before they were eliminated at the C-Next source level by:
+// violations before they were eliminated at the cnx source level by:
 //   - #884: E0701 boolean-condition validation for if/while/for/do-while
 //   - #1042: consistent rejection of bare booleans in conditions
 // The matching negative cases (bare conditions rejected with E0701) live in

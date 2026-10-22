@@ -7,11 +7,11 @@
 
 // test-cpp-only
 // test-adr: 010
-// Issue #332: Missing & for C-Next structs passed to external pointer parameters
+// Issue #332: Missing & for cnx structs passed to external pointer parameters
 // When calling external C++ functions that expect pointer parameters,
 // the transpiler should add & for BOTH:
 // - Structs from C headers (Issue332AppConfig from .h) - this WORKS
-// - Structs from C-Next files (Issue332AppData from .cnx) - this was BROKEN
+// - Structs from cnx files (Issue332AppData from .cnx) - this was BROKEN
 #include <issue-332-cnx-types.hpp>
 #include "issue-332-c-header-types.h"
 #include "issue-332-external-processor.hpp"

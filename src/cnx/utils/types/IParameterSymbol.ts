@@ -8,7 +8,7 @@ interface IParameterSymbol {
   name: string;
   /** #1290: the C name the prototype writes, as 1.4 settled it (ADR-057) */
   emittedName: string;
-  type: string; // C-Next type (u32, Configuration, etc.)
+  type: string; // cnx type (u32, Configuration, etc.)
   isConst: boolean;
   isArray: boolean;
   arrayDimensions?: string[]; // e.g., ["10", "20"] or ["", ""] for unbounded

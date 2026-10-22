@@ -12,7 +12,7 @@ struct Counter {
     u32 maxValue;
 }
 
-// Struct params are ALWAYS pass-by-reference in C-Next
+// Struct params are ALWAYS pass-by-reference in cnx
 // Modifications are visible to caller
 void movePoint(mut Point p, i32 dx, i32 dy) {
     p.x +<- dx;

@@ -9,7 +9,7 @@
 
 ## Context
 
-C-Next originally required explicit `this.` and `global.` prefixes for all scope and global variable access inside scopes (ADR-016). This was verbose and unfamiliar to developers coming from C, where identifiers resolve automatically using lexical scoping.
+cnx originally required explicit `this.` and `global.` prefixes for all scope and global variable access inside scopes (ADR-016). This was verbose and unfamiliar to developers coming from C, where identifiers resolve automatically using lexical scoping.
 
 Example of the old verbose syntax:
 
@@ -149,7 +149,7 @@ shadowing local that kept its bare name lands on the global, compiles under
 or that shadows only an enclosing _local_, keeps its own name: C block scoping
 already gives the right answer there, and neither `this.` nor `global.` can name
 an enclosing local. The exception is an initializer that names the enclosing
-local or parameter it shadows (#1643): C-Next reads the enclosing one (ADR-030),
+local or parameter it shadows (#1643): cnx reads the enclosing one (ADR-030),
 but C scopes the new name from its declarator, so the new local moves to
 `<function>__<name>` — or `<function>__<name>__2`, and so on, past the enclosing
 one's C name. The generated file is a certification artifact, so names stay

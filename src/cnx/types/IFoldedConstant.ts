@@ -8,7 +8,7 @@
  */
 interface IFoldedConstant {
   readonly value: number;
-  /** The declaration's C-Next type name (`u8`), or null when it has none */
+  /** The declaration's cnx type name (`u8`), or null when it has none */
   readonly typeName: string | null;
 }
 

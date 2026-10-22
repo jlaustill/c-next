@@ -55,7 +55,7 @@ describe("ReturnValueUseAnalyzer", () => {
   });
 
   describe("flags a discarded non-void return (E0708)", () => {
-    it("flags a bare call to a C-Next function", () => {
+    it("flags a bare call to a cnx function", () => {
       const errors = analyze(`
         u32 next() { return 7; }
         void run() { next(); }

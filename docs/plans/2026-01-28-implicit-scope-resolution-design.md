@@ -6,7 +6,7 @@
 
 ## Problem
 
-Currently, C-Next requires explicit `this.` and `global.` prefixes to access scope-level and global variables from within a scope. This is verbose and unfamiliar to developers coming from C, Rust, JavaScript, and other languages that use implicit resolution with shadowing.
+Currently, cnx requires explicit `this.` and `global.` prefixes to access scope-level and global variables from within a scope. This is verbose and unfamiliar to developers coming from C, Rust, JavaScript, and other languages that use implicit resolution with shadowing.
 
 ```cnx
 // Current (verbose)

@@ -50,7 +50,7 @@ class StructInitializerType {
    * this pass cannot name it", and those are opposite answers: the first is
    * E0357, the second must stay silent. The distinction is not hypothetical --
    * a field of a struct declared in an included C header resolves through the
-   * C symbols rather than the C-Next view, so `{ flag_a: 1 }` inside
+   * C symbols rather than the cnx view, so `{ flag_a: 1 }` inside
    * `SimpleConfig cfg <- { flags: { flag_a: 1 } }` has a position supplying a
    * type that this pass cannot name, and nine `tests/interop` fixtures say so.
    */
@@ -62,7 +62,7 @@ class StructInitializerType {
    *
    * The positive question, asked of each type's one home (#1760 second
    * review): a bitmap first, since `DeclaredTypeFacts.isStruct` counts it
-   * struct-like (#551); then a C-Next struct, and a header's struct, union
+   * struct-like (#551); then a cnx struct, and a header's struct, union
    * or opaque type. Any other type this pass knows is not a struct. Asking
    * "known NOT to be a struct" let a header's pointer or function-pointer
    * typedef and an ADR-029 function type through, since none has a category.

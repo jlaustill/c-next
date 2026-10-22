@@ -6,13 +6,13 @@
 
 ## Decision
 
-**No dedicated null safety feature needed.** Null safety is an emergent property of C-Next's foundational design decisions.
+**No dedicated null safety feature needed.** Null safety is an emergent property of cnx's foundational design decisions.
 
 ## Rationale
 
-Null pointer bugs in C arise from specific sources. C-Next's existing ADRs eliminate all of them:
+Null pointer bugs in C arise from specific sources. cnx's existing ADRs eliminate all of them:
 
-| Null Source in C                        | C-Next Prevention                   | ADR     |
+| Null Source in C                        | cnx Prevention                      | ADR     |
 | --------------------------------------- | ----------------------------------- | ------- |
 | `malloc()` returns NULL                 | No dynamic allocation               | ADR-003 |
 | Uninitialized pointer                   | Zero-init globals, error for locals | ADR-015 |
@@ -88,7 +88,7 @@ Trust the developer. Focus on ADR-015 zero initialization.
 
 ## Why All Options Were Rejected
 
-1. **Options A & B** (Option types, nullable annotations) add syntax complexity for a problem that doesn't exist in C-Next's memory model
+1. **Options A & B** (Option types, nullable annotations) add syntax complexity for a problem that doesn't exist in cnx's memory model
 2. **Option C** (warnings) is redundant — ADR-015 already enforces init-before-use for locals
 3. **Option D** (do nothing) was the original recommendation, which led to this rejection
 

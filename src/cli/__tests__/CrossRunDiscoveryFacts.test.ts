@@ -36,7 +36,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cnext-discovery-release-"));
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-discovery-release-"));
   });
 
   afterEach(() => {

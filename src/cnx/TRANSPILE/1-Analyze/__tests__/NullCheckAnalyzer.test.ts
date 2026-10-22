@@ -10,7 +10,7 @@ import NullCheckAnalyzer from "../NullCheckAnalyzer";
 import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 
 /**
- * Helper to parse C-Next code and return the AST
+ * Helper to parse cnx code and return the AST
  */
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -184,7 +184,7 @@ describe("NullCheckAnalyzer", () => {
   // ========================================================================
   // E0902 is NOT decided here -- see FunctionCallAnalyzer.test.ts.
   //
-  // ADR-003 needs to know whether the callee resolved to a C-Next definition or
+  // ADR-003 needs to know whether the callee resolved to a cnx definition or
   // to a C/C++ symbol, and this analyzer sees only the name. While it also
   // reported E0902, `pool_free` defined three lines above the call was told it
   // had been imported from a header (#1306 review). The tests that used to sit

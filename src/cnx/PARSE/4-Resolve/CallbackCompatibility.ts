@@ -61,7 +61,7 @@ class CallbackCompatibility {
   }
 
   /**
-   * ADR-071: every C-Next function used as a callback at all -- named as a
+   * ADR-071: every cnx function used as a callback at all -- named as a
    * type, or placed as a value by an initializer, an argument or an
    * assignment. Its parameters' `mut` is part of a callback type, so E0899
    * does not require them to be written.

@@ -39,7 +39,7 @@ interface IIncludeTransformOptions {
   /**
    * #1444, owner ruling 1: the kind of file each directive names, as 1.1
    * Discover classified it, keyed by `IncludeDirectiveText.join`. Whether a
-   * directive is a C-Next include is read here, never decided.
+   * directive is a cnx include is read here, never decided.
    */
   kinds: ReadonlyMap<string, EFileType>;
   /**
@@ -51,7 +51,7 @@ interface IIncludeTransformOptions {
 }
 
 /*
- * ADR-010's `Included C-Next file not found` check stood here and is now
+ * ADR-010's `Included cnx file not found` check stood here and is now
  * E0506 in pass 2.1 (#1322). It reached the user as
  * `1:0 Code generation failed: Error: …` -- no code to look up, and the wrong
  * line. `IncludeDirectiveAnalyzer` reports it at the directive.

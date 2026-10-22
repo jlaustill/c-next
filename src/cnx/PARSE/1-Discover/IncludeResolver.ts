@@ -15,7 +15,7 @@ import DependencyGraph from "./DependencyGraph";
 import IFileSystem from "../../types/IFileSystem";
 
 /**
- * The header extensions ADR-010 admits, and the C-Next source each names:
+ * The header extensions ADR-010 admits, and the cnx source each names:
  * E0504 asks whether `ext.cnx` is where an include of `ext.h` would find it.
  */
 const ADMITTED_HEADER = /\.(h|hpp)$/i;
@@ -27,23 +27,23 @@ interface IResolvedIncludes {
   /** C/C++ headers to parse for symbol collection */
   headers: IDiscoveredFile[];
 
-  /** C-Next files to parse for symbol collection */
-  cnextIncludes: IDiscoveredFile[];
+  /** cnx files to parse for symbol collection */
+  cnxIncludes: IDiscoveredFile[];
 
   /** Warnings for unresolved local includes */
   warnings: string[];
 
   /**
    * Whether any include brings in names this transpiler cannot see -- a C/C++
-   * header, or an include that resolved to nothing and does not name C-Next
+   * header, or an include that resolved to nothing and does not name cnx
    * source (an unresolved `<system.h>` is silently ignored, and its names still
    * exist at compile time; an unresolved `.cnx` supplies no C or C++ names).
    *
    * #1399 review: consumed by the E0426/E0427 precondition. Recorded HERE
    * because this class already decides what each directive IS; the analyzer's
    * own attempt re-derived it from `#include` token text, became a third
-   * spelling of "is this a C-Next include?", and was the one that missed
-   * `.cnext`. `headers` alone cannot answer it -- `<stdio.h>` resolves to
+   * spelling of "is this a cnx include?", and was the one that disagreed
+   * with this class. `headers` alone cannot answer it -- `<stdio.h>` resolves to
    * nothing on most systems and so appears in no list at all, which is exactly
    * how `FILE` slipped through.
    */
@@ -57,11 +57,11 @@ interface IResolvedIncludes {
   resolutions: Map<string, string | null>;
 
   /**
-   * #1672: for each include of a header ADR-010 admits whose C-Next source
+   * #1672: for each include of a header ADR-010 admits whose cnx source
    * the same form of include would find, that source's spelling (`ext.cnx`
    * for `ext.h`), keyed like `resolutions`. 2.1's E0504 reads it.
    */
-  cnextAlternatives: Map<string, string>;
+  cnxAlternatives: Map<string, string>;
 
   /**
    * The kind of file each directive's spelling names, by its extension, keyed
@@ -72,7 +72,7 @@ interface IResolvedIncludes {
   kinds: Map<string, EFileType>;
 
   /**
-   * The file's other includes -- every directive that does not name C-Next
+   * The file's other includes -- every directive that does not name cnx
    * source -- exactly as written, in source order.
    *
    * Issue #424: a macro from one of these can appear inside a generated
@@ -95,8 +95,8 @@ interface IResolvedIncludes {
    */
   included: IResolvedInclude[];
 
-  /** #1844: the directives that name C-Next source, in source order. */
-  cnextDirectives: string[];
+  /** #1844: the directives that name cnx source, in source order. */
+  cnxDirectives: string[];
 
   /**
    * #1844: where each directive sits in the file, keyed like `resolutions`.
@@ -109,7 +109,7 @@ interface IResolvedIncludes {
 interface IResolvedInclude {
   readonly absolutePath: string;
   readonly includeInfo: { readonly path: string; readonly isLocal: boolean };
-  readonly isCNext: boolean;
+  readonly isCnx: boolean;
   /** #1725: a quoted include found beside the file that wrote it */
   readonly besideWriter: boolean;
 }
@@ -189,7 +189,7 @@ interface IIncludeSpelling {
 }
 
 /**
- * Unified include resolution for the C-Next Pipeline
+ * Unified include resolution for the cnx Pipeline
  *
  * This class encapsulates the complete include resolution workflow,
  * used by the unified `transpile()` entry point for both file and source modes.
@@ -197,7 +197,7 @@ interface IIncludeSpelling {
  * Key responsibilities:
  * - Extract #include directives from source content
  * - Resolve include paths using search directories
- * - Categorize resolved files into headers vs C-Next includes
+ * - Categorize resolved files into headers vs cnx includes
  * - Track warnings for unresolved local includes
  * - Deduplicate resolved files by path
  *
@@ -213,7 +213,7 @@ class IncludeResolver {
   /**
    * #1725: the directory a quoted include from the file being resolved
    * resolves beside (ADR-010). Required since #1835's review: its `null`
-   * default served only tests, and with no directory a quoted C-Next include
+   * default served only tests, and with no directory a quoted cnx include
    * was searched like any other -- a second rule beside #1672's one.
    */
   private readonly quotedIncludeDirectory: string;
@@ -241,16 +241,16 @@ class IncludeResolver {
   resolve(content: string, sourceFilePath?: string): IResolvedIncludes {
     const result: IResolvedIncludes = {
       headers: [],
-      cnextIncludes: [],
+      cnxIncludes: [],
       warnings: [],
       resolutions: new Map<string, string | null>(),
-      cnextAlternatives: new Map<string, string>(),
+      cnxAlternatives: new Map<string, string>(),
       kinds: new Map<string, EFileType>(),
       cHeaderIncludes: [],
       cHeaderSpecs: [],
       hasForeignInclude: false,
       included: [],
-      cnextDirectives: [],
+      cnxDirectives: [],
       positions: new Map<string, { line: number; column: number }>(),
     };
 
@@ -269,12 +269,12 @@ class IncludeResolver {
     }
 
     // After every directive is resolved, so each `.cnx` include's header is
-    // known. Issue #1467 review: one predicate for "is this a C-Next
-    // include?" -- a substring test answered NO for `<utils.cnext>`. #1444:
+    // known. Issue #1467 review: one predicate for "is this a cnx
+    // include?" -- a substring test disagreed with the resolver. #1444:
     // and that predicate is the kind recorded above.
     for (const directive of directives) {
-      if (IncludeRewriter.namesCNext(directive, result.kinds)) {
-        result.cnextDirectives.push(directive);
+      if (IncludeRewriter.namesCnx(directive, result.kinds)) {
+        result.cnxDirectives.push(directive);
       } else {
         result.cHeaderIncludes.push(directive);
         const spec = IncludeDirectiveText.spec(directive);
@@ -317,7 +317,7 @@ class IncludeResolver {
     };
     for (const include of resolved.included) {
       const { absolutePath, includeInfo, besideWriter } = include;
-      if (!include.isCNext) {
+      if (!include.isCnx) {
         // Issue #497: the directive for this header. #1746: a quoted header
         // found beside the `.cnx` is named from where the generated file is
         // written, as a `.cnx`'s header is (#2272), so it needs no `-I`
@@ -335,7 +335,7 @@ class IncludeResolver {
         }
         continue;
       }
-      // Issue #854: Track header directive for cnext includes so their types
+      // Issue #854: Track header directive for cnx includes so their types
       // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
       // forward declarations (MISRA Rule 5.6)
       // Issue #1467: ask the owner where the header is reachable. The
@@ -383,7 +383,7 @@ class IncludeResolver {
         ),
       );
     }
-    for (const directive of resolved.cnextDirectives) {
+    for (const directive of resolved.cnxDirectives) {
       spelling.userIncludes.push(
         IncludeRewriter.rewrite(
           directive,
@@ -411,9 +411,9 @@ class IncludeResolver {
       directive,
       FileDiscovery.classifyFile(includeInfo.path).type,
     );
-    const alternative = this._cnextAlternativeOf(includeInfo);
+    const alternative = this._cnxAlternativeOf(includeInfo);
     if (alternative !== null) {
-      result.cnextAlternatives.set(directive, alternative);
+      result.cnxAlternatives.set(directive, alternative);
     }
 
     if (!resolved) {
@@ -438,11 +438,11 @@ class IncludeResolver {
   }
 
   /**
-   * For an include of a header ADR-010 admits, the C-Next source spelling
+   * For an include of a header ADR-010 admits, the cnx source spelling
    * when the same form of include would find it -- E0504's question, which
    * 2.1 reads rather than asks (#1672).
    */
-  private _cnextAlternativeOf(includeInfo: {
+  private _cnxAlternativeOf(includeInfo: {
     path: string;
     isLocal: boolean;
   }): string | null {
@@ -478,7 +478,7 @@ class IncludeResolver {
   }
 
   /**
-   * Categorize a discovered file into headers or cnext includes
+   * Categorize a discovered file into headers or cnx includes
    */
   private _categorizeFile(
     file: IDiscoveredFile,
@@ -492,18 +492,18 @@ class IncludeResolver {
       result.included.push({
         absolutePath,
         includeInfo,
-        isCNext: false,
+        isCnx: false,
         besideWriter: this._resolvedBesideWriter(includeInfo, absolutePath),
       });
       return;
     }
 
-    if (file.type === EFileType.CNext) {
-      result.cnextIncludes.push(file);
+    if (file.type === EFileType.Cnx) {
+      result.cnxIncludes.push(file);
       result.included.push({
         absolutePath,
         includeInfo,
-        isCNext: true,
+        isCnx: true,
         besideWriter: this._resolvedBesideWriter(includeInfo, absolutePath),
       });
     }
@@ -532,11 +532,11 @@ class IncludeResolver {
     result: IResolvedIncludes,
   ): void {
     // An include that resolved to nothing still supplies names at compile
-    // time -- unless it names C-Next source, which is not a C or C++ header
+    // time -- unless it names cnx source, which is not a C or C++ header
     // (ADR-030) whether it is found or not. #1435 made reaching a header
     // transitive, so counting a missing `.cnx` switched E0426 off for every
     // file that reached this one.
-    if (FileDiscovery.classifyFile(includeInfo.path).type !== EFileType.CNext) {
+    if (FileDiscovery.classifyFile(includeInfo.path).type !== EFileType.Cnx) {
       result.hasForeignInclude = true;
     }
 
@@ -563,7 +563,7 @@ class IncludeResolver {
   }
 
   /**
-   * Read header content, returning null if not readable or if generated by C-Next.
+   * Read header content, returning null if not readable or if generated by cnx.
    */
   private static readHeaderContent(
     file: IDiscoveredFile,
@@ -581,7 +581,7 @@ class IncludeResolver {
 
     // #1435: the marker is the only thing that identifies a generated header
     // now, so it is asked of the one detector rather than spelled again here.
-    if (CnxMarkerDetector.isCNextGenerated(content)) {
+    if (CnxMarkerDetector.isCnxGenerated(content)) {
       onDebug?.(`Skipping cnx generated header: ${file.path}`);
       return null;
     }

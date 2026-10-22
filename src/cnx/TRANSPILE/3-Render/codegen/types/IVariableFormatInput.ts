@@ -35,8 +35,8 @@ interface IVariableFormatInput {
   /** Variable name */
   name: string;
 
-  /** Original C-Next type (e.g., 'u32', 'string<32>') */
-  cnextType: string;
+  /** Original cnx type (e.g., 'u32', 'string<32>') */
+  cnxType: string;
 
   /** Mapped C type (e.g., 'uint32_t', 'char[33]') */
   mappedType: string;

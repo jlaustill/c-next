@@ -13,7 +13,7 @@ import EHeaderLanguage from "../../1-Discover/types/EHeaderLanguage";
 import type IHeaderSource from "../../1-Discover/types/IHeaderSource";
 import type TCachedHeaderRead from "../../2-Parse/types/TCachedHeaderRead";
 
-/** 1.2 then 1.3 over one C-Next file and `headers`, as 1.2 reads them */
+/** 1.2 then 1.3 over one cnx file and `headers`, as 1.2 reads them */
 async function declareWithHeaders(
   headers: ReadonlyArray<readonly [string, IHeaderSource]>,
   extra: {

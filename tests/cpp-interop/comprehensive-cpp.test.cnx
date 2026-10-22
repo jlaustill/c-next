@@ -3,7 +3,7 @@
 // Comprehensive C++ Interop Test
 // Tests: C++ syntax patterns for scope resolution and type handling
 // This is a compilation-only test (no test-execution marker)
-// Note: C-Next doesn't have native pointer syntax, so pointer tests are omitted
+// Note: cnx doesn't have native pointer syntax, so pointer tests are omitted
 
 #include "comprehensive-cpp.hpp"
 
@@ -101,7 +101,7 @@ void testStructInit() {
     p.x <- 10;
     p.y <- 20;
 
-    // Struct with default initializers (C++ has defaults, but C-Next needs explicit init)
+    // Struct with default initializers (C++ has defaults, but cnx needs explicit init)
     mut Settings s;
     s.enabled <- false;
     s.timeout <- 1000;
@@ -184,7 +184,7 @@ void testTypeConversions() {
 void testArrayMembers() {
     mut DeviceConfig device;
 
-    // Initialize array elements (C-Next requires explicit init)
+    // Initialize array elements (cnx requires explicit init)
     device.sensors[0].enabled <- true;
     device.sensors[0].mode <- global.EMode.ON;
     device.sensors[0].flags <- 0x01;
@@ -308,7 +308,7 @@ void testArrayParams() {
 // ============================================================================
 // SECTION 15: CALLBACK INTEROP (Issue #409)
 // ============================================================================
-// Test passing C-Next callbacks to C++ registration functions
+// Test passing cnx callbacks to C++ registration functions
 
 // Define callback matching C++ Callback typedef: void(*)()
 void simpleCallback() {
@@ -326,14 +326,14 @@ void resultCallback(Result result) {
 }
 
 void testCallbackInterop() {
-    // Pass C-Next functions to C++ callback registration functions
-    // C++ expects: void(*)() - C-Next function should decay to function pointer
+    // Pass cnx functions to C++ callback registration functions
+    // C++ expects: void(*)() - cnx function should decay to function pointer
     global.registerCallback(simpleCallback);
 
     // C++ expects: void(*)(int) - matches our i32 callback
     global.registerIntCallback(intCallback);
 
-    // Issue #409: C-Next now generates references (const T&) in C++ mode,
+    // Issue #409: cnx now generates references (const T&) in C++ mode,
     // so we can use the standard registerResultCallback that expects const Result&
     global.registerResultCallback(resultCallback);
 

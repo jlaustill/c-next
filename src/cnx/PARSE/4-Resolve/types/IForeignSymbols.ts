@@ -8,11 +8,11 @@ import type THeaderMacro from "../../../types/THeaderMacro";
  * A shared contract rather than a codegen type: 1.4 Resolve takes it to derive
  * the cross-file facts that are ABOUT foreign declarations — symbol conflicts
  * among them, which header declares a type, opaque-vs-defined — and the
- * orchestrator supplies it. `Program` holds C-Next symbols only, which is why
+ * orchestrator supplies it. `Program` holds cnx symbols only, which is why
  * those three facts could not previously be authored there (#1511).
  *
  * The two languages stay separate because their order is observable: a
- * conflict report lists definitions C-Next first, then C, then C++.
+ * conflict report lists definitions cnx first, then C, then C++.
  */
 interface IForeignSymbols {
   readonly c: ReadonlyArray<TCSymbol>;
@@ -35,14 +35,14 @@ interface IForeignSymbols {
   readonly structTagsWithBodies: ReadonlySet<string>;
 
   /**
-   * #1688: each C-Next file's header macros, keyed by the file's path, each
+   * #1688: each cnx file's header macros, keyed by the file's path, each
    * typed from its replacement tokens (ADR-024). A `#define` is in no symbol
    * list above.
    */
   readonly macros: ReadonlyMap<string, ReadonlyMap<string, THeaderMacro>>;
 
   /**
-   * #1688: the C-Next files whose C includes' macros were not all read: the
+   * #1688: the cnx files whose C includes' macros were not all read: the
    * preprocessor could not read the file's own C includes together.
    */
   readonly macrosUnread: ReadonlySet<string>;

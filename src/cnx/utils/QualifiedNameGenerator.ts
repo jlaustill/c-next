@@ -1,5 +1,5 @@
 /**
- * QualifiedNameGenerator - C-style name generation for C-Next symbols
+ * QualifiedNameGenerator - C-style name generation for cnx symbols
  *
  * Provides transpiled C name generation for use in the output layer.
  * Delegates to ScopeUtils for the actual implementation to avoid duplication

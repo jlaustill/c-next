@@ -74,7 +74,7 @@ describe("SymbolLookupHelper", () => {
 
     it("returns false when language doesn't match", () => {
       const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cnx },
       ]);
       expect(
         SymbolLookupHelper.hasSymbolWithKindAndLanguage(
@@ -150,7 +150,7 @@ describe("SymbolLookupHelper", () => {
       const mockTable = makeSymbolTable([
         {
           kind: "namespace" as const,
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
         },
       ]);
       expect(SymbolLookupHelper.isNamespace(mockTable, "MyNS")).toBe(true);
@@ -158,7 +158,7 @@ describe("SymbolLookupHelper", () => {
 
     it("returns false when no namespace symbol", () => {
       const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cnx },
       ]);
       expect(SymbolLookupHelper.isNamespace(mockTable, "MyNS")).toBe(false);
     });
@@ -173,9 +173,9 @@ describe("SymbolLookupHelper", () => {
       expect(SymbolLookupHelper.isCnxFunction(undefined, "myFunc")).toBe(false);
     });
 
-    it("returns true for C-Next function", () => {
+    it("returns true for cnx function", () => {
       const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cnx },
       ]);
       expect(SymbolLookupHelper.isCnxFunction(mockTable, "myFunc")).toBe(true);
     });
@@ -196,7 +196,7 @@ describe("SymbolLookupHelper", () => {
     it("resolves a scoped function by its transpiled C name, not its bare name", () => {
       const fn = {
         kind: "function" as const,
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.Cnx,
       };
       const table = {
         getOverloadsByCName: (cName: string) =>
@@ -217,9 +217,9 @@ describe("SymbolLookupHelper", () => {
       expect(SymbolLookupHelper.isCnxFunction(mockTable, "myFunc")).toBe(false);
     });
 
-    it("returns false for C-Next struct", () => {
+    it("returns false for cnx struct", () => {
       const mockTable = makeSymbolTable([
-        { kind: "struct" as const, sourceLanguage: ESourceLanguage.CNext },
+        { kind: "struct" as const, sourceLanguage: ESourceLanguage.Cnx },
       ]);
       expect(SymbolLookupHelper.isCnxFunction(mockTable, "MyStruct")).toBe(
         false,
@@ -227,11 +227,11 @@ describe("SymbolLookupHelper", () => {
     });
   });
 
-  describe("isCNextFunctionCombined", () => {
+  describe("isCnxFunctionCombined", () => {
     it("returns true when in knownFunctions set", () => {
       const knownFunctions = new Set(["myFunc"]);
       expect(
-        SymbolLookupHelper.isCNextFunctionCombined(
+        SymbolLookupHelper.isCnxFunctionCombined(
           knownFunctions,
           null,
           "myFunc",
@@ -239,12 +239,12 @@ describe("SymbolLookupHelper", () => {
       ).toBe(true);
     });
 
-    it("returns true when in symbol table as C-Next function", () => {
+    it("returns true when in symbol table as cnx function", () => {
       const mockTable = makeSymbolTable([
-        { kind: "function" as const, sourceLanguage: ESourceLanguage.CNext },
+        { kind: "function" as const, sourceLanguage: ESourceLanguage.Cnx },
       ]);
       expect(
-        SymbolLookupHelper.isCNextFunctionCombined(
+        SymbolLookupHelper.isCnxFunctionCombined(
           new Set(),
           mockTable,
           "myFunc",
@@ -255,7 +255,7 @@ describe("SymbolLookupHelper", () => {
     it("returns false when not in knownFunctions and not in symbol table", () => {
       const mockTable = makeSymbolTable([]);
       expect(
-        SymbolLookupHelper.isCNextFunctionCombined(
+        SymbolLookupHelper.isCnxFunctionCombined(
           new Set(),
           mockTable,
           "myFunc",
@@ -265,7 +265,7 @@ describe("SymbolLookupHelper", () => {
 
     it("returns false when knownFunctions is undefined and not in symbol table", () => {
       expect(
-        SymbolLookupHelper.isCNextFunctionCombined(undefined, null, "myFunc"),
+        SymbolLookupHelper.isCnxFunctionCombined(undefined, null, "myFunc"),
       ).toBe(false);
     });
 
@@ -275,7 +275,7 @@ describe("SymbolLookupHelper", () => {
         { kind: "function" as const, sourceLanguage: ESourceLanguage.C },
       ]);
       expect(
-        SymbolLookupHelper.isCNextFunctionCombined(
+        SymbolLookupHelper.isCnxFunctionCombined(
           knownFunctions,
           mockTable,
           "myFunc",
@@ -296,7 +296,7 @@ describe("SymbolLookupHelper", () => {
       const mockTable = makeSymbolTable([
         {
           kind: "namespace" as const,
-          sourceLanguage: ESourceLanguage.CNext,
+          sourceLanguage: ESourceLanguage.Cnx,
         },
       ]);
       expect(

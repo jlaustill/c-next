@@ -6,7 +6,7 @@
  * `#include` is measured from and the include guard's base were all decided
  * once, from `config.input`. The editor constructs the class with an empty
  * `input`, so they came from the parent of the process's cwd: the preview's C
- * changed with the cwd, differed from what `cnext` writes for the same file,
+ * changed with the cwd, differed from what `cnx` writes for the same file,
  * and never saw the include paths of the project's `compile_commands.json`.
  */
 
@@ -22,7 +22,7 @@ describe("where a source run is anchored (#1719)", () => {
   let base: string;
 
   beforeEach(() => {
-    base = mkdtempSync(join(tmpdir(), "cnext-1719-"));
+    base = mkdtempSync(join(tmpdir(), "cnx-1719-"));
   });
 
   afterEach(() => {
@@ -126,10 +126,10 @@ u8 preferred() {
       expect(fromOutside.files[0]?.code).toBe(cliMain?.code);
     });
 
-    // #1719 box 2: "that C matches what `cnext` writes for the same file" --
+    // #1719 box 2: "that C matches what `cnx` writes for the same file" --
     // the header and its guard as well as the `.c`, for each file, with and
     // without a project root (the guard's identity is anchored differently in
-    // each: #1133). The same file means `cnext <that file>`: with no project
+    // each: #1133). The same file means `cnx <that file>`: with no project
     // root the CLI's own guard for colors.h depends on which entry it was
     // built from, so no single literal CLI value exists to match.
     it.each([
@@ -178,7 +178,7 @@ u8 preferred() {
     // A library reachable only through the include path the compile database
     // records. The CLI reads the database from the project root; the editor
     // shape found no project root at all, so `<colors.cnx>` resolved nowhere
-    // and C-Next member syntax reached the C at exit 0.
+    // and cnx member syntax reached the C at exit 0.
     const MAIN = `#include <colors.cnx>
 
 void main() {

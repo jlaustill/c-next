@@ -1,2 +1,0 @@
-13:0 error[E0518]: cnx source extension must be lowercase: Colors.CNX
-       help: Only `.cnx`, spelled in lowercase, names cnx source (ADR-010); rename the file and this include.

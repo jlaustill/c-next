@@ -7,7 +7,7 @@
  *
  * ## What this pass reads: discovery's answer, not discovery's inputs
  *
- * Whether an include resolves, and whether a header's C-Next source is where
+ * Whether an include resolves, and whether a header's cnx source is where
  * the same include would find it, are decided once, by 1.1 Discover, while it
  * resolves the file's includes. This pass reads that answer per directive and
  * asks the file system nothing (#1672).
@@ -18,15 +18,15 @@
  * and its quoted directory started from `dirname(sourcePath)` where discovery
  * started from `workingDir`. With the inputs in hand this pass still made its
  * own decision, along its own branch between the two forms and its own copy
- * of the C-Next extensions. It joined an absolute angle include onto each
+ * of the cnx extensions. It joined an absolute angle include onto each
  * search directory, where discovery resolves it by its path, so E0504 missed
- * a header whose C-Next source sat beside it; and it asked the file system a
+ * a header whose cnx source sat beside it; and it asked the file system a
  * second time, so a file that appeared between the two asks was accepted
  * while the run never discovered it.
  *
  * ## E0506 was uncoded
  *
- * `Error: Included C-Next file not found` was a bare `throw new Error`, so it
+ * `Error: Included cnx file not found` was a bare `throw new Error`, so it
  * reached the user as `1:0 Code generation failed: Error: …` with no code to
  * look up. It is the code the #1321 audit reserved for it. Discovery already
  * WARNS about the same missing file; the warning is not a diagnostic and the
@@ -71,17 +71,17 @@ class IncludeDirectiveChecks {
 
     const directive = IncludeDirectiveText.join(spec);
     const kind = this.kindOf(directive);
-    if (this.checkRejectedCnextFile(ctx, spec, kind)) return;
+    if (this.checkRejectedCnxFile(ctx, spec, kind)) return;
     if (this.checkImplementationFile(ctx, spec, kind)) return;
     if (
-      this.checkMissingCnextFile(ctx, spec, kind, this.resolutionOf(directive))
+      this.checkMissingCnxFile(ctx, spec, kind, this.resolutionOf(directive))
     ) {
       return;
     }
-    this.checkCnextAlternative(
+    this.checkCnxAlternative(
       ctx,
       spec,
-      this.context.cnextAlternatives.get(directive),
+      this.context.cnxAlternatives.get(directive),
     );
   }
 
@@ -110,16 +110,15 @@ class IncludeDirectiveChecks {
   }
 
   /**
-   * E0518: `#include "Colors.CNX"`; E0519: `#include "Colors.cnext"`. Only
-   * a lowercase `.cnx` is cnx source (#1833 owner ruling, #2167), in either
-   * form of include.
+   * E0518: `#include "Colors.CNX"`. Only a lowercase `.cnx` is cnx source
+   * (#1833 owner ruling), in either form of include.
    */
-  private checkRejectedCnextFile(
+  private checkRejectedCnxFile(
     ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     kind: EFileType,
   ): boolean {
-    if (kind !== EFileType.RejectedCNext) return false;
+    if (kind !== EFileType.RejectedCnx) return false;
     const rejection = CnxSourcePath.rejection(
       spec.path,
       "rename the file and this include.",
@@ -152,13 +151,13 @@ class IncludeDirectiveChecks {
    * what ADR-010 says a quoted include means. An angle include is searched
    * along the run's paths and its absence is discovery's warning to give.
    */
-  private checkMissingCnextFile(
+  private checkMissingCnxFile(
     ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     kind: EFileType,
     resolved: string | null,
   ): boolean {
-    if (!spec.isLocal || kind !== EFileType.CNext) return false;
+    if (!spec.isLocal || kind !== EFileType.Cnx) return false;
     if (resolved !== null) return false;
     // The help names no absolute path on purpose. The throw this replaces put
     // the resolved path in its message; it had no fixture, and the first one
@@ -176,12 +175,12 @@ class IncludeDirectiveChecks {
   }
 
   /**
-   * E0504: a header is included where its C-Next source sits beside it.
+   * E0504: a header is included where its cnx source sits beside it.
    *
    * The generated header and the `.cnx` describe the same interface, but only
    * the `.cnx` carries what the transpiler needs to check the call.
    */
-  private checkCnextAlternative(
+  private checkCnxAlternative(
     ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     cnxPath: string | undefined,

@@ -12,7 +12,7 @@
 
 ## Context
 
-C-Next today **silently allows a non-void function's return value to be discarded.**
+cnx today **silently allows a non-void function's return value to be discarded.**
 This transpiles without complaint:
 
 ```cnx
@@ -25,7 +25,7 @@ i32 main() {
 ```
 
 Ignoring a return value is a classic embedded foot-gun: a dropped error/status code, a
-discarded `safe_div` outcome, an unchecked parse result. C-Next's whole premise is "a safer
+discarded `safe_div` outcome, an unchecked parse result. cnx's whole premise is "a safer
 C" with **explicit data flow** (`<-` for assignment, no implicit conversions, no `switch`
 fallthrough, all-paths-return). "You must acknowledge what a function hands back" fits that
 philosophy directly — and is exactly the class of bug ADR-066 (DO-178C) and MISRA care about.
@@ -34,7 +34,7 @@ philosophy directly — and is exactly the class of bug ADR-066 (DO-178C) and MI
 
 **#847** made the _generated C_ MISRA C:2012 **Rule 17.7** compliant by emitting a `(void)`
 cast on discarded non-void calls. That silences the downstream tool, but does nothing for the
-C-Next author — the language still lets you silently drop a value you may have wanted. A safer
+cnx author — the language still lets you silently drop a value you may have wanted. A safer
 language should reject the mistake at its own source level, not paper over it in the output.
 
 Work on #847 surfaced that "discarded non-void call" splits into **two cases that must be
@@ -66,17 +66,17 @@ u32 v <- next();    // OK — used
 
 ### Recommended model: safe-by-default + explicit `(void)` discard, no exceptions
 
-Two sub-decisions, with **no opt-out mechanism** — C-Next is C, and the project principle is
+Two sub-decisions, with **no opt-out mechanism** — cnx is C, and the project principle is
 that _exceptions to rules are where bugs come from._
 
 1. **Default — every non-void return must be used or explicitly discarded** (safe-by-default).
-   Strongest guarantee, fits C-Next's explicit-flow ethos. There is no opt-in/opt-out; the rule
-   holds uniformly for every non-void call whose return type C-Next can resolve.
+   Strongest guarantee, fits cnx's explicit-flow ethos. There is no opt-in/opt-out; the rule
+   holds uniformly for every non-void call whose return type cnx can resolve.
 2. **Explicit discard syntax — `(void) expr;`, and only `void`.** A cast to any _other_ type
    does not silence the rule: `(u32) next();` throws the value away exactly as completely, so it
    is the silent-discard hole wearing a cast rather than an explicit discard. (Confirmed during
    #1260 review; note cppcheck does not flag it under Rule 17.7, treating any cast as a use —
-   C-Next is deliberately stricter than the tool here.)
+   cnx is deliberately stricter than the tool here.)
 
    The form itself is the standard C cast-to-`void`. This is the
    established C idiom for "I am intentionally not using this return value," e.g.
@@ -90,7 +90,7 @@ that _exceptions to rules are where bugs come from._
 
 - **Opt-in `must_use` annotation** (Rust's default `#[must_use]`): only annotated functions
   error on discard; everything else is silently discardable. _Rejected as the default stance_ —
-  unsafe-by-default contradicts C-Next's philosophy; the dangerous case (an un-annotated
+  unsafe-by-default contradicts cnx's philosophy; the dangerous case (an un-annotated
   error-returning function) slips through.
 - **A `discardable` opt-out** (Swift's `@discardableResult`: annotate functions whose return is
   "usually ignored" so they may be discarded silently). _Rejected._ The opt-out is itself the
@@ -99,7 +99,7 @@ that _exceptions to rules are where bugs come from._
   (a dropped status/error code) this ADR targets. Exceptions to rules are where bugs come from;
   there is no exception.
 - **`_ <- expr;` Rust-style sink, or a `discard`/`ignore` keyword** instead of `(void) expr;`:
-  _Rejected._ C-Next is C, not Swift or Rust — the C cast-to-`void` is the idiom C programmers
+  _Rejected._ cnx is C, not Swift or Rust — the C cast-to-`void` is the idiom C programmers
   already know, it already parses, and it matches the generated output. A new sink identifier or
   keyword would be a gratuitous divergence from C for no gain.
 
@@ -113,10 +113,10 @@ Under safe-by-default, `printf(...)` as a statement errors (it returns `int`). O
   bugs come from.
 - **(b) Require `(void) printf(...)`** everywhere the return is dropped (chosen). Maximally
   explicit and uniform: the rule has no special cases, and a discarded stdlib return reads
-  identically to a discarded C-Next return. The "noise" is the point — every intentional discard
+  identically to a discarded cnx return. The "noise" is the point — every intentional discard
   is visible at its call site.
-- **(c) Exempt all unparsed external C** (functions whose return type C-Next cannot see): C-Next
-  _does_ know many returns (C-Next functions, symbols from parsed C headers, and the stdlib map), so
+- **(c) Exempt all unparsed external C** (functions whose return type cnx cannot see): cnx
+  _does_ know many returns (cnx functions, symbols from parsed C headers, and the stdlib map), so
   a blanket exemption under-enforces. The enforce-where-resolvable boundary in (b) is not an
   _exception_ to the rule — it is the rule's domain (you cannot check a return type you cannot
   see); see Open Questions for the unresolvable-return case.
@@ -136,7 +136,7 @@ Components and constraints:
   same shape every other compile-time check reports, so a discarded return is not a special
   kind of failure to a reader or to a build log.
 - **Inputs:** the analyzer needs callee return types at analysis time. Those come from the
-  return-type knowledge already available to analyzers — C-Next functions and scope methods,
+  return-type knowledge already available to analyzers — cnx functions and scope methods,
   parsed C symbols (via the C resolver), and the stdlib metadata map. A callee whose return is
   `void`, or whose return type is unresolvable, is outside the rule's domain.
 - **Single source of truth:** "is this expression statement a discarded non-void call?" is one
@@ -181,11 +181,11 @@ Settled by this ADR:
   them like any other non-void function.
 
   > **Corrected during implementation (#847).** An earlier revision of this ADR exempted them,
-  > on the premise that "at the C-Next source level these are out-parameter builtins with no
+  > on the premise that "at the cnx source level these are out-parameter builtins with no
   > bound return". **That premise was factually wrong.** Authors bind the return constantly —
   > `err <- safe_div(result, 10, 2, 0);` appears six times in
   > `tests/arithmetic/safe-div-basic.test.cnx` alone. The exemption appears to have been
-  > reasoned from the _generated_ helper without checking the C-Next surface.
+  > reasoned from the _generated_ helper without checking the cnx surface.
   >
   > It also contradicted this ADR's own opening argument, which names "a discarded `safe_div`
   > outcome" as a motivating example of the very bug the rule exists to prevent. Exempting the
@@ -217,7 +217,7 @@ The owner has set these (they are no longer open):
 - **Discard syntax:** the C cast-to-`void`, `(void) expr;` (ADR-017, parses today). No new
   sink identifier or keyword.
 - **stdlib handling:** no curated carve-out — `(void)` is required at every dropped stdlib
-  return whose type is resolvable, identical to C-Next calls.
+  return whose type is resolvable, identical to cnx calls.
 
 ## Settled During Implementation (#847)
 
@@ -225,7 +225,7 @@ The questions left open above were implementation details, and the build settled
 
 - **Unknown external C — resolve it where visible, exempt only where it is not.** Functions
   declared in included C **and** C++ headers are resolvable, and both are consulted — not only
-  the C-Next include graph, which is a third and separate source. So
+  the cnx include graph, which is a third and separate source. So
   `global.spi_device_init(...)` declared in a `.h` is enforced. A name that resolves through neither route is
   outside the rule's domain — not exempted from it.
 
@@ -246,7 +246,7 @@ this feature, `warn` that it should be covered and is not, `error` that it must
 be. Undeclared cells are `off`.
 
 E0708 fires on an **expression statement** whose entire value is a discarded
-call. That single fact decides the context axis, because C-Next only admits an
+call. That single fact decides the context axis, because cnx only admits an
 expression statement inside a function body:
 
 - **top-level function** and **scope method** are where the construct lives, so
@@ -356,10 +356,10 @@ require them.
 | **C++**   | `[[nodiscard]]` / `[[nodiscard("reason")]]` (C++17/20) | opt-in; cast-to-`void` exempt                     | `(void)e;`              |
 | **Go**    | `errcheck` / `go vet` (lint, not language)             | tool-enforced                                     | `_ = e`                 |
 
-C-Next takes the **strictest** stance: safe-by-default like Swift's _default_, but with **no
+cnx takes the **strictest** stance: safe-by-default like Swift's _default_, but with **no
 opt-out** at all (stricter than Swift/Rust/C++), and the discard form is **C's own
 `(void)` cast** (as in C++'s `[[nodiscard]]` exemption) rather than a borrowed sink or keyword —
-C-Next is C.
+cnx is C.
 
 ## References
 

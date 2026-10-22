@@ -391,7 +391,7 @@ describe("CallExprGenerator", () => {
     });
   });
 
-  describe("C function calls (not C-Next)", () => {
+  describe("C function calls (not cnx)", () => {
     it("generates pass-by-value arguments for C functions", () => {
       const argExpressions = [
         createMockExpressionContext("x"),
@@ -626,7 +626,7 @@ describe("CallExprGenerator", () => {
     });
 
     it("Issue #937: passes callback-promoted params directly to pointer-expecting C functions", () => {
-      // When a C-Next param matches a callback typedef (e.g., u8 buf -> uint8_t* buf),
+      // When a cnx param matches a callback typedef (e.g., u8 buf -> uint8_t* buf),
       // and it's passed to a C function expecting a pointer, use identifier directly
       const argExpressions = [createMockExpressionContext("buf")];
       const sigs = new Map([
@@ -845,7 +845,7 @@ describe("CallExprGenerator", () => {
     });
   });
 
-  describe("C-Next function calls", () => {
+  describe("cnx function calls", () => {
     it("passes struct arguments by reference", () => {
       const argExpressions = [createMockExpressionContext("myVal")];
       const sigs = new Map([
@@ -1096,7 +1096,7 @@ describe("CallExprGenerator", () => {
       expect(result.code).toBe("process(extVal)");
     });
 
-    it("wraps C++ enum class with static_cast for C-Next pass-by-value", () => {
+    it("wraps C++ enum class with static_cast for cnx pass-by-value", () => {
       const argExpressions = [createMockExpressionContext("MyEnum::Val")];
       const sigs = new Map([
         [

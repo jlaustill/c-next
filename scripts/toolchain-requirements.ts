@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * C-Next toolchain requirements documentation generator (Issue #1143)
+ * cnx toolchain requirements documentation generator (Issue #1143)
  *
  * Derives docs/compatibility.md, and the toolchain-derived MISRA guideline
  * rows in docs/misra-compliance.md, from TOOLCHAIN_REQUIREMENTS -- the same
@@ -94,7 +94,7 @@ function buildCompatibility(): string {
   lines.push(
     "## Policy",
     "",
-    "C-Next's toolchain requirements are **per-feature, not global**.",
+    "cnx's toolchain requirements are **per-feature, not global**.",
     "",
     "The baseline is C99 (C++11 with `--cpp`), and code that uses none of the",
     "features below really does compile with any conforming compiler. Each",
@@ -104,7 +104,7 @@ function buildCompatibility(): string {
     "",
     "This file is generated from the transpiler's own requirements registry, so it",
     "cannot fall out of step with what the code generator emits. To see what *your*",
-    "project needs -- as opposed to what C-Next might need -- transpile it: the",
+    "project needs -- as opposed to what cnx might need -- transpile it: the",
     "requirements are reported at the end of the run.",
     "",
   );
@@ -152,9 +152,9 @@ function buildCompatibility(): string {
   );
   if (floors.length === 0) {
     lines.push(
-      "**None.** No construct C-Next emits has a minimum compiler version.",
+      "**None.** No construct cnx emits has a minimum compiler version.",
       "",
-      "C-Next previously required GCC 5+ / Clang 3.8+ wherever an unsigned `clamp`",
+      "cnx previously required GCC 5+ / Clang 3.8+ wherever an unsigned `clamp`",
       "helper was emitted, because those helpers called `__builtin_add_overflow` and",
       "friends. Those calls were unreachable -- the preceding range check is already",
       "a complete overflow test -- and were removed in #1143.",

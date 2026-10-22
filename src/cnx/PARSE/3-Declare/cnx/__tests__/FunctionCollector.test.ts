@@ -39,7 +39,7 @@ describe("FunctionCollector", () => {
       expect(TypeResolver.getTypeName(symbol.returnType)).toBe("void");
       expect(symbol.parameters).toEqual([]);
       expect(symbol.sourceFile).toBe("test.cnx");
-      expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
+      expect(symbol.sourceLanguage).toBe(ESourceLanguage.Cnx);
       expect(symbol.visibility).toBe("private");
       expect(symbol.visibility).toBe("private");
       expect(symbol.scopePath).toBe("");
@@ -107,7 +107,7 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].isConst).toBe(true);
     });
 
-    it("handles array parameters (C-Next style)", () => {
+    it("handles array parameters (cnx style)", () => {
       const code = `
         void processArray(u8[] data) {
         }
@@ -125,7 +125,7 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].arrayDimensions).toEqual([""]);
     });
 
-    it("handles sized array parameters (C-Next style)", () => {
+    it("handles sized array parameters (cnx style)", () => {
       const code = `
         void processBuffer(u8[256] buffer) {
         }
@@ -143,7 +143,7 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters[0].arrayDimensions).toEqual([256]);
     });
 
-    it("handles multi-dimensional array parameters (C-Next style)", () => {
+    it("handles multi-dimensional array parameters (cnx style)", () => {
       const code = `
         void processMatrix(f32[4][4] matrix) {
         }

@@ -3,8 +3,8 @@
  *
  * Generates C code for literal values:
  * - Boolean literals (true/false) → needs stdbool.h
- * - Float literals with C-Next suffixes (f32 → f, f64 → no suffix)
- * - Integer literals with C-Next suffixes (u64 → ULL, i64 → LL, strip 8/16/32)
+ * - Float literals with cnx suffixes (f32 → f, f64 → no suffix)
+ * - Integer literals with cnx suffixes (u64 → ULL, i64 → LL, strip 8/16/32)
  * - MISRA Rule 7.2: Unsigned suffix for unsigned integer types
  * - String and numeric literals pass through unchanged
  */
@@ -18,7 +18,7 @@ import type TranspileState from "../../../../TranspileState";
 
 /**
  * Unsigned type patterns for MISRA Rule 7.2 compliance.
- * Includes both C-Next types (u8, u16, u32, u64) and C types (uint8_t, etc.)
+ * Includes both cnx types (u8, u16, u32, u64) and C types (uint8_t, etc.)
  */
 const UNSIGNED_64_TYPES = new Set(["u64", "uint64_t"]);
 const UNSIGNED_TYPES = new Set([
@@ -137,7 +137,7 @@ const generateLiteral = (
     };
   }
 
-  // ADR-024: Transform C-Next float suffixes to standard C syntax
+  // ADR-024: Transform cnx float suffixes to standard C syntax
   // 3.14f32 -> 3.14f (C float)
   // 3.14f64 -> 3.14 (C double, no suffix needed)
   // #1668: asked of the whole literal, not of its last three characters --
@@ -148,7 +148,7 @@ const generateLiteral = (
     return { code: floatParts.unsuffixed + suffix, effects };
   }
 
-  // Issue #130: Transform C-Next integer suffixes to standard C syntax
+  // Issue #130: Transform cnx integer suffixes to standard C syntax
   // u8/u16/u32 and i8/i16/i32 suffixes are stripped (C infers from context)
   // u64 -> ULL suffix for 64-bit unsigned
   // i64 -> LL suffix for 64-bit signed

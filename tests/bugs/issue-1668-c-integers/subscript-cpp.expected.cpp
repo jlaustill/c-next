@@ -7,7 +7,7 @@
 // test-execution
 // test-adr: 024
 // #1668 (S25): only a C or C++ header's INTEGER is subscripted as bits. A C++
-// type with its own `operator[]` keeps its element access -- C-Next knows no
+// type with its own `operator[]` keeps its element access -- cnx knows no
 // bit layout for it -- where typing it as a scalar made `sbuf[2]` a shift of
 // a struct, which C++ rejects.
 #include "cpp_index.hpp"

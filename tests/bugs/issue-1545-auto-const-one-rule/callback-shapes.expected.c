@@ -33,7 +33,7 @@
 //      error: invalid use of incomplete typedef 'knob_t'
 //
 //    `readKnob` below is that whole-value use: handing the parameter to
-//    another C-Next function, which takes it by pointer for the same reason.
+//    another cnx function, which takes it by pointer for the same reason.
 #include "shapes_api.h"
 
 #include <stdint.h>

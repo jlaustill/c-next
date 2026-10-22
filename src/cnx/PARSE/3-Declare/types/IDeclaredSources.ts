@@ -17,7 +17,7 @@ interface IDeclaredSources {
    * declared. 1.4 completes it; nothing after 1.4 writes to it.
    */
   readonly symbolTable: SymbolTable;
-  /** #1991: the C-Next functions 1.3 registered, for 1.4 */
+  /** #1991: the cnx functions 1.3 registered, for 1.4 */
   readonly registry: SymbolRegistry;
   readonly headers: IDeclaredHeaders;
 }

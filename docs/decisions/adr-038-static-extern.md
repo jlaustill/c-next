@@ -14,14 +14,14 @@ C's storage class specifiers:
 
 ## Decision
 
-**Permanently rejected.** C-Next will not support the `static` keyword.
+**Permanently rejected.** cnx will not support the `static` keyword.
 
 Visibility control is handled by `scope` (ADR-016) instead:
 
 - Scope members are **private by default** (generates `static` in C)
 - `public` keyword exposes members (no `static` in C)
 
-This approach is simpler and more aligned with C-Next's philosophy.
+This approach is simpler and more aligned with cnx's philosophy.
 
 ## Rationale
 
@@ -85,13 +85,13 @@ int counter() {
 Per [Google Testing Blog](https://testing.googleblog.com/2008/12/static-methods-are-death-to-testability.html): "Static methods are death to testability."
 
 **Hidden Dependencies:**
-Static locals violate C-Next's "explicit over implicit" philosophy — function behavior depends on invisible state.
+Static locals violate cnx's "explicit over implicit" philosophy — function behavior depends on invisible state.
 
 #### 3. Simpler Language
 
 One less keyword to learn. Visibility is consistently handled through `scope` and `public`.
 
-### The C-Next Alternative
+### The cnx Alternative
 
 Instead of `static`, use explicit state at scope level:
 

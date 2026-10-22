@@ -1,6 +1,6 @@
 // test-error
 // test-adr: 026
-// Bug #1011: break is not part of C-Next — use structured conditions
+// Bug #1011: break is not part of cnx — use structured conditions
 //
 // NEGATIVE CONTROL -- the structured form ADR-026 asks for, in a top-level
 // function; and `break` inside a scope method, the other context the rule

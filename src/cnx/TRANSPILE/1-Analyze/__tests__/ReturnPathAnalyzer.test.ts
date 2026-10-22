@@ -207,7 +207,7 @@ describe("ReturnPathAnalyzer", () => {
   });
 
   describe("treats `forever` as a divergent terminal path (ADR-068, the primitive #849 consumes)", () => {
-    // A `forever` loop never exits (C-Next has no break/continue, ADR-026), so a
+    // A `forever` loop never exits (cnx has no break/continue, ADR-026), so a
     // function whose terminal path is `forever` never falls through and must not
     // be flagged E0704. (In real programs `forever` is void-only via E0705 in
     // codegen; this is the shared divergence primitive ADR-069 reuses.)

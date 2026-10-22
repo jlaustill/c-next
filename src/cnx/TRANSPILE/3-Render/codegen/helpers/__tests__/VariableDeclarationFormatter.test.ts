@@ -14,7 +14,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats simple variable declaration", () => {
       const input: IVariableFormatInput = {
         name: "counter",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: false,
@@ -32,7 +32,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats const variable", () => {
       const input: IVariableFormatInput = {
         name: "MAX_SIZE",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: true,
@@ -50,7 +50,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats extern variable", () => {
       const input: IVariableFormatInput = {
         name: "globalCounter",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: false,
@@ -68,7 +68,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats extern const variable with correct ordering", () => {
       const input: IVariableFormatInput = {
         name: "MAX_SIZE",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: true,
@@ -87,7 +87,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats atomic variable (maps to volatile)", () => {
       const input: IVariableFormatInput = {
         name: "sharedCounter",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: false,
@@ -105,7 +105,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats volatile variable", () => {
       const input: IVariableFormatInput = {
         name: "hwRegister",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: false,
@@ -123,7 +123,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats extern volatile const with all modifiers", () => {
       const input: IVariableFormatInput = {
         name: "ROM_DATA",
-        cnextType: "u32",
+        cnxType: "u32",
         mappedType: "uint32_t",
         modifiers: {
           isConst: true,
@@ -142,7 +142,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats array variable with single dimension", () => {
       const input: IVariableFormatInput = {
         name: "buffer",
-        cnextType: "u8",
+        cnxType: "u8",
         mappedType: "uint8_t",
         modifiers: {
           isConst: false,
@@ -161,7 +161,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats array variable with multiple dimensions", () => {
       const input: IVariableFormatInput = {
         name: "matrix",
-        cnextType: "u8",
+        cnxType: "u8",
         mappedType: "uint8_t",
         modifiers: {
           isConst: false,
@@ -180,7 +180,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats string<N> variable with embedded dimension", () => {
       const input: IVariableFormatInput = {
         name: "greeting",
-        cnextType: "string<32>",
+        cnxType: "string<32>",
         mappedType: "char[33]", // string<32> maps to char[33]
         modifiers: {
           isConst: false,
@@ -199,7 +199,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats string<N> array with additional dimensions first", () => {
       const input: IVariableFormatInput = {
         name: "names",
-        cnextType: "string<32>",
+        cnxType: "string<32>",
         mappedType: "char[33]",
         modifiers: {
           isConst: false,
@@ -219,7 +219,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats const string<N> array for header extern", () => {
       const input: IVariableFormatInput = {
         name: "messages",
-        cnextType: "string<64>",
+        cnxType: "string<64>",
         mappedType: "char[65]",
         modifiers: {
           isConst: true,
@@ -238,7 +238,7 @@ describe("VariableDeclarationFormatter", () => {
     it("formats user-defined type variable", () => {
       const input: IVariableFormatInput = {
         name: "point",
-        cnextType: "Point",
+        cnxType: "Point",
         mappedType: "Point",
         modifiers: {
           isConst: false,
@@ -254,7 +254,7 @@ describe("VariableDeclarationFormatter", () => {
     it("handles enum dimension identifiers", () => {
       const input: IVariableFormatInput = {
         name: "colors",
-        cnextType: "u8",
+        cnxType: "u8",
         mappedType: "uint8_t",
         modifiers: {
           isConst: false,

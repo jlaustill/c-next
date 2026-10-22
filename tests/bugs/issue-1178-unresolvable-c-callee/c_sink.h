@@ -1,6 +1,6 @@
 /*
  * Helper for issue #1178: a C function that takes a non-const pointer to a
- * C-Next struct. It is declared in C, so it never appears in the C-Next
+ * cnx struct. It is declared in C, so it never appears in the cnx
  * functionParamLists the modification propagator consults -- which is exactly
  * the "unresolvable callee" state the issue is about.
  */

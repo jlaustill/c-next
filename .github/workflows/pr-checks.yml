@@ -184,7 +184,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Issue #1364: `.prettierrc` loads the C-Next plugin, so Prettier cannot
+      # Issue #1364: `.prettierrc` loads the cnx plugin, so Prettier cannot
       # check a .cnx file until the plugin is built. `npm ci` runs `prepare`,
       # which installs and builds it from the committed grammar -- the same path
       # a contributor gets from a plain `npm install`, so CI cannot pass on a
@@ -458,8 +458,8 @@ jobs:
 
       # scripts/ is outside tsconfig.json's `include`, so the test harness and
       # every gate the lint job runs were never typechecked -- which is how a
-      # statically detectable TS2339 shipped in scripts/move-modules.ts and left
-      # the documented mover unable to move anything (#1489).
+      # statically detectable TS2339 shipped in a scripts/ tool and left it
+      # unable to do its one job (#1489).
       - name: Check scripts types
         run: npm run typecheck:scripts
 

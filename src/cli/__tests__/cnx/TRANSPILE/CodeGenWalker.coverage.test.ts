@@ -30,7 +30,7 @@ import ESourceLanguage from "../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../cnx/types/__testUtils__/testSourceSpan";
 
 /**
- * Helper to parse C-Next source and return tree + generator ready for testing.
+ * Helper to parse cnx source and return tree + generator ready for testing.
  */
 function setupGenerator(
   source: string,
@@ -538,7 +538,7 @@ describe("CodeGenWalker Coverage Tests", () => {
   // Lines 4772-4800: _generateScopeVariable with arrays
   // ==========================================================================
   describe("_generateScopeVariable() with arrays", () => {
-    it("should generate scope variable with C-Next style array", () => {
+    it("should generate scope variable with cnx style array", () => {
       const source = `
         scope Buffer {
           public u8[16] data;
@@ -1406,7 +1406,7 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
 
     it("should not infer pointer when function is not a C function", () => {
-      // No C symbols registered - create_widget is a C-Next function
+      // No C symbols registered - create_widget is a cnx function
       const source = `
         struct widget_t { i32 x; }
         widget_t create_widget() {
@@ -1420,7 +1420,7 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const { code } = setupGenerator(source, { cppMode: false });
 
-      // Should NOT generate pointer since create_widget is a C-Next function
+      // Should NOT generate pointer since create_widget is a cnx function
       expect(code).not.toContain("widget_t* w");
     });
 
@@ -2077,7 +2077,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       expect(code).toContain("float x = (float)n;");
     });
 
-    it("plans a C-Next array and puts its dimensions in the declarator", () => {
+    it("plans a cnx array and puts its dimensions in the declarator", () => {
       const { code } = setupGenerator(
         `
         u8 main() {

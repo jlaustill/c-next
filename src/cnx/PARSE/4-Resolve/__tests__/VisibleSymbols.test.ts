@@ -87,7 +87,7 @@ describe("VisibleSymbols", () => {
         scopePath: "",
         sourceFile: "lib.cnx",
         span: TestSourceSpan.at(1),
-        sourceLanguage: ESourceLanguage.CNext,
+        sourceLanguage: ESourceLanguage.Cnx,
         visibility: "public",
       }),
       backingType: "uint8_t",

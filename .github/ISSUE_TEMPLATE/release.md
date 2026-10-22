@@ -19,7 +19,7 @@ Full detail for each step lives in [`releasing.md`](../../releasing.md).
       `[Unreleased]` is emptied into it
 - [ ] ADR statuses are correct (Accepted → Implemented where code is complete)
 - [ ] `docs/architecture-decisions.md` ADR table matches the ADR file statuses
-- [ ] `docs/learn-cnext-in-y-minutes.md` reflects any syntax change
+- [ ] `docs/learn-cnx-in-y-minutes.md` reflects any syntax change
 
 ## 2. Release band gate
 
@@ -33,7 +33,7 @@ every non-terminal ADR in band `N` to be Implemented. `Rejected` and
 
 ## 3. VS Code extension (only if the grammar changed)
 
-- [ ] `tmLanguage.json` synced in [vscode-c-next](https://github.com/jlaustill/vscode-c-next)
+- [ ] `tmLanguage.json` synced in [vscode-cnx](https://github.com/smeltworks/vscode-cnx)
 - [ ] `completionProvider.ts` keywords synced
 - [ ] Extension version tagged so the marketplace picks it up
 
@@ -53,6 +53,6 @@ every non-terminal ADR in band `N` to be Implemented. `Rejected` and
 - [ ] Release branch merged to `main` via a merge commit (never squash)
 - [ ] Tag pushed (`git tag vX.Y.Z && git push origin vX.Y.Z`) — this is what
       triggers `publish.yml`
-- [ ] npm shows the new version (`npm view c-next versions`)
+- [ ] npm shows the new version (`npm view @smeltworks/cnx versions`)
 - [ ] GitHub release created with the right tag
-- [ ] `npm install -g c-next@latest && cnext --version` reports the new version
+- [ ] `npm install -g @smeltworks/cnx@latest && cnx --version` reports the new version

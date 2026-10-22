@@ -30,7 +30,7 @@ describe("ADR-044 provenance of a folded static initializer (#1735)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-1735-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-1735-"));
   });
 
   afterEach(() => {

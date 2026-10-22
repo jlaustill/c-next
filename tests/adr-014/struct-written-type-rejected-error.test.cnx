@@ -1,6 +1,6 @@
 // test-error
 // test-adr: 014
-// ADR-014 / #1322: `Point { x: 1 }` is not C-Next syntax.
+// ADR-014 / #1322: `Point { x: 1 }` is not cnx syntax.
 //
 // The grammar carried an `IDENTIFIER '{' ... '}'` alternative for a written
 // type. It was never usable: every position that consumes a value already

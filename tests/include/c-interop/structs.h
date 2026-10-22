@@ -6,7 +6,7 @@
 
 /*
  * C Interop Test Structs
- * Test struct definitions for C-Next interop testing
+ * Test struct definitions for cnx interop testing
  */
 
 /* Named struct (requires 'struct' keyword in C) */

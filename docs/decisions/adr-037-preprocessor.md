@@ -13,7 +13,7 @@ C preprocessor directives are heavily used in embedded development:
 - `#ifdef` / `#ifndef` / `#else` / `#endif` - Conditional compilation
 - `#pragma` - Names or describes the target (ADR-049); any other pragma is an error _(updated 2026-09-26, #1668; was "compiler hints (future)")_
 
-C-Next takes a **safety-first approach** based on MISRA C guidelines and common bug patterns.
+cnx takes a **safety-first approach** based on MISRA C guidelines and common bug patterns.
 
 ## Research: Why `#define` Is Dangerous
 
@@ -67,7 +67,7 @@ Modern compilers (GCC, Clang, arm-gcc) perform constant propagation on `const` v
 
 ## Decision
 
-C-Next enforces a **safety-first preprocessor policy**:
+cnx enforces a **safety-first preprocessor policy**:
 
 ### Allowed
 

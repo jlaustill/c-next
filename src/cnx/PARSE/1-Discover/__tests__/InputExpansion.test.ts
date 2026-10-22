@@ -60,18 +60,6 @@ describe("InputExpansion", () => {
       expect(result[0]).toBe(resolve(filePath));
     });
 
-    // #2167: `.cnext` no longer names cnx source.
-    it("rejects a .cnext file with E0519", () => {
-      const filePath = "/project/main.cnext";
-      mockFile(filePath);
-
-      expect(() =>
-        InputExpansion.expandInputs([filePath], NodeFileSystem.instance),
-      ).toThrow(
-        "error[E0519]: `.cnext` no longer names cnx source; rename it to `.cnx`: main.cnext",
-      );
-    });
-
     it("throws error for non-existent file", () => {
       mockExistsSync.mockReturnValue(false);
 
@@ -117,17 +105,6 @@ describe("InputExpansion", () => {
         InputExpansion.validateFileExtension("/path/to/file.cnx"),
       ).not.toThrow();
     });
-
-    it.each(["file.cnext", "File.CNEXT"])(
-      "rejects %s with E0519 (#2167)",
-      (name) => {
-        expect(() =>
-          InputExpansion.validateFileExtension(`/path/to/${name}`),
-        ).toThrow(
-          `error[E0519]: \`.cnext\` no longer names cnx source; rename it to \`.cnx\`: ${name}`,
-        );
-      },
-    );
 
     it("accepts .c files as entry points", () => {
       expect(() =>
@@ -210,10 +187,6 @@ describe("InputExpansion", () => {
 
     it("returns false for .cnx files", () => {
       expect(InputExpansion.isCppEntryPoint("/path/to/file.cnx")).toBe(false);
-    });
-
-    it("returns false for .cnext files", () => {
-      expect(InputExpansion.isCppEntryPoint("/path/to/file.cnext")).toBe(false);
     });
   });
 });

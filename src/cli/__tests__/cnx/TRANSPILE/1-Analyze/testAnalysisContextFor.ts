@@ -44,7 +44,7 @@ function testAnalysisContextFor(
   source: string,
   options: {
     /**
-     * Other C-Next files the test source includes, path to source. Each is
+     * Other cnx files the test source includes, path to source. Each is
      * declared as its own file, ahead of the test source, which sees them all
      * -- a cross-file fact is then a real one, not a mocked view.
      */
@@ -90,7 +90,7 @@ function testAnalysisContextFor(
       registry,
       cppMode: options.cppMode,
       visibility: {
-        cnextIncludesByFile: new Map([
+        cnxIncludesByFile: new Map([
           [
             TEST_SOURCE,
             Object.keys(options.helpers ?? {}).map((path) => ({ path })),

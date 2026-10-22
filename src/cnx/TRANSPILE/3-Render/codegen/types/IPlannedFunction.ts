@@ -1,7 +1,7 @@
 import type IPlannedFunctionParameter from "../../../2-Plan/types/IPlannedFunctionParameter";
 
 /**
- * A C-Next function declaration, decided.
+ * A cnx function declaration, decided.
  *
  * #1445 box 3: `FunctionGenerator`'s job is a SEQUENCE, not an inspection --
  * enter the context, render the body, update auto-const, render the signature,

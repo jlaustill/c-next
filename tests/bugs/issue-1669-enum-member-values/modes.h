@@ -1,4 +1,4 @@
-/* Helper for value-header-macro.test.cnx (#1669): a macro C-Next has no value for. */
+/* Helper for value-header-macro.test.cnx (#1669): a macro cnx has no value for. */
 #ifndef MODES_H
 #define MODES_H
 

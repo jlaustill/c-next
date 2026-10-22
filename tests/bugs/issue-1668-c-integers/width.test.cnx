@@ -17,7 +17,7 @@ u32 main() {
         return 2;
     }
 
-    // NEGATIVE CONTROL: a C-Next leaf of the same width was always counted.
+    // NEGATIVE CONTROL: a cnx leaf of the same width was always counted.
     u32 w <- 70000;
     u32 rv <- b + w;
     if (rv != 70200) {

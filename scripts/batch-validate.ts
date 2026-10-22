@@ -407,7 +407,7 @@ function runMisra() {
 
   // MisraBaseline owns the cppcheck invocation and the failure decision:
   //   - buildArgs() enables `--enable=style` so the addon actually reports (#1057)
-  //   - findFailures() fails only on un-baselined rules in C-Next-generated code
+  //   - findFailures() fails only on un-baselined rules in cnx-generated code
   // cppcheck exits 1 on ANY enabled finding (including non-MISRA style noise),
   // so every match throws; we parse the captured output and decide ourselves.
   for (const file of misraFiles) {

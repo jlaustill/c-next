@@ -8,11 +8,11 @@ import type ITranspileError from "../../types/ITranspileError";
 import type ICnxMarker from "./types/ICnxMarker";
 
 /**
- * Result of scanning a C/C++ entry point for C-Next sources.
+ * Result of scanning a C/C++ entry point for cnx sources.
  */
 interface IScanResult {
   /** Absolute paths to discovered .cnx source files */
-  cnextSources: string[];
+  cnxSources: string[];
   /**
    * E0509: each marker naming a .cnx file that is not there, reported at the
    * marker in the header that records it (#1542)
@@ -20,25 +20,25 @@ interface IScanResult {
   errors: ITranspileError[];
   /** Warnings encountered (e.g., includes that couldn't be resolved) */
   warnings: string[];
-  /** True if no C-Next markers were found (not an error, just informational) */
-  noCNextFound: boolean;
+  /** True if no cnx markers were found (not an error, just informational) */
+  noCnxFound: boolean;
 }
 
 /**
- * Scans C/C++ entry point files to discover C-Next source dependencies.
+ * Scans C/C++ entry point files to discover cnx source dependencies.
  *
- * Walks the include tree starting from a C/C++ file, looks for C-Next
+ * Walks the include tree starting from a C/C++ file, looks for cnx
  * generation markers in headers, and extracts the source .cnx paths.
  * Follows includes transitively through discovered .cnx files.
  *
  * Used by the C/C++ entry point feature (ADR-010) to enable compilation
- * where the entry point is a C/C++ file that #includes C-Next generated headers.
+ * where the entry point is a C/C++ file that #includes cnx generated headers.
  */
 class CppEntryPointScanner {
   private readonly fs: IFileSystem;
   private readonly searchPaths: string[];
   private readonly visited = new Set<string>();
-  private readonly cnextSources = new Set<string>();
+  private readonly cnxSources = new Set<string>();
   private readonly errors: ITranspileError[] = [];
   private readonly warnings: string[] = [];
 
@@ -60,7 +60,7 @@ class CppEntryPointScanner {
   }
 
   /**
-   * Scan an entry point file for C-Next source dependencies.
+   * Scan an entry point file for cnx source dependencies.
    *
    * @param entryPath - Path to the C/C++ entry point file
    * @returns Scan result with discovered sources, errors, and warnings
@@ -70,10 +70,10 @@ class CppEntryPointScanner {
     this._scanFile(absolutePath);
 
     return {
-      cnextSources: Array.from(this.cnextSources),
+      cnxSources: Array.from(this.cnxSources),
       errors: this.errors,
       warnings: this.warnings,
-      noCNextFound: this.cnextSources.size === 0 && this.errors.length === 0,
+      noCnxFound: this.cnxSources.size === 0 && this.errors.length === 0,
     };
   }
 
@@ -112,7 +112,7 @@ class CppEntryPointScanner {
     fromFile: string,
   ): void {
     // #1672: the one decision 1.1 resolves a .cnx file's includes with, so a
-    // quoted C-Next include is found beside `fromFile` and nowhere else.
+    // quoted cnx include is found beside `fromFile` and nowhere else.
     const resolved = IncludeDiscovery.resolveSpelling(
       includeInfo,
       dirname(fromFile),
@@ -141,29 +141,29 @@ class CppEntryPointScanner {
       return;
     }
 
-    // Check if this is a C-Next generated header
+    // Check if this is a cnx generated header
     const marker = CnxMarkerDetector.findMarker(headerContent);
     if (marker) {
       // A banner that records its source
-      this._handleCNextMarker(marker, absolutePath);
-    } else if (CnxMarkerDetector.isCNextGenerated(headerContent)) {
+      this._handleCnxMarker(marker, absolutePath);
+    } else if (CnxMarkerDetector.isCnxGenerated(headerContent)) {
       // A banner with no recorded source - treat as leaf node
-      // (we know it's C-Next generated but can't determine the source)
+      // (we know it's cnx generated but can't determine the source)
       this.visited.add(absolutePath);
     } else {
-      // Not a C-Next generated header - scan it for nested includes
+      // Not a cnx generated header - scan it for nested includes
       this._scanFile(absolutePath);
     }
   }
 
   /**
-   * Handle a C-Next generation marker found in a header.
+   * Handle a cnx generation marker found in a header.
    *
    * Resolves the source path by first checking relative to the header location,
    * then searching the include paths. This supports both default behavior (header
    * next to source) and --header-out (header in separate directory).
    */
-  private _handleCNextMarker(marker: ICnxMarker, headerPath: string): void {
+  private _handleCnxMarker(marker: ICnxMarker, headerPath: string): void {
     const { sourcePath } = marker;
     const headerDir = dirname(headerPath);
     let absoluteSourcePath = resolve(join(headerDir, sourcePath));
@@ -180,7 +180,7 @@ class CppEntryPointScanner {
     }
 
     if (!this.fs.exists(absoluteSourcePath)) {
-      // ADR-010: no C-Next directive leads here, so the position is the
+      // ADR-010: no cnx directive leads here, so the position is the
       // generated header's marker, which is the record that is wrong.
       this.errors.push({
         sourcePath: headerPath,
@@ -214,7 +214,7 @@ class CppEntryPointScanner {
       return;
     }
 
-    this.cnextSources.add(absoluteSourcePath);
+    this.cnxSources.add(absoluteSourcePath);
     // Scan the .cnx file for its own includes (transitive discovery), along
     // the search path .cnx discovery gives it (#1706)
     this._scanFile(absoluteSourcePath, this.cnxSearchPaths(absoluteSourcePath));

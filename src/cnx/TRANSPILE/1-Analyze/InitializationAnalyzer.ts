@@ -397,7 +397,7 @@ class InitializationWalk {
 }
 
 /**
- * Analyzes C-Next AST for use-before-initialization errors
+ * Analyzes cnx AST for use-before-initialization errors
  */
 class InitializationAnalyzer {
   /** #1456: handed in rather than read off shared state. */
@@ -408,20 +408,20 @@ class InitializationAnalyzer {
   private states = new Map<TInitKey, IVariableState>();
 
   /**
-   * C-Next struct fields from current file (collected at analysis time).
+   * cnx struct fields from current file (collected at analysis time).
    * External struct fields from C/C++ headers are accessed via CodeGenState.
    */
-  private cnextStructFields: Map<string, Set<string>> = new Map();
+  private cnxStructFields: Map<string, Set<string>> = new Map();
 
   /**
    * Get struct fields for a given struct type.
-   * Checks C-Next structs first, then falls back to CodeGenState for external structs.
+   * Checks cnx structs first, then falls back to CodeGenState for external structs.
    */
   private getStructFields(structName: string): ReadonlySet<string> | undefined {
-    // Check C-Next structs from current file first
-    const cnextFields = this.cnextStructFields.get(structName);
-    if (cnextFields) {
-      return cnextFields;
+    // Check cnx structs from current file first
+    const cnxFields = this.cnxStructFields.get(structName);
+    if (cnxFields) {
+      return cnxFields;
     }
 
     // Check external structs from CodeGenState
@@ -460,7 +460,7 @@ class InitializationAnalyzer {
   public analyze(program: IProgramSyntax): IInitializationError[] {
     this.errors = [];
     this.states = new Map();
-    this.cnextStructFields = new Map();
+    this.cnxStructFields = new Map();
     this.collectStructDefinitions(program);
     this.createGlobalScope(program);
     const walk = new InitializationWalk(this);
@@ -583,7 +583,7 @@ class InitializationAnalyzer {
     for (const member of program.declarations) {
       const declaration = member.declaration;
       if (declaration.kind !== "struct") continue;
-      this.cnextStructFields.set(
+      this.cnxStructFields.set(
         declaration.name,
         new Set(declaration.fields.map((field) => field.name)),
       );

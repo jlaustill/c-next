@@ -126,7 +126,7 @@ const NO_FOREIGN: IForeignSymbols = {
 
 /** A program built without include information: each file sees only itself. */
 const NO_VISIBILITY: IVisibilityInput = {
-  cnextIncludesByFile: new Map(),
+  cnxIncludesByFile: new Map(),
 };
 
 /** A use's position */
@@ -216,7 +216,7 @@ class Program {
     const sourceFiles = files.map((file) => file.sourceFile);
     // Derived from the SETTLED symbols, and from every file at once. Detection
     // used to run over whatever an accumulator held when it was asked, which is
-    // why it could not live here: the C-Next half was inserted after this point.
+    // why it could not live here: the cnx half was inserted after this point.
     // Flattened in file-declaration order so the report order is unchanged.
     const typesByFile = Program.deriveTypesByFile(symbolsByFile, foreign);
     const visibleByFile = Program.deriveVisibleSymbols(
@@ -579,7 +579,7 @@ class Program {
    * include order (#1511).
    *
    * Every language, in the order a per-file lookup used to return them —
-   * C-Next, then C, then C++ — so a name declared in two of them keeps the same
+   * cnx, then C, then C++ — so a name declared in two of them keeps the same
    * precedence it had.
    */
   private static deriveTypesByFile(
@@ -605,7 +605,7 @@ class Program {
       }
     };
 
-    // A C-Next type by the C name a generated signature names it with --
+    // A cnx type by the C name a generated signature names it with --
     // `Lib__Point`, not `Point`. By its bare name, no header was found to
     // declare what the signature says, so the type was forward-declared after
     // the include that defines it, and a scope's `Data` answered for a C
@@ -680,7 +680,7 @@ class Program {
       // discovery and with each other.
       const sources = TransitiveEnumCollector.collect(
         sourceFile,
-        visibility.cnextIncludesByFile,
+        visibility.cnxIncludesByFile,
         ownView,
       ).sources;
       visible.set(
@@ -775,7 +775,7 @@ class Program {
           file.sourceFile,
           ...TransitiveEnumCollector.collect(
             file.sourceFile,
-            visibility.cnextIncludesByFile,
+            visibility.cnxIncludesByFile,
             NO_VIEWS,
           ).paths,
         ]),
@@ -870,7 +870,7 @@ class Program {
   }
 
   /**
-   * Every file-scope and scope const's integer value, and every C-Next
+   * Every file-scope and scope const's integer value, and every cnx
    * enum's member values, by C name, settled once for the whole program
    * (#1175, #1669).
    *
@@ -1428,9 +1428,9 @@ class Program {
    * becomes a declaration.
    *
    * A bare name: the innermost local, then the enclosing scope's member,
-   * then a file-scope global, then a C-Next scope, then a C/C++ header name.
+   * then a file-scope global, then a cnx scope, then a C/C++ header name.
    * `this.x` is the enclosing scope's member only; `global.x` is a
-   * file-scope global, a C-Next scope or a header name, never a local or a
+   * file-scope global, a cnx scope or a header name, never a local or a
    * member. Scope members and globals are found by C-name identity, never by a
    * first bare-name match, so a reopened scope in another file binds too.
    */
@@ -1558,7 +1558,7 @@ class Program {
    * ADR-030 / #2019: whether a spelling nothing binds at `at` may be a
    * header's `#define`, which reaches no symbol table: the file reaches a C
    * or C++ header, and no declaration of the file would bind it there were
-   * it closed. One that would is C-Next's, and not defined yet (E0427).
+   * it closed. One that would is cnx's, and not defined yet (E0427).
    */
   private static mayBeHeaderName(
     facts: IBindingFacts,

@@ -8,7 +8,7 @@
 
 scope Handler {
     // This function receives an array and passes it to a C API
-    // The C-Next code does NOT directly modify `data`, but the C API does.
+    // The cnx code does NOT directly modify `data`, but the C API does.
     // ADR-006 says params are mutable, so this should work.
     void process(mut u8[8] data) {
         // BUG: data is NOT modified here, so transpiler adds `const`

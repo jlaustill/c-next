@@ -8,41 +8,41 @@
 u32 main() {
     string<64> payload <- "[10,20,30]";
 
-    mut cJSON root <- global.cnext_cjson_parse(payload);
-    i32 itemCount <- global.cnext_cjson_get_array_size(root);
+    mut cJSON root <- global.cjson_api_parse(payload);
+    i32 itemCount <- global.cjson_api_get_array_size(root);
     if (itemCount != 3) {
-        global.cnext_cjson_delete(root);
+        global.cjson_api_delete(root);
         return 1;
     }
 
-    cJSON first <- global.cnext_cjson_get_array_item(root, 0);
-    cJSON second <- global.cnext_cjson_get_array_item(root, 1);
-    cJSON third <- global.cnext_cjson_get_array_item(root, 2);
+    cJSON first <- global.cjson_api_get_array_item(root, 0);
+    cJSON second <- global.cjson_api_get_array_item(root, 1);
+    cJSON third <- global.cjson_api_get_array_item(root, 2);
 
-    bool firstIsNumber <- global.cnext_cjson_is_number(first) != 0;
+    bool firstIsNumber <- global.cjson_api_is_number(first) != 0;
     if (firstIsNumber = false) {
-        global.cnext_cjson_delete(root);
+        global.cjson_api_delete(root);
         return 2;
     }
 
-    f64 firstValue <- global.cnext_cjson_get_number_value(first);
+    f64 firstValue <- global.cjson_api_get_number_value(first);
     if (firstValue != 10.0) {
-        global.cnext_cjson_delete(root);
+        global.cjson_api_delete(root);
         return 3;
     }
 
-    i32 secondValue <- global.cnext_cjson_get_valueint(second);
+    i32 secondValue <- global.cjson_api_get_valueint(second);
     if (secondValue != 20) {
-        global.cnext_cjson_delete(root);
+        global.cjson_api_delete(root);
         return 4;
     }
 
-    i32 thirdValue <- global.cnext_cjson_get_valueint(third);
+    i32 thirdValue <- global.cjson_api_get_valueint(third);
     if (thirdValue != 30) {
-        global.cnext_cjson_delete(root);
+        global.cjson_api_delete(root);
         return 5;
     }
 
-    global.cnext_cjson_delete(root);
+    global.cjson_api_delete(root);
     return 0;
 }

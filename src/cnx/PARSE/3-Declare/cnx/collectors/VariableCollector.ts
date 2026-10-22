@@ -160,7 +160,7 @@ class VariableCollector {
     // ADR-071: read-only unless declared `mut`
     const isConst = !declaration.modifiers.mut;
 
-    // Both spellings: C-Next's `u16[4][4] arr` first, then C's `arr[4]`
+    // Both spellings: cnx's `u16[4][4] arr` first, then C's `arr[4]`
     const sizes = [
       ...(declaration.type.kind === "array" ? declaration.type.dimensions : []),
       ...declaration.dimensions,
@@ -266,7 +266,7 @@ class VariableCollector {
       ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       span: variable.span,
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility,
       type: facts.type,
       isConst: facts.isConst,

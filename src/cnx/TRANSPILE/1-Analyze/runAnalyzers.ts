@@ -1,5 +1,5 @@
 /**
- * Pass 2.1: every rejection C-Next makes about a parsed program.
+ * Pass 2.1: every rejection cnx makes about a parsed program.
  *
  * The steps run in the order declared below, and the loop STOPS at the first
  * non-advisory step that finds anything -- so a step's position is a decision

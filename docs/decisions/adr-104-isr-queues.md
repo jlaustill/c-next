@@ -2,7 +2,7 @@
 
 **Status:** Research
 **Date:** 2026-01-03
-**Decision Makers:** C-Next Language Design Team
+**Decision Makers:** cnx Language Design Team
 **Parent ADR:** [ADR-009: ISR Safety](adr-009-isr-safety.md)
 
 ## Context
@@ -119,7 +119,7 @@ queue CAN_Message[32] canRxQueue;
 ```
 
 - Compiler can optimize
-- Consistent with C-Next array syntax (`type[size] name`)
+- Consistent with cnx array syntax (`type[size] name`)
 - More language complexity
 
 **Option B: Standard library**
@@ -130,13 +130,13 @@ Queue canRxQueue <- Queue.create(CAN_Message, 32);
 ```
 
 - Simpler language
-- Can be implemented in C-Next itself
+- Can be implemented in cnx itself
 - Less optimization opportunity
 
 **Option C: Defer to generated C / external libraries**
 
 - Users use existing C queue libraries
-- C-Next just ensures ISR-safe access patterns
+- cnx just ensures ISR-safe access patterns
 
 ### Q2: What Queue Types to Support?
 
@@ -242,7 +242,7 @@ What types can be queue elements?
 | Structs                    | ?        | Copy by value, what about large structs? |
 | Arrays                     | ?        | Would need special handling              |
 | Strings                    | ?        | Depends on string semantics (ADR-045)    |
-| Pointers                   | ?        | Requires pointer support in C-Next       |
+| Pointers                   | ?        | Requires pointer support in cnx          |
 
 ### Q8: Power-of-Two Optimization
 
@@ -253,7 +253,7 @@ next = (index + 1) % 8;   // Division (slow on M0)
 next = (index + 1) & 7;   // Bitmask (fast)
 ```
 
-Should C-Next:
+Should cnx:
 
 - Require power-of-two capacity?
 - Optimize when power-of-two, use modulo otherwise?

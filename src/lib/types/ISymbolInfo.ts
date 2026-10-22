@@ -12,7 +12,7 @@ interface ISymbolInfo {
   fullName: string;
   /** Kind of symbol */
   kind: TSymbolKind;
-  /** Dot-path identifier matching C-Next syntax (e.g., "LED.toggle", "Color.Red") */
+  /** Dot-path identifier matching cnx syntax (e.g., "LED.toggle", "Color.Red") */
   id: string;
   /** Parent's dot-path identifier (e.g., "LED" for "LED.toggle"), absent for top-level */
   parentId?: string;

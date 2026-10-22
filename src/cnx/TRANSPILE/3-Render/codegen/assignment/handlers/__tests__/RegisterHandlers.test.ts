@@ -56,7 +56,7 @@ function createMockContext(
     ...HandlerTestUtils.subscriptsOf([{ mockValue: "LED_BIT" } as never]),
     renderExpression: (expr) => expr.written,
     isCompound: false,
-    cnextOp: "<-",
+    cnxOp: "<-",
     cOp: "=",
     generatedValue: "true",
     // #1445: renders, not nodes -- each delegates to the mocked generator the

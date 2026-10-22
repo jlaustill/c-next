@@ -95,7 +95,7 @@ to:
 ```typescript
 if (!config.input) {
   console.error("Error: No input file specified");
-  console.error("Usage: cnext <file.cnx>");
+  console.error("Usage: cnx <file.cnx>");
 ```
 
 **Step 3: Add directory rejection**
@@ -108,7 +108,7 @@ if (existsSync(resolvedInput) && statSync(resolvedInput).isDirectory()) {
   console.error(
     `Error: Directory input not supported. Specify an entry point file.`,
   );
-  console.error(`Example: cnext ${config.input}/main.cnx`);
+  console.error(`Example: cnx ${config.input}/main.cnx`);
   return { shouldRun: false, exitCode: 1 };
 }
 ```
@@ -252,32 +252,32 @@ Note: PathResolver still takes `inputs: string[]` internally — we pass it the 
 Replace Step 1 (lines ~939-949) from:
 
 ```typescript
-const cnextFiles: IDiscoveredFile[] = [];
+const cnxFiles: IDiscoveredFile[] = [];
 const fileByPath = new Map<string, IDiscoveredFile>();
 
 for (const input of this.config.inputs) {
-  this._discoverCNextFromInput(input, cnextFiles, fileByPath);
+  this._discoverCnxFromInput(input, cnxFiles, fileByPath);
 }
 ```
 
 to:
 
 ```typescript
-const cnextFiles: IDiscoveredFile[] = [];
+const cnxFiles: IDiscoveredFile[] = [];
 const fileByPath = new Map<string, IDiscoveredFile>();
 
 const entryFile = FileDiscovery.discoverFile(
   resolve(this.config.input),
   this.fs,
 );
-if (!entryFile || entryFile.type !== EFileType.CNext) {
-  return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };
+if (!entryFile || entryFile.type !== EFileType.Cnx) {
+  return { cnxFiles: [], headerFiles: [], writeOutputToDisk: true };
 }
-cnextFiles.push(entryFile);
+cnxFiles.push(entryFile);
 fileByPath.set(resolve(entryFile.path), entryFile);
 ```
 
-**Step 4: Remove \_discoverCNextFromInput()**
+**Step 4: Remove \_discoverCnxFromInput()**
 
 Delete the entire method (lines ~757-790). It handled both file and directory inputs — no longer needed.
 
@@ -431,13 +431,13 @@ refactor: CleanCommand accepts single input file
 **Files:**
 
 - Modify: `src/transpiler/data/FileDiscovery.ts` — remove `discover()` method and related code
-- Modify: `src/transpiler/data/InputExpansion.ts` — remove `findCNextFiles()` directory scanning
+- Modify: `src/transpiler/data/InputExpansion.ts` — remove `findCnxFiles()` directory scanning
 - Delete or update: `src/transpiler/data/__tests__/FileDiscovery.test.ts` — remove directory tests
 - Delete or update: `src/transpiler/data/__tests__/InputExpansion.test.ts` — remove directory tests
 
 **Step 1: Remove FileDiscovery.discover()**
 
-Delete the `discover()` static method. Keep `discoverFile()`, `discoverFiles()`, `classifyFile()`, `filterByType()`, `getCNextFiles()`, `getHeaderFiles()`.
+Delete the `discover()` static method. Keep `discoverFile()`, `discoverFiles()`, `classifyFile()`, `filterByType()`, `getCnxFiles()`, `getHeaderFiles()`.
 
 Remove `regexToGlob()` (only used by `discover()`).
 
@@ -445,9 +445,9 @@ Remove the `DEFAULT_IGNORE_GLOBS` constant.
 
 Remove `import fg from "fast-glob"` and the `IDiscoveryOptions` import if no longer needed.
 
-**Step 2: Remove InputExpansion.findCNextFiles()**
+**Step 2: Remove InputExpansion.findCnxFiles()**
 
-Delete the `findCNextFiles()` method. In `expandInputs()`, remove the directory branch — only keep the file validation path:
+Delete the `findCnxFiles()` method. In `expandInputs()`, remove the directory branch — only keep the file validation path:
 
 ```typescript
 static expandInputs(inputs: string[]): string[] {
@@ -479,7 +479,7 @@ Remove directory-scanning test cases from FileDiscovery and InputExpansion test 
 **Step 4: Commit**
 
 ```
-refactor: remove directory scanning code (FileDiscovery.discover, InputExpansion.findCNextFiles)
+refactor: remove directory scanning code (FileDiscovery.discover, InputExpansion.findCnxFiles)
 ```
 
 ---
@@ -633,11 +633,11 @@ Expected: No new issues.
 **Files:**
 
 - Modify: `CLAUDE.md` — update Quick Reference table if command examples use directories
-- Modify: `docs/learn-cnext-in-y-minutes.md` — if it mentions CLI usage
+- Modify: `docs/learn-cnx-in-y-minutes.md` — if it mentions CLI usage
 
 **Step 1: Update CLI usage examples**
 
-Change any `cnext src/` examples to `cnext src/main.cnx`.
+Change any `cnx src/` examples to `cnx src/main.cnx`.
 
 **Step 2: Commit**
 

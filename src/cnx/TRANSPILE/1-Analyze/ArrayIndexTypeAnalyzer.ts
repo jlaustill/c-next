@@ -2,7 +2,7 @@
  * Array Index Type Analyzer
  * Detects signed and floating-point types used as array or bit subscript indexes
  *
- * C-Next requires unsigned integer types for all subscript operations to prevent
+ * cnx requires unsigned integer types for all subscript operations to prevent
  * undefined behavior from negative indexes. This analyzer catches type violations
  * at compile time with clear error messages.
  *

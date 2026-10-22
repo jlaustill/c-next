@@ -5,7 +5,7 @@
  * FreeRTOS port headers) are GNU-assembler sources, not C: they `#define
  * _ASMLANGUAGE` and contain `.macro` bodies whose instruction mnemonics (e.g.
  * `loop`) were mis-collected as C symbols, causing false "defined in multiple
- * languages" conflicts against C-Next symbols like Arduino `loop()`.
+ * languages" conflicts against cnx symbols like Arduino `loop()`.
  * detectAssemblySyntax lets the header pipeline skip such files.
  */
 import { describe, it, expect } from "vitest";

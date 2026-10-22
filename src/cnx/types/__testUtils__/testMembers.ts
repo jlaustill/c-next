@@ -45,7 +45,7 @@ class TestMembers {
       ...ScopeUtils.identityOf({ name, scopePath: ownerScopedName }),
       sourceFile: "test.cnx",
       span: TestSourceSpan.at(line),
-      sourceLanguage: ESourceLanguage.CNext,
+      sourceLanguage: ESourceLanguage.Cnx,
       visibility: "public" as const,
     };
   }

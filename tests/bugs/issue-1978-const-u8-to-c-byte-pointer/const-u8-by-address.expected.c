@@ -8,7 +8,7 @@
 // test-execution
 // #1978: a `u8` passed to a C `const uint8_t*` is passed by its address. It
 // was `sum_u8(one, 1U)`, a pointer made from an integer, exit 0. Each call
-// also carries warning E0896: C-Next cannot see how `sum_u8` uses it.
+// also carries warning E0896: cnx cannot see how `sum_u8` uses it.
 #include "const-byte-sum.h"
 
 #include <stdint.h>

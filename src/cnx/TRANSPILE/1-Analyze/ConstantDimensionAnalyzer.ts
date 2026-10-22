@@ -9,14 +9,14 @@
  * how this card's defects survived: a parameter-sized local reached C as an
  * initialized variable-length array, at exit 0.
  *
- * A dimension C can evaluate and C-Next cannot (a header macro) is C's, and
+ * A dimension C can evaluate and cnx cannot (a header macro) is C's, and
  * passes. One that has no value is rejected here, so render never sees it.
  *
- * E0359 (#1283 review): except where C-Next spells every element. ADR-029
+ * E0359 (#1283 review): except where cnx spells every element. ADR-029
  * gives each element of a callback array its default function, ADR-017 each
  * enum element its zero enumerator (#1971), and each element of an array of a
  * struct with a default that struct's default, so the count must be one
- * C-Next reads (`ElementCount`). A header macro of plain
+ * cnx reads (`ElementCount`). A header macro of plain
  * integer arithmetic is; a cast or a macro it cannot see is not.
  */
 import ConstExprLowering from "../../utils/ConstExprLowering";
@@ -217,7 +217,7 @@ class ConstantDimensionAnalyzer {
     return found;
   }
 
-  /** E0359 for a dimension naming a value C-Next cannot read, else null */
+  /** E0359 for a dimension naming a value cnx cannot read, else null */
   private unreadable(
     dimension: TConstExpr,
     element: string,

@@ -69,7 +69,7 @@ describe("FormatUtils.getScopeSeparator", () => {
     expect(FormatUtils.getScopeSeparator(true)).toBe("::");
   });
 
-  it("returns _ for C/C-Next context", () => {
+  it("returns _ for C/cnx context", () => {
     expect(FormatUtils.getScopeSeparator(false)).toBe("__");
   });
 });

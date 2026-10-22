@@ -290,7 +290,7 @@ class ClassCollector {
     fieldType: string,
     ctx: IMemberCollectionContext,
   ): void {
-    // Warn if field name conflicts with C-Next reserved property names
+    // Warn if field name conflicts with cnx reserved property names
     if (SymbolUtils.isReservedFieldName(fieldName)) {
       ctx.warnings.push(
         SymbolUtils.getReservedFieldWarning("C++", ctx.className, fieldName),

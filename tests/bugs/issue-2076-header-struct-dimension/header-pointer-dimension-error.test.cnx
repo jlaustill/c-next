@@ -1,6 +1,6 @@
 // test-error
 // Issue #2076: a header struct holding a pointer has no length (#1975, owner
-// ruling: C-Next has no pointers), so it cannot size an array either.
+// ruling: cnx has no pointers), so it cannot size an array either.
 //
 // NEGATIVE CONTROL: `Odd.i`, the struct's other field, sizes one.
 #include "dims.h"

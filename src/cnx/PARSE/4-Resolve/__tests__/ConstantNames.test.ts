@@ -342,7 +342,7 @@ u8 after;`;
     });
   });
 
-  describe("a name nothing C-Next declares", () => {
+  describe("a name nothing cnx declares", () => {
     it("may be a header macro in a file that includes a header", () => {
       const program = build(`u8 x;`, true);
       expect(ask(program, ["BUF_SIZE"])).toEqual({

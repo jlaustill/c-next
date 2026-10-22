@@ -1,7 +1,7 @@
 /**
- * ADR-049: reads the target catalog -- a C-Next source file -- into plain data.
+ * ADR-049: reads the target catalog -- a cnx source file -- into plain data.
  *
- * The catalog is parsed by the real C-Next grammar, so it stays a C-Next
+ * The catalog is parsed by the real cnx grammar, so it stays a cnx
  * program rather than a look-alike some second reader accepts. This module is
  * the only one that sees its parse tree; what leaves it is structs, constants
  * and literal values. Judging those values (kinds, completeness, the schema)

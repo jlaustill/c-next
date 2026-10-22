@@ -249,7 +249,7 @@ class UndeclaredValueAnalyzer {
     );
   }
 
-  /** Whether the spelling denotes something C-Next sees declared at `at` */
+  /** Whether the spelling denotes something cnx sees declared at `at` */
   private isNamed(
     name: string,
     root: TChainRoot,

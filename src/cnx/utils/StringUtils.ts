@@ -6,7 +6,7 @@
  */
 /**
  * MISRA C:2012 Rule 17.7 (ADR-070 Case 1): every `strncpy`/`strncat` below is a
- * call the TRANSPILER emits to lower a C-Next string operation -- the author
+ * call the TRANSPILER emits to lower a cnx string operation -- the author
  * never wrote it, so its discarded return is cast to `(void)` here rather than
  * being reported to the author. Author-written discards are Case 2 (E0708).
  *

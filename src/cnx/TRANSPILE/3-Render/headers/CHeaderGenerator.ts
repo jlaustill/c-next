@@ -1,7 +1,7 @@
 /**
  * C Header Generator
  *
- * Generates C header (.h) files from C-Next source with C semantics
+ * Generates C header (.h) files from cnx source with C semantics
  * (pointer-based pass-by-reference).
  */
 

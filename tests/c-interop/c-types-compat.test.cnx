@@ -1,8 +1,8 @@
 // test-execution
 // ADR-010: C Interoperability - Type compatibility
-// Tests: C-Next types map cleanly to C types
+// Tests: cnx types map cleanly to C types
 
-// All C-Next types map to stdint.h types
+// All cnx types map to stdint.h types
 u8 byte <- 255;
 u16 word <- 65535;
 u32 dword <- 0xFFFFFFFF;

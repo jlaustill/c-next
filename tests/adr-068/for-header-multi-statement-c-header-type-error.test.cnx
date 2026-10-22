@@ -2,7 +2,7 @@
 // test-adr: 068
 // #2155 review 8: a write to an `atomic` of a C header integer type is an
 // atomic read-modify-write, so a `for` header cannot hold it (E0715), as it
-// cannot hold one to a C-Next integer.
+// cannot hold one to a cnx integer.
 
 #include "../atomic/atomic-c-header-type.h"
 

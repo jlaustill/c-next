@@ -1,5 +1,5 @@
 /**
- * CST helpers for the C-Next Prettier plugin (#1364).
+ * CST helpers for the cnx Prettier plugin (#1364).
  *
  * The plugin prints ANTLR's parse tree directly rather than converting it to a
  * bespoke AST first. That conversion layer is what rotted in the previous

@@ -49,7 +49,7 @@ u32 main() {
 // Main test function
 async function runTest() {
   // Write test source to temp location
-  const testDir = "/tmp/c-next-test-218";
+  const testDir = "/tmp/cnx-test-218";
   const testFile = join(testDir, "scope-visibility.cnx");
 
   mkdirSync(testDir, { recursive: true });

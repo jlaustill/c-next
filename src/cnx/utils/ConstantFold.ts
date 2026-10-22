@@ -58,10 +58,10 @@ class ConstantFold {
 
   /**
    * `environment`, except that a macro from an included C header whose C
-   * replacement C-Next can read (`HeaderMacros`: plain integer arithmetic)
+   * replacement cnx can read (`HeaderMacros`: plain integer arithmetic)
    * answers that value at the target's `int` width (#1283 review). Folding
    * alone leaves it to C (`foreign`), which is right for a spelling C writes
-   * -- a dimension stays `N_HANDLERS` (#1127) -- but not where C-Next must
+   * -- a dimension stays `N_HANDLERS` (#1127) -- but not where cnx must
    * know the value: an element count, or whether a static initializer's
    * arithmetic would clamp or wrap (#1735 review 2).
    */
@@ -169,7 +169,7 @@ class ConstantFold {
   }
 
   /**
-   * #1735: a value of a C-Next primitive type, held at that type -- a
+   * #1735: a value of a cnx primitive type, held at that type -- a
    * const's initializer and each value in a static-storage initializer
    * alike. Null for a type that is not a number or a bool.
    */
@@ -223,7 +223,7 @@ class ConstantFold {
     return { kind: "float", digits, typeName };
   }
 
-  /** A declared type's C-Next name, for the range a folded value must fit */
+  /** A declared type's cnx name, for the range a folded value must fit */
   static typeNameOf(type: TType): string | null {
     return TTypeUtils.isPrimitive(type) ? type.primitive : null;
   }

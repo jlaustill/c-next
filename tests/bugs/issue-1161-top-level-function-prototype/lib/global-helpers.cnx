@@ -5,7 +5,7 @@
 // other .cnx that included this file called them with no declaration in scope:
 // a warning under C99, an error under -Werror=implicit-function-declaration and
 // under GCC 14 / C23 defaults. Neither `public` nor `private` parses at top
-// level -- scopes are how C-Next expresses privacy.
+// level -- scopes are how cnx expresses privacy.
 struct Point {
     u8 value;
 }

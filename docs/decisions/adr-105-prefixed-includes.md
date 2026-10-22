@@ -32,7 +32,7 @@ Other languages solve this with module systems:
 - JavaScript: `import * as Compass from 'compass'` → `Compass.North`
 - Rust: `use compass::*` with renaming
 
-C-Next needs a way to import C headers without namespace pollution, and ideally allow disambiguation when multiple libraries export the same symbol names.
+cnx needs a way to import C headers without namespace pollution, and ideally allow disambiguation when multiple libraries export the same symbol names.
 
 ## Decision Drivers
 
@@ -228,7 +228,7 @@ void main() {
 
 Require a `.cnxlib` manifest describing the header:
 
-<!-- survives-rewrite: a proposed C-Next artifact format, not build config -- any implementation would read the same file -->
+<!-- survives-rewrite: a proposed cnx artifact format, not build config -- any implementation would read the same file -->
 
 ```yaml
 # compass.cnxlib
@@ -255,10 +255,10 @@ symbols:
 5. **Symbol renaming in C output**: If `Arduino.Serial.begin()` transpiles to `Arduino_Serial_begin()`, the C compiler won't find it — the header declares `Serial_begin()`. Options:
    - Generate wrapper functions: `static inline void Arduino_Serial_begin(int baud) { Serial_begin(baud); }`
    - Use preprocessor macros: `#define Arduino_Serial_begin Serial_begin`
-   - Only prefix at C-Next level, strip during transpilation (cosmetic namespacing)
+   - Only prefix at cnx level, strip during transpilation (cosmetic namespacing)
 
 6. **True namespacing vs cosmetic**:
-   - **Cosmetic**: `Arduino.Serial.begin()` → `Serial_begin()` (just for C-Next disambiguation)
+   - **Cosmetic**: `Arduino.Serial.begin()` → `Serial_begin()` (just for cnx disambiguation)
    - **True**: `Arduino.Serial.begin()` → `Arduino_Serial_begin()` (requires wrapper generation)
    - Cosmetic is simpler but doesn't prevent C-level conflicts
 

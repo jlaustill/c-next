@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * C-Next Grammar Coverage Tracker (Issue #35)
+ * cnx Grammar Coverage Tracker (Issue #35)
  *
  * Tracks which ANTLR grammar rules are executed during test runs
  * to identify dead grammar code and untested language constructs.

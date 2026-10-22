@@ -7,7 +7,7 @@ import RequirementSites from "./RequirementSites";
 /**
  * Issue #1143: Fold per-file toolchain requirements into a project-level view.
  *
- * A static matrix can only say what C-Next *might* need. Merging what each file
+ * A static matrix can only say what cnx *might* need. Merging what each file
  * actually recorded is what lets the transpiler answer the question a user
  * choosing a toolchain is really asking: what does *this* project need?
  */

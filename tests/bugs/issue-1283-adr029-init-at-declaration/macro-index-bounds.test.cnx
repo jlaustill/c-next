@@ -1,5 +1,5 @@
 // test-error
-// #1283 review: once C-Next reads a header macro's value to spell every
+// #1283 review: once cnx reads a header macro's value to spell every
 // element's default, E0854 checks an index against that same count -- as it
 // does `u32[3] lit; lit[5]` -- for a global, a struct field and a local. The
 // in-range read of the global stays silent.

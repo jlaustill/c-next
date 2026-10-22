@@ -2,7 +2,7 @@ import type IPipelineFile from "../../1-Discover/types/IPipelineFile";
 import type IFileSymbols from "../../../types/IFileSymbols";
 import type ISourceSyntax from "../../../types/ISourceSyntax";
 
-/** 1.3's artifact for one C-Next file, which 1.4 resolves (#1991) */
+/** 1.3's artifact for one cnx file, which 1.4 resolves (#1991) */
 interface IDeclaredSource {
   readonly file: IPipelineFile;
   readonly fileSymbols: IFileSymbols;

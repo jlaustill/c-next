@@ -11,7 +11,7 @@
 // `u8[Cfg.type_byte_length]` holds 5. It was E0909 ("is a member access"): 1.4,
 // which folds dimensions, could not see a header's structs.
 //
-// NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule.
+// NEGATIVE CONTROL: `Point`, a cnx struct, sized by the same rule.
 #include "dims.h"
 
 #include <stdint.h>

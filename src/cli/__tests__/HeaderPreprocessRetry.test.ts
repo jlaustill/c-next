@@ -46,7 +46,7 @@ int c_fn(void);
 // Negative controls: no predecessor can rescue a missing header, so both fail
 // the first attempt, the retry and the unit. They prove the assertions below
 // can fail, and two of them pin E0517 to the includes that reached them.
-const missing = (fn: string): string => `#include <cnext_no_such_header_zzz.h>
+const missing = (fn: string): string => `#include <cnx_no_such_header_zzz.h>
 #if A_FEATURE
 int ${fn}(void);
 #endif
@@ -68,7 +68,7 @@ describe("header preprocessing retry (#1817)", () => {
     ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-retry-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-retry-"));
     writeFileSync(join(dir, "a.h"), A_H);
     writeFileSync(join(dir, "b.h"), B_H);
     writeFileSync(join(dir, "c.h"), C_H);
@@ -133,7 +133,7 @@ describe("a header that fails in Stage 2 (#1817)", () => {
   let dir: string;
 
   beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "cnext-unreadable-"));
+    dir = mkdtempSync(join(tmpdir(), "cnx-unreadable-"));
     writeFileSync(join(dir, "before.h"), "int before_fn(int x);\n");
     writeFileSync(join(dir, "broken.h"), "int broken_fn(int x);\n");
     writeFileSync(join(dir, "after.h"), "int after_fn(int x);\n");

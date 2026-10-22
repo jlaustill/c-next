@@ -2,7 +2,7 @@
 
 ## The Bug
 
-When writing `register.DR[0, 16] <- value` on a `u32` register, C-Next currently generates:
+When writing `register.DR[0, 16] <- value` on a `u32` register, cnx currently generates:
 
 ```c
 #define REG_DR (*(volatile uint32_t*)(ADDR))

@@ -15,12 +15,12 @@ type TValueBinding =
   /** A file-scope global or a scope member, by C-name identity */
   | { readonly kind: "variable"; readonly symbol: IVariableSymbol }
   /**
-   * A C-Next function named where a value is (#1760 review): it has no value
+   * A cnx function named where a value is (#1760 review): it has no value
    * to fold or type, but it decides which function the name is, so a global
    * of the same name cannot answer instead (ADR-057)
    */
   | { readonly kind: "function"; readonly symbol: IFunctionSymbol }
-  /** A C-Next scope name, as the root of `Scope.member` */
+  /** A cnx scope name, as the root of `Scope.member` */
   | { readonly kind: "scope"; readonly scopePath: string }
   /** A name a C or C++ header declares */
   | { readonly kind: "foreign"; readonly name: string };

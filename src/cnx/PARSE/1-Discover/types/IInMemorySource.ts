@@ -1,5 +1,5 @@
 /**
- * A C-Next file whose text is supplied rather than read: the root of a
+ * A cnx file whose text is supplied rather than read: the root of a
  * `{ kind: "source" }` run.
  *
  * #1435: discovery resolves it with the same loop as every file on disk. Only

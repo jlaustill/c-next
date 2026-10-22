@@ -26,7 +26,7 @@ Extended `scripts/test-cli.js` with four test categories:
 
 #### Category 1: `--pio-install` (4 tests)
 
-- Creates `cnext_build.py` and modifies `platformio.ini`
+- Creates `cnx_build.py` and modifies `platformio.ini`
 - Idempotent (safe to run twice)
 - Fails gracefully without `platformio.ini`
 - Preserves existing `extra_scripts`
@@ -47,7 +47,7 @@ Extended `scripts/test-cli.js` with four test categories:
 
 #### Category 4: Config file integration (2 tests)
 
-- `cnext.config.json` target is respected
+- `cnx.config.json` target is respected
 - CLI `--target` overrides config file
 
 ## Test Infrastructure Added

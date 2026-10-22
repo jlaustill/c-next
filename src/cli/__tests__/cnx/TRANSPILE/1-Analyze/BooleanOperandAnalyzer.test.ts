@@ -273,7 +273,7 @@ describe("BooleanOperandAnalyzer", () => {
       expect(qualified).toHaveLength(bare.length);
     });
 
-    // /cnext-way audit: stripping every dimension at once is correct only for
+    // Audit: stripping every dimension at once is correct only for
     // a 1-D array. Each subscript must remove exactly one dimension.
     it.each([
       [

@@ -4,7 +4,7 @@ dist/
 package-lock.json
 .claude/
 
-# Issue #1364: files that are deliberately not valid C-Next.
+# Issue #1364: files that are deliberately not valid cnx.
 #
 # Two shapes. Most are fixtures asserting their own *syntax* error, with a
 # committed .expected.error beside them to prove it. One is a HELPER that carries
@@ -30,6 +30,6 @@ tests/register/register-bits-syntax-error.test.cnx
 tests/scope/nested-scope-error.test.cnx
 tests/ternary/ternary-error-no-parens.test.cnx
 
-# Issue #1370: dead helper using C-style forward declarations, which C-Next does
+# Issue #1370: dead helper using C-style forward declarations, which cnx does
 # not have (ADR-030). Unreferenced, so it is ignored rather than fixed here.
 tests/include/helper-functions.cnx

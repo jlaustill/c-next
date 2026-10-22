@@ -1,9 +1,9 @@
-# C-Next Project Instructions
+# cnx Project Instructions
 
 ## Critical Rules
 
-> **The C-Next way** is captured as a skill: `.claude/skills/cnext-way/SKILL.md`
-> (`/cnext-way`). Read it before implementing, and again before calling work done —
+> **The cnx way** is captured as a skill: `.claude/skills/cnx-way/SKILL.md`
+> (`/cnx-way`). Read it before implementing, and again before calling work done —
 > it carries the verification discipline these rules depend on.
 
 ### Correctness Over Convenience — ZERO EXCEPTIONS
@@ -65,8 +65,8 @@ merged says the work was not done.
 - When work spans sessions, comment the interim state as you go. A long-running card with no
   comments is indistinguishable from an abandoned one.
 - Read and write the body through the API, since `gh issue view` is unreliable here:
-  `gh api repos/jlaustill/c-next/issues/<n> --jq .body` to read, and
-  `gh api -X PATCH repos/jlaustill/c-next/issues/<n> -F body=@<file>` to write. Change only
+  `gh api repos/smeltworks/cnx/issues/<n> --jq .body` to read, and
+  `gh api -X PATCH repos/smeltworks/cnx/issues/<n> -F body=@<file>` to write. Change only
   the checkbox characters and the recorded numbers — never reword a box to match what you
   did, which is moving the goalposts rather than meeting them.
 
@@ -140,23 +140,23 @@ choice between two bad states; that shape usually means an option was ruled out 
 
 Having to update something in 2 places instead of 1 is the WORST anti-pattern in this project. When you find it, fix it.
 
-### C-Next Syntax Changes — ZERO EXCEPTIONS
+### cnx Syntax Changes — ZERO EXCEPTIONS
 
-**NEVER change C-Next language syntax or behavior without explicit ADR approval and user confirmation.** This is absolutely non-negotiable.
+**NEVER change cnx language syntax or behavior without explicit ADR approval and user confirmation.** This is absolutely non-negotiable.
 
-- C-Next syntax MUST always follow the ADRs exactly
+- cnx syntax MUST always follow the ADRs exactly
 - If there is any ambiguity about syntax behavior, **ASK the user for direction**
 - NEVER assume a syntax change is acceptable, even as a "beneficial side effect"
 - Test files marked `// test-error` define expected behavior — changing them to pass is a syntax change
 
-**What an ADR governs is the C-Next language spec** — the syntax, and the semantics the
+**What an ADR governs is the cnx language spec** — the syntax, and the semantics the
 language promises. It does NOT gate the generated C/C++ or compile behavior generally: fixing
 codegen so it emits correct C, or turning a wrong guess into a diagnostic, is ordinary bug
 fixing and needs no ADR. A previous version of this list said behavioral changes affecting
-"what C-Next code compiles" always require an ADR; that read every codegen fix as a spec
+"what cnx code compiles" always require an ADR; that read every codegen fix as a spec
 change and was wrong.
 
-**Example (Issue #872):** Setting `expectedType` for MISRA compliance accidentally enabled bare enum resolution in function arguments. This was reverted because it changed C-Next behavior without ADR approval. The fix added `suppressBareEnumResolution` to get MISRA compliance without changing syntax behavior.
+**Example (Issue #872):** Setting `expectedType` for MISRA compliance accidentally enabled bare enum resolution in function arguments. This was reverted because it changed cnx behavior without ADR approval. The fix added `suppressBareEnumResolution` to get MISRA compliance without changing syntax behavior.
 
 When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
@@ -197,7 +197,7 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 | Generate snapshots     | `npm test -- <path> --update`                             |
 | ANTLR regenerate       | `npm run antlr`                                           |
 
-**GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. `gh pr edit` fails here on a Projects-classic GraphQL deprecation — use `gh api -X PATCH repos/jlaustill/c-next/pulls/<n> -F body=@<file>`, then re-read the body to confirm; it errors on stderr, so an `&&` chain hides it and the body silently keeps its old text. The project board (`/issue-check`
+**GitHub CLI**: `gh issue view` may fail — use `gh api repos/smeltworks/cnx/issues/<number>` instead. `gh pr edit` fails here on a Projects-classic GraphQL deprecation — use `gh api -X PATCH repos/smeltworks/cnx/pulls/<n> -F body=@<file>`, then re-read the body to confirm; it errors on stderr, so an `&&` chain hides it and the body silently keeps its old text. The project board (`/issue-check`
 Phase 1d) needs `gh auth refresh -s read:project`; **writing** a board field needs
 `-s project` — `read:project` is not enough and the mutation fails with
 `INSUFFICIENT_SCOPES`, not a permission message. Both are interactive, so the user runs
@@ -240,20 +240,12 @@ anything that moves or renames across files — a relative specifier changes dif
 depending on where the IMPORTER sits, so `../../utils` from one directory and `../../../utils`
 from another cannot both be right under one regex.
 
-**Moving modules**: `npm run move:modules` (dry run) / `-- --apply`. The manifest in
-`scripts/move-modules/MOVES.ts` records every move WITH the reason for its destination, so the
-move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
-idempotent — add entries and re-run. It is read as a sequence: an entry a later entry moves
-on from is superseded (`MovePlan`), so a module moved back is not moved out again, and
-`move-plan.test.ts` fails if the committed manifest has anything left to move (#1826 review).
-
-`move:modules` rewrites the importers **ts-morph can see**, which is the root tsconfig's
-program — not `scripts/`. It reports importers outside that program by name after
-`--apply`; run `npm run typecheck:scripts` as well as `npx tsc --noEmit` after any move.
+After moving a module, run `npm run typecheck:scripts` as well as `npx tsc --noEmit`: the
+root tsconfig's program does not include `scripts/`.
 
 **Do not use the transitively-installed ts-morph 13.** It bundles TypeScript ~4.x, which
 predates `moduleResolution: "bundler"`: it cannot resolve directory-index specifiers such as
-`./cnext` and leaves them broken **with no error**. Import the direct dependency.
+`./cnx` and leaves them broken **with no error**. Import the direct dependency.
 
 This section previously named four `*_by_tsmorph` MCP tools as the first choice. No ts-morph
 MCP server is configured for this repo (`claude mcp list`, and no `mcpServers` entry in any
@@ -430,7 +422,7 @@ client-side instead.
 head SHA before believing the count:
 
 ```
-gh api --paginate repos/jlaustill/c-next/commits/<sha>/check-runs \
+gh api --paginate repos/smeltworks/cnx/commits/<sha>/check-runs \
   --jq '.check_runs[]|select(.name|test("Sonar"))|"\(.conclusion) \(.completed_at)"'
 ```
 
@@ -544,7 +536,7 @@ with no production caller carries `@public` and a one-line reason saying which k
   `ComplianceAnnotations.all`, `TestMarkers.names`, the printer's `handledRuleIndices`.
   A hand-listed copy in the test would be a second list.
 - **A module function exposed to its own test, or read by a guard test that is the
-  check** -- `GateRoster`, `MatrixRenderer`, `SourceScan.scan`, `MovePlan.pending`.
+  check** -- `GateRoster`, `MatrixRenderer`, `SourceScan.scan`.
 - **A member of a guard or factory set** tests narrow or build with -- `SymbolGuards`,
   `TTypeUtils`.
 
@@ -599,7 +591,7 @@ and knip names that member.
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
 **Use**: `CnxResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
-**Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
+**Avoid**: Deleted `SymbolCollector`, `CnxSymbolCollector`
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
 
@@ -609,7 +601,7 @@ and knip names that member.
 | `CppResolver` | `PARSE/3-Declare/cpp/index.ts` | `TCppSymbol[]` |
 
 - **Composable collector pattern**: Static classes with `collect()` (StructCollector, EnumCollector, etc.)
-- **C/C++ symbols use string types**: Unlike C-Next's `TType`, pass through unchanged
+- **C/C++ symbols use string types**: Unlike cnx's `TType`, pass through unchanged
 - **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`)
 - **Adapters**: none. `CTSymbolAdapter`/`CppTSymbolAdapter` were named here but have never
   existed in `src/`; `TCSymbol`/`TCppSymbol` are consumed directly
@@ -656,7 +648,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   asks `IProgram.isScopeTypeVisibleFrom(sourcePath, name)` — the scope types the file being
   generated declares or includes — the same predicate 1.4 settled that file's types with
   (#1724). It reads the run-wide table no longer, and answers "missing" for every C/C++
-  header type, since a scope type is a C-Next one. Ask the per-file sets about a C-Next name
+  header type, since a scope type is a cnx one. Ask the per-file sets about a cnx name
   and the run-wide table about a foreign one
 - **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CnxResolver.resolve(program, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
@@ -785,9 +777,9 @@ generator (#1489 deleted the one that duplicated this).
   cannot appear in a file-scope initializer), which is why exemptions live in the ADR where
   they get reviewed. `npm run coverage:matrix:check` gates in the `lint` job and fails on an
   unoccupied `error` cell or a stale `docs/scope-context-matrix.md`
-- **The relationship axis counts C-NEXT include hops.** A C header is not a hop, so a fact
+- **The relationship axis counts cnx include hops.** A C header is not a hop, so a fact
   about a foreign type occupies `same file` however many headers the fixture includes: the
-  cell is about how far the C-Next program reaches to USE a name, not where the name is
+  cell is about how far the cnx program reaches to USE a name, not where the name is
   declared. #1511 declared ADR-030's `same file` cells `off` on the opposite reading, with a
   plausible justification, and `npm run coverage:matrix` disproved it on the first run.
   Adding `// test-adr: NNN` also changes generated output — ADR-043 carries a fixture's
@@ -904,9 +896,9 @@ Header directive propagation is handled by `IncludeResolver.resolve()` for all i
 
 ## Code Generation
 
-### Compliance Annotations — C-Next STANDARD
+### Compliance Annotations — cnx STANDARD
 
-**Whenever codegen emits code whose shape is dictated by a safety standard (MISRA C:2012, DO-178C, CERT, AUTOSAR, …) rather than by the obvious/naive translation, it MUST emit an explanatory comment directly above the generated construct.** This is a C-Next standard, not optional.
+**Whenever codegen emits code whose shape is dictated by a safety standard (MISRA C:2012, DO-178C, CERT, AUTOSAR, …) rather than by the obvious/naive translation, it MUST emit an explanatory comment directly above the generated construct.** This is a cnx standard, not optional.
 
 The comment names the **standard + specific rule** and gives a **short WHY** (what the naive form would have done and which rule it violates):
 
@@ -920,7 +912,7 @@ buffer[0] = (uint8_t)(magic);
 - **Existing examples to follow:** `ControlFlowGenerator` (`forever` → Rule 14.3) and `ArrayHandlers.handleArraySlice` (slice unroll → Rule 21.15). Use the `/* <Standard> Rule <N>: <what> (<why>). */` form for consistency.
 - **Format note:** use `/* … */` (house style for generated comments) and never nest `/*` inside the text (MISRA Rule 3.1).
 - **Cite a standard only when one of its rules directly applies** (owner ruling, 2026-09-27:
-  _"if no misra rules directly applies, then it should NOT be mentioned"_). A shape that C-Next's
+  _"if no misra rules directly applies, then it should NOT be mentioned"_). A shape that cnx's
   own semantics dictate, such as a saturating clamp or evaluating an operand once, cites its ADR
   in the `/* ADR-NNN / Issue #N: … */` form the ADR-044 helpers use. It never cites a
   merely related rule: #1668's single-evaluation cast helper cites ADR-024, not MISRA
@@ -1053,7 +1045,7 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 
 **If the transpiler were rewritten from scratch in a different language and stack, every ADR
 must still be fully applicable.** That is the whole test. An ADR records a decision about the
-_C-Next language_ — its syntax, its semantics, the promises it makes. It is not a record of
+_cnx language_ — its syntax, its semantics, the promises it makes. It is not a record of
 how the current TypeScript/ANTLR/Node implementation happens to satisfy that decision today.
 
 Implementation detail belongs in `docs/architecture/` (how the transpiler is structured) or
@@ -1124,7 +1116,7 @@ A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
 - [ ] ADR updated: decision, diagnostics, matrix — and it still passes the **rewrite test** above. No `src/**` paths, no module lists, no `file:line` citations, no transpiler identifiers, no TypeScript: they are wrong the moment the next merge shifts a line, and an ADR is the decision record, not a map of the code that currently implements it. Implementation detail goes to `docs/architecture/` or `docs/implementation/`. Enforced by `npm run adr:independence:check`
-- [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
+- [ ] `docs/learn-cnx-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 
 ---
@@ -1153,4 +1145,4 @@ conflates merged with shipped and `git merge-base --is-ancestor` does not.
 VS Code extension updates (if grammar changed):
 
 1. `npm run antlr`
-2. Update [vscode-c-next](https://github.com/jlaustill/vscode-c-next): `tmLanguage.json`, `completionProvider.ts`
+2. Update [vscode-cnx](https://github.com/smeltworks/vscode-cnx): `tmLanguage.json`, `completionProvider.ts`

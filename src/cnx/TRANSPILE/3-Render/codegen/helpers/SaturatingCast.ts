@@ -1,7 +1,7 @@
 /**
  * ADR-024 / Issue #632: the one shape of a saturating float-to-integer cast.
  *
- * C leaves an out-of-range float-to-int conversion undefined, and C-Next's
+ * C leaves an out-of-range float-to-int conversion undefined, and cnx's
  * default is to saturate, so the cast is a bounded ternary. Written once
  * because it is emitted in two places (#1668): inline, and as the body of the
  * single-evaluation helper a side-effecting operand is routed through. Two

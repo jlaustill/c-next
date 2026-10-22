@@ -49,7 +49,7 @@ run_check() {
   fi
 }
 
-echo -e "${BLUE}=== C-Next full gate (every CI check that runs locally) ===${NC}"
+echo -e "${BLUE}=== cnx full gate (every CI check that runs locally) ===${NC}"
 
 echo -e "\n${YELLOW}Static Analysis${NC}"
 run_check "Static Analysis" "prettier:check"             npm run prettier:check

@@ -46,8 +46,8 @@ Read the live configuration at any time:
 # --paginate: the rulesets list pages at 30. One ruleset exists today, so this
 # is headroom rather than a fix — but a command in a doc gets copied and run,
 # and the capped form gives no sign it was capped (#1416).
-gh api --paginate 'repos/jlaustill/c-next/rulesets?per_page=100'
-gh api repos/jlaustill/c-next/rulesets/<id> --jq '{name, enforcement, rules}'
+gh api --paginate 'repos/smeltworks/cnx/rulesets?per_page=100'
+gh api repos/smeltworks/cnx/rulesets/<id> --jq '{name, enforcement, rules}'
 ```
 
 To recreate it through the UI:

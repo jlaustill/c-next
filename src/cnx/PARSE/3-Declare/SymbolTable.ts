@@ -3,7 +3,7 @@
  * Stores symbols from all source languages and detects conflicts
  *
  * ADR-055 Phase 7: Fully typed symbol storage using discriminated unions.
- * - TSymbol: C-Next symbols (rich type system with TType)
+ * - TSymbol: cnx symbols (rich type system with TType)
  * - TCSymbol: C header symbols (string types)
  * - TCppSymbol: C++ header symbols (string types)
  */
@@ -52,21 +52,21 @@ function createInitialStructState(): IStructSymbolState {
 /**
  * Central symbol table for cross-language interoperability
  *
- * Per user requirement: Symbol conflicts between C-Next and C/C++ are ERRORS.
- * - ERROR: Same symbol defined in C-Next and C/C++
+ * Per user requirement: Symbol conflicts between cnx and C/C++ are ERRORS.
+ * - ERROR: Same symbol defined in cnx and C/C++
  * - OK: Multiple `extern` declarations in C (declaration, not definition)
  * - OK: Function overloads in C++ (different signatures)
  */
 class SymbolTable implements IResolvedSymbols {
   // ========================================================================
-  // C-Next Symbol Storage (TSymbol)
+  // cnx Symbol Storage (TSymbol)
   // ========================================================================
 
-  /** All C-Next TSymbols indexed by bare name (ADR-055: `init`, not `Motor__init`) */
+  /** All cnx TSymbols indexed by bare name (ADR-055: `init`, not `Motor__init`) */
   private readonly tSymbols: Map<string, TSymbol[]> = new Map();
 
   /**
-   * All C-Next TSymbols indexed by transpiled C name — their canonical identity.
+   * All cnx TSymbols indexed by transpiled C name — their canonical identity.
    *
    * ADR-063 makes the qualified name injective, so it identifies a symbol
    * without needing a scope to interpret it. The bare-name index above answers
@@ -80,7 +80,7 @@ class SymbolTable implements IResolvedSymbols {
    */
   private readonly tSymbolsByCName: Map<string, TSymbol[]> = new Map();
 
-  /** C-Next TSymbols indexed by source file */
+  /** cnx TSymbols indexed by source file */
   private readonly tSymbolsByFile: Map<string, TSymbol[]> = new Map();
 
   // ========================================================================
@@ -120,7 +120,7 @@ class SymbolTable implements IResolvedSymbols {
 
   /**
    * Issue #985 recovery: names of external function-like MACROS recovered by
-   * translation-unit preprocessing (ExternalDeclarationOracle) for headers cnext
+   * translation-unit preprocessing (ExternalDeclarationOracle) for headers cnx
    * could not preprocess standalone. Macros have no declaration to parse, so
    * only their names are known; consulted by the undeclared-`global.`-call check
    * so it does not false-positive on a real macro (e.g. FreeRTOS pdMS_TO_TICKS).
@@ -141,7 +141,7 @@ class SymbolTable implements IResolvedSymbols {
   private readonly enumBitWidth: Map<string, number> = new Map();
 
   // ========================================================================
-  // C-Next Symbol Methods (TSymbol)
+  // cnx Symbol Methods (TSymbol)
   // ========================================================================
 
   /**
@@ -167,7 +167,7 @@ class SymbolTable implements IResolvedSymbols {
   }
 
   /**
-   * Add a C-Next TSymbol to the table
+   * Add a cnx TSymbol to the table
    */
   addTSymbol(symbol: TSymbol): void {
     // #1285: read the identity the symbol was built with rather than deriving
@@ -213,7 +213,7 @@ class SymbolTable implements IResolvedSymbols {
   }
 
   /**
-   * Add multiple C-Next TSymbols at once
+   * Add multiple cnx TSymbols at once
    */
   addTSymbols(symbols: readonly TSymbol[]): void {
     for (const symbol of symbols) {
@@ -469,7 +469,7 @@ class SymbolTable implements IResolvedSymbols {
   /**
    * Get all overloads for a name across all languages.
    *
-   * C-Next symbols are matched on their **bare** name, so a scoped member is
+   * cnx symbols are matched on their **bare** name, so a scoped member is
    * found by the name it carries inside its scope (`readValue`), not by its
    * transpiled C name. Callers holding a transpiled C name want
    * getOverloadsByCName instead.
@@ -483,7 +483,7 @@ class SymbolTable implements IResolvedSymbols {
   }
 
   /**
-   * Get all C-Next overloads whose canonical identity is the given transpiled
+   * Get all cnx overloads whose canonical identity is the given transpiled
    * C name (e.g. "Motor__init").
    *
    * The inverse of ScopeUtils.getTranspiledCName: that builds the name, this
@@ -500,7 +500,7 @@ class SymbolTable implements IResolvedSymbols {
    * Use this wherever the caller already holds a generated C identifier —
    * codegen and anything downstream of it. C and C++ symbols have no scopes,
    * so their name is already their identity and they are matched directly;
-   * C-Next symbols are matched through the canonical-identity index.
+   * cnx symbols are matched through the canonical-identity index.
    */
   getOverloadsByCName(cName: string): TAnySymbol[] {
     return [
@@ -565,10 +565,10 @@ class SymbolTable implements IResolvedSymbols {
    * of `TemperatureSensorController` agree for 29 characters before their own
    * names begin, so a conforming implementation may treat them as one
    * identifier. On a hosted GCC nothing happens; on the minimal embedded
-   * toolchain that is C-Next's target audience the two variables silently
+   * toolchain that is cnx's target audience the two variables silently
    * become one, and `cppcheck --addon=misra` does not report it.
    *
-   * Scoped to identifiers C-Next itself generates, and among those to the ones
+   * Scoped to identifiers cnx itself generates, and among those to the ones
    * with external linkage:
    * - A C or C++ header's identifiers are not this transpiler's to rename, and
    *   C++ names are mangled rather than truncated.
@@ -584,7 +584,7 @@ class SymbolTable implements IResolvedSymbols {
   detectMISRA51Conflicts(target: ITargetDescription): IConflict[] {
     const limit = target.external_identifier_chars;
 
-    const byPrefix = SymbolTable.groupExternalCNextSymbolsByPrefix(
+    const byPrefix = SymbolTable.groupExternalCnxSymbolsByPrefix(
       this.getAllSymbols(),
       limit,
     );
@@ -600,13 +600,13 @@ class SymbolTable implements IResolvedSymbols {
   }
 
   /**
-   * Bucket every externally-linked C-Next identifier by its truncated prefix.
+   * Bucket every externally-linked cnx identifier by its truncated prefix.
    *
    * Deduplicated by `fullyQualifiedCName`: one declaration can be registered
    * more than once when a file is reached along two include paths, and identity
    * -- not arrival count -- is what a linker sees.
    */
-  private static groupExternalCNextSymbolsByPrefix(
+  private static groupExternalCnxSymbolsByPrefix(
     symbols: TAnySymbol[],
     limit: number,
   ): Map<string, TSymbol[]> {
@@ -618,8 +618,8 @@ class SymbolTable implements IResolvedSymbols {
         continue;
       }
 
-      const cnextSymbol = symbol as TSymbol;
-      const identifier = cnextSymbol.fullyQualifiedCName;
+      const cnxSymbol = symbol as TSymbol;
+      const identifier = cnxSymbol.fullyQualifiedCName;
       if (seen.has(identifier)) {
         continue;
       }
@@ -628,9 +628,9 @@ class SymbolTable implements IResolvedSymbols {
       const prefix = identifier.slice(0, limit);
       const group = byPrefix.get(prefix);
       if (group) {
-        group.push(cnextSymbol);
+        group.push(cnxSymbol);
       } else {
-        byPrefix.set(prefix, [cnextSymbol]);
+        byPrefix.set(prefix, [cnxSymbol]);
       }
     }
 
@@ -638,13 +638,13 @@ class SymbolTable implements IResolvedSymbols {
   }
 
   /**
-   * True when the symbol is a C-Next declaration emitted with external linkage.
+   * True when the symbol is a cnx declaration emitted with external linkage.
    *
    * Only variables and functions have linkage in C; a typedef or an enumeration
    * constant names nothing the linker resolves.
    */
   private static hasExternalLinkage(symbol: TAnySymbol): boolean {
-    if (symbol.sourceLanguage !== ESourceLanguage.CNext) {
+    if (symbol.sourceLanguage !== ESourceLanguage.Cnx) {
       return false;
     }
     if (symbol.kind !== "variable" && symbol.kind !== "function") {
@@ -656,7 +656,7 @@ class SymbolTable implements IResolvedSymbols {
   /**
    * Build the Rule 5.1 diagnostic for one group of colliding identifiers.
    *
-   * Names the C-Next names the author wrote (`cnxScopedName`) rather than the
+   * Names the cnx names the author wrote (`cnxScopedName`) rather than the
    * generated identifiers, per #1292 -- reporting `Scope__member` names
    * something that appears in no source file.
    */
