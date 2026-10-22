@@ -296,7 +296,7 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     declare(symbolTable, "spelled", "long unsigned int");
     declare(symbolTable, "clock32", "unsigned int");
     declare(symbolTable, "stdintClock", "uint32_t");
-    declare(symbolTable, "logf", "uint32_t", [], true);
+    declare(symbolTable, "variadicClock", "uint32_t", [], true);
     declare(symbolTable, "onByte", "void", [
       { name: "b", type: "uint8_t", isConst: false, isArray: false },
     ]);
@@ -338,8 +338,8 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
   });
 
   it("rejects a variadic function, though it takes no named parameter", () => {
-    expect(run("tick: logf", ARM)).toEqual([
-      "E0879 Function 'logf' signature does not match callback type 'tickSource'",
+    expect(run("tick: variadicClock", ARM)).toEqual([
+      "E0879 Function 'variadicClock' signature does not match callback type 'tickSource'",
     ]);
   });
 
