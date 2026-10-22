@@ -289,7 +289,7 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
   const run = (
     value: string,
     integerTypes: Record<string, string>,
-    cppMode = false,
+    cppMode: boolean,
   ): string[] => {
     const symbolTable = new SymbolTable();
     declare(symbolTable, "millis", "unsigned long");
@@ -319,37 +319,37 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
   };
 
   it("accepts unsigned long where uint32_t is unsigned long", () => {
-    expect(run("tick: millis", ARM)).toEqual([]);
-    expect(run("tick: spelled", ARM)).toEqual([]);
-    expect(run("tick: stdintClock", ARM)).toEqual([]);
+    expect(run("tick: millis", ARM, false)).toEqual([]);
+    expect(run("tick: spelled", ARM, false)).toEqual([]);
+    expect(run("tick: stdintClock", ARM, false)).toEqual([]);
   });
 
   it("rejects unsigned int there, though it is 32 bits too", () => {
-    expect(run("tick: clock32", ARM)).toEqual([
+    expect(run("tick: clock32", ARM, false)).toEqual([
       "E0879 Function 'clock32' signature does not match callback type 'tickSource'",
     ]);
   });
 
   it("follows the compiler, not the spelling, on another target", () => {
-    expect(run("tick: clock32", X86_64)).toEqual([]);
-    expect(run("tick: millis", X86_64)).toEqual([
+    expect(run("tick: clock32", X86_64, false)).toEqual([]);
+    expect(run("tick: millis", X86_64, false)).toEqual([
       "E0879 Function 'millis' signature does not match callback type 'tickSource'",
     ]);
   });
 
   it("rejects a variadic function, though it takes no named parameter", () => {
-    expect(run("tick: variadicClock", ARM)).toEqual([
+    expect(run("tick: variadicClock", ARM, false)).toEqual([
       "E0879 Function 'variadicClock' signature does not match callback type 'tickSource'",
     ]);
   });
 
   it("compares a parameter as the callback typedef writes it", () => {
-    expect(run("sink: onByte", ARM)).toEqual([]);
-    expect(run("out: onBytePtr", ARM)).toEqual([]);
-    expect(run("sink: onBytePtr", ARM)).toEqual([
+    expect(run("sink: onByte", ARM, false)).toEqual([]);
+    expect(run("out: onBytePtr", ARM, false)).toEqual([]);
+    expect(run("sink: onBytePtr", ARM, false)).toEqual([
       "E0879 Function 'onBytePtr' signature does not match callback type 'byteSink'",
     ]);
-    expect(run("out: onByte", ARM)).toEqual([
+    expect(run("out: onByte", ARM, false)).toEqual([
       "E0879 Function 'onByte' signature does not match callback type 'byteOut'",
     ]);
   });

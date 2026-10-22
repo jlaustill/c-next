@@ -1242,6 +1242,7 @@ scope Gauge {
         "enumMemberValues",
         "externalStructFields",
         "functionParamLists",
+        "headerIntegerType",
         "headerMacro",
         "headerMacrosUnread",
         "isOpaqueType",
