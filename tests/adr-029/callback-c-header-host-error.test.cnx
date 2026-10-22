@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 029
+// ADR-029 on host, where x86-64 gcc makes uint32_t an unsigned int: a C
+// function matches a callback type by C type identity (#1619).
+// NEGATIVE CONTROL -- clock32 returns unsigned int, which is uint32_t here.
+#pragma target host
+#include "callback-c-header-clock.h"
+
+u32 tickSource() {
+    return 0;
+}
+
+struct Timer {
+    tickSource tick;
+}
+
+Timer ok <- { tick: clock32 };
+
+// ASSERTION -- unsigned long is 64 bits here, and is not uint32_t.
+Timer bad <- { tick: millis };

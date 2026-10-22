@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 029
+// ADR-029 on stm32f4, where arm-none-eabi-gcc makes uint32_t an unsigned
+// long: a C function matches a callback type by C type identity, not width
+// (#1619). NEGATIVE CONTROL -- millis returns unsigned long, which is
+// uint32_t here, so tick: millis is silent.
+#pragma target stm32f4
+#include "callback-c-header-clock.h"
+
+u32 tickSource() {
+    return 0;
+}
+
+struct Timer {
+    tickSource tick;
+}
+
+Timer ok <- { tick: millis };
+
+// ASSERTION -- unsigned int is 32 bits here too, and is not uint32_t.
+Timer bad <- { tick: clock32 };

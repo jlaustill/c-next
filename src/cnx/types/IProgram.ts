@@ -157,6 +157,13 @@ interface IProgram {
    */
   headerMacrosUnread(sourceFile: string): boolean;
 
+  /**
+   * #1619: the C type the run's header compiler gives an exact-width
+   * `<stdint.h>` name (`uint32_t`), from its predefined macros, or null when
+   * no compiler read the run's headers.
+   */
+  headerIntegerType(name: string): string | null;
+
   /** Each function's parameter names, in declaration order. */
   functionParamLists(): ReadonlyMap<string, ReadonlyArray<string>>;
 

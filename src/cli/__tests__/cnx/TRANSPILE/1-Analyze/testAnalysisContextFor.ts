@@ -55,6 +55,11 @@ function testAnalysisContextFor(
     /** The test file's header macros, as its C includes' `-dM` dump gives them */
     macros?: Record<string, THeaderMacro>;
     /**
+     * #1619: the C type the header compiler gives each `<stdint.h>` name, as
+     * its `__UINT32_TYPE__`-style macros give them
+     */
+    integerTypes?: Record<string, string>;
+    /**
      * #1428: the run's mode, as 1.1 would have settled it. Required: a test
      * has no 1.1, so it states its mode, and the program carries it as in a run.
      */
@@ -106,6 +111,7 @@ function testAnalysisContextFor(
           [TEST_SOURCE, new Map(Object.entries(options.macros ?? {}))],
         ]),
         macrosUnread: new Set<string>(),
+        integerTypes: new Map(Object.entries(options.integerTypes ?? {})),
         structTagsWithBodies: new Set(symbolTable.getAllStructTagsWithBodies()),
       },
       filesReachingForeignHeaders: new Set(options.macros ? [TEST_SOURCE] : []),

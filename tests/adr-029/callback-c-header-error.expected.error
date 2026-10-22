@@ -1,0 +1,8 @@
+19:22 error[E0879]: Function 'wideClock' signature does not match callback type 'tickSource'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+22:22 error[E0879]: Function 'voidClock' signature does not match callback type 'tickSource'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+25:23 error[E0879]: Function 'argClock' signature does not match callback type 'tickSource'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+29:14 error[E0879]: Function 'argClock' signature does not match callback type 'tickSource'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).

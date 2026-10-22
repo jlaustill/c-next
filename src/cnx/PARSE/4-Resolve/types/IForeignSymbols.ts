@@ -46,6 +46,12 @@ interface IForeignSymbols {
    * preprocessor could not read the file's own C includes together.
    */
   readonly macrosUnread: ReadonlySet<string>;
+
+  /**
+   * #1619: the C type the run's header compiler gives each exact-width
+   * `<stdint.h>` name (`uint32_t` to `long unsigned int`)
+   */
+  readonly integerTypes: ReadonlyMap<string, string>;
 }
 
 export default IForeignSymbols;

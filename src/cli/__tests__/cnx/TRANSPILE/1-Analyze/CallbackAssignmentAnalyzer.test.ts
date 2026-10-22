@@ -5,6 +5,10 @@ import CallbackAssignmentAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/C
 import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import testAnalysisContext from "../../../../../cnx/TRANSPILE/1-Analyze/__tests__/testAnalysisContext";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
+import type ICParameterInfo from "../../../../../cnx/types/symbols/c/ICParameterInfo";
+import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -249,5 +253,110 @@ describe("CallbackAssignmentAnalyzer", () => {
         ),
       ).toEqual([]);
     });
+  });
+});
+
+/**
+ * #1619: a function a C header declares is held to the slot's signature by C
+ * type identity under the header compiler, which names the C type of each
+ * `<stdint.h>` name (`__UINT32_TYPE__`).
+ */
+describe("CallbackAssignmentAnalyzer with a function a C header declares", () => {
+  const ARM = { uint32_t: "long unsigned int", uint8_t: "unsigned char" };
+  const X86_64 = { uint32_t: "unsigned int", uint8_t: "unsigned char" };
+
+  const declare = (
+    symbolTable: SymbolTable,
+    name: string,
+    type: string,
+    parameters: ICParameterInfo[] = [],
+    isVariadic = false,
+  ): void => {
+    symbolTable.addCSymbol({
+      name,
+      kind: "function",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type,
+      parameters: parameters.length > 0 ? parameters : undefined,
+      isVariadic: isVariadic || undefined,
+      isDeclaration: true,
+    });
+  };
+
+  const run = (
+    value: string,
+    integerTypes: Record<string, string>,
+    cppMode = false,
+  ): string[] => {
+    const symbolTable = new SymbolTable();
+    declare(symbolTable, "millis", "unsigned long");
+    declare(symbolTable, "spelled", "long unsigned int");
+    declare(symbolTable, "clock32", "unsigned int");
+    declare(symbolTable, "stdintClock", "uint32_t");
+    declare(symbolTable, "logf", "uint32_t", [], true);
+    declare(symbolTable, "onByte", "void", [
+      { name: "b", type: "uint8_t", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onBytePtr", "void", [
+      { name: "b", type: "uint8_t *", isConst: false, isArray: false },
+    ]);
+    const { syntax, context } = testAnalysisContextFor(
+      [
+        "u32 tickSource() { return 0; }",
+        "void byteSink(u8 b) { (void) b; }",
+        "void byteOut(mut u8 b) { b <- 1; }",
+        "struct T { tickSource tick; byteSink sink; byteOut out; }",
+        `T t <- { ${value} };`,
+      ].join("\n"),
+      { symbolTable, integerTypes, cppMode },
+    );
+    return new CallbackAssignmentAnalyzer(context)
+      .analyze(syntax, ValuePositions.of(syntax, context).positions)
+      .map((e) => `${e.code} ${e.message}`);
+  };
+
+  it("accepts unsigned long where uint32_t is unsigned long", () => {
+    expect(run("tick: millis", ARM)).toEqual([]);
+    expect(run("tick: spelled", ARM)).toEqual([]);
+    expect(run("tick: stdintClock", ARM)).toEqual([]);
+  });
+
+  it("rejects unsigned int there, though it is 32 bits too", () => {
+    expect(run("tick: clock32", ARM)).toEqual([
+      "E0879 Function 'clock32' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("follows the compiler, not the spelling, on another target", () => {
+    expect(run("tick: clock32", X86_64)).toEqual([]);
+    expect(run("tick: millis", X86_64)).toEqual([
+      "E0879 Function 'millis' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("rejects a variadic function, though it takes no named parameter", () => {
+    expect(run("tick: logf", ARM)).toEqual([
+      "E0879 Function 'logf' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("compares a parameter as the callback typedef writes it", () => {
+    expect(run("sink: onByte", ARM)).toEqual([]);
+    expect(run("out: onBytePtr", ARM)).toEqual([]);
+    expect(run("sink: onBytePtr", ARM)).toEqual([
+      "E0879 Function 'onBytePtr' signature does not match callback type 'byteSink'",
+    ]);
+    expect(run("out: onByte", ARM)).toEqual([
+      "E0879 Function 'onByte' signature does not match callback type 'byteOut'",
+    ]);
+  });
+
+  it("takes a mut scalar as a reference in C++", () => {
+    expect(run("out: onBytePtr", ARM, true)).toEqual([
+      "E0879 Function 'onBytePtr' signature does not match callback type 'byteOut'",
+    ]);
   });
 });

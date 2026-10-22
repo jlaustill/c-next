@@ -1,0 +1,4 @@
+19:40 error[E0879]: Function 'notAClock' signature does not match callback type 'Clock__tickSource'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+24:14 error[E0879]: Function 'notAClock' signature does not match callback type 'Clock__tickSource'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).

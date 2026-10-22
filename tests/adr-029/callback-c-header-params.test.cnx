@@ -1,0 +1,55 @@
+// test-c-only
+// test-adr: 029
+// ADR-029 in C: a function a C header declares, with the exact C signature of the
+// callback type it fills, is accepted in every parameter shape: a scalar by
+// value, a mut scalar and a mut struct through a pointer, a struct, an array
+// and a string through a const pointer (#1619).
+#include "callback-c-header-params.h"
+
+void valueSlot(u32 v) {
+    (void)v;
+}
+
+void mutSlot(mut u32 v) {
+    v <- 1;
+}
+
+void sampleSlot(Sample s) {
+    i32 x <- s.value;
+}
+
+void mutSampleSlot(mut Sample s) {
+    s.value <- 1;
+}
+
+void bytesSlot(u8[4] bytes) {
+    u8 b <- bytes[0];
+}
+
+void textSlot(string<8> text) {
+    u32 n <- text.value_char_count;
+}
+
+f32 mixSlot(f64 d, bool b, i8 i) {
+    return 0.0;
+}
+
+struct Slots {
+    valueSlot value;
+    mutSlot mutValue;
+    sampleSlot sample;
+    mutSampleSlot mutSample;
+    bytesSlot bytes;
+    textSlot text;
+    mixSlot mix;
+}
+
+Slots slots <- {
+    value: onValue,
+    mutValue: onMut,
+    sample: onSample,
+    mutSample: onMutSample,
+    bytes: onBytes,
+    text: onText,
+    mix: onMix
+};

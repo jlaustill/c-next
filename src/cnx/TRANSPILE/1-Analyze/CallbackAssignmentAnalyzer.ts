@@ -54,6 +54,7 @@ import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclara
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
+import CCallbackSignature from "./helpers/CCallbackSignature";
 import FunctionReference from "./helpers/FunctionReference";
 import ValuePositions from "./helpers/ValuePositions";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
@@ -163,7 +164,10 @@ class CallbackAssignmentCheck {
     );
     if (expected === null) return;
     const actual = FunctionReference.ofValue(value, scopePath, this.context);
-    if (actual === null) return;
+    if (actual === null) {
+      this.checkForeign(slotTypeText, value, expected);
+      return;
+    }
 
     const valueText = value.written;
     if (!CallbackAssignmentCheck.signaturesMatch(expected, actual)) {
@@ -259,6 +263,26 @@ class CallbackAssignmentCheck {
    * otherwise its prototype is `const SensorReading*` beside a
    * `void (*)(SensorReading *)` it is assigned to, and the C does not compile.
    */
+  /**
+   * #1619: a function a C header declares is held to the callback type's
+   * signature too, by C type identity under the run's header compiler
+   */
+  private checkForeign(
+    slotTypeText: string,
+    value: TExpression,
+    expected: IFunctionSymbol,
+  ): void {
+    const actual = CCallbackSignature.foreignFunction(value, this.context);
+    if (actual === null) return;
+    if (CCallbackSignature.matches(expected, actual, this.context)) return;
+    this.report(
+      value,
+      "E0879",
+      `Function '${value.written}' signature does not match callback type '${slotTypeText}'`,
+      "A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).",
+    );
+  }
+
   public checkCTypedefCallbacks(): void {
     const program = this.context.program;
     const typedefs = program.callbackCompatibleFunctions();

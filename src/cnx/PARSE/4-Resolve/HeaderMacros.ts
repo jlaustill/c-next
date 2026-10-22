@@ -68,7 +68,23 @@ interface IValueReader {
   readonly macroValue: (name: string) => number | null;
 }
 
+const STDINT_TYPE_DEFINE = /^#define __(U?)INT(8|16|32|64)_TYPE__ (.+)$/gm;
+
 class HeaderMacros {
+  /**
+   * #1619: the C type the compiler gives each exact-width `<stdint.h>` name,
+   * read off its own predefined macros: `uint32_t` is `long unsigned int`
+   * under arm-none-eabi-gcc and `unsigned int` under x86-64 gcc.
+   */
+  static integerTypes(dump: string): ReadonlyMap<string, string> {
+    const types = new Map<string, string>();
+    for (const match of dump.matchAll(STDINT_TYPE_DEFINE)) {
+      const name = `${match[1] === "U" ? "uint" : "int"}${match[2]}_t`;
+      types.set(name, match[3].trim());
+    }
+    return types;
+  }
+
   /** Every object-like macro a `-dM` dump defines, by name */
   static collect(dump: string): ReadonlyMap<string, THeaderMacro> {
     const bodies = new Map<string, string>();
