@@ -1,7 +1,5 @@
-import SymbolTypeResolver from "../../utils/TypeResolver";
 import TypedefParamParser from "../../utils/TypedefParamParser";
 import ParameterByValue from "../../utils/ParameterByValue";
-import type IParameterInfo from "../../types/symbols/IParameterInfo";
 import type ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
 import type TranspileState from "../TranspileState";
 import type IParameterPassing from "../../types/IParameterPassing";
@@ -14,8 +12,11 @@ type TParameterPassingFacts = Pick<
 /**
  * #1639: whether each parameter of a cnx function is passed by value or
  * through a pointer, decided once. The `.c` signature, the `.h` prototype, the
- * `_fp` typedef, the body's uses of the parameter and every call to the
- * function read this answer; none of them works it out again.
+ * body's uses of the parameter and every call to the function read this
+ * answer; none of them works it out again. Past a C typedef the function is
+ * wired to, the answer is `ParameterByValue.ofDeclared`, which the `_fp`
+ * typedef reads too (#1619), so a call through a callback value and the
+ * typedef it is checked against cannot differ.
  */
 class ParameterPassing {
   /**
@@ -30,10 +31,9 @@ class ParameterPassing {
     facts: TParameterPassingFacts,
     isDirectCall = true,
   ): IParameterPassing {
-    const param = ParameterPassing.settledParameters(functionName, facts)[
+    const param = ParameterByValue.settledParameters(functionName, facts)[
       paramIndex
     ];
-    const typeName = SymbolTypeResolver.getTypeName(param.type);
     const isOpaqueHandle = param.isOpaqueHandle === true;
 
     // Issue #895: a C callback typedef the function is wired to decides
@@ -59,12 +59,9 @@ class ParameterPassing {
     }
 
     return ParameterPassing.passing(
-      ParameterPassing.isByValue(
+      ParameterByValue.ofDeclared(
         functionName,
-        param.name,
-        typeName,
-        param.isArray,
-        isOpaqueHandle,
+        paramIndex,
         facts,
         isDirectCall,
       ),
@@ -74,17 +71,6 @@ class ParameterPassing {
     );
   }
 
-  /**
-   * The parameters of `functionName` as 1.4 settled them. A function 2.2
-   * plans always has a settled symbol under its C name, so a missing one is a
-   * defect, not a "no".
-   */
-  static settledParameters(
-    functionName: string | null,
-    state: Pick<TranspileState, "program">,
-  ): ReadonlyArray<IParameterInfo> {
-    return ParameterByValue.settledParameters(functionName, state);
-  }
   /**
    * Issue #895: the callback typedef's answer for parameter `paramIndex` of
    * `functionName`, or null when no typedef describes it.
@@ -116,26 +102,6 @@ class ParameterPassing {
       isParamConst: isParamConst ?? false,
     };
   }
-  private static isByValue(
-    functionName: string,
-    paramName: string,
-    typeName: string,
-    isArray: boolean,
-    isOpaqueHandle: boolean,
-    facts: TParameterPassingFacts,
-    isDirectCall: boolean,
-  ): boolean {
-    return ParameterByValue.of(
-      functionName,
-      paramName,
-      typeName,
-      isArray,
-      isOpaqueHandle,
-      facts,
-      isDirectCall,
-    );
-  }
-
   private static passing(
     byValue: boolean,
     typedefPointer: boolean,

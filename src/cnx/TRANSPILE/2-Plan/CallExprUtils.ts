@@ -3,7 +3,6 @@
  * Extracted from CallExprGenerator for testability (Issue #420).
  */
 import TYPE_MAP from "./types/TYPE_MAP";
-import ParameterByValue from "../../utils/ParameterByValue";
 import SafeDivision from "../../utils/SafeDivision";
 import IFunctionSignature from "../../types/IFunctionSignature";
 import type IResolvedSymbols from "../../types/IResolvedSymbols";
@@ -16,15 +15,6 @@ class CallExprUtils {
    */
   static mapTypeToCType(cnxType: string): string {
     return TYPE_MAP[cnxType] || cnxType;
-  }
-
-  /**
-   * Issue #551: Check if a type is a known primitive type.
-   * Known primitives use pass-by-reference (except floats and small types).
-   * Unknown types (external enums, typedefs) use pass-by-value.
-   */
-  static isKnownPrimitiveType(typeName: string): boolean {
-    return ParameterByValue.isKnownPrimitiveType(typeName);
   }
 
   /**

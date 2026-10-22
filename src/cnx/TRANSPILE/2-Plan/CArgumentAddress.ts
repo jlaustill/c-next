@@ -3,9 +3,9 @@ import type ICArgumentFacts from "./types/ICArgumentFacts";
 import type IPlanQueries from "./types/IPlanQueries";
 import type TCArgumentForm from "./types/TCArgumentForm";
 import C_TYPE_WIDTH from "./types/C_TYPE_WIDTH";
-import CallExprUtils from "./CallExprUtils";
 import CPointerParameter from "../../utils/CPointerParameter";
 import CNX_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import ParameterByValue from "../../utils/ParameterByValue";
 
 type TTypeQueries = Pick<
   IPlanQueries,
@@ -87,7 +87,7 @@ class CArgumentAddress {
     if (
       queries.isIntegerType(argType) ||
       queries.isFloatType(argType) ||
-      CallExprUtils.isKnownPrimitiveType(argType)
+      ParameterByValue.isKnownPrimitiveType(argType)
     ) {
       return (
         declaredScalar &&

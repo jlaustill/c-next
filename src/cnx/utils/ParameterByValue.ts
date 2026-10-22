@@ -5,6 +5,7 @@ import SymbolGuards from "../types/symbols/SymbolGuards";
 import CNX_TO_C_TYPE_MAP from "./constants/TypeMappings";
 import CppNamespaceUtils from "./CppNamespaceUtils";
 import invariant from "./invariant";
+import SymbolTypeResolver from "./TypeResolver";
 
 /**
  * #1639: whether a cnx function's parameter is passed by value, decided from
@@ -13,9 +14,9 @@ import invariant from "./invariant";
  */
 class ParameterByValue {
   /**
-   * The parameters of `functionName` as 1.4 settled them. A function 2.2
-   * plans always has a settled symbol under its C name, so a missing one is a
-   * defect, not a "no".
+   * The parameters of `functionName` as 1.4 settled them. A cnx function 2.1
+   * checks or 2.2 plans always has a settled symbol under its C name, so a
+   * missing one is a defect, not a "no".
    */
   static settledParameters(
     functionName: string | null,
@@ -27,12 +28,38 @@ class ParameterByValue {
         : state.program?.symbolByCName(functionName);
     invariant(
       symbol !== undefined && SymbolGuards.isFunction(symbol),
-      `a function being generated has a settled symbol (missing ${functionName})`,
+      `a cnx function has a settled symbol under its C name (missing ${functionName})`,
     );
     return symbol.parameters;
   }
 
-  static of(
+  /**
+   * #1639: parameter `paramIndex` of `functionName`, read off its settled
+   * declaration. A call through a callback value (`isDirectCall` false) and
+   * the `_fp` typedef that call is checked against both ask this, so neither
+   * can pass the parameter differently.
+   */
+  static ofDeclared(
+    functionName: string,
+    paramIndex: number,
+    facts: IByValueFacts,
+    isDirectCall: boolean,
+  ): boolean {
+    const param = ParameterByValue.settledParameters(functionName, facts)[
+      paramIndex
+    ];
+    return ParameterByValue.of(
+      functionName,
+      param.name,
+      SymbolTypeResolver.getTypeName(param.type),
+      param.isArray,
+      param.isOpaqueHandle === true,
+      facts,
+      isDirectCall,
+    );
+  }
+
+  private static of(
     functionName: string,
     paramName: string,
     typeName: string,

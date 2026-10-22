@@ -1,7 +1,8 @@
 // test-error
 // test-adr: 029
 // ADR-029: a callback type declared inside a scope, reached across an
-// include, is still checked (#1619 defect 1).
+// include, is still checked (#1619 defect 1). The 'Clock__tickSource'
+// spelling in the expected error is #1292, not the intended wording.
 #include "../include/callback-scope-type.cnx"
 
 void notAClock(u32 n) {

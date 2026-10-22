@@ -1,7 +1,12 @@
 import type ICallbackTypedefParameter from "../types/ICallbackTypedefParameter";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
 import CppNamespaceUtils from "./CppNamespaceUtils";
 import DeclaredPointer from "./DeclaredPointer";
+import DeclaredTypeFacts from "./DeclaredTypeFacts";
+import headerCType from "./headerCType";
+import type IByValueFacts from "./types/IByValueFacts";
+import userCType from "./userCType";
 import invariant from "./invariant";
 import ParameterByValue from "./ParameterByValue";
 import type ICallbackShapeFacts from "./types/ICallbackShapeFacts";
@@ -28,11 +33,33 @@ class CallbackParameterShape {
     return `${functionName}_fp`;
   }
 
+  /**
+   * ADR-029: a resolved cnx type name, spelled in a `_fp` typedef the way
+   * the function's own prototype spells it -- `headerCType` for the C++
+   * namespace (`hw::Dev`, not the C join `hw__Dev`) and the primitive map,
+   * then the `struct` keyword a C tag with no typedef needs. A bare primitive
+   * lookup lost both (#1942 review).
+   */
+  static cType(typeName: string, symbolTable: IResolvedSymbols): string {
+    return userCType(
+      headerCType(typeName, symbolTable),
+      symbolTable.checkNeedsStructKeyword(typeName),
+    );
+  }
+
+  /** ADR-029: a function this file declares or includes is a type too (#1491) */
+  static isFunctionType(typeName: string, facts: ICallbackShapeFacts): boolean {
+    return facts.symbols?.functionReturnTypes.has(typeName) ?? false;
+  }
+
   static returnType(
     symbol: IFunctionSymbol,
     facts: ICallbackShapeFacts,
   ): string {
-    return facts.cType(SymbolTypeResolver.getTypeName(symbol.returnType));
+    return CallbackParameterShape.cType(
+      SymbolTypeResolver.getTypeName(symbol.returnType),
+      facts.symbolTable,
+    );
   }
 
   static parameters(
@@ -40,7 +67,7 @@ class CallbackParameterShape {
     symbol: IFunctionSymbol,
     facts: ICallbackShapeFacts,
   ): Array<Required<ICallbackTypedefParameter>> {
-    const settled = ParameterByValue.settledParameters(cName, facts);
+    const byValueFacts = CallbackParameterShape.byValueFacts(facts);
     return symbol.parameters.map((param, index) => {
       const typeName = SymbolTypeResolver.getTypeName(param.type);
       // Spread, not re-listed: a field the shape gains reaches the typedef
@@ -55,25 +82,21 @@ class CallbackParameterShape {
         param.emittedName !== null,
         `1.4 settled the C name of ${cName}'s parameter ${param.name}`,
       );
-      // #1639: from the declaration, as a call through the type passes it
-      const declared = settled[index];
       return {
         name: param.emittedName,
         ...shape,
         isConst: ParameterConst.isWritten(
           param.isConst,
           typeName,
-          facts.isFunctionType(typeName),
+          CallbackParameterShape.isFunctionType(typeName, facts),
         ),
         isArray: param.isArray,
         // ADR-071 Q6: a `mut` scalar is a pointer, as in its prototype
-        isPointer: !ParameterByValue.of(
+        // #1639: from the declaration, as a call through the type passes it
+        isPointer: !ParameterByValue.ofDeclared(
           cName,
-          declared.name,
-          SymbolTypeResolver.getTypeName(declared.type),
-          declared.isArray,
-          declared.isOpaqueHandle === true,
-          facts,
+          index,
+          byValueFacts,
           false,
         ),
         // Already folded to literals by the symbols layer, which is exactly
@@ -84,6 +107,16 @@ class CallbackParameterShape {
           .join(""),
       };
     });
+  }
+
+  /** The by-value rule's facts, read off the same data */
+  private static byValueFacts(facts: ICallbackShapeFacts): IByValueFacts {
+    return {
+      program: facts.program,
+      callbackTypes: facts.symbols?.functionReturnTypes ?? new Map(),
+      isKnownStruct: (typeName) =>
+        DeclaredTypeFacts.isStruct(facts.symbols, facts.symbolTable, typeName),
+    };
   }
 
   private static shape(
@@ -99,12 +132,14 @@ class CallbackParameterShape {
     // ADR-006: struct-ness drives reference semantics. A C++ namespaced
     // struct is known by its `::` spelling, which is how the prototype that
     // takes it by reference names it; the C join (`hw__Dev`) is not.
-    const isStruct = facts.isKnownStruct(
+    const isStruct = DeclaredTypeFacts.isStruct(
+      facts.symbols,
+      facts.symbolTable,
       CppNamespaceUtils.convertToCppNamespace(typeName, facts.symbolTable),
     );
 
     // ADR-029: a parameter whose type is itself a function-as-type.
-    if (facts.isFunctionType(typeName)) {
+    if (CallbackParameterShape.isFunctionType(typeName, facts)) {
       // Function pointers are already pointers.
       return {
         type: CallbackParameterShape.typedefName(typeName),
@@ -139,7 +174,7 @@ class CallbackParameterShape {
     // auto-const its prototype never takes.
     if (DeclaredPointer.isHandleType(typeName, facts.symbolTable)) {
       return {
-        type: facts.cType(typeName),
+        type: CallbackParameterShape.cType(typeName, facts.symbolTable),
         isStruct: false,
         isString: false,
         isOpaqueHandle: true,
@@ -149,7 +184,7 @@ class CallbackParameterShape {
     // ADR-006: a struct parameter is a pointer in C and a reference in C++,
     // which the formatter spells from `isStruct`.
     return {
-      type: facts.cType(typeName),
+      type: CallbackParameterShape.cType(typeName, facts.symbolTable),
       isStruct,
       isString: false,
       isOpaqueHandle: false,

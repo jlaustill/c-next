@@ -12,4 +12,13 @@ void onMutSample(Sample *s);
 void onBytes(const uint8_t bytes[4]);
 void onText(const char *text);
 float onMix(double d, bool b, int8_t i);
+typedef Sample *SampleRef;
+typedef uint32_t *U32Ref;
+void onMutSampleRef(SampleRef s);
+void onMutRef(U32Ref v);
+void onTick(uint32_t (*t)(void));
+typedef uint32_t (*clock_fn)(void);
+void onClockFn(clock_fn t);
+void onGrid(const uint8_t g[4][4]);
+void onGrid48(const uint8_t g[4][8]);
 #endif

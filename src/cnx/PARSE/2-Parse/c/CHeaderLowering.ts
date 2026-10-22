@@ -216,16 +216,21 @@ class CHeaderLowering {
       return CHeaderLowering.unnamedParameter(parameterDeclaration);
     }
     const declarator = parameterDeclaration.declarator();
-    return ParameterExtractorUtils.buildParameterInfo(
-      declarator,
-      ...CHeaderLowering.parameterShape(
-        declarationSpecifiers,
-        CHeaderLowering.typeSpecifiers(declarationSpecifiers),
-        declarator?.pointer() ?? null,
-        CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "",
+    const directText =
+      CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "";
+    return {
+      ...ParameterExtractorUtils.buildParameterInfo(
+        declarator,
+        ...CHeaderLowering.parameterShape(
+          declarationSpecifiers,
+          CHeaderLowering.typeSpecifiers(declarationSpecifiers),
+          declarator?.pointer() ?? null,
+          directText,
+        ),
+        CHeaderLowering.declaratorName,
       ),
-      CHeaderLowering.declaratorName,
-    );
+      ...CHeaderLowering.declaratorExtras(directText),
+    };
   }
 
   /**
@@ -245,13 +250,20 @@ class CHeaderLowering {
     ) {
       return null;
     }
+    const directText = abstract?.directAbstractDeclarator()?.getText() ?? "";
     const shape = CHeaderLowering.parameterShape(
       specifiers,
       typeSpecifiers,
       abstract?.pointer() ?? null,
-      abstract?.directAbstractDeclarator()?.getText() ?? "",
+      directText,
     );
-    return { name: "", type: shape[0], isConst: shape[1], isArray: shape[2] };
+    return {
+      name: "",
+      type: shape[0],
+      isConst: shape[1],
+      isArray: shape[2],
+      ...CHeaderLowering.declaratorExtras(directText),
+    };
   }
 
   /**
@@ -274,6 +286,22 @@ class CHeaderLowering {
       specifiers.getText().includes("const"),
       directText.includes("[") && directText.includes("]"),
     ];
+  }
+
+  /**
+   * #1619: what a parameter's type string cannot carry -- each `[...]` of an
+   * array, and whether the declarator nests (`(*f)(void)`, `(*rows)[4]`,
+   * `f(void)`), which makes it a pointer to a function or to an array.
+   */
+  private static declaratorExtras(directText: string): {
+    arrayDimensions?: string[];
+    isNestedDeclarator?: true;
+  } {
+    if (directText.includes("(")) return { isNestedDeclarator: true };
+    const dimensions = [...directText.matchAll(/\[([^\]]*)\]/g)].map(
+      (match) => match[1],
+    );
+    return dimensions.length > 0 ? { arrayDimensions: dimensions } : {};
   }
 
   private static struct(

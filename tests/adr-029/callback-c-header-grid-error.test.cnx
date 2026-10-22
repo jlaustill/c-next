@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 029
+// ADR-029: a 2-D array parameter's inner dimension is part of its type, so
+// `const uint8_t g[4][8]` does not fill a `u8[4][4]` slot (#1619).
+// NEGATIVE CONTROL -- onGrid has the slot's own [4][4]: silent.
+#include "callback-c-header-params.h"
+
+void gridSlot(u8[4][4] g) {
+    u8 b <- g[0][0];
+}
+
+struct Slots {
+    gridSlot grid;
+}
+
+Slots ok <- { grid: onGrid };
+
+// ASSERTION -- onGrid48 takes uint8_t (*)[8].
+Slots wide <- { grid: onGrid48 };

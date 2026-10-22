@@ -171,12 +171,7 @@ class CallbackAssignmentCheck {
 
     const valueText = value.written;
     if (!CallbackAssignmentCheck.signaturesMatch(expected, actual)) {
-      this.report(
-        value,
-        "E0879",
-        `Function '${valueText}' signature does not match callback type '${slotTypeText}'`,
-        "A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).",
-      );
+      this.reportSignatureMismatch(value, slotTypeText);
       return;
     }
 
@@ -196,6 +191,39 @@ class CallbackAssignmentCheck {
         "A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).",
       );
     }
+  }
+
+  /**
+   * #1619: a function a C header declares is held to the callback type's
+   * signature too, by C type identity under the run's header compiler. A
+   * shape the header's lowering does not carry stays silent rather than
+   * guessed.
+   */
+  private checkForeign(
+    slotTypeText: string,
+    value: TExpression,
+    expected: IFunctionSymbol,
+  ): void {
+    const actual = CCallbackSignature.foreignFunction(value, this.context);
+    if (actual === null) return;
+    if (
+      CCallbackSignature.compare(expected, actual, this.context) !== "mismatch"
+    ) {
+      return;
+    }
+    this.reportSignatureMismatch(value, slotTypeText);
+  }
+
+  private reportSignatureMismatch(
+    value: TExpression,
+    slotTypeText: string,
+  ): void {
+    this.report(
+      value,
+      "E0879",
+      `Function '${value.written}' signature does not match callback type '${slotTypeText}'`,
+      "A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).",
+    );
   }
 
   private isFieldType(cName: string): boolean {
@@ -263,26 +291,6 @@ class CallbackAssignmentCheck {
    * otherwise its prototype is `const SensorReading*` beside a
    * `void (*)(SensorReading *)` it is assigned to, and the C does not compile.
    */
-  /**
-   * #1619: a function a C header declares is held to the callback type's
-   * signature too, by C type identity under the run's header compiler
-   */
-  private checkForeign(
-    slotTypeText: string,
-    value: TExpression,
-    expected: IFunctionSymbol,
-  ): void {
-    const actual = CCallbackSignature.foreignFunction(value, this.context);
-    if (actual === null) return;
-    if (CCallbackSignature.matches(expected, actual, this.context)) return;
-    this.report(
-      value,
-      "E0879",
-      `Function '${value.written}' signature does not match callback type '${slotTypeText}'`,
-      "A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).",
-    );
-  }
-
   public checkCTypedefCallbacks(): void {
     const program = this.context.program;
     const typedefs = program.callbackCompatibleFunctions();

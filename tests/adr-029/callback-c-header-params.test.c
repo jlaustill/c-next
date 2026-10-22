@@ -10,7 +10,10 @@
 // ADR-029 in C: a function a C header declares, with the exact C signature of the
 // callback type it fills, is accepted in every parameter shape: a scalar by
 // value, a mut scalar and a mut struct through a pointer, a struct, an array
-// and a string through a const pointer (#1619).
+// and a string through a const pointer (#1619). A pointer typedef counts its
+// own `*`s, and a 2-D array keeps its inner dimension. A function-pointer
+// parameter, written or typedef'd, is a shape the header lowering does not
+// carry, so it is accepted here and gcc is the check.
 #include "callback-c-header-params.h"
 
 #include <stdint.h>
@@ -45,9 +48,21 @@ float mixSlot(const double d, const bool b, const int8_t i) {
     return 0.0;
 }
 
+uint32_t tickSource(void) {
+    return 0U;
+}
+
+void tickSink(tickSource_fp t) {
+    const uint32_t n = t();
+}
+
+void gridSlot(const uint8_t g[4][4]) {
+    const uint8_t b = g[0U][0U];
+}
+
 Slots Slots_init(void) {
-    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot };
+    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot };
     return value;
 }
 
-const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix };
+const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid };

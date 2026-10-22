@@ -20,6 +20,8 @@ class FunctionCollector {
       type: p.type,
       isConst: p.isConst,
       isArray: p.isArray,
+      ...(p.arrayDimensions && { arrayDimensions: p.arrayDimensions }),
+      ...(p.isNestedDeclarator && { isNestedDeclarator: true }),
     }));
   }
 

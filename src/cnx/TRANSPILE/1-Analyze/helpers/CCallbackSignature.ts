@@ -11,16 +11,20 @@
  * The cnx side is the callback type's `_fp` typedef as 2.2 writes it:
  * `CallbackParameterShape` decides it and `CallbackTypedefFormatter` spells
  * it, for 2.2's typedef and for this comparison alike.
+ *
+ * A header parameter its lowering does not fully carry -- a pointer to a
+ * function or to an array, a function-pointer or array typedef, an inner
+ * array dimension that is not a literal -- is "unknown", never a mismatch.
  */
+import type ICallbackTypedefParameter from "../../../types/ICallbackTypedefParameter";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type ICFunctionSymbol from "../../../types/symbols/c/ICFunctionSymbol";
+import type ICParameterInfo from "../../../types/symbols/c/ICParameterInfo";
 import type TExpression from "../../../types/syntax/TExpression";
 import CallbackParameterShape from "../../../utils/CallbackParameterShape";
-import type ICallbackShapeFacts from "../../../utils/types/ICallbackShapeFacts";
 import CallbackTypedefFormatter from "../../../utils/CallbackTypedefFormatter";
-import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
-import headerCType from "../../../utils/headerCType";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import type ICallbackShapeFacts from "../../../utils/types/ICallbackShapeFacts";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
 /** The words C's integer type spellings are made of, in any order */
@@ -36,11 +40,13 @@ const INTEGER_WORDS = new Set([
 /** One C type as the compiler tells types apart */
 interface ICType {
   readonly base: string;
-  /** `*` per pointer level, `&` for a C++ reference */
+  /** `*` per pointer level, then `&` for a C++ reference */
   readonly indirection: string;
   /** Whether what the pointer points at is const; meaningless with none */
   readonly pointeeConst: boolean;
 }
+
+type TSignatureMatch = "match" | "mismatch" | "unknown";
 
 class CCallbackSignature {
   /**
@@ -66,17 +72,25 @@ class CCallbackSignature {
     return symbol?.kind === "function" ? symbol : null;
   }
 
-  static matches(
+  /** A definite mismatch anywhere wins; otherwise any unknown part is unknown */
+  static compare(
     expected: IFunctionSymbol,
     actual: ICFunctionSymbol,
     context: IAnalysisContext,
-  ): boolean {
-    if (actual.isVariadic === true) return false;
+  ): TSignatureMatch {
+    if (actual.isVariadic === true) return "mismatch";
     const actualParameters = actual.parameters ?? [];
-    if (actualParameters.length !== expected.parameters.length) return false;
-    const facts = CCallbackSignature.shapeFacts(context);
-    if (
-      !CCallbackSignature.same(
+    if (actualParameters.length !== expected.parameters.length) {
+      return "mismatch";
+    }
+    const facts: ICallbackShapeFacts = {
+      program: context.program,
+      symbols: context.symbols,
+      symbolTable: context.symbolTable,
+    };
+    const isCppMode = context.program.cppMode();
+    const verdicts = [
+      CCallbackSignature.same(
         CCallbackSignature.parse(
           CallbackParameterShape.returnType(expected, facts),
           false,
@@ -84,48 +98,75 @@ class CCallbackSignature {
         ),
         CCallbackSignature.parse(actual.type, false, false),
         context,
-      )
-    ) {
-      return false;
-    }
-    const isCppMode = context.program.cppMode();
-    return CallbackParameterShape.parameters(
-      ScopeUtils.getTranspiledCName(expected),
-      expected,
-      facts,
-    ).every((parameter, index) => {
-      const cParameter = actualParameters[index];
-      // The typedef's own spelling of the parameter, unnamed and with its
-      // dimensions dropped: an array parameter is a pointer to its element.
-      const typedefText = CallbackTypedefFormatter.formatParameterList(
-        [{ ...parameter, name: "", arrayDims: "" }],
-        isCppMode,
-      );
-      return CCallbackSignature.same(
-        CCallbackSignature.parse(typedefText, false, parameter.isArray),
-        CCallbackSignature.parse(
-          cParameter.type,
-          cParameter.isConst,
-          cParameter.isArray,
+      ),
+      ...CallbackParameterShape.parameters(
+        ScopeUtils.getTranspiledCName(expected),
+        expected,
+        facts,
+      ).map((parameter, index) =>
+        CCallbackSignature.compareParameter(
+          parameter,
+          actualParameters[index],
+          isCppMode,
+          context,
         ),
-        context,
-      );
-    });
+      ),
+    ];
+    if (verdicts.includes("mismatch")) return "mismatch";
+    return verdicts.includes("unknown") ? "unknown" : "match";
   }
 
-  /** The `_fp` typedef's facts, as 2.1 sees the program */
-  private static shapeFacts(context: IAnalysisContext): ICallbackShapeFacts {
-    const { program, symbolTable } = context;
-    return {
-      program,
-      callbackTypes: new Set<string>(),
-      symbolTable,
-      isKnownStruct: (typeName) =>
-        DeclaredTypeFacts.isStruct(context.symbols, symbolTable, typeName),
-      isFunctionType: (typeName) =>
-        program.symbolByCName(typeName)?.kind === "function",
-      cType: (typeName) => headerCType(typeName, symbolTable),
-    };
+  private static compareParameter(
+    parameter: Required<ICallbackTypedefParameter>,
+    cParameter: ICParameterInfo,
+    isCppMode: boolean,
+    context: IAnalysisContext,
+  ): TSignatureMatch {
+    if (cParameter.isNestedDeclarator === true) return "unknown";
+    const dimensions = CCallbackSignature.innerDimensions(
+      [...parameter.arrayDims.matchAll(/\[([^\]]*)\]/g)].map((m) => m[1]),
+      cParameter.arrayDimensions ?? [],
+    );
+    if (dimensions !== "match") return dimensions;
+    // The typedef's own spelling of the parameter, unnamed and with its
+    // dimensions apart: an array parameter is a pointer to its element.
+    const typedefText = CallbackTypedefFormatter.formatParameterList(
+      [{ ...parameter, name: "", arrayDims: "" }],
+      isCppMode,
+    );
+    return CCallbackSignature.same(
+      CCallbackSignature.parse(typedefText, false, parameter.isArray),
+      CCallbackSignature.parse(
+        cParameter.type,
+        cParameter.isConst,
+        cParameter.isArray,
+      ),
+      context,
+    );
+  }
+
+  /**
+   * Every dimension of an array parameter but the first, which decays, is
+   * part of its type: `uint8_t g[4][8]` is `const uint8_t (*)[8]`.
+   */
+  private static innerDimensions(
+    slot: readonly string[],
+    header: readonly string[],
+  ): TSignatureMatch {
+    const slotInner = slot.slice(1);
+    const headerInner = header.slice(1);
+    if (slotInner.length !== headerInner.length) return "mismatch";
+    let result: TSignatureMatch = "match";
+    slotInner.forEach((dimension, index) => {
+      const other = headerInner[index].trim();
+      if (dimension.trim() === other) return;
+      if (/^\d+$/.test(dimension.trim()) && /^\d+$/.test(other)) {
+        result = "mismatch";
+      } else if (result === "match") {
+        result = "unknown";
+      }
+    });
+    return result;
   }
 
   private static namedValue(
@@ -172,7 +213,17 @@ class CCallbackSignature {
     a: ICType,
     b: ICType,
     context: IAnalysisContext,
-  ): boolean {
+  ): TSignatureMatch {
+    if (CCallbackSignature.equal(a, b, context)) return "match";
+    const resolvedA = CCallbackSignature.resolve(a, context);
+    const resolvedB = CCallbackSignature.resolve(b, context);
+    if (resolvedA === null || resolvedB === null) return "unknown";
+    return CCallbackSignature.equal(resolvedA, resolvedB, context)
+      ? "match"
+      : "mismatch";
+  }
+
+  private static equal(a: ICType, b: ICType, context: IAnalysisContext) {
     if (a.indirection !== b.indirection) return false;
     if (a.indirection !== "" && a.pointeeConst !== b.pointeeConst) return false;
     return (
@@ -182,38 +233,57 @@ class CCallbackSignature {
   }
 
   /**
-   * The type a base type name denotes: a header typedef followed to what it
-   * names, an exact-width `<stdint.h>` name the compiler did not see declared
-   * taken from its own macros, and C's integer spellings in one word order
-   * (`long unsigned int` is `unsigned long`).
+   * A header typedef followed until its base names none, its own `*`s
+   * counted: `SampleRef` (`typedef Sample *SampleRef`) is `Sample*`. Null
+   * for a typedef of a function pointer or an array, whose shape the
+   * lowering does not carry.
+   */
+  private static resolve(
+    type: ICType,
+    context: IAnalysisContext,
+  ): ICType | null {
+    const seen = new Set<string>();
+    let current = type;
+    for (;;) {
+      const name = CCallbackSignature.untagged(current.base);
+      if (seen.has(name)) return current;
+      seen.add(name);
+      const typedef = context.symbolTable.getCSymbol(name);
+      if (typedef?.kind !== "type") return current;
+      if (typedef.type.includes("(") || typedef.arrayDimensions?.length) {
+        return null;
+      }
+      const inner = CCallbackSignature.parse(typedef.type, false, false);
+      current = {
+        base: inner.base,
+        indirection: inner.indirection + current.indirection,
+        // `const SampleRef` is `Sample * const`: the const is the pointer's
+        pointeeConst:
+          current.indirection === ""
+            ? inner.pointeeConst
+            : current.pointeeConst,
+      };
+    }
+  }
+
+  /**
+   * The type a base type name denotes: an exact-width `<stdint.h>` name the
+   * compiler did not see declared taken from its own macros, and C's integer
+   * spellings in one word order (`long unsigned int` is `unsigned long`).
    */
   private static identity(text: string, context: IAnalysisContext): string {
-    const seen = new Set<string>();
-    let name = text.replace(/^(?:struct|enum|union)\s+/, "").trim();
-    while (!seen.has(name)) {
-      seen.add(name);
-      const words = name.split(/\s+/);
-      if (words.every((word) => INTEGER_WORDS.has(word))) {
-        return CCallbackSignature.integer(words);
-      }
-      if (name === "bool" || name === "_Bool") return "_Bool";
-      const typedef = context.symbolTable.getCSymbol(name);
-      if (
-        typedef?.kind === "type" &&
-        !typedef.type.includes("(") &&
-        !typedef.type.includes("*")
-      ) {
-        name = typedef.type.replace(/^(?:struct|enum|union)\s+/, "").trim();
-        continue;
-      }
-      const builtin = context.program.headerIntegerType(name);
-      if (builtin !== null) {
-        name = builtin;
-        continue;
-      }
-      return name;
+    const untagged = CCallbackSignature.untagged(text);
+    const name = context.program.headerIntegerType(untagged) ?? untagged;
+    const words = name.split(/\s+/);
+    if (words.every((word) => INTEGER_WORDS.has(word))) {
+      return CCallbackSignature.integer(words);
     }
+    if (name === "bool" || name === "_Bool") return "_Bool";
     return name;
+  }
+
+  private static untagged(text: string): string {
+    return text.replace(/^(?:struct|enum|union)\s+/, "").trim();
   }
 
   private static integer(words: readonly string[]): string {

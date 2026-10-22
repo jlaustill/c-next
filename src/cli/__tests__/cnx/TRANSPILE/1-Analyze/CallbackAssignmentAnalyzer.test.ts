@@ -317,6 +317,52 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
       type: "unsigned long",
     });
     declare(symbolTable, "typedefClock", "tick_t");
+    const typedef = (name: string, type: string): void => {
+      symbolTable.addCSymbol({
+        name,
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "clock.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type,
+      });
+    };
+    typedef("U8Ref", "uint8_t*");
+    typedef("clock_fn", "uint32_t (*)(void)");
+    declare(symbolTable, "onByteRef", "void", [
+      { name: "b", type: "U8Ref", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onClockFn", "void", [
+      { name: "t", type: "clock_fn", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onClockPtr", "void", [
+      {
+        name: "t",
+        type: "uint32_t",
+        isConst: false,
+        isArray: false,
+        isNestedDeclarator: true,
+      },
+    ]);
+    declare(symbolTable, "onClockValue", "void", [
+      { name: "t", type: "uint32_t", isConst: false, isArray: false },
+    ]);
+    const grid = (name: string, dimensions: string[]): void => {
+      declare(symbolTable, name, "void", [
+        {
+          name: "g",
+          type: "uint8_t",
+          isConst: true,
+          isArray: true,
+          arrayDimensions: dimensions,
+        },
+      ]);
+    };
+    grid("onGrid44", ["4", "4"]);
+    grid("onGrid48", ["4", "8"]);
+    grid("onGridMacro", ["4", "WIDTH"]);
+    grid("onGridFlat", ["16"]);
     declare(symbolTable, "unsignedByte", "unsigned char");
     declare(symbolTable, "plainChar", "char");
     declare(symbolTable, "signedChar", "signed char");
@@ -330,7 +376,9 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
         "u8 byteSource() { return 0; }",
         "u16 halfSource() { return 0; }",
         "bool flagSource() { return false; }",
-        "struct T { tickSource tick; byteSink sink; byteOut out; byteSource byte; halfSource half; flagSource flag; }",
+        "void tickSink(tickSource t) { u32 n <- t(); }",
+        "void gridSink(u8[4][4] g) { u8 b <- g[0][0]; }",
+        "struct T { tickSource tick; byteSink sink; byteOut out; byteSource byte; halfSource half; flagSource flag; tickSink sinkTick; gridSink grid; }",
         `T t <- { ${value} };`,
       ].join("\n"),
       { symbolTable, integerTypes, cppMode },
@@ -406,6 +454,32 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
       "E0879 Function 'millis' signature does not match callback type 'halfSource'",
     ]);
     expect(run("flag: cBool", ARM, false)).toEqual([]);
+  });
+
+  it("counts a pointer typedef's own *", () => {
+    expect(run("out: onByteRef", ARM, false)).toEqual([]);
+    expect(run("sink: onByteRef", ARM, false)).toEqual([
+      "E0879 Function 'onByteRef' signature does not match callback type 'byteSink'",
+    ]);
+  });
+
+  it("leaves a function-pointer parameter undecided, not mismatched", () => {
+    expect(run("sinkTick: onClockFn", ARM, false)).toEqual([]);
+    expect(run("sinkTick: onClockPtr", ARM, false)).toEqual([]);
+    expect(run("sinkTick: onClockValue", ARM, false)).toEqual([
+      "E0879 Function 'onClockValue' signature does not match callback type 'tickSink'",
+    ]);
+  });
+
+  it("holds an array's inner dimensions to the slot's", () => {
+    expect(run("grid: onGrid44", ARM, false)).toEqual([]);
+    expect(run("grid: onGridMacro", ARM, false)).toEqual([]);
+    expect(run("grid: onGrid48", ARM, false)).toEqual([
+      "E0879 Function 'onGrid48' signature does not match callback type 'gridSink'",
+    ]);
+    expect(run("grid: onGridFlat", ARM, false)).toEqual([
+      "E0879 Function 'onGridFlat' signature does not match callback type 'gridSink'",
+    ]);
   });
 
   it("takes a mut scalar as a reference in C++", () => {

@@ -1,13 +1,17 @@
+import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type IProgram from "../../types/IProgram";
 import type IResolvedSymbols from "../../types/IResolvedSymbols";
-import type IByValueFacts from "./IByValueFacts";
 
-/** What the shape decision reads; each pass hands over its own view */
-interface ICallbackShapeFacts extends IByValueFacts {
+/**
+ * The data the `_fp` shape is decided from. Data only, no answers: 2.1 and
+ * 2.2 hand over the same three things, and every rule that reads them lives
+ * in `CallbackParameterShape`.
+ */
+interface ICallbackShapeFacts {
+  readonly program: IProgram | null;
+  /** The file's declared types; its `functionReturnTypes` are its function-as-types */
+  readonly symbols: ICodeGenSymbols | null;
   readonly symbolTable: IResolvedSymbols;
-  /** ADR-029: a function that is also a type, as the reader sees it */
-  isFunctionType(typeName: string): boolean;
-  /** A resolved cnx type name as the function's own prototype spells it */
-  cType(typeName: string): string;
 }
 
 export default ICallbackShapeFacts;

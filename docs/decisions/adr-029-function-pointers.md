@@ -350,7 +350,14 @@ siblings) say which C type each `uN`/`iN` is. So `unsigned long millis(void)`
 fills a `u32 tickSource()` slot on stm32f4 and AVR, where `uint32_t` is
 `unsigned long`, and is E0879 on a 64-bit host, where it is `unsigned int`;
 `unsigned int clock32(void)` is the other way round. A variadic C function
-matches no callback type. Asserted by `tests/adr-029/callback-c-header-*.test.cnx`.
+matches no callback type. A pointer typedef counts its own `*`s
+(`typedef Sample *SampleRef` is `Sample*`), and every dimension of an array
+parameter after the first is part of its type (`uint8_t g[4][8]` does not fill a
+`u8[4][4]` slot). A header parameter whose shape the header lowering does not
+carry is left undecided rather than reported: a pointer to a function or to an
+array, a typedef of either, or an inner dimension that is not a literal (#2294).
+A function a C++ header declares is not checked yet (#2293). Asserted by
+`tests/adr-029/callback-c-header-*.test.cnx`.
 
 The signature compared is the one the author **declared**. A parameter may also
 acquire `const` because no body modifies it, but that is a property of an

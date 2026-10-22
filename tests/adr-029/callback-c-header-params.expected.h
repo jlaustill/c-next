@@ -22,6 +22,9 @@ typedef void (*mutSampleSlot_fp)(Sample*);
 typedef void (*bytesSlot_fp)(const uint8_t bytes[4]);
 typedef void (*textSlot_fp)(const char*);
 typedef float (*mixSlot_fp)(const double, const bool, const int8_t);
+typedef uint32_t (*tickSource_fp)(void);
+typedef void (*tickSink_fp)(tickSource_fp);
+typedef void (*gridSlot_fp)(const uint8_t g[4][4]);
 
 /* Struct definitions */
 typedef struct Slots {
@@ -32,6 +35,11 @@ typedef struct Slots {
     bytesSlot_fp bytes;
     textSlot_fp text;
     mixSlot_fp mix;
+    mutSampleSlot_fp mutSampleRef;
+    mutSlot_fp mutRef;
+    tickSink_fp tick;
+    tickSink_fp clockFn;
+    gridSlot_fp grid;
 } Slots;
 
 /* External variables */
@@ -45,6 +53,9 @@ void mutSampleSlot(Sample* s);
 void bytesSlot(const uint8_t bytes[4]);
 void textSlot(const char* text);
 float mixSlot(const double d, const bool b, const int8_t i);
+uint32_t tickSource(void);
+void tickSink(tickSource_fp t);
+void gridSlot(const uint8_t g[4][4]);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Slots Slots_init(void);
 

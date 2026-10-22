@@ -3194,10 +3194,7 @@ class FilePlanner {
       for (const param of symbol.parameters) {
         register(SymbolTypeResolver.getTypeName(param.type));
       }
-      callbackTypes.set(
-        cName,
-        this.callbackInfoFromSymbol(cName, symbol, functions),
-      );
+      callbackTypes.set(cName, this.callbackInfoFromSymbol(cName, symbol));
     };
     for (const cName of functions.keys()) {
       register(cName);
@@ -3209,21 +3206,17 @@ class FilePlanner {
    * Build an `ICallbackTypeInfo` from a resolved function symbol.
    *
    * The symbol carries the resolved return type and parameters, so nothing here
-   * re-resolves a name. Parameter meaning is delegated to `callbackParamShape`.
+   * re-resolves a name. What it means is `CallbackParameterShape`'s, which 2.1's
+   * C-header check reads too (#1619).
    */
   private callbackInfoFromSymbol(
     cName: string,
     symbol: IFunctionSymbol,
-    functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
   ): ICallbackTypeInfo {
-    const state = this.state;
     const facts: ICallbackShapeFacts = {
-      program: state.program,
-      callbackTypes: state.callbackTypes,
-      symbolTable: state.symbolTable,
-      isKnownStruct: (typeName) => this.queries.isKnownStruct(typeName),
-      isFunctionType: (typeName) => functionsAsTypes.has(typeName),
-      cType: (typeName) => this.callbackCType(typeName),
+      program: this.state.program,
+      symbols: this.state.symbols,
+      symbolTable: this.state.symbolTable,
     };
     return {
       functionName: cName,
@@ -3231,21 +3224,6 @@ class FilePlanner {
       parameters: CallbackParameterShape.parameters(cName, symbol, facts),
       typedefName: FilePlanner.callbackTypedefName(cName),
     };
-  }
-
-  /**
-   * ADR-029: a resolved cnx type name, spelled in a `_fp` typedef the way
-   * the function's own prototype spells it -- `headerCType` for the C++
-   * namespace (`hw::Dev`, not the C join `hw__Dev`) and the primitive map,
-   * then `generateUserType` for the `struct` keyword a C tag with no typedef
-   * needs. A bare primitive lookup lost both (#1942 review).
-   */
-  private callbackCType(typeName: string): string {
-    const symbolTable = this.state.symbolTable;
-    return TypeGenerationHelper.generateUserType(
-      headerCType(typeName, symbolTable),
-      symbolTable.checkNeedsStructKeyword(typeName),
-    );
   }
 
   /**
