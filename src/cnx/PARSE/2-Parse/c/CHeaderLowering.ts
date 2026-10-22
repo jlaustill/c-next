@@ -187,6 +187,10 @@ class CHeaderLowering {
       // `parameterList ',' '...'`: the ellipsis has no accessor of its own
       isVariadic:
         (directDeclarator.parameterTypeList()?.getChildCount() ?? 0) > 1,
+      ...(hasParams &&
+        directDeclarator.parameterTypeList() === null && {
+          isUnprototyped: true,
+        }),
       isConstMember: false,
       arrayDimensions: ArrayDimensionText.parse(directDeclarator.getText()),
     };

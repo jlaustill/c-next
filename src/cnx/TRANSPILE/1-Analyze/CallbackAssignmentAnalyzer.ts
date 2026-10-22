@@ -37,8 +37,9 @@
  *
  * A function used only as a PARAMETER type (`void reg(onUp cb)`) is not a
  * nominal type here, as it was not in codegen; widening that is a language
- * decision (ADR-029 §Nominal Typing names struct fields). Array dimensions of
- * parameters are not compared, as they were not.
+ * decision (ADR-029 §Nominal Typing names struct fields). A cnx function's
+ * signature is then held to the C-header rule too, so an inner array
+ * dimension (`u8[4][8]` in a `u8[4][4]` slot) is E0879 for both (#1619).
  */
 
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
@@ -170,7 +171,11 @@ class CallbackAssignmentCheck {
     }
 
     const valueText = value.written;
-    if (!CallbackAssignmentCheck.signaturesMatch(expected, actual)) {
+    if (
+      !CallbackAssignmentCheck.signaturesMatch(expected, actual) ||
+      CCallbackSignature.compareCnx(expected, actual, this.context) ===
+        "mismatch"
+    ) {
       this.reportSignatureMismatch(value, slotTypeText);
       return;
     }

@@ -16,7 +16,9 @@
 // carry, so it is accepted here and gcc is the check. uint_least32_t is the
 // compiler's own type for it, and a typedef's const reaches its pointee,
 // whether the typedef or its use spells the `*`. A type name that merely
-// contains `const` or `volatile` is not qualified.
+// contains `const` or `volatile` is not qualified. An array typedef's element
+// (`const mac_t macs[2]` is `const uint8_t (*)[6]`) and an unprototyped `f()`,
+// whose parameters C leaves open, are accepted here and gcc is the check.
 #include "callback-c-header-params.h"
 
 #include <stdint.h>
@@ -71,9 +73,13 @@ void gridSlot(const uint8_t g[4][4]) {
     const uint8_t b = g[0U][0U];
 }
 
+void macsSlot(const uint8_t macs[2][6]) {
+    const uint8_t b = macs[0U][0U];
+}
+
 Slots Slots_init(void) {
-    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot, .least = tickSource, .cbytes = bytesSlot, .cbytePtr = bytesSlot, .name = textSlot, .cfg = cfgSlot, .cons = consSlot };
+    Slots value = { .value = valueSlot, .mutValue = mutSlot, .sample = sampleSlot, .mutSample = mutSampleSlot, .bytes = bytesSlot, .text = textSlot, .mix = mixSlot, .mutSampleRef = mutSampleSlot, .mutRef = mutSlot, .tick = tickSink, .clockFn = tickSink, .grid = gridSlot, .least = tickSource, .cbytes = bytesSlot, .cbytePtr = bytesSlot, .name = textSlot, .cfg = cfgSlot, .cons = consSlot, .macs = macsSlot, .macPtr = macsSlot, .legacy = valueSlot };
     return value;
 }
 
-const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid, .least = leastClock, .cbytes = onCBytes, .cbytePtr = onCBytePtr, .name = onName, .cfg = onCfg, .cons = onCons };
+const Slots slots = { .value = onValue, .mutValue = onMut, .sample = onSample, .mutSample = onMutSample, .bytes = onBytes, .text = onText, .mix = onMix, .mutSampleRef = onMutSampleRef, .mutRef = onMutRef, .tick = onTick, .clockFn = onClockFn, .grid = onGrid, .least = leastClock, .cbytes = onCBytes, .cbytePtr = onCBytePtr, .name = onName, .cfg = onCfg, .cons = onCons, .macs = onMacs, .macPtr = onMacPtr, .legacy = legacySink };

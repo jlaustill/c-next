@@ -33,6 +33,14 @@ class CallbackParameterShape {
     return `${functionName}_fp`;
   }
 
+  /** The function a `typedefName` names the type of, or null for any other name */
+  static functionOfTypedef(typedefName: string): string | null {
+    const suffix = CallbackParameterShape.typedefName("");
+    return typedefName.endsWith(suffix)
+      ? typedefName.slice(0, -suffix.length)
+      : null;
+  }
+
   /**
    * ADR-029: a resolved cnx type name, spelled in a `_fp` typedef the way
    * the function's own prototype spells it -- `headerCType` for the C++
@@ -49,7 +57,7 @@ class CallbackParameterShape {
 
   /** ADR-029: a function this file declares or includes is a type too (#1491) */
   static isFunctionType(typeName: string, facts: ICallbackShapeFacts): boolean {
-    return facts.symbols?.functionReturnTypes.has(typeName) ?? false;
+    return facts.symbols.functionReturnTypes.has(typeName);
   }
 
   static returnType(
@@ -113,7 +121,7 @@ class CallbackParameterShape {
   private static byValueFacts(facts: ICallbackShapeFacts): IByValueFacts {
     return {
       program: facts.program,
-      callbackTypes: facts.symbols?.functionReturnTypes ?? new Map(),
+      callbackTypes: facts.symbols.functionReturnTypes,
       isKnownStruct: (typeName) =>
         DeclaredTypeFacts.isStruct(facts.symbols, facts.symbolTable, typeName),
     };

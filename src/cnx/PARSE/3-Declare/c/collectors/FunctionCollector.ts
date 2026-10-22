@@ -50,6 +50,7 @@ class FunctionCollector {
       ),
       parameters: parameters.length > 0 ? parameters : undefined,
       isVariadic: declarator.isVariadic || undefined,
+      ...(declarator.isUnprototyped && { isUnprototyped: true }),
       isDeclaration: false,
     };
   }
@@ -73,6 +74,7 @@ class FunctionCollector {
       type: DeclaratorTypes.pointerType(baseType, declarator),
       parameters: parameters.length > 0 ? parameters : undefined,
       isVariadic: declarator.isVariadic || undefined,
+      ...(declarator.isUnprototyped && { isUnprototyped: true }),
       isDeclaration: true,
     };
   }

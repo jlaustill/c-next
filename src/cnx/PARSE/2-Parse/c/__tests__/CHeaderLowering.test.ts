@@ -190,6 +190,17 @@ describe("CHeaderLowering", () => {
       ).toEqual([]);
     });
 
+    it("marks only a parameter list with no parameter types as unprototyped (#1619)", () => {
+      const unprototyped = declarations(
+        `void a();\nvoid b(void);\nvoid c(int x);\nint (*d)();\n`,
+      ).map(
+        (decl) =>
+          decl.kind === "declaration" &&
+          decl.declarators?.[0]?.isUnprototyped === true,
+      );
+      expect(unprototyped).toEqual([true, false, false, true]);
+    });
+
     it("skips only a declarator error recovery left without its direct declarator", () => {
       const lowered = declarations(`void good(int a);\nint a, 8[2];\n`);
       const good = lowered[0];

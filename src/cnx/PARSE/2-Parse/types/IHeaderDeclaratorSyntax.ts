@@ -17,6 +17,11 @@ interface IHeaderDeclaratorSyntax {
   readonly parameters: readonly IExtractedParameter[];
   /** Its parameter list ends in `...` */
   readonly isVariadic: boolean;
+  /**
+   * C's `f()` or `f(a, b)`: a parameter list with no parameter types, so no
+   * prototype (C11 6.7.6.3p14). C++ never sets it: there `f()` is `f(void)`.
+   */
+  readonly isUnprototyped?: boolean;
   /** A C++ member function declared `const`: `int get() const;` */
   readonly isConstMember: boolean;
   readonly arrayDimensions: readonly (number | string)[];

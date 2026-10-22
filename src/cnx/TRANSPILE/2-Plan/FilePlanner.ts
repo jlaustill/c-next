@@ -13,6 +13,7 @@ import NarrowingCastHelper from "./NarrowingCastHelper";
 import TYPE_MAP from "./types/TYPE_MAP";
 import CallbackParameterShape from "../../utils/CallbackParameterShape";
 import type ICallbackShapeFacts from "../../utils/types/ICallbackShapeFacts";
+import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
@@ -3186,7 +3187,10 @@ class FilePlanner {
       for (const param of symbol.parameters) {
         register(SymbolTypeResolver.getTypeName(param.type));
       }
-      callbackTypes.set(cName, this.callbackInfoFromSymbol(cName, symbol));
+      callbackTypes.set(
+        cName,
+        this.callbackInfoFromSymbol(cName, symbol, symbols),
+      );
     };
     for (const cName of functions.keys()) {
       register(cName);
@@ -3204,10 +3208,11 @@ class FilePlanner {
   private callbackInfoFromSymbol(
     cName: string,
     symbol: IFunctionSymbol,
+    symbols: ICodeGenSymbols,
   ): ICallbackTypeInfo {
     const facts: ICallbackShapeFacts = {
       program: this.state.program,
-      symbols: this.state.symbols,
+      symbols,
       symbolTable: this.state.symbolTable,
     };
     return {

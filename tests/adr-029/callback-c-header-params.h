@@ -39,4 +39,8 @@ typedef struct {
 } constraint_t;
 void onCfg(nonvolatile_cfg_t *c);
 void onCons(constraint_t *c);
+typedef uint8_t mac_t[6];
+void onMacs(const mac_t macs[2]);
+void onMacPtr(const mac_t *macs);
+void legacySink();
 #endif

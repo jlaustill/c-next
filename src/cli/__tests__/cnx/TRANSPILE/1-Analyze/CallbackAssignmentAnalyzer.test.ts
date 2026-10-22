@@ -396,6 +396,41 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     declare(symbolTable, "signedChar", "signed char");
     declare(symbolTable, "unsignedShort", "unsigned short");
     declare(symbolTable, "cBool", "_Bool");
+    for (const [name, type] of [
+      ["legacySink", "void"],
+      ["legacyCount", "uint16_t"],
+    ]) {
+      symbolTable.addCSymbol({
+        name,
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "clock.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type,
+        isUnprototyped: true,
+        isDeclaration: true,
+      });
+    }
+    symbolTable.addCSymbol({
+      name: "mac_t",
+      kind: "type",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type: "uint8_t",
+      arrayDimensions: ["6"],
+    });
+    declare(symbolTable, "onMacs", "void", [
+      {
+        name: "m",
+        type: "mac_t",
+        isConst: true,
+        isArray: true,
+        arrayDimensions: ["4"],
+      },
+    ]);
     const { syntax, context } = testAnalysisContextFor(
       [
         "u32 tickSource() { return 0; }",
@@ -532,5 +567,22 @@ describe("CallbackAssignmentAnalyzer with a function a C header declares", () =>
     expect(run("out: onBytePtr", ARM, true)).toEqual([
       "E0879 Function 'onBytePtr' signature does not match callback type 'byteOut'",
     ]);
+  });
+
+  it("leaves an unprototyped C function's parameters open, not its return type", () => {
+    expect(run("sink: legacySink", ARM, false)).toEqual([]);
+    expect(run("tick: legacyCount", ARM, false)).toEqual([
+      "E0879 Function 'legacyCount' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("reads C++'s `f()` as `f(void)`", () => {
+    expect(run("sink: legacySink", ARM, true)).toEqual([
+      "E0879 Function 'legacySink' signature does not match callback type 'byteSink'",
+    ]);
+  });
+
+  it("leaves an array typedef's element open: its own dimensions are not counted", () => {
+    expect(run("grid: onMacs", ARM, false)).toEqual([]);
   });
 });

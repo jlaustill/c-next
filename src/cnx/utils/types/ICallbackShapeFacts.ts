@@ -10,7 +10,7 @@ import type IResolvedSymbols from "../../types/IResolvedSymbols";
 interface ICallbackShapeFacts {
   readonly program: IProgram | null;
   /** The file's declared types; its `functionReturnTypes` are its function-as-types */
-  readonly symbols: ICodeGenSymbols | null;
+  readonly symbols: ICodeGenSymbols;
   readonly symbolTable: IResolvedSymbols;
 }
 

@@ -9,7 +9,9 @@
 // carry, so it is accepted here and gcc is the check. uint_least32_t is the
 // compiler's own type for it, and a typedef's const reaches its pointee,
 // whether the typedef or its use spells the `*`. A type name that merely
-// contains `const` or `volatile` is not qualified.
+// contains `const` or `volatile` is not qualified. An array typedef's element
+// (`const mac_t macs[2]` is `const uint8_t (*)[6]`) and an unprototyped `f()`,
+// whose parameters C leaves open, are accepted here and gcc is the check.
 #include "callback-c-header-params.h"
 
 void valueSlot(u32 v) {
@@ -60,6 +62,10 @@ void gridSlot(u8[4][4] g) {
     u8 b <- g[0][0];
 }
 
+void macsSlot(u8[2][6] macs) {
+    u8 b <- macs[0][0];
+}
+
 struct Slots {
     valueSlot value;
     mutSlot mutValue;
@@ -79,6 +85,9 @@ struct Slots {
     textSlot name;
     cfgSlot cfg;
     consSlot cons;
+    macsSlot macs;
+    macsSlot macPtr;
+    valueSlot legacy;
 }
 
 Slots slots <- {
@@ -99,5 +108,8 @@ Slots slots <- {
     cbytePtr: onCBytePtr,
     name: onName,
     cfg: onCfg,
-    cons: onCons
+    cons: onCons,
+    macs: onMacs,
+    macPtr: onMacPtr,
+    legacy: legacySink
 };

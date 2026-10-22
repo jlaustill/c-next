@@ -17,6 +17,9 @@ interface ICFunctionSymbol extends ICBaseSymbol {
   /** Its parameter list ends in `...` */
   readonly isVariadic?: boolean;
 
+  /** C's `f()`: declared with no prototype, so its parameters are not known */
+  readonly isUnprototyped?: boolean;
+
   /** Whether this is a declaration (prototype) vs definition */
   readonly isDeclaration?: boolean;
 }
