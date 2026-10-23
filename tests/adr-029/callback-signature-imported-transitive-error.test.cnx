@@ -1,0 +1,24 @@
+// test-error
+// test-adr: 029
+// ADR-029 E0879 across TWO include hops: the imported function 'mismatched'
+// differs in return type from the imported callback type 'onDown', as a
+// global's initializer, a scope member's initializer and in a scope method.
+
+#include "callback-relay.cnx"
+
+// NEGATIVE CONTROL -- matching signature: silent.
+onDown okGlobal <- plain;
+
+// ASSERTION 1 -- global variable initializer.
+onDown badGlobal <- mismatched;
+
+scope Board {
+    // ASSERTION 2 -- scope member initializer.
+    onDown badMember <- mismatched;
+
+    // ASSERTION 3 -- scope method.
+    public void go() {
+        mut Handler h;
+        h.down <- mismatched;
+    }
+}

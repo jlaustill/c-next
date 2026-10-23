@@ -1,0 +1,4 @@
+14:24 error[E0879]: Function 'mismatched' signature does not match callback type 'onDown'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+19:18 error[E0879]: Function 'mismatched' signature does not match callback type 'onDown'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
