@@ -21,6 +21,7 @@ import AdrDeclarationReader from "./matrix/AdrDeclarationReader";
 import FixtureOccupancy from "./matrix/FixtureOccupancy";
 import MatrixRenderer from "./matrix/MatrixRenderer";
 import MatrixReport from "./matrix/MatrixReport";
+import MatrixRule from "./matrix/MatrixRule";
 import FileScanner from "./utils/FileScanner";
 import IMatrixDeclaration from "./types/IMatrixDeclaration";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
@@ -163,6 +164,23 @@ async function main(): Promise<void> {
     failures.push(...undeclared.map((id) => `  ADR-${id}`));
   }
 
+  // #1620 review: an occupied `off` cell in a code table fails. An ADR-wide or
+  // rule table's is listed below until #2303 resolves ADR-010's.
+  const contradictions = MatrixReport.contradictions(declarations, occupancy);
+  const codeContradictions = contradictions.filter((c) =>
+    MatrixRule.isCode(c.adr),
+  );
+  if (codeContradictions.length > 0) {
+    failures.push(
+      `${codeContradictions.length} cell(s) declared or left \`off\` are occupied by a tagged fixture:`,
+    );
+    failures.push(
+      ...codeContradictions.map(
+        (c) => `  ADR-${c.adr}  ${c.context} / ${c.relationship}`,
+      ),
+    );
+  }
+
   const committed = existsSync(reportPath)
     ? readFileSync(reportPath, "utf-8")
     : "";
@@ -196,6 +214,21 @@ async function main(): Promise<void> {
       ),
     );
     printViolations(warnings);
+  }
+  const otherContradictions = contradictions.filter(
+    (c) => !MatrixRule.isCode(c.adr),
+  );
+  if (otherContradictions.length > 0) {
+    console.log(
+      chalk.yellow(
+        `${otherContradictions.length} \`off\` cell(s) of an ADR-wide or rule table occupied by a tagged fixture (#2303):`,
+      ),
+    );
+    for (const c of otherContradictions) {
+      console.log(
+        chalk.yellow(`  ADR-${c.adr}  ${c.context} / ${c.relationship}`),
+      );
+    }
   }
   // #1620 review: listed rather than failed until #2301 gives every
   // registered code an owner or marks it as having none.

@@ -11,6 +11,7 @@ import { join } from "node:path";
 
 import DiagnosticManifest from "../diagnostics/DiagnosticManifest";
 import AdrMatrixDeclaration from "./AdrMatrixDeclaration";
+import MatrixCell from "./MatrixCell";
 import MatrixRule from "./MatrixRule";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 
@@ -27,6 +28,24 @@ const ADR_FILENAME = /^adr-(\d{3})-.*\.md$/;
  * different facts, and only the first is a fault. Collapsing them is how a
  * malformed table removes every obligation without a word.
  */
+/**
+ * #1620 review: a code table declares every derivable cell. A cell left out
+ * reads as `off` with no note, which is how a context added later (`for
+ * header`, #1646) went unexamined in 67 tables.
+ */
+function undeclaredCells(table: IMatrixDeclaration): string[] {
+  return MatrixCell.all()
+    .filter(({ relationship }) => MatrixCell.isDerivable(relationship))
+    .filter(
+      ({ context, relationship }) =>
+        !table.severities.has(MatrixCell.key(context, relationship)),
+    )
+    .map(
+      ({ context, relationship }) =>
+        `ADR-${table.adr}: leaves "${context} / ${relationship}" undeclared`,
+    );
+}
+
 function read(
   decisionsDir: string,
   retired: ReadonlySet<string> = new Set(),
@@ -54,7 +73,14 @@ function read(
         });
         continue;
       }
-      const ruleTable = AdrMatrixDeclaration.parse(markdown, ruleId, table);
+      const parsed = AdrMatrixDeclaration.parse(markdown, ruleId, table);
+      const ruleTable =
+        table.kind === "code" && parsed.severities.size > 0
+          ? {
+              ...parsed,
+              errors: [...parsed.errors, ...undeclaredCells(parsed)],
+            }
+          : parsed;
       declarations.set(
         ruleId,
         ruleTable.severities.size > 0 || ruleTable.errors.length > 0

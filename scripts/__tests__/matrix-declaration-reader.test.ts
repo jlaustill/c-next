@@ -13,6 +13,7 @@ import { join } from "node:path";
 
 import AdrDeclarationReader from "../matrix/AdrDeclarationReader";
 import AdrMatrixDeclaration from "../matrix/AdrMatrixDeclaration";
+import MatrixCell from "../matrix/MatrixCell";
 
 let dir: string;
 
@@ -132,11 +133,30 @@ describe("AdrDeclarationReader.read code tables (#1620)", () => {
       ...codes.map((code) => `| ${code} | r |`),
       "",
     ].join("\n");
-  const codeMatrix = (code: string): string =>
-    wellFormed.replace(
-      AdrMatrixDeclaration.SEVERITY_MARKER,
+  const codeMatrix = (code: string, omit: string[] = []): string =>
+    [
       `<!-- MATRIX-SEVERITY code: ${code} -->`,
-    ) + "\n";
+      "",
+      "| Context | Relationship | Severity |",
+      "| ------- | ------------ | -------- |",
+      ...MatrixCell.CONTEXTS.flatMap((context) =>
+        MatrixCell.RELATIONSHIPS.filter(MatrixCell.isDerivable)
+          .map((relationship) => `${context} / ${relationship}`)
+          .filter((cell) => !omit.includes(cell))
+          .map((cell) => `| ${cell.replace(" / ", " | ")} | off |`),
+      ),
+      "",
+    ].join("\n");
+
+  it("fails a code table that leaves a derivable cell undeclared", () => {
+    writeAdr(
+      "adr-029-x.md",
+      codeTable("E0879") + codeMatrix("E0879", ["for-header / same-file"]),
+    );
+    expect(AdrDeclarationReader.read(dir).get("029 E0879")?.errors).toEqual([
+      'ADR-029 E0879: leaves "for-header / same-file" undeclared',
+    ]);
+  });
 
   it("fails a declared code that has no table of its own", () => {
     writeAdr("adr-029-x.md", codeTable("E0879", "E0880") + codeMatrix("E0880"));

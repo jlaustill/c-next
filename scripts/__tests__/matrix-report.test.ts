@@ -164,3 +164,32 @@ describe("MatrixReport.ungatedCodes (#1620 review)", () => {
     ]);
   });
 });
+
+describe("MatrixReport.contradictions (#1620 review)", () => {
+  it("names an off cell, declared or left out, that a fixture occupies", () => {
+    const declarations = new Map([
+      [
+        "071 E0899",
+        MatrixTestHelpers.declare("071 E0899", [
+          ["for-header", "same-file", "off"],
+          ["top-level-function", "same-file", "error"],
+        ]),
+      ],
+    ]);
+    const occupancy = new Map([
+      [
+        "071 E0899",
+        MatrixTestHelpers.occupy("071 E0899", [
+          ["for-header", "same-file"],
+          ["top-level-function", "same-file"],
+          ["scope-method", "imported-direct"],
+        ]),
+      ],
+    ]);
+    expect(
+      MatrixReport.contradictions(declarations, occupancy).map(
+        (cell) => `${cell.context} / ${cell.relationship}`,
+      ),
+    ).toEqual(["scope-method / imported-direct", "for-header / same-file"]);
+  });
+});
