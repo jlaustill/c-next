@@ -1,0 +1,34 @@
+// test-error
+// test-adr: 058
+// E0897 across TWO include hops (imported transitive), in all four contexts: a chain that names a type ends in no
+// length property. `L.Cfg.zz` is no field of the type, so its length is no
+// number, wherever the chain is written.
+
+#include "length-scope-struct-relay.cnx"
+
+// NEGATIVE CONTROL -- a field the type declares has a length.
+u32 okGlobal <- L.Cfg.data.type_byte_length;
+
+// ASSERTION -- global variable context.
+u32 badGlobal <- L.Cfg.zz.type_byte_length;
+
+// ASSERTION -- top-level function context.
+u32 badFunction() {
+    u32 bad <- L.Cfg.zz.type_byte_length;
+    return bad;
+}
+
+scope S {
+    // ASSERTION -- scope member context.
+    u32 badMember <- L.Cfg.zz.type_byte_length;
+
+    // ASSERTION -- scope method context.
+    public u32 badMethod() {
+        u32 bad <- L.Cfg.zz.type_byte_length;
+        return bad + this.badMember;
+    }
+}
+
+u32 main() {
+    return okGlobal + badGlobal + badFunction() + S.badMethod();
+}
