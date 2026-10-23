@@ -274,6 +274,22 @@ class OperandTyper {
    * operands' width and declines where C would clamp, so that reason is gone,
    * and a fifth rule for a constant's value with it.
    */
+  /**
+   * The evaluator's whole answer for `expr`, folded in `context` (a type
+   * name) when given: an `overflow` is a known value that does not fit (#1618).
+   */
+  static constantResultOf(
+    expr: TExpression,
+    ctx: ITypingContext,
+    context: string | null = null,
+  ): ReturnType<typeof ConstantEvaluator.evaluate> {
+    return ConstantEvaluator.evaluate(
+      ConstExprLowering.lower(expr),
+      ConstantFold.environment(ctx.program, ctx.sourceFile),
+      context,
+    );
+  }
+
   static constantOf(expr: TExpression, ctx: ITypingContext): number | null {
     const result = ConstantEvaluator.evaluate(
       ConstExprLowering.lower(expr),

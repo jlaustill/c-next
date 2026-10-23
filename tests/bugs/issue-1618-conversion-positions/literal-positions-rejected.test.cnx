@@ -39,6 +39,7 @@ void positions(u32 c) {
     a ^<- 0x1FF;
     a &<- (a + 300);
     a <- a / (a + 300);
+    u32 wraps <- 0x10000 * 0x10000;
 
     take(255);
     u8[2] fits <- [255, 0];
@@ -56,6 +57,7 @@ void positions(u32 c) {
     mut i16 m <- 0;
     m &<- ~0x8000;
     a <- a & (a | 0x1FF);
+    u32 fitsU32 <- 0x8000 * 0x10000;
     (void)list;
     (void)p;
     (void)t;

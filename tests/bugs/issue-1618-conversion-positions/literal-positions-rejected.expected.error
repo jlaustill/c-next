@@ -18,10 +18,10 @@
        help: Widen the target type, or narrow the value.
 35:13 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-36:10 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+36:10 error[E0868]: Value overflows u8 at compile time
        help: Widen the target type, or narrow the value.
-37:19 error[E0868]: Negative value -300 cannot be assigned to unsigned type u16
-       help: An unsigned type holds no negative values; use a signed type such as i16.
+37:19 error[E0868]: Value overflows u16 at compile time
+       help: Widen the target type, or narrow the value.
 38:13 error[E0868]: Value 0x100 has bits outside u8's 8 bits
        help: Widen the target type, or drop the bits it cannot hold.
 39:10 error[E0868]: Value 0x1FF has bits outside u8's 8 bits
@@ -29,4 +29,6 @@
 40:15 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
 41:18 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+42:17 error[E0868]: Value overflows u32 at compile time
        help: Widen the target type, or narrow the value.

@@ -227,8 +227,7 @@ class IntegerConversionCheck {
         (leaf) =>
           !complement(leaf) &&
           IntegerConversionCheck.integerLiteralText(leaf) !== null,
-      ) &&
-      OperandTyper.constantOf(expr, this.context) !== null;
+      );
     const isLeaf = (expr: TExpression): boolean => {
       const inherited = roles.get(expr) ?? "value";
       if (expr.kind === "binary") {
@@ -243,11 +242,7 @@ class IntegerConversionCheck {
     for (const leaf of OperandTyper.valueLeafExpressions(value, isLeaf)) {
       const leafRole = roles.get(leaf) ?? "value";
       if (leafRole === "exempt") continue;
-      const text =
-        IntegerConversionCheck.integerLiteralText(leaf) ??
-        IntegerConversionCheck.foldedText(
-          constant(leaf) ? OperandTyper.constantOf(leaf, this.context) : null,
-        );
+      const text = this.knownText(target, leaf, leafRole, constant(leaf));
       if (text === null) continue;
       if (leafRole === "bits") this.checkBits(target, text, leaf);
       else this.checkLiteral(target, text, leaf);
@@ -312,9 +307,34 @@ class IntegerConversionCheck {
     }
   }
 
-  /** A folded value as literal text, when a double holds it exactly. */
-  private static foldedText(value: number | null): string | null {
-    return value !== null && Number.isSafeInteger(value) ? String(value) : null;
+  /**
+   * A leaf's known value as literal text, or null when it is not known. A
+   * value-role fold runs at the target's width, and an overflow there is a
+   * known value that does not fit: `u32 x <- 0x10000 * 0x10000` (#1618).
+   */
+  private knownText(
+    target: string,
+    leaf: TExpression,
+    role: TLiteralRole,
+    folds: boolean,
+  ): string | null {
+    const literal = IntegerConversionCheck.integerLiteralText(leaf);
+    if (literal !== null || !folds) return literal;
+    const result = OperandTyper.constantResultOf(
+      leaf,
+      this.context,
+      role === "value" ? target : null,
+    );
+    if (result.kind === "overflow") {
+      this.report(
+        leaf,
+        "E0868",
+        `Value overflows ${target} at compile time`,
+        "Widen the target type, or narrow the value.",
+      );
+      return null;
+    }
+    return result.kind === "value" ? String(result.value) : null;
   }
 
   /** E0914, then E0923: a string lands only in a string, and only a string does */
