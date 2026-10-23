@@ -180,7 +180,9 @@ wrap u32 counter <- 0;       // Two's complement wrap (opt-in)
 u8 normal <- 0;              // Default: clamp
 ```
 
-Use `--debug` flag to panic on any overflow during development.
+**What can be caught at compile time is an error, never a clamp or a wrap.** `clamp` and `wrap`
+apply only to values not known until runtime, and `--debug` still makes every one of them panic
+on overflow during development. See _Compile time first_ below.
 
 ---
 
@@ -335,6 +337,29 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 | `clamp` | Saturates at min/max of type | Sensor readings, control values, safety-critical |
 | `wrap`  | Two's complement wrap-around | Counters, checksums, timing, hashing             |
 | (none)  | Default to `clamp`           | Most variables                                   |
+
+#### Compile time first: clamp and wrap are for runtime values only
+
+**Owner ruling, 2026-10-23 (#1618):** anything the compiler can catch at compile time is a
+compile error. `clamp` and `wrap` never apply to it. They exist only for values that are not
+known until runtime, where no compiler could have caught the overflow.
+
+- A literal operand that does not fit the target is E0868 (ADR-024), with `clamp`, with `wrap`
+  and with neither. `u8 a +<- 300` and `a <- a + 300` are rejected; they do not saturate to 255
+  or wrap to `a + 44`.
+- A wider operand is E0869 (ADR-024): `u8 a +<- big` with `u32 big` is rejected, and code that
+  means the low bits says so with `a +<- big[0, 8]`.
+- A signed bit pattern is written as the literal of the type that holds it:
+  `i16 m &<- -0x5556`, not `0xAAAA`.
+- Clamping or wrapping a runtime value is still allowed, but it can hide a bug. `--debug`
+  (below) is there to catch that: every `clamp` and `wrap` operation panics on overflow instead,
+  so the overflows they would hide in production surface during development.
+
+```cnx
+mut clamp u8 level <- 200;
+level +<- 300;         // ERROR E0868: 300 is known at compile time and does not fit u8
+level +<- reading();   // runtime value: clamps at 255; --debug panics instead
+```
 
 #### Struct fields and array elements
 
