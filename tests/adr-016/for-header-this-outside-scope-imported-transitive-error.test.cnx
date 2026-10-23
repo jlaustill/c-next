@@ -1,0 +1,42 @@
+// test-error
+// test-adr: 016
+// E0431 at a `for` header's declaration, across TWO include hops -- the for
+// header / imported transitive cell. `this.` names the enclosing scope's own
+// member, and a top-level function has none, so the loop variable's initializer
+// cannot use it. The global it names is declared in scope-rules-lib.cnx.
+
+#include "scope-rules-relay.cnx"
+
+u32 count() {
+    mut u32 n <- 0;
+    // ASSERTION 1 -- E0431: `this.` in a top-level function's for header.
+    for (mut u32 i <- this.GATE_MARKER; i < 5; i +<- 1) {
+        n +<- 1;
+    }
+    // NEGATIVE CONTROLS -- the bare name, and `global.`, which a function may
+    // use.
+    for (mut u32 j <- GATE_MARKER; j < 5; j +<- 1) {
+        n +<- 1;
+    }
+    for (mut u32 k <- global.GATE_MARKER; k < 5; k +<- 1) {
+        n +<- 1;
+    }
+    return n;
+}
+
+scope Fine {
+    u32 own <- 2;
+
+    // NEGATIVE CONTROL -- `this.` in a scope method's for header.
+    u32 ownCount() {
+        mut u32 n <- 0;
+        for (mut u32 i <- this.own; i < 5; i +<- 1) {
+            n +<- 1;
+        }
+        return n;
+    }
+}
+
+u32 main() {
+    return count();
+}

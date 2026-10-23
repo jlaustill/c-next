@@ -707,6 +707,11 @@ off: this table now holds only the composition rule, which is decided once per s
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0425 is reported at the later of two declarations sharing one scope, and a `for` header declares one variable in a scope of its own that opens before its body, so nothing in the header can be the second; a parameter or a body local of the same name is shadowing, as in C, and any report of it would sit at that later declaration, not in the header (#2307: in the C++ output the body local is a redeclaration).
 
 <!-- MATRIX-SEVERITY code: E0430 -->
 
@@ -724,8 +729,11 @@ off: this table now holds only the composition rule, which is decided once per s
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0430 fires at a `scope` nested in a scope's body, which is no member and no method, and a `scope` inside a function or at file level is a parse error or legal, not E0430.
+off: E0430 fires at a `scope` nested in a scope's body, which is no member and no method, and a `scope` inside a function or at file level is a parse error or legal, not E0430; a `for` header's declaration holds one variable, so a `scope` there is a parse error too.
 
 <!-- MATRIX-SEVERITY code: E0431 -->
 
@@ -743,6 +751,9 @@ off: E0430 fires at a `scope` nested in a scope's body, which is no member and n
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 off: inside a scope `this.` and `global.` both have something to reach past, so E0431 fires only in a top-level function or at file level.
 
@@ -762,6 +773,9 @@ off: inside a scope `this.` and `global.` both have something to reach past, so 
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 off: outside a scope a scope's name is the required spelling, so E0435 fires only in that scope's own members and methods.
 
@@ -781,6 +795,9 @@ off: outside a scope a scope's name is the required spelling, so E0435 fires onl
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0437 -->
 
@@ -798,6 +815,9 @@ off: outside a scope a scope's name is the required spelling, so E0435 fires onl
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 off: E0437 needs a scope member or local inside a scope to shadow the global; at file level nothing can, and a top-level function's local is not inside a scope.
 
