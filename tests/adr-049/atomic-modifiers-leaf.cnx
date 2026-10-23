@@ -1,0 +1,3 @@
+// Helper for atomic-modifiers-imported-direct-error and, through
+// atomic-modifiers-hop, atomic-modifiers-imported-transitive-error.
+u32 leafLimit <- 3;

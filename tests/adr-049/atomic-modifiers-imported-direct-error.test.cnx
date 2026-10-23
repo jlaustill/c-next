@@ -1,0 +1,39 @@
+// test-error
+// test-adr: 049
+// E0889 and E0919 in a file that includes another (imported direct): a declaration carrying
+// atomic with volatile or with mut is rejected in every context as it is
+// in a file that includes nothing. The include only supplies the depth.
+#pragma target stm32f4
+
+#include "atomic-modifiers-leaf.cnx"
+
+atomic volatile u32 globalVolatile <- 0;
+atomic mut u32 globalMut <- 0;
+
+scope Timer {
+    atomic volatile u8 memberVolatile <- 0;
+    atomic mut u8 memberMut <- 0;
+
+    public void tick() {
+        atomic volatile u8 localVolatile <- 0;
+        atomic mut u8 localMut <- 0;
+        this.memberVolatile +<- 1;
+        this.memberMut +<- 1;
+        localVolatile +<- 1;
+        localMut +<- 1;
+    }
+}
+
+void main() {
+    mut u32 n <- 0;
+    atomic volatile u8 fnVolatile <- 0;
+    atomic mut u8 fnMut <- 0;
+    for (atomic volatile u8 i <- 0; i < 3; n +<- 1) {}
+    for (atomic mut u8 j <- 0; j < 3; n +<- 1) {}
+    fnVolatile +<- 1;
+    fnMut +<- 1;
+    globalVolatile +<- 1;
+    globalMut +<- 1;
+    n <- n + leafLimit;
+    Timer.tick();
+}
