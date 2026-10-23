@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 022
+// The grammar half of ADR-022's no-nesting rule (see
+// `nested-ternary-unparenthesized-error`) in the contexts that fixture does
+// not reach: a global variable initializer, a scope member initializer and a
+// scope method. The parser rejects each, so no code is reported.
+
+i32 x <- 5;
+
+i32 globalSign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
+
+scope Board {
+    i32 memberSign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
+
+    public void run() {
+        i32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
+    }
+}

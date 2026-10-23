@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 022
+// E0710 in a `for` header declaration -- the one same-file context
+// `nested-ternary-error` beside this file does not reach.
+
+u32 n <- 1;
+
+void loop() {
+    // NEGATIVE CONTROL -- one ternary in the header is not nesting.
+    for (u32 i <- (n = 1) ? 1 : 0; i < 3; i +<- 1) {
+        n <- i;
+    }
+    // ASSERTION -- a ternary inside a ternary in the header.
+    for (u32 k <- (n = 1) ? ((n = 2) ? 1 : 2) : 0; k < 3; k +<- 1) {
+        n <- k;
+    }
+}

@@ -1,0 +1,60 @@
+// test-error
+// test-adr: 022
+// E0701 and E0702 across ONE include hop, in all five contexts -- the
+// `imported direct` column of ADR-022's E0701 and E0702 matrices. The operand
+// each condition reads is declared in another file.
+
+#include "controlling-expression-lib.cnx"
+
+// NEGATIVE CONTROL -- the same imported names in explicit comparisons, with
+// the call stored first.
+u32 okGlobal <- (libFlag = true) ? 1 : 0;
+
+// ASSERTION 1 -- global variable initializer (E0701).
+u32 globalBare <- (libFlag) ? 1 : 0;
+
+// ASSERTION 2 -- global variable initializer (E0702).
+u32 globalCall <- (libReady() = true) ? 1 : 0;
+
+// ASSERTION 3 -- top-level function (E0701, E0702).
+void check() {
+    bool ready <- libReady();
+    if (ready = true) {
+        libCount <- 2;
+    }
+    if (libFlag) {
+        libCount <- 3;
+    }
+    if (libReady() = true) {
+        libCount <- 4;
+    }
+}
+
+void loop() {
+    // ASSERTION 4 -- `for` header declaration (E0701).
+    for (u32 i <- (libFlag) ? 1 : 0; i < 3; i +<- 1) {
+        libCount <- i;
+    }
+    // ASSERTION 5 -- `for` header declaration (E0702).
+    for (u32 j <- (libReady() = true) ? 1 : 0; j < 3; j +<- 1) {
+        libCount <- j;
+    }
+}
+
+scope Board {
+    // ASSERTION 6 -- scope member initializer (E0701).
+    u32 memberBare <- (libFlag) ? 1 : 0;
+
+    // ASSERTION 7 -- scope member initializer (E0702).
+    u32 memberCall <- (libReady() = true) ? 1 : 0;
+
+    // ASSERTION 8 -- scope method (E0701, E0702).
+    public void run() {
+        if (libFlag) {
+            libCount <- 5;
+        }
+        while (libReady() = true) {
+            libCount <- 6;
+        }
+    }
+}

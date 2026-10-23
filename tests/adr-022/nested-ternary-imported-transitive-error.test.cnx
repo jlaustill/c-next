@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 022
+// E0710 across TWO include hops, in all five contexts -- the `imported transitive`
+// column of ADR-022's E0710 matrix. Every operand of the nest is declared in
+// another file.
+
+#include "controlling-expression-relay.cnx"
+
+// NEGATIVE CONTROL -- sibling ternaries over the same imported names.
+u32 okSiblings <- ((libCount = 1) ? 3 : 4) + ((libCount = 2) ? 5 : 6);
+
+// ASSERTION 1 -- global variable initializer.
+u32 globalNested <- (libCount = 1) ? ((libFlag = true) ? 3 : 4) : 5;
+
+// ASSERTION 2 -- top-level function.
+u32 nested() {
+    return (libCount = 1) ? ((libFlag = true) ? 3 : 4) : 5;
+}
+
+void loop() {
+    // ASSERTION 3 -- `for` header declaration.
+    for (u32 i <- (libCount = 1) ? ((libFlag = true) ? 1 : 2) : 0; i < 3; i +<- 1) {
+        libCount <- i;
+    }
+}
+
+scope Board {
+    // ASSERTION 4 -- scope member initializer.
+    u32 memberNested <- (libCount = 1) ? ((libFlag = true) ? 3 : 4) : 5;
+
+    // ASSERTION 5 -- scope method.
+    public u32 read() {
+        return (libCount = 1) ? ((libFlag = true) ? 3 : 4) : 5;
+    }
+}

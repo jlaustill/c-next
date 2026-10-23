@@ -1,0 +1,6 @@
+// Helper for the imported-transitive ADR-022 fixtures: one include hop between
+// the fixture and the names it reads.
+
+#include "controlling-expression-lib.cnx"
+
+u32 relayCount <- 2;
