@@ -294,16 +294,19 @@ rejection fixtures occupy nothing.
 | top-level function | same file           | off      |
 | scope member       | same file           | off      |
 | scope method       | same file           | off      |
+| for header         | same file           | off      |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0503 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context.
+off: E0503 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context; a directive inside a `for` header is a parse error, and an included file's directive is reported at that file's head.
 
 <!-- MATRIX-SEVERITY code: E0504 -->
 
@@ -313,16 +316,19 @@ off: E0503 is reported at the `#include` directive, which is grammatical only be
 | top-level function | same file           | off      |
 | scope member       | same file           | off      |
 | scope method       | same file           | off      |
+| for header         | same file           | off      |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0504 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context.
+off: E0504 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context; a directive inside a `for` header is a parse error, and an included file's directive is reported at that file's head.
 
 <!-- MATRIX-SEVERITY code: E0506 -->
 
@@ -332,16 +338,19 @@ off: E0504 is reported at the `#include` directive, which is grammatical only be
 | top-level function | same file           | off      |
 | scope member       | same file           | off      |
 | scope method       | same file           | off      |
+| for header         | same file           | off      |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0506 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context.
+off: E0506 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context; a directive inside a `for` header is a parse error, and an included file's directive is reported at that file's head.
 
 <!-- MATRIX-SEVERITY code: E0509 -->
 
@@ -351,16 +360,19 @@ off: E0506 is reported at the `#include` directive, which is grammatical only be
 | top-level function | same file           | off      |
 | scope member       | same file           | off      |
 | scope method       | same file           | off      |
+| for header         | same file           | off      |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0509 is reported at the marker of a generated C header, which is not cnx source and is enclosed by no context.
+off: E0509 is reported at the marker of a generated C header, which is not cnx source and is enclosed by no context, `for` header included; it is raised only when a C or C++ entry point is scanned, so a cnx file that includes such a header is silent.
 
 <!-- MATRIX-SEVERITY code: E0518 -->
 
@@ -370,16 +382,19 @@ off: E0509 is reported at the marker of a generated C header, which is not cnx s
 | top-level function | same file           | off      |
 | scope member       | same file           | off      |
 | scope method       | same file           | off      |
+| for header         | same file           | off      |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0518 is reported at the `#include` directive or at `1:0` of a run input, and neither is enclosed by a context.
+off: E0518 is reported at the `#include` directive or at `1:0` of a run input, and neither is enclosed by a context; a directive inside a `for` header is a parse error, and an included file's directive is reported at that file's head.
 
 ---
 
