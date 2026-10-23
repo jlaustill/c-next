@@ -678,16 +678,128 @@ obligation.
 | ------------------ | ------------------- | -------- |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+
+off: this table now holds only the composition rule, which is decided once per scope member, so a declaration outside a scope cannot occupy it; the access rules' file-level cells live in their code tables below.
+
+<!-- MATRIX-SEVERITY code: E0425 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | top-level function | same file           | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
-| global variable    | imported direct     | off      |
+| global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
-| global variable    | imported transitive | off      |
+| global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0430 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+
+off: E0430 fires at a `scope` nested in a scope's body, which is no member and no method, and a `scope` inside a function or at file level is a parse error or legal, not E0430.
+
+<!-- MATRIX-SEVERITY code: E0431 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+
+off: inside a scope `this.` and `global.` both have something to reach past, so E0431 fires only in a top-level function or at file level.
+
+<!-- MATRIX-SEVERITY code: E0435 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+
+off: outside a scope a scope's name is the required spelling, so E0435 fires only in that scope's own members and methods.
+
+<!-- MATRIX-SEVERITY code: E0436 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0437 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+
+off: E0437 needs a scope member or local inside a scope to shadow the global; at file level nothing can, and a top-level function's local is not inside a scope.
 
 This ADR now owns two families of rules, and they reach different contexts.
 
@@ -709,14 +821,14 @@ they cannot exist.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                                                               | Asserted by                                                                                                                                                                                                            |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0425 | Two definitions of the same member name in one scope, or a cnx symbol colliding with a C/C++ one                                                                                            | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`                                                |
-| E0430 | A scope is declared inside another scope, in the entry file or in an included one                                                                                                           | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                                                                    |
-| E0431 | `this` used outside a scope, as a value or as a case label (#2075), or `global` used at file level, outside a scope and outside a function (#2087), in the entry file or in an included one | `tests/adr-016/this-outside-scope-error`, `tests/adr-016/this-outside-scope-imported-error`, `tests/adr-016/global-outside-scope-error`, `tests/adr-016/global-outside-scope-imported-error`                           |
-| E0435 | A scope's own member reached through the scope's name                                                                                                                                       | `tests/adr-016/self-scope-bare-error`, `tests/adr-016/mixed-access-ultimate-error`, `tests/adr-016/scope-access-uncovered-arms-error`                                                                                  |
-| E0436 | A private member reached from outside its scope, in the same file or across an include                                                                                                      | `tests/adr-016/private-var-access-error`, `tests/adr-016/private-imported-direct-error`, `tests/adr-016/private-imported-transitive-error`, `tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const` |
-| E0437 | A global enum or register shadowed inside a scope and reached bare                                                                                                                          | `tests/adr-016/cross-scope-register-bare-error`, `tests/adr-016/scope-enum-naming-conflict`                                                                                                                            |
+| Code  | Reported when                                                                                                                                                                               | Asserted by                                                                                                                                                                                                                                                                                                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0425 | Two definitions of the same member name in one scope, or a cnx symbol colliding with a C/C++ one                                                                                            | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`, `tests/adr-016/duplicate-definition-same-file-error`, `tests/adr-016/duplicate-definition-imported-direct-error`, `tests/adr-016/duplicate-definition-imported-transitive-error`                           |
+| E0430 | A scope is declared inside another scope, in the entry file or in an included one                                                                                                           | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                                                                                                                                                                                                                                 |
+| E0431 | `this` used outside a scope, as a value or as a case label (#2075), or `global` used at file level, outside a scope and outside a function (#2087), in the entry file or in an included one | `tests/adr-016/this-outside-scope-error`, `tests/adr-016/this-outside-scope-imported-error`, `tests/adr-016/global-outside-scope-error`, `tests/adr-016/global-outside-scope-imported-error`, `tests/adr-016/qualifier-outside-scope-imported-direct-error`, `tests/adr-016/qualifier-outside-scope-imported-transitive-error`                                                      |
+| E0435 | A scope's own member reached through the scope's name                                                                                                                                       | `tests/adr-016/self-scope-bare-error`, `tests/adr-016/mixed-access-ultimate-error`, `tests/adr-016/scope-access-uncovered-arms-error`, `tests/adr-016/access-rules-scope-member-error`, `tests/adr-016/access-rules-imported-direct-error`, `tests/adr-016/access-rules-imported-transitive-error`                                                                                  |
+| E0436 | A private member reached from outside its scope, in the same file or across an include                                                                                                      | `tests/adr-016/private-var-access-error`, `tests/adr-016/private-imported-direct-error`, `tests/adr-016/private-imported-transitive-error`, `tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const`, `tests/adr-016/access-rules-scope-member-error`, `tests/adr-016/access-rules-imported-direct-error`, `tests/adr-016/access-rules-imported-transitive-error` |
+| E0437 | A global enum or register shadowed inside a scope and reached bare                                                                                                                          | `tests/adr-016/cross-scope-register-bare-error`, `tests/adr-016/scope-enum-naming-conflict`, `tests/adr-016/access-rules-scope-member-error`, `tests/adr-016/access-rules-imported-direct-error`, `tests/adr-016/access-rules-imported-transitive-error`                                                                                                                            |
 
 A scope **composes**: reopening it in another file adds members rather than
 redefining it (see Scope Composition above). Member names stay unique across every

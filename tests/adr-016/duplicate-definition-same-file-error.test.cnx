@@ -1,0 +1,37 @@
+// test-error
+// test-adr: 016
+// E0425 for each context in one file: a file-scope variable, a top-level
+// function, a scope member and a scope method, each defined twice.
+
+u32 twiceVar <- 1;
+u32 twiceVar <- 2;
+
+u32 twiceFn() {
+    return 1;
+}
+
+u32 twiceFn() {
+    return 2;
+}
+
+scope Box {
+    u32 twiceMember <- 1;
+    u32 twiceMember <- 2;
+
+    u32 twiceMethod() {
+        return 1;
+    }
+
+    u32 twiceMethod() {
+        return 2;
+    }
+}
+
+// NEGATIVE CONTROL -- a reopened scope adding a NEW member is not a conflict.
+scope Box {
+    public u32 added <- 3;
+}
+
+u32 main() {
+    return Box.added;
+}

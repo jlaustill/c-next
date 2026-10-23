@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 016
+// E0431 across ONE include hop -- the imported direct cells of its contexts.
+// The name each qualifier reaches is declared in scope-rules-lib.cnx.
+
+#include "scope-rules-lib.cnx"
+
+// E0431: `global.` at file level, and `this.` in a top-level function, each
+// naming the imported global variable.
+u32 viaGlobal <- global.GATE_MARKER;
+
+u32 viaThis() {
+    return this.GATE_MARKER;
+}
+
+// NEGATIVE CONTROLS -- the bare imported name at file level, and `global.`
+// inside a scope and inside a top-level function.
+u32 bareAtFile <- GATE_MARKER;
+
+scope Fine {
+    u32 viaGlobalOk <- global.GATE_MARKER;
+}
+
+u32 main() {
+    return global.GATE_MARKER;
+}

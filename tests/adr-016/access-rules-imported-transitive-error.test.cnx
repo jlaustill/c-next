@@ -1,0 +1,54 @@
+// test-error
+// test-adr: 016
+// E0435, E0436 and E0437 across TWO include hops -- the imported transitive
+// cells of each code's contexts. Every name the rules check is declared in
+// scope-rules-lib.cnx, which scope-rules-relay.cnx includes.
+
+#include "scope-rules-relay.cnx"
+
+// E0435: Gate reopened here, reaching its own member through its own name, in
+// a member's initializer and in a method.
+scope Gate {
+    u32 selfMember <- Gate.width;
+
+    u32 selfMethod() {
+        return Gate.width;
+    }
+}
+
+// E0436: Gate's private member reached from another scope's member and method,
+// and from a file-scope initializer.
+scope Reader {
+    u32 member <- Gate.code;
+
+    u32 method() {
+        return Gate.code;
+    }
+}
+
+u32 fromFile <- Gate.code;
+
+// E0437: a scope member shadows the imported global enum, which is then
+// reached bare, in a member's initializer and in a method.
+scope Painter {
+    u32 EShade <- 1;
+    u32 member <- EShade.DARK;
+
+    u32 method() {
+        return EShade.LIGHT;
+    }
+}
+
+// NEGATIVE CONTROLS -- `this.` for the scope's own member, a public member
+// from outside, and `global.` past the shadow.
+scope Fine {
+    u32 own <- 2;
+    u32 viaThisOk <- this.own;
+    u32 publicOk <- Gate.width;
+    u32 EShade <- 5;
+    u32 shadeOk <- global.EShade.DARK;
+}
+
+u32 main() {
+    return Gate.width;
+}

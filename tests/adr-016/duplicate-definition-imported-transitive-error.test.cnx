@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 016
+// E0425 for each context, in a fixture TWO include hops from the scope it
+// reopens -- the imported transitive cells. Both definitions of each name are
+// in this file, so the diagnostic lands here; a conflict with a definition in
+// an included file reports at that file's position instead (#1408).
+
+#include "scope-rules-relay.cnx"
+
+// A file-scope variable and a top-level function, each defined twice.
+u32 twiceVar <- 1;
+u32 twiceVar <- 2;
+
+u32 twiceFn() {
+    return 1;
+}
+
+u32 twiceFn() {
+    return 2;
+}
+
+// Gate reopened here, with a member and a method each defined twice.
+scope Gate {
+    u32 twiceMember <- 1;
+    u32 twiceMember <- 2;
+
+    u32 twiceMethod() {
+        return 1;
+    }
+
+    u32 twiceMethod() {
+        return 2;
+    }
+}
+
+// NEGATIVE CONTROL -- reopening the imported scope with a NEW member is not a
+// conflict.
+scope Gate {
+    public u32 added <- 3;
+}
+
+u32 main() {
+    return Gate.added;
+}
