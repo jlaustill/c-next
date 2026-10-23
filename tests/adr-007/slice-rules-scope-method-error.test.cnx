@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 007
+// #1620: E0858, E0859 and E0861 inside a scope method -- matrix cells: scope
+// method / same file (slice-in-scope-method-error covers E0860 there).
+
+scope Packer {
+    u8[8] buf;
+    u8[2][8] board;
+
+    public void go() {
+        u32 v <- 0x11223344;
+        mut u8 offset <- 0;
+        offset +<- 1;
+        this.board[0, 4] <- v;
+        this.buf[offset, 4] <- v;
+        this.buf[0, 8] <- v;
+        // NEGATIVE CONTROL -- one dimension, constant span, source fits
+        this.buf[0, 4] <- v;
+    }
+}

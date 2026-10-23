@@ -1,0 +1,14 @@
+// Helper (not a test): the bases the cross-file bit-access and slice fixtures
+// reach. Each rule is checked against the DECLARATION -- a scalar's width, an
+// array's dimensions, a buffer's capacity, a float's type -- so when it lives in
+// another file the check has to reach it.
+mut u8 sharedFlags <- 0;
+f32 sharedFloat <- 1.5;
+mut u8[4] sharedArr;
+mut u8[8] sharedBuf;
+mut u8[2][8] sharedBoard;
+mut u8 sharedOffset <- 1;
+
+u8 sharedIndex() {
+    return 1;
+}

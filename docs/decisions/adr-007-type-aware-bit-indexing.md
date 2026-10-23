@@ -493,11 +493,16 @@ packetArray[OFFSET_FIELD3, 1] <- data.field3;
 
 ## Diagnostics: bit access
 
-| Code  | Reported when                                      | Asserted by                                                 |
-| ----- | -------------------------------------------------- | ----------------------------------------------------------- |
-| E0856 | A base is subscripted deeper than its shape allows | `tests/adr-007/subscript-depth-*-error.test.cnx`            |
-| E0888 | A float bit RANGE is read at file scope            | `tests/adr-007/float-bit-range-global-scope-error.test.cnx` |
-| E0890 | A read-modify-write target has a side effect       | `tests/adr-007/rmw-side-effect-*error.test.cnx`             |
+| Code  | Reported when                                      | Asserted by                                                            |
+| ----- | -------------------------------------------------- | ---------------------------------------------------------------------- |
+| E0856 | A base is subscripted deeper than its shape allows | `tests/adr-007/subscript-depth-*-error.test.cnx`                       |
+| E0888 | A float bit RANGE is read at file scope            | `tests/adr-007/float-bit-range-global-scope-error.test.cnx`            |
+| E0890 | A read-modify-write target has a side effect       | `tests/adr-007/rmw-side-effect-*error.test.cnx`                        |
+| E0858 | A slice assignment target cannot be sliced         | `tests/adr-007/slice-outer-dim-error.test.cnx`                         |
+| E0859 | A slice assignment offset or length does not fold  | `tests/adr-007/slice-runtime-offsets.test.cnx`                         |
+| E0860 | A slice assignment span does not fit the buffer    | `tests/adr-007/slice-bounds-violation.test.cnx`                        |
+| E0861 | A slice assignment source does not fit the slice   | `tests/adr-007/slice-length-exceeds-source.test.cnx`                   |
+| E0920 | A constant bit index is past the value's width     | `tests/bugs/issue-1808-bit-index-width/bit-index-width-error.test.cnx` |
 
 An array takes one subscript per dimension (ADR-036) and a bit-indexable scalar
 element one more, for the bit. A third subscript on a one-dimensional array is
@@ -534,41 +539,193 @@ already E0857.
 
 ## Scope-context matrix
 
-Declared for **array slice assignment** (the section above), whose rules #1322
-moved out of codegen: the target must be a one-dimensional integer or string
-buffer whose size folds, the offset and length must fold, the span must fit, and
-the source must fit the span.
+Declared per diagnostic code (#1620): each code in the table above has its own
+matrix, occupied only by fixtures asserting that code. The four slice codes are
+**array slice assignment**'s rules (the section above), which #1322 moved out of
+codegen: the target must be a one-dimensional integer or string buffer whose size
+folds (E0858), the offset and length must fold (E0859), the span must fit
+(E0860), and the source must fit the span (E0861).
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0856 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
 | top-level function | same file           | error    |
+| scope member       | same file           | error    |
 | scope method       | same file           | error    |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
-| scope method       | imported transitive | off      |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0858 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
 | scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
+
+off: E0858 is asked of a slice assignment, a statement, so it only fires in a function body (a `for` header's declaration writes no target).
+
+<!-- MATRIX-SEVERITY code: E0859 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
+
+off: E0859 is asked of a slice assignment, a statement, so it only fires in a function body (a `for` header's declaration writes no target).
+
+<!-- MATRIX-SEVERITY code: E0860 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
+
+off: E0860 is asked of a slice assignment, a statement, so it only fires in a function body (a `for` header's declaration writes no target).
+
+<!-- MATRIX-SEVERITY code: E0861 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
+
+off: E0861 is asked of a slice assignment, a statement, so it only fires in a function body (a `for` header's declaration writes no target).
+
+<!-- MATRIX-SEVERITY code: E0888 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | off      |
+| scope member       | same file           | error    |
+| scope method       | same file           | off      |
+| for header         | same file           | off      |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+off: E0888 only fires at file scope; in a function body, `for` header included, the union copy is a statement and the read is accepted.
+
+<!-- MATRIX-SEVERITY code: E0890 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
+
+off: E0890 is asked of a bit write's target, a statement, so it only fires in a function body; an initializer only reads (a call there is E0909).
+
+<!-- MATRIX-SEVERITY code: E0920 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 A slice assignment is a **statement**. It appears in a function body and
-nowhere else, so the two declaration contexts cannot hold one and are `off` --
-the same shape as a `critical` block, and for the same reason.
+nowhere else, so the two declaration contexts cannot hold one -- the same shape
+as a `critical` block, and for the same reason.
 
-The imported columns are `error` for a top-level function because the rules are
+The imported columns are `error` for both function contexts because the rules are
 checked against the buffer's DECLARATION, which may live in another file. That
 is not a hypothetical: resolving the target through the current file alone made
 an out-of-bounds slice on an imported buffer pass the check entirely.
-
-`scope method` is `off` in the imported columns, and this one is an obligation
-not yet met rather than a claim that the cell cannot exist -- a scope method can
-certainly slice an imported buffer. It is declared `off` so the table does not
-assert coverage that no fixture provides.
 
 ## References
 
