@@ -1,0 +1,3 @@
+// One include hop between unused-mut-lib.cnx and the transitive fixture.
+
+#include "unused-mut-lib.cnx"

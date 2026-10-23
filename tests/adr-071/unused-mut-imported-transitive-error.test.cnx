@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 071
+// E0899 across TWO include hop(s): whether a `mut` is written depends on the
+// signature of a function declared in an included file. A private scope
+// member, a local in a scope method and a local in a top-level function, each
+// passed only to the imported read-only `libShow`, are never written.
+// CONTROL: the twin of each passed to the imported `mut` parameter of
+// `libBump` is silent.
+
+#include "unused-mut-relay.cnx"
+
+scope Board {
+    mut u32 hidden <- 0;
+    mut u32 used <- 0;
+
+    public void method() {
+        mut u32 never <- 0;
+        mut u32 once <- 0;
+        libShow(this.hidden);
+        libBump(this.used);
+        libShow(never);
+        libBump(once);
+    }
+}
+
+void locals() {
+    mut u32 never <- 0;
+    mut u32 once <- 0;
+    libShow(never);
+    libBump(once);
+}
