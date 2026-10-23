@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 017
+// E0434 in a `for` header's declaration -- matrix cell: for header / same file.
+// The two sides of a comparison must be the same enum type.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+enum Power {
+    OFF,
+    ON
+}
+
+void main(u8 limit) {
+    mut u8 i <- 0;
+
+    // NEGATIVE CONTROL -- an enum compared to its own members.
+    for (bool ok <- (State.IDLE = State.RUNNING); i < limit; i +<- 1) {}
+
+    // ASSERTION 1 -- an enum compared to an integer.
+    for (bool b <- (State.IDLE = 1); i < limit; i +<- 1) {}
+
+    // ASSERTION 2 -- an enum compared to a different enum.
+    for (bool d <- (State.RUNNING = Power.ON); i < limit; i +<- 1) {}
+}

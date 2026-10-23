@@ -378,14 +378,17 @@ of that enum type, and the two sides of a comparison must be the same enum type.
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
+| for header         | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0428 -->
 
@@ -395,14 +398,17 @@ of that enum type, and the two sides of a comparison must be the same enum type.
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
+| for header         | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0434 -->
 
@@ -412,20 +418,23 @@ of that enum type, and the two sides of a comparison must be the same enum type.
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
+| for header         | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 Every cell is `error`, and none of them is an assumption. An enum value is an
 EXPRESSION, so it reaches an initializer as well as a function body, which
-occupies the two declaration contexts; and an enum TYPE crosses an include
-boundary, so the rule is observable wherever the enum was declared. Both were
-probed rather than reasoned about.
+occupies the two declaration contexts and a `for` header's declaration; and
+an enum TYPE crosses an include boundary, so the rule is observable wherever
+the enum was declared. Both were probed rather than reasoned about.
 
 The imported columns are the ones worth stating: a checker that consulted only
 the file it is looking at finds no enum there, and "no enum" reads as "the rule
@@ -440,16 +449,19 @@ failing, which is the silence this matrix exists to make visible.
 | scope method       | same file           | off      |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | off      |
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0894 fires at an enum member, and an enum is declared at file scope or in a scope, never inside a function or a variable, so no context encloses it.
+off: E0894 fires at an enum member, and an enum is declared at file scope or in a scope, never inside a function, a variable or a `for` header (whose declaration cannot declare an enum: it is a parse error), so no context encloses it.
 
 <!-- MATRIX-SEVERITY code: E0909 -->
 
@@ -459,16 +471,19 @@ off: E0894 fires at an enum member, and an enum is declared at file scope or in 
 | scope method       | same file           | off      |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | off      |
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: ADR-017's E0909 fires at an enum member, which no context encloses; E0909 in a variable's initializer is ADR-044's, and in an array dimension ADR-036's.
+off: ADR-017's E0909 fires at an enum member, which no context encloses (a `for` header's declaration cannot declare an enum: it is a parse error); E0909 in a variable's initializer is ADR-044's, and in an array dimension ADR-036's.
 
 <!-- MATRIX-SEVERITY code: E0910 -->
 
@@ -478,16 +493,19 @@ off: ADR-017's E0909 fires at an enum member, which no context encloses; E0909 i
 | scope method       | same file           | off      |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | off      |
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: ADR-017's E0910 fires at an enum member, which no context encloses; E0910 in a variable's initializer is ADR-044's, and in an array dimension ADR-036's.
+off: ADR-017's E0910 fires at an enum member, which no context encloses (a `for` header's declaration cannot declare an enum: it is a parse error); E0910 in a variable's initializer is ADR-044's, and in an array dimension ADR-036's.
 
 <!-- MATRIX-SEVERITY code: E0911 -->
 
@@ -497,16 +515,19 @@ off: ADR-017's E0910 fires at an enum member, which no context encloses; E0910 i
 | scope method       | same file           | off      |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | off      |
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: E0911 fires at an enum member, and an enum is declared at file scope or in a scope, never inside a function or a variable, so no context encloses it.
+off: E0911 fires at an enum member, and an enum is declared at file scope or in a scope, never inside a function, a variable or a `for` header (whose declaration cannot declare an enum: it is a parse error), so no context encloses it.
 
 ## References
 

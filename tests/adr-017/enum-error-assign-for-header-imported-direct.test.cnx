@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 017
+// E0428 across ONE include hop in a `for` header's declaration -- matrix cell:
+// for header / imported direct. A value assigned to an enum-typed declaration
+// must be of that enum. Both enums are declared in other files, so a check
+// reading only this file finds no enum and "no enum" would read as "rule does
+// not apply".
+
+#include "enum-declarations.cnx"
+#include "cross-file-types.cnx"
+
+void main(u8 limit) {
+    mut u8 i <- 0;
+
+    // NEGATIVE CONTROL -- a member of the declared enum.
+    for (Shared ok <- Shared.A; i < limit; i +<- 1) {}
+
+    // ASSERTION 1 -- an integer.
+    for (Shared s <- 1; i < limit; i +<- 1) {}
+
+    // ASSERTION 2 -- a member of a different enum.
+    for (Shared t <- ESpnCategory.SPN_CAT_PRESSURE; i < limit; i +<- 1) {}
+}

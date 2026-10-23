@@ -1,0 +1,4 @@
+18:31 error[E0434]: Cannot compare Shared enum to integer
+       help: ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.
+21:31 error[E0434]: Cannot compare Shared enum to ESpnCategory enum
+       help: ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.
