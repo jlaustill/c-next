@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 017
+// E0424 across ONE include hop in a global initializer, a scope member
+// initializer and a scope method -- matrix cells: imported direct (the
+// top-level function cell is unqualified-enum-crossfile-return). The enum is
+// declared in the included file, so a check reading only this file has no
+// members to match against and stays silent.
+
+#include "cross-file-types.cnx"
+
+// NEGATIVE CONTROL -- the imported enum named by the declaration.
+ESpnCategory categoryOk <- SPN_CAT_UNKNOWN;
+
+// ASSERTION 1 -- global initializer of a non-enum type.
+u8 categoryBad <- SPN_CAT_PRESSURE;
+
+scope Sensor {
+    // ASSERTION 2 -- scope member initializer.
+    u8 kind <- SPN_CAT_UNKNOWN;
+
+    // ASSERTION 3 -- scope method.
+    public u8 read() {
+        return SPN_CAT_PRESSURE;
+    }
+}
