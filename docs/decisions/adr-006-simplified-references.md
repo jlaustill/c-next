@@ -467,10 +467,14 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 The rule is about a call's argument, so every place a call can be written can
-break it: a function or scope method body, and a global variable's or scope
-member's initializer (`u32 g <- take(5);`). A callee one or two `#include`
+break it: a function or scope method body, a global variable's or scope
+member's initializer (`u32 g <- take(5);`), and a `for` header's declaration
+(`for (mut u32 i <- take(3); ...)`). A callee one or two `#include`
 hops away is the same `mut` parameter. Every cell is `error`, with a fixture
 under `tests/bugs/issue-1203-non-addressable-mut-argument/`.
 
