@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a dimension is a constant expression in a for header's
+// declaration too. An array loop variable is E0917, so the dimension that
+// stands there is a cast's array type (itself not rejected yet, #2306).
+// Each name below is declared one include away: a variable has no value
+// at compile time (E0909), and LIB_A + LIB_A overflows u8 (E0910, ADR-044).
+
+#include "matrix-lib.cnx"
+
+void f() {
+    mut u32 n <- 0;
+    // NEGATIVE CONTROL -- the same names as run-time values stay silent.
+    for (u32 i <- libCount; n < 1; n +<- 1) {}
+    for (u32 j <- (u16)LIB_A + (u16)LIB_A; n < 2; n +<- 1) {}
+    // ASSERTION 1: E0909 -- a variable dimension, in a function.
+    for (u32 a <- (u8[libCount])n; n < 3; n +<- 1) {}
+    // ASSERTION 2: E0910 -- an overflowing dimension, in a function.
+    for (u32 b <- (u8[LIB_A + LIB_A])n; n < 4; n +<- 1) {}
+}
+
+scope Store {
+    public void fill() {
+        mut u32 n <- 0;
+        // ASSERTION 3: E0909 -- a variable dimension, in a scope method.
+        for (u32 c <- (u8[libCount])n; n < 1; n +<- 1) {}
+        // ASSERTION 4: E0910 -- an overflowing dimension, in a scope method.
+        for (u32 d <- (u8[LIB_A + LIB_A])n; n < 2; n +<- 1) {}
+    }
+}
+
+void main() {}
