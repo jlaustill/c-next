@@ -1,0 +1,10 @@
+17:17 error[E0703]: 'break' is not supported in cnx - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
+22:12 error[E0703]: 'continue' is not supported in cnx - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
+28:18 error[E0703]: 'continue' is not supported in cnx - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
+34:19 error[E0703]: 'continue' is not supported in cnx - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
+39:16 error[E0703]: 'break' is not supported in cnx - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
