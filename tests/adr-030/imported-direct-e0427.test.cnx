@@ -1,0 +1,24 @@
+// test-error
+// test-adr: 030
+// ADR-030 E0427 in every context it can fire in, at include depth 1.
+
+#include "adr-030-lib.cnx"
+
+u32 g <- nopeGlobal;
+
+void top() {
+    u32 seen <- libValue();
+    u32 a <- nopeLocal;
+    for (u32 i <- nopeFor; i < 3; i +<- 1) {
+        u32 c <- i;
+    }
+}
+
+scope S {
+    u32 m <- nopeMember;
+
+    public void go() {
+        u32 seen <- libValue();
+        u32 b <- nopeMethod;
+    }
+}

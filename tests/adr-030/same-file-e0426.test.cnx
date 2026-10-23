@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 030
+// ADR-030 E0426 in every context it can fire in, with no cnx include.
+
+NopeGlobal g;
+
+void top() {
+    u32 seen <- 1;
+    NopeLocal a;
+    for (NopeFor i <- 0; i < 3; i +<- 1) {
+        u32 c <- 1;
+    }
+}
+
+scope S {
+    NopeMember m;
+
+    public void go() {
+        u32 seen <- 1;
+        NopeMethodLocal b;
+    }
+}
