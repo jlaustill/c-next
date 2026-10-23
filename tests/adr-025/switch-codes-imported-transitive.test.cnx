@@ -1,0 +1,99 @@
+// test-error
+// test-adr: 025
+// E0711, E0712, E0713, E0714 and E0717 across TWO include hops, in a top-level
+// function and in a scope method -- matrix cells: imported transitive.
+//
+// Each rule reads something declared two files away: the switched bool's
+// type, the enum's members, the consts' values, and whether a label names a
+// constant at all.
+
+#include "switch-codes-relay.cnx"
+
+// NEGATIVE CONTROL -- the same imported names used correctly: distinct
+// imported const values and an imported enum covered completely.
+void okImported(u8 v, ELevel l) {
+    switch (v) {
+        case LEVEL_A {}
+        case LEVEL_C {}
+        default {}
+    }
+    switch (l) {
+        case ELevel.LOW {}
+        case ELevel.MID {}
+        case ELevel.HIGH {}
+    }
+}
+
+void fnBool() {
+    switch (levelFlag) {
+        case 0 {}
+        case 1 {}
+    }
+}
+
+void fnSingle(ELevel l) {
+    switch (l) {
+        case ELevel.LOW {}
+    }
+}
+
+void fnDuplicate(u8 v) {
+    switch (v) {
+        case LEVEL_A {}
+        case LEVEL_B {}
+        default {}
+    }
+}
+
+void fnNonExhaustive(ELevel l) {
+    switch (l) {
+        case ELevel.LOW {}
+        case ELevel.MID {}
+    }
+}
+
+void fnNotConstant(u8 v) {
+    switch (v) {
+        case levelSetting {}
+        case 2 {}
+        default {}
+    }
+}
+
+scope Panel {
+    public void mBool() {
+        switch (global.levelFlag) {
+            case 0 {}
+            case 1 {}
+        }
+    }
+
+    public void mSingle(ELevel l) {
+        switch (l) {
+            case ELevel.LOW {}
+        }
+    }
+
+    public void mDuplicate(u8 v) {
+        switch (v) {
+            case global.LEVEL_A {}
+            case global.LEVEL_B {}
+            default {}
+        }
+    }
+
+    public void mNonExhaustive(ELevel l) {
+        switch (l) {
+            case ELevel.LOW {}
+            case ELevel.MID {}
+        }
+    }
+
+    public void mNotConstant(u8 v) {
+        switch (v) {
+            case global.levelSetting {}
+            case 2 {}
+            default {}
+        }
+    }
+}

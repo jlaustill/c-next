@@ -1,0 +1,29 @@
+// test-error
+// test-adr: 025
+// E0711 and E0712 inside a scope method -- matrix cell: scope method / same
+// file. A switch is a statement, so a scope METHOD is the second and last
+// context it can appear in.
+
+scope Valve {
+    // NEGATIVE CONTROL -- a switch on an integer with two clauses, in the same
+    // context as the assertions below.
+    public void okInteger(u8 v) {
+        switch (v) {
+            case 0 {}
+            default {}
+        }
+    }
+
+    public void onBool(bool open) {
+        switch (open) {
+            case 0 {}
+            case 1 {}
+        }
+    }
+
+    public void oneClause(u8 v) {
+        switch (v) {
+            case 0 {}
+        }
+    }
+}

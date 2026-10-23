@@ -1,0 +1,15 @@
+// Helper (not a test): what the per-code cross-file switch fixtures switch on
+// and label with. Every ADR-025 rule reads something declared here: a bool's
+// type (E0711), an enum's members (E0712, E0714), two consts' values (E0713)
+// and a variable that is not a constant (E0717).
+enum ELevel {
+    LOW,
+    MID,
+    HIGH
+}
+
+u8 LEVEL_A <- 1;
+u8 LEVEL_B <- 1;
+u8 LEVEL_C <- 2;
+mut u8 levelSetting <- 0;
+mut bool levelFlag <- false;

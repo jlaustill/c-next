@@ -1,0 +1,20 @@
+28:12 error[E0711]: Cannot switch on a boolean
+       help: MISRA C:2012 Rule 16.7: a bool has two states and a switch implies more. Use if/else.
+35:12 error[E0712]: Switch requires at least 2 clauses
+       help: MISRA C:2012 Rule 16.6: a one-clause switch is an if statement written the long way.
+43:13 error[E0713]: Duplicate case value 'LEVEL_B' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.
+49:12 error[E0714]: Non-exhaustive switch on ELevel: covers 2 of 3 variants, missing 1
+       help: Add the missing cases, or a `default(N)` stating how many variants it absorbs.
+57:13 error[E0717]: Case label 'levelSetting' is not a constant
+       help: A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.
+65:16 error[E0711]: Cannot switch on a boolean
+       help: MISRA C:2012 Rule 16.7: a bool has two states and a switch implies more. Use if/else.
+72:16 error[E0712]: Switch requires at least 2 clauses
+       help: MISRA C:2012 Rule 16.6: a one-clause switch is an if statement written the long way.
+80:17 error[E0713]: Duplicate case value 'global.LEVEL_B' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.
+86:16 error[E0714]: Non-exhaustive switch on ELevel: covers 2 of 3 variants, missing 1
+       help: Add the missing cases, or a `default(N)` stating how many variants it absorbs.
+94:17 error[E0717]: Case label 'global.levelSetting' is not a constant
+       help: A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.
