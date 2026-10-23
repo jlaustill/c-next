@@ -47,6 +47,25 @@ describe("test-utils exports", () => {
   });
 });
 
+describe("TestUtils.nullPointerConstantFlags (#1610)", () => {
+  const host = { driverPrefix: "", archFlags: [], cmsisCore: false };
+  const avr = { driverPrefix: "avr-", archFlags: [], cmsisCore: false };
+
+  it("rejects a literal 0 used as a null pointer in host C++", () => {
+    expect(TestUtils.nullPointerConstantFlags("g++", host)).toEqual([
+      "-Wzero-as-null-pointer-constant",
+    ]);
+  });
+
+  it("asks nothing of C, where the flag does not exist", () => {
+    expect(TestUtils.nullPointerConstantFlags("gcc", host)).toEqual([]);
+  });
+
+  it("asks nothing of a cross driver (avr-g++ 7.3 misfires)", () => {
+    expect(TestUtils.nullPointerConstantFlags("g++", avr)).toEqual([]);
+  });
+});
+
 describe("normalize", () => {
   it("should trim trailing whitespace from each line", () => {
     const input = "line1   \nline2  \nline3";

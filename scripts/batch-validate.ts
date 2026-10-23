@@ -17,7 +17,13 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExecFailure from "../src/cnx/utils/ExecFailure";
@@ -383,16 +389,15 @@ function runClangTidy() {
 }
 
 // --- MISRA (per-file, C only) ---
-// Files excluded from MISRA validation (contain valid exceptions or intentional violations)
 /** Where a distribution's cppcheck package installs its addons */
-const MISRA_ADDON_DIRS = [
+const DISTRO_ADDON_DIRS = [
   "/usr/lib/x86_64-linux-gnu/cppcheck/addons",
   "/usr/lib/aarch64-linux-gnu/cppcheck/addons",
   "/usr/share/cppcheck/addons",
   "/usr/lib/cppcheck/addons",
-  "/usr/local/share/Cppcheck/addons",
 ];
 
+// Files excluded from MISRA validation (contain valid exceptions or intentional violations)
 const MISRA_EXCLUDED_FILES = [
   // uri-exception.test.c tests MISRA Amendment 4 URI exception (://);
   // cppcheck doesn't implement Amendment 4, so it false-positives on Rule 3.1
@@ -438,6 +443,16 @@ function runMisra() {
       reportFailure("MISRA", file, output);
       continue;
     }
+    // The dump check is a named Rule 11.9 guard (MISRA_GUARDS): a file cppcheck
+    // analyzed with no dump is a check that did not run, never a clean one
+    if (dump === "") {
+      reportFailure(
+        "MISRA",
+        file,
+        `cppcheck wrote no ${dumpFile}, so MisraDump checked nothing`,
+      );
+      continue;
+    }
 
     const misraFailures = MisraBaseline.findFailures([
       ...MisraBaseline.parseViolations(output),
@@ -457,20 +472,44 @@ function runMisra() {
 }
 
 /**
+ * Where the `cppcheck` on PATH keeps its addons: beside its own install
+ * prefix first, so a source build ahead of a distribution package is the one
+ * inspected -- the same one `--addon=misra` loads -- then the distributions'
+ */
+function misraAddonDirs(): string[] {
+  const dirs: string[] = [];
+  try {
+    const binary = realpathSync(
+      execFileSync("which", ["cppcheck"], { encoding: "utf-8" }).trim(),
+    );
+    const prefix = dirname(dirname(binary));
+    dirs.push(
+      join(prefix, "share", "cppcheck", "addons"),
+      join(prefix, "share", "Cppcheck", "addons"),
+      join(prefix, "lib", "cppcheck", "addons"),
+    );
+  } catch {
+    // No cppcheck on PATH: the addon is then found nowhere, which is reported
+  }
+  return [...dirs, ...DISTRO_ADDON_DIRS];
+}
+
+/**
  * #1610: a `cppcheck` guard in MISRA_GUARDS is only a guard if this cppcheck's
  * addon checks that rule. Which rules it implements varies by version, and
  * the guard registry check runs where cppcheck is not installed, so it is
  * checked here, against the addon this run uses.
  */
 function checkAddonHasGuardedRules() {
-  const addon = MISRA_ADDON_DIRS.map((dir) => join(dir, "misra.py")).find(
-    (path) => existsSync(path),
-  );
+  const dirs = misraAddonDirs();
+  const addon = dirs
+    .map((dir) => join(dir, "misra.py"))
+    .find((path) => existsSync(path));
   if (addon === undefined) {
     reportFailure(
       "MISRA",
       "misra.py",
-      `cppcheck's MISRA addon is in none of ${MISRA_ADDON_DIRS.join(", ")}, so the rules MISRA_GUARDS relies on cannot be checked`,
+      `cppcheck's MISRA addon is in none of ${dirs.join(", ")}, so the rules MISRA_GUARDS relies on cannot be checked`,
     );
     return;
   }

@@ -327,25 +327,6 @@ function categoryOf(id: string): string {
   return "Rules 16-22";
 }
 
-/** Splice one generated block into a document between its markers. */
-function splice(
-  existing: string,
-  beginMarker: string,
-  endMarker: string,
-  block: string,
-): string {
-  const begin = existing.indexOf(beginMarker);
-  const end = existing.indexOf(endMarker);
-  if (begin === -1 || end === -1) {
-    throw new Error(
-      `docs/misra-compliance.md is missing the ${beginMarker} / ${endMarker} markers`,
-    );
-  }
-  return (
-    existing.slice(0, begin) + block + existing.slice(end + endMarker.length)
-  );
-}
-
 function readOrEmpty(path: string): string {
   try {
     return readFileSync(path, "utf-8");
@@ -364,8 +345,13 @@ async function main(): Promise<void> {
   const misraUpdated =
     misraExisting.length > 0
       ? await GeneratedMarkdown.format(
-          splice(
-            splice(misraExisting, MISRA_BEGIN, MISRA_END, buildMisraBlock()),
+          GeneratedMarkdown.splice(
+            GeneratedMarkdown.splice(
+              misraExisting,
+              MISRA_BEGIN,
+              MISRA_END,
+              buildMisraBlock(),
+            ),
             SUMMARY_BEGIN,
             SUMMARY_END,
             // Counted from the PRE-splice document, which is equivalent

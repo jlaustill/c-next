@@ -43,8 +43,7 @@ const MISRA_GUARDS: ReadonlyMap<string, readonly TMisraGuard[]> = new Map<
   ["4.1", [cppcheck]],
   ["4.2", [cppcheck]],
   ["5.1", [cppcheck, diagnostic("E0204")]],
-  // The addon's 5.8 is baselined (#1063); E0204 is what fails
-  ["5.8", [diagnostic("E0204")]],
+  ["5.8", [cppcheck, diagnostic("E0204")]],
   ["6.1", [cppcheck]],
   ["6.2", [cppcheck]],
   ["7.1", [cppcheck, diagnostic("E0912")]],
@@ -53,12 +52,12 @@ const MISRA_GUARDS: ReadonlyMap<string, readonly TMisraGuard[]> = new Map<
   ["8.2", [cppcheck]],
   ["8.3", [issue(2319)]],
   ["8.4", [cppcheck]],
-  // Baselined: generated C still violates them
-  ["8.5", [issue(1064)]],
-  ["8.6", [issue(1059)]],
+  ["8.5", [cppcheck]],
+  ["8.6", [cppcheck]],
   ["8.10", [cppcheck]],
   ["8.13", [diagnostic("E0899")]],
   ["8.14", [cppcheck]],
+  // Baselined: generated C still violates it
   ["9.2", [issue(1072)]],
   ["9.3", [cppcheck]],
   ["9.4", [cppcheck]],

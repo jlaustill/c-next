@@ -99,7 +99,7 @@ fails when such a row has no guard or names one that does not exist
 | 4.1       | `validate:c` (cppcheck 4.1)                                                                          |
 | 4.2       | `validate:c` (cppcheck 4.2)                                                                          |
 | 5.1       | `validate:c` (cppcheck 5.1); E0204 fixture                                                           |
-| 5.8       | E0204 fixture                                                                                        |
+| 5.8       | `validate:c` (cppcheck 5.8); E0204 fixture                                                           |
 | 6.1       | `validate:c` (cppcheck 6.1)                                                                          |
 | 6.2       | `validate:c` (cppcheck 6.2)                                                                          |
 | 7.1       | `validate:c` (cppcheck 7.1); E0912 fixture                                                           |
@@ -108,8 +108,8 @@ fails when such a row has no guard or names one that does not exist
 | 8.2       | `validate:c` (cppcheck 8.2)                                                                          |
 | 8.3       | none yet: #2319                                                                                      |
 | 8.4       | `validate:c` (cppcheck 8.4)                                                                          |
-| 8.5       | none yet: #1064                                                                                      |
-| 8.6       | none yet: #1059                                                                                      |
+| 8.5       | `validate:c` (cppcheck 8.5)                                                                          |
+| 8.6       | `validate:c` (cppcheck 8.6)                                                                          |
 | 8.10      | `validate:c` (cppcheck 8.10)                                                                         |
 | 8.13      | E0899 fixture                                                                                        |
 | 8.14      | `validate:c` (cppcheck 8.14)                                                                         |

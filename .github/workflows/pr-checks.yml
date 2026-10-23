@@ -248,6 +248,9 @@ jobs:
       - name: Check MISRA compliance claims name a guard
         id: misraguards
         run: npm run docs:misra-guards:check
+        # It reads whether each issue a guard-less row names is still open
+        env:
+          GH_TOKEN: ${{ github.token }}
         continue-on-error: true
 
       # Issue #1219: the scope-context matrix. Occupancy is derived from the

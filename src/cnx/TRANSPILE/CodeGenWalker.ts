@@ -2081,7 +2081,7 @@ class CodeGenWalker {
 
   /**
    * ADR-015's zero for a declaration written without an initializer, at every
-   * declaration site. #1610: a scalar declared as a pointer is the null
+   * declaration site. #1610: a scalar whose C type is a pointer is the null
    * pointer, spelled by mode -- MISRA C:2012 Rule 11.9 makes `NULL`, not the
    * integer `0` in `{0}`, a C pointer's null constant. 2.2 decided which
    * declarations those are (`nullInitialized`).

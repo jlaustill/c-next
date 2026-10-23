@@ -20,7 +20,9 @@ const DOCUMENT = [
 const CONTEXT: IMisraGuardContext = {
   baselined: new Set(["misra-c2012-2.2"]),
   dumpRules: ["misra-c2012-11.9"],
-  compileSource: 'return ["-Wzero-as-null-pointer-constant"];',
+  compileProbe:
+    "probe.cpp: 1:23: error: zero as null pointer constant [-Werror=zero-as-null-pointer-constant]",
+  openIssues: new Set([2312]),
   assertedCodes: new Set(["E0712"]),
   scripts: new Set(["test"]),
 };
@@ -127,14 +129,14 @@ describe("MisraGuards.problem", () => {
     ).toMatch(/MisraDump checks no/);
   });
 
-  it("rejects a compile flag the integration compile does not pass", () => {
+  it("rejects a compile flag the probe compile did not fail with", () => {
     expect(
       MisraGuards.problem(
         "11.9",
         { kind: "compile-flag", flag: "-Wold-style-cast" },
         CONTEXT,
       ),
-    ).toMatch(/passes no -Wold-style-cast/);
+    ).toMatch(/does not reject the probe with -Wold-style-cast/);
   });
 
   it("rejects a diagnostic no .expected.error asserts", () => {
@@ -157,10 +159,33 @@ describe("MisraGuards.problem", () => {
     ).toMatch(/no "nope" script/);
   });
 
+  it("accepts an open issue", () => {
+    expect(
+      MisraGuards.problem("Dir 3.1", { kind: "issue", issue: 2312 }, CONTEXT),
+    ).toBeNull();
+  });
+
+  it("rejects a closed issue: a row stays unguarded after its tracker closes", () => {
+    expect(
+      MisraGuards.problem("8.5", { kind: "issue", issue: 1064 }, CONTEXT),
+    ).toBe("issue #1064 is closed; replace it with the guard it delivered");
+  });
+
   it("rejects an issue guard with no number", () => {
     expect(
       MisraGuards.problem("Dir 3.1", { kind: "issue", issue: 0 }, CONTEXT),
     ).toMatch(/no issue number/);
+  });
+});
+
+describe("MisraGuards.issues", () => {
+  it("lists each issue an issue guard names, once", () => {
+    const registry = new Map<string, readonly TMisraGuard[]>([
+      ["Dir 3.1", [{ kind: "issue", issue: 2312 }]],
+      ["Dir 4.1", [{ kind: "issue", issue: 2313 }]],
+      ["9.2", [{ kind: "cppcheck" }, { kind: "issue", issue: 2312 }]],
+    ]);
+    expect(MisraGuards.issues(registry).sort()).toEqual([2312, 2313]);
   });
 });
 

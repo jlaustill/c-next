@@ -15,13 +15,17 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
 import MisraBaseline from "./misra-baseline";
+import TargetMatrix from "./TargetMatrix";
+import TestUtils from "./test-utils";
+import Repo from "./utils/Repo";
 import MisraDump from "./misra-dump";
 import MISRA_GUARDS from "./misra-guards/MISRA_GUARDS";
 import MisraGuards from "./misra-guards/MisraGuards";
@@ -89,17 +93,57 @@ function buildBlock(): string {
   return lines.join("\n");
 }
 
-function splice(existing: string, block: string): string {
-  const begin = existing.indexOf(BEGIN);
-  const end = existing.indexOf(END);
-  if (begin === -1 || end === -1) {
-    throw new Error(`docs/misra-compliance.md is missing the ${BEGIN} markers`);
+/**
+ * Compile a C++ unit that uses a literal `0` as a null pointer the way the
+ * integration tests compile every generated unit, and return what the compiler
+ * printed -- so a compile-flag guard is checked by what the compile does, not
+ * by whether its flag is spelled somewhere
+ */
+function compileProbe(): string {
+  const dir = mkdtempSync(join(tmpdir(), "cnx-misra-guards-"));
+  try {
+    const unit = join(dir, "probe.cpp");
+    writeFileSync(
+      unit,
+      "int main() { int* p = 0; return p == nullptr ? 0 : 1; }\n",
+      "utf-8",
+    );
+    const toolchain = TargetMatrix.toolchainFor(TargetMatrix.HOST);
+    if (typeof toolchain === "string") return toolchain;
+    const result = TestUtils.compileTranslationUnit(
+      unit,
+      dir,
+      rootDir,
+      "cpp",
+      toolchain,
+      false,
+    );
+    return result.valid ? "" : (result.message ?? "");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-  return existing.slice(0, begin) + block + existing.slice(end + END.length);
+}
+
+/**
+ * Which of the issues the registry names are open. A lookup that fails is
+ * an error, never "closed" or "open": either would make the check pass or
+ * fail for a reason that is not true.
+ */
+function openIssues(issues: readonly number[]): Set<number> {
+  const open = new Set<number>();
+  for (const issue of issues) {
+    const state = execFileSync(
+      "gh",
+      ["api", `repos/${Repo.slug()}/issues/${issue}`, "--jq", ".state"],
+      { cwd: rootDir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] },
+    ).trim();
+    if (state === "open") open.add(issue);
+  }
+  return open;
 }
 
 async function main(): Promise<void> {
-  const mode = process.argv[2] ?? "check";
+  const mode = GeneratedMarkdown.requireMode(process.argv[2]);
   const document = readFileSync(misraPath, "utf-8");
   const packageJson = JSON.parse(
     readFileSync(join(rootDir, "package.json"), "utf-8"),
@@ -108,15 +152,13 @@ async function main(): Promise<void> {
   const { rows, violations } = MisraGuards.evaluate(document, MISRA_GUARDS, {
     baselined: new Set(MisraBaseline.BASELINE.keys()),
     dumpRules: MisraDump.RULES,
-    compileSource: readFileSync(
-      join(rootDir, "scripts", "test-utils.ts"),
-      "utf-8",
-    ),
+    compileProbe: compileProbe(),
+    openIssues: openIssues(MisraGuards.issues(MISRA_GUARDS)),
     assertedCodes: assertedCodes(),
     scripts: new Set(Object.keys(packageJson.scripts)),
   });
   const updated = await GeneratedMarkdown.format(
-    splice(document, buildBlock()),
+    GeneratedMarkdown.splice(document, BEGIN, END, buildBlock()),
     misraPath,
   );
 

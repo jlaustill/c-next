@@ -72,9 +72,10 @@ class MisraGuards {
           ? null
           : `MisraDump checks no ${guard.rule}`;
       case "compile-flag":
-        return context.compileSource.includes(`"${guard.flag}"`)
+        // g++ names the flag that rejected the unit: `-Werror=zero-as-...`
+        return context.compileProbe.includes(`-Werror=${guard.flag.slice(2)}`)
           ? null
-          : `the integration compile passes no ${guard.flag}`;
+          : `the integration compile does not reject the probe with ${guard.flag}`;
       case "diagnostic":
         return context.assertedCodes.has(guard.code)
           ? null
@@ -84,10 +85,26 @@ class MisraGuards {
           ? null
           : `package.json has no "${guard.script}" script`;
       case "issue":
-        return Number.isInteger(guard.issue) && guard.issue > 0
+        if (!Number.isInteger(guard.issue) || guard.issue <= 0) {
+          return "names no issue number";
+        }
+        return context.openIssues.has(guard.issue)
           ? null
-          : "names no issue number";
+          : `issue #${guard.issue} is closed; replace it with the guard it delivered`;
     }
+  }
+
+  /** Every issue an `issue` guard names, for the caller to look up */
+  static issues(
+    registry: ReadonlyMap<string, readonly TMisraGuard[]>,
+  ): number[] {
+    const issues = new Set<number>();
+    for (const guards of registry.values()) {
+      for (const guard of guards) {
+        if (guard.kind === "issue") issues.add(guard.issue);
+      }
+    }
+    return [...issues];
   }
 
   /** Rules a `cppcheck` guard relies on, for `validate:c` to check its addon has */
