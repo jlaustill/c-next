@@ -272,6 +272,7 @@ typedef's pointer constness. Both are fixed, and the script's `mut` for them is 
 
 | Code  | Meaning                                                                                                                                                                                                                                                                                                                                         | Asserted by                                                                                                                                                                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0879 | A function placed in a callback slot whose parameters' `mut` differs from the callback type's (Q5): `mut` is part of the type, matched exactly as type and `const` are (ADR-029's E0879)                                                                                                                                                        | `tests/adr-071/callback-*-error.test.cnx`, `tests/adr-071/c-callback-mut-match-error.test.cnx`                                                                                                                                   |
 | E0898 | `const` written on a declaration (Decision 5)                                                                                                                                                                                                                                                                                                   | `tests/adr-071/`                                                                                                                                                                                                                 |
 | E0899 | A `mut` binding nothing writes, outside the two exemptions (Decision 6)                                                                                                                                                                                                                                                                         | `tests/adr-071/`                                                                                                                                                                                                                 |
 | E0900 | A write to a binding not declared `mut`: an assignment to or through it, a `safe_div`/`safe_mod` output, an argument to a `mut` cnx parameter or a C/C++ pointer or array parameter that is not const (Decision 2), or an opaque handle (ADR-030) stored in a `mut` binding, which can then write what it refers to. It retires E0877 and E0878 | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-051/safe-division-const-output-error.test.cnx`, `tests/bugs/issue-1977-struct-to-c-byte-pointer/`, `tests/bugs/issue-1722-opaque-param-forwarding/scope-this-callee.test.cnx` |
@@ -284,7 +285,8 @@ includes it transitively; its `mut` sits in the declaring file. A call into a `m
 also happens in a global or scope-member initializer: today's E0878 fires there
 (`u32 g <- twice(LIMIT);` at file scope and inside a scope both report it), and Q3 changes it.
 
-Every cell is `error`, and each diagnostic is asserted in every cell it can occur in:
+Every cell is `error` unless the `off:` note under its table says why it cannot occur, and each
+diagnostic is asserted in every cell it can occur in:
 
 - **E0900:** an assignment in the two function contexts and a call into a `mut` parameter from
   the two initializers, across zero, one and two include hops
@@ -294,21 +296,31 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
   (`tests/adr-071/write-imported-direct-error`, `write-imported-transitive-error`). A C pointer,
   a C array and an opaque handle the same way (`c-write-imported-direct-error`,
   `c-write-imported-transitive-error`), and a scope method's own locals and parameters passed to
-  them (`c-write-scope-method-error`).
+  them (`c-write-scope-method-error`). Inside a `for` header's declaration, a call into a `mut`
+  parameter and a `safe_div` output in the loop variable's initializer, from the same file and one
+  and two includes away (`write-for-header-error`, `write-for-header-imported-direct-error`,
+  `write-for-header-imported-transitive-error`).
 - **E0898:** on each kind of declaration, in a top-level function and in a scope method
   (`const-keyword-error`), and in a file one and two includes away
   (`const-keyword-imported-error`). The matrix cannot place that last one, because a diagnostic
   naming another file is not resolved against it (#1408), so it is listed below as a fixture
   with no derivable context.
 - **E0899:** in a top-level function, a scope method and a private scope member
-  (`unused-mut-error`). It cannot occur across an include: what it checks (locals, parameters,
-  `for` variables and private members) is visible only in its own file, and a global or public
-  member is exempt (Decision 6).
+  (`unused-mut-error`), including a `for` variable in each function context. What it checks
+  (locals, parameters, `for` variables and private members) is declared only in its own file, and
+  a global or public member is exempt (Decision 6), but whether such a binding is written can
+  depend on an included function's signature: passed only to an imported read-only parameter, it
+  is never written, one and two includes away (`unused-mut-imported-direct-error`,
+  `unused-mut-imported-transitive-error`, and for a `for` variable
+  `unused-mut-for-header-imported-direct-error`, `unused-mut-for-header-imported-transitive-error`).
 - **E0879:** a callback type from the same file and from one and two includes away
   (`callback-mut-match-error`, `c-callback-mut-match-error`, `callback-imported-direct-error`,
-  `callback-imported-transitive-error`).
+  `callback-imported-transitive-error`), and in a `for` loop variable's initializer, as the
+  variable itself or a struct field, from the same file and one and two includes away
+  (`callback-for-header-error`, `callback-for-header-imported-direct-error`,
+  `callback-for-header-imported-transitive-error`).
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0879 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -324,6 +336,73 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0898 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0898 never fires in a `for` header, whose declaration has no place for `const`: `for (const u32 i <- 0; ...)` is a parse error.
+
+<!-- MATRIX-SEVERITY code: E0899 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+off: E0899 never fires on a global, which is exempt (Decision 6), and a global's initializer declares no binding it could check.
+
+<!-- MATRIX-SEVERITY code: E0900 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 ## Consequences
 

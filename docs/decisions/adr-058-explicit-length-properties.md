@@ -669,12 +669,12 @@ Rejected: cnx has no `sizeof` operator.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                       | Asserted by                                                                          |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| E0867 | A shape property is asked of a subject that cannot answer it (a pointer, a header union, bit-field or other layout cnx cannot sum), or of a literal | `tests/explicit-length/`, `tests/adr-058/`                                           |
-| E0886 | `.length` is used at all                                                                                                                            | `tests/adr-058/`                                                                     |
-| E0909 | A memory size is where cnx needs the number itself, as an enum member's value (the C compiler decides it for the target)                            | `tests/adr-058/kinds-memory-dimension-error.test.cnx`                                |
-| E0897 | A chain that names a type does not end in a length property                                                                                         | `tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx` |
+| Code  | Reported when                                                                                                                                       | Asserted by                                                                                                                                |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| E0867 | A shape property is asked of a subject that cannot answer it (a pointer, a header union, bit-field or other layout cnx cannot sum), or of a literal | `tests/explicit-length/`, `tests/adr-058/`                                                                                                 |
+| E0886 | `.length` is used at all                                                                                                                            | `tests/adr-058/`                                                                                                                           |
+| E0909 | A memory size is where cnx needs the number itself, as an enum member's value (the C compiler decides it for the target)                            | `tests/adr-058/kinds-memory-dimension-error.test.cnx`                                                                                      |
+| E0897 | A chain that names a type does not end in a length property                                                                                         | `tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx`, `tests/adr-058/type-named-as-value-*-error.test.cnx` |
 
 `.length` is rejected by NAME and needs no subject: naming a different thing on
 a string, an array and a scalar is what these four properties replaced.
@@ -692,7 +692,7 @@ asked of a type that can answer it -- `.element_count` of an array,
 known width. E0886's fixtures occupy the same cells: `.length` can be written
 wherever a shape property can.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0867 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -708,6 +708,71 @@ wherever a shape property can.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0886 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0897 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0909 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0909's memory-size form fires only at an enum member's value, at file scope or in a scope, which is none of these contexts; a memory size initializing a file-scope or scope variable, a `for` header's loop variable, or sizing an array (a cast's array type in a `for` header included), is the C compiler's to answer and is accepted (probed).
 
 A length property is an EXPRESSION, so it reaches an initializer as well as a
 function body -- all four same-file contexts, probed rather than assumed.

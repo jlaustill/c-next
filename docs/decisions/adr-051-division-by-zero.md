@@ -645,15 +645,16 @@ void testFloatDivisionByZero() {
 
 ### 5. Scope-Context Matrix (#1219)
 
-A division can appear in all four structural contexts, and the check must hold in
-each of them however the zero-valued `const` reaches the division. No cell on the
+A division can appear in all five structural contexts -- a `for` header's
+declaration among them -- and the check must hold in each of them however the
+zero-valued `const` reaches the division. No cell on the
 derivable axes is `off` for this ADR.
 
 Severity follows the eslint model: `off` records that a cell cannot exist for this
 feature, `warn` that it should be covered and is not, `error` that it must be.
 Undeclared cells are `off`.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0800 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -661,14 +662,37 @@ Undeclared cells are `off`.
 | top-level function | same file           | error    |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
+| for header         | same file           | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0802 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 One limit of the tooling applies to any ADR declaring a matrix, tracked as
 #1402: the relationship axis measures the deepest include chain reachable from
@@ -682,8 +706,11 @@ Occupancy now derives from diagnostic positions union ADR provenance, so an ADR
 covering codegen behavior rather than a diagnostic can satisfy an `error` cell,
 provided it records where its rule fired.
 
-All twelve derivable cells are `error`, and all twelve are occupied -- see
-`docs/scope-context-matrix.md`.
+All fifteen derivable cells are `error`, and all fifteen are occupied -- see
+`docs/scope-context-matrix.md`. The three `for` header cells are occupied by
+`tests/adr-051/for-header-division-{same-file,imported-direct,imported-transitive}.test.cnx`,
+each dividing by a const zero in the initializer of a `for` header's declaration;
+in the imported two the zero is declared one and two includes away.
 
 The eight cross-file cells were `warn` while they were **known broken** (#1217):
 the constant folding behind E0800 resolved `const` values from the current
@@ -734,12 +761,12 @@ for (x /<- 0; x < 5; x %<- ZERO) {} // E0800, E0802
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                      | Asserted by                                                                                                                          |
-| ----- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| E0800 | `/` or `/<-` by a compile-time zero: a literal, a const or a constant expression, integer or float | `tests/arithmetic/division-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx` |
-| E0802 | `%` or `%<-` by a compile-time zero: a literal, a const or a constant expression                   | `tests/arithmetic/modulo-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`   |
-| E0884 | `safe_div` or `safe_mod` is called with other than four arguments                                  | `tests/adr-051/safe-division-shape-error.test.cnx`                                                                                   |
-| E0885 | The first argument is not a variable that can receive the result                                   | `tests/adr-051/safe-division-shape-error.test.cnx`                                                                                   |
+| Code  | Reported when                                                                                      | Asserted by                                                                                                                                     |
+| ----- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0800 | `/` or `/<-` by a compile-time zero: a literal, a const or a constant expression, integer or float | `tests/arithmetic/division-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`            |
+| E0802 | `%` or `%<-` by a compile-time zero: a literal, a const or a constant expression                   | `tests/arithmetic/modulo-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`              |
+| E0884 | `safe_div` or `safe_mod` is called with other than four arguments                                  | `tests/adr-051/safe-division-shape-error.test.cnx`, `tests/adr-051/safe-division-shape-{contexts,imported-direct,imported-transitive}.test.cnx` |
+| E0885 | The first argument is not a variable that can receive the result                                   | `tests/adr-051/safe-division-shape-error.test.cnx`, `tests/adr-051/safe-division-shape-{contexts,imported-direct,imported-transitive}.test.cnx` |
 
 The result is written THROUGH the first argument, which is why it must be a
 variable rather than an expression: the generated helper takes its address. A
@@ -757,29 +784,52 @@ pointer parameter.
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0884 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
 | top-level function | same file           | error    |
-| scope method       | same file           | warn     |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0885 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 Both rules are about the call as written -- how many arguments it has, and
-whether its first is a variable -- so nothing crosses an include and the
-imported cells record that they cannot exist. The two variable-initializer
-contexts are `off` for the same reason a call cannot appear there: `safe_div`
-returns a status that must be bound, and a file-scope initializer is not a
-statement that can bind one.
+whether its first is a variable -- so each holds wherever a call can stand,
+including a file-scope or scope-member initializer or a `for` header's
+declaration, and however far the names in the call reach across includes. The
+`for` header cells are occupied by
+`tests/adr-051/for-header-shape-{same-file,imported-direct,imported-transitive}.test.cnx`.
 
 ## Implementation Plan
 

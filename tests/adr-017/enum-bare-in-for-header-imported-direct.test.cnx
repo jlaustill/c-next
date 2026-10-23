@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 017
+// E0424 across ONE include hop in a `for` header's declaration -- matrix cell:
+// for header / imported direct. A bare member is accepted only where its enum
+// is already named. The enum is declared in another file, so a check reading
+// only this file has no members to match against and stays silent.
+
+#include "cross-file-types.cnx"
+
+void main(u8 limit) {
+    mut u8 i <- 0;
+    ESpnCategory c <- ESpnCategory.SPN_CAT_PRESSURE;
+
+    // NEGATIVE CONTROL -- the same comparison with the member qualified.
+    for (bool ok <- (c = ESpnCategory.SPN_CAT_UNKNOWN); i < limit; i +<- 1) {}
+
+    // ASSERTION 1 -- a comparison operand names no enum.
+    for (bool b <- (c = SPN_CAT_UNKNOWN); i < limit; i +<- 1) {}
+
+    // ASSERTION 2 -- a declaration of a non-enum type names no enum.
+    for (u8 k <- SPN_CAT_PRESSURE; i < limit; i +<- 1) {}
+}

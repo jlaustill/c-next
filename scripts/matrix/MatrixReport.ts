@@ -2,7 +2,8 @@
  * Issue #1219: combines declared severity with derived occupancy.
  *
  * A violation is a cell an ADR declared an obligation for that no fixture
- * occupies. `off` cells cannot be violated -- that is the point of `off`.
+ * occupies. An `off` cell carries no obligation, but one a tagged fixture
+ * occupies contradicts its table (#1620 review: `contradictions`).
  */
 
 import AdrMatrixDeclaration from "./AdrMatrixDeclaration";
@@ -13,6 +14,7 @@ import IMatrixOccupancy from "../types/IMatrixOccupancy";
 import IMatrixViolation from "../types/IMatrixViolation";
 import TMatrixContext from "../types/TMatrixContext";
 import TMatrixRelationship from "../types/TMatrixRelationship";
+import TMatrixSeverity from "../types/TMatrixSeverity";
 
 /**
  * Is a cell occupied by at least one fixture?
@@ -38,6 +40,7 @@ type TCellPredicate = (
   relationship: TMatrixRelationship,
   adr: string,
   context: TMatrixContext,
+  severity: TMatrixSeverity,
 ) => boolean;
 
 /**
@@ -60,8 +63,7 @@ function collect(
         context,
         relationship,
       );
-      if (severity === "off") continue;
-      if (!accept(relationship, adr, context)) continue;
+      if (!accept(relationship, adr, context, severity)) continue;
       found.push({ adr, context, relationship, severity });
     }
   }
@@ -83,7 +85,8 @@ function violations(
 ): IMatrixViolation[] {
   return collect(
     declarations,
-    (relationship, adr, context) =>
+    (relationship, adr, context, severity) =>
+      severity !== "off" &&
       MatrixCell.isDerivable(relationship) &&
       !isOccupied(occupancy.get(adr), context, relationship),
   ).sort((a, b) => {
@@ -98,7 +101,25 @@ function undeterminable(
 ): IMatrixViolation[] {
   return collect(
     declarations,
-    (relationship) => !MatrixCell.isDerivable(relationship),
+    (relationship, _adr, _context, severity) =>
+      severity !== "off" && !MatrixCell.isDerivable(relationship),
+  );
+}
+
+/**
+ * #1620 review: cells declared, or left, `off` that a fixture tagged for the
+ * table's ADR occupies anyway. With occupancy per code, the table says the
+ * code cannot fire there and the ADR's own fixture shows that it does.
+ */
+function contradictions(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+): IMatrixViolation[] {
+  return collect(
+    declarations,
+    (relationship, adr, context, severity) =>
+      severity === "off" &&
+      isOccupied(occupancy.get(adr), context, relationship),
   );
 }
 
@@ -121,21 +142,50 @@ function obligationCount(
  * A rule name the transpiler records and the ADR does not declare is a typo on
  * one side. Its occupancy would otherwise render under its own heading with no
  * obligation, and the rule's real table would sit unoccupied without a word.
+ *
+ * #1620: a code matrix is left to `ungatedCodes`, since a fixture may assert a
+ * code its ADR does not own.
  */
 function undeclaredRules(
   declarations: ReadonlyMap<string, IMatrixDeclaration>,
   occupancy: ReadonlyMap<string, IMatrixOccupancy>,
 ): string[] {
   return [...occupancy.keys()]
-    .filter((id) => MatrixRule.ruleOf(id) !== null && !declarations.has(id))
+    .filter(
+      (id) =>
+        MatrixRule.ruleOf(id) !== null &&
+        !MatrixRule.isCode(id) &&
+        !declarations.has(id),
+    )
+    .sort();
+}
+
+/**
+ * #1620 review: code matrices fixtures occupy whose code no ADR's table gates.
+ * A code another ADR declares is that ADR's to gate; a code no ADR declares
+ * would otherwise render under its own heading and be checked by nothing.
+ */
+function ungatedCodes(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+): string[] {
+  const gated = new Set(
+    [...declarations.keys()]
+      .filter((id) => MatrixRule.isCode(id))
+      .map((id) => MatrixRule.ruleOf(id)),
+  );
+  return [...occupancy.keys()]
+    .filter((id) => MatrixRule.isCode(id) && !gated.has(MatrixRule.ruleOf(id)))
     .sort();
 }
 
 class MatrixReport {
   static isOccupied = isOccupied;
   static undeclaredRules = undeclaredRules;
+  static ungatedCodes = ungatedCodes;
   static violations = violations;
   static undeterminable = undeterminable;
+  static contradictions = contradictions;
   static obligationCount = obligationCount;
 }
 

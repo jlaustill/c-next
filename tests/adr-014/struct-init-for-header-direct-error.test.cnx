@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 014
+// #1620: E0357 and E0358 fire inside a `for` header's declaration when the
+// struct and the bitmap are declared one include away. E0357 is decided by the
+// initializer's own position: a subscript supplies no type for what sits inside
+// the brackets. E0358 is decided by the type the position gives, and here that
+// type is the included bitmap `Flags`, whose value is its backing integer.
+// Each assertion stands in a top-level function and in a scope method.
+#include "lib/struct-init-types.cnx"
+
+u8[4] table <- [1, 2, 3, 4];
+
+void f() {
+    // NEGATIVE CONTROL -- the included struct takes the initializer, and the
+    // included bitmap its backing integer. Both must stay silent.
+    for (mut Cfg c <- { word: 0, f: 0 }; c.word < 4; c.word +<- 1) {}
+    for (mut Flags g <- 0; table[0] < 1; g <- 0) {}
+
+    // ASSERTION 1 -- E0357: nothing says which struct sits in the subscript.
+    for (mut u8 i <- table[{ word: 1, f: 0 }]; i < 4; i +<- 1) {}
+    // ASSERTION 2 -- E0358: the included `Flags` is not a struct.
+    for (mut Flags g <- { A: 1 }; table[0] < 1; g <- 0) {}
+}
+
+scope S {
+    public void method() {
+        // NEGATIVE CONTROL
+        for (mut Cfg c <- { word: 0, f: 0 }; c.word < 4; c.word +<- 1) {}
+
+        // ASSERTION 3 -- E0357
+        for (mut u8 i <- table[{ word: 2, f: 0 }]; i < 4; i +<- 1) {}
+        // ASSERTION 4 -- E0358
+        for (mut Flags g <- { A: 1 }; table[0] < 1; g <- 0) {}
+    }
+}

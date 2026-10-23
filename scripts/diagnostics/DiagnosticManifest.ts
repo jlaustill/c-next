@@ -15,6 +15,9 @@ import IManifestOutcome from "../types/IManifestOutcome";
  * The manifest turns both into a diff a reviewer has to approve.
  */
 class DiagnosticManifest {
+  /** The shape of a diagnostic code itself, wherever it is written. */
+  private static readonly CODE_SOURCE = "E[0-9]{4}|MISRA-[0-9.]+";
+
   /**
    * Matches every code-carrying shape the corpus emits, not just one of them.
    *
@@ -33,7 +36,13 @@ class DiagnosticManifest {
    * stripping each file's own tag leaves zero stray `E####` anywhere in `tests/`.
    */
   private static readonly CODE_PATTERN_SOURCE =
-    "(?:(?:error|Error) ?\\[?)?\\b(E[0-9]{4}|MISRA-[0-9.]+)\\b\\]?:";
+    "(?:(?:error|Error) ?\\[?)?\\b(" +
+    DiagnosticManifest.CODE_SOURCE +
+    ")\\b\\]?:";
+
+  private static readonly CODE_EXACT = new RegExp(
+    `^(?:${DiagnosticManifest.CODE_SOURCE})$`,
+  );
 
   /** Shown in place of a code list for a fixture whose diagnostic carries none. */
   private static readonly UNCODED = "(uncoded)";
@@ -54,6 +63,11 @@ class DiagnosticManifest {
     "Adding one, or promoting `(uncoded)` to a real code, never fails the gate.",
     "",
   ].join("\n");
+
+  /** Whether `text` is exactly one diagnostic code, e.g. `E0879`. */
+  static isCode(text: string): boolean {
+    return DiagnosticManifest.CODE_EXACT.test(text);
+  }
 
   /**
    * The diagnostic codes an `.expected.error` body asserts, deduplicated and

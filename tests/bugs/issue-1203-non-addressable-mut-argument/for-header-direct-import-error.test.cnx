@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 006
+// ADR-006: a literal passed in a `for` header's declaration to an imported
+// function's `mut` parameter gets E0915 too -- matrix cell: for header,
+// direct (1 hop) (#1620). The parameter is declared only in
+// callee.cnx, so the error depends on the included declaration.
+
+#include "callee.cnx"
+
+void run() {
+    // ASSERTION 1: a literal to the imported `mut` parameter in the header
+    for (mut u32 i <- takeShared(3); i < 10; i +<- 1) {}
+
+    // NEGATIVE CONTROL: the same call with a `mut` variable stays silent
+    mut u32 start <- 3;
+    for (mut u32 j <- takeShared(start); j < 10; j +<- 1) {}
+}

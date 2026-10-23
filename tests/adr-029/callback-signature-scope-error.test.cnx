@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 029
+// ADR-029: a function whose declared signature differs from the callback type
+// of its slot is E0879 inside a scope too -- as a scope member's initializer
+// and as an assignment in a scope method (same file).
+
+struct Frame {
+    u32 id;
+}
+
+void onFrame(Frame f) {}
+
+u32 wrongReturn(Frame f) {
+    return 1;
+}
+
+struct Sink {
+    onFrame handler;
+}
+
+scope Board {
+    // NEGATIVE CONTROL -- matching signature: silent.
+    onFrame okMember <- onFrame;
+
+    // ASSERTION 1 -- scope member initializer.
+    onFrame badMember <- wrongReturn;
+
+    // ASSERTION 2 -- scope method.
+    public void go() {
+        mut Sink s;
+        s.handler <- wrongReturn;
+    }
+}

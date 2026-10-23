@@ -230,9 +230,14 @@ describe("AdrMatrixDeclaration.parse", () => {
       "| scope method | imported direct | error |",
     ].join("\n");
 
-    expect(AdrMatrixDeclaration.rulesIn(markdown)).toEqual(["string-copy"]);
+    expect(AdrMatrixDeclaration.tablesIn(markdown)).toEqual([
+      { kind: "rule", name: "string-copy" },
+    ]);
     const own = AdrMatrixDeclaration.parse(markdown, "045");
-    const rule = AdrMatrixDeclaration.parse(markdown, "045", "string-copy");
+    const rule = AdrMatrixDeclaration.parse(markdown, "045", {
+      kind: "rule",
+      name: "string-copy",
+    });
     expect([...own.severities.keys()]).toEqual([
       MatrixCell.key("global-variable", "same-file"),
     ]);
@@ -242,8 +247,49 @@ describe("AdrMatrixDeclaration.parse", () => {
   });
 
   it("lists no rule when the ADR has only its own table", () => {
-    expect(AdrMatrixDeclaration.rulesIn(withTable("| x | y | z |"))).toEqual(
+    expect(AdrMatrixDeclaration.tablesIn(withTable("| x | y | z |"))).toEqual(
       [],
     );
+  });
+
+  it("takes a table's kind from its marker, not from its name (#1620 review)", () => {
+    const markdown = [
+      "<!-- MATRIX-SEVERITY code: E879 -->",
+      "",
+      "| Context | Relationship | Severity |",
+      "| ------- | ------------ | -------- |",
+      "| scope method | same file | error |",
+    ].join("\n");
+    expect(AdrMatrixDeclaration.tablesIn(markdown)).toEqual([
+      { kind: "code", name: "E879" },
+    ]);
+    const table = AdrMatrixDeclaration.parse(markdown, "029 E879", {
+      kind: "code",
+      name: "E879",
+    });
+    expect(table.severities.size).toBe(1);
+  });
+});
+
+describe("AdrMatrixDeclaration.codesIn", () => {
+  const adr = [
+    "| Code  | Rule |",
+    "| ----- | ---- |",
+    "| E0879 | a    |",
+    "| E0877 | b    |",
+    "",
+    "| Related | Owner   |",
+    "| ------- | ------- |",
+    "| E0900   | ADR-071 |",
+  ].join("\n");
+
+  it("reads only the first column of the `| Code |` table (#1620 review)", () => {
+    expect(AdrMatrixDeclaration.codesIn(adr)).toEqual(["E0879", "E0877"]);
+  });
+
+  it("skips a code the registry retires (#1620 review)", () => {
+    expect(AdrMatrixDeclaration.codesIn(adr, new Set(["E0877"]))).toEqual([
+      "E0879",
+    ]);
   });
 });

@@ -457,6 +457,10 @@ error[E0854]: Cannot use 'break' inside critical section
 error[E0855]: Cannot use 'continue' inside critical section
 ```
 
+| Code  | Meaning                              | Fixtures                                                                                                                                                     |
+| ----- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E0853 | A `return` inside a `critical` block | `return-in-critical-error`, `return-in-critical-switch-error`, `return-in-critical-scope-method-error`, `imported-direct-error`, `imported-transitive-error` |
+
 #### Workaround Patterns
 
 **Pattern 1: Assign and check after**
@@ -751,7 +755,7 @@ ADR-102 (v2) will explore compiler-assisted analysis including cycle estimation 
 
 ## Scope-context matrix
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0853 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -759,33 +763,26 @@ ADR-102 (v2) will explore compiler-assisted analysis including cycle estimation 
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
+| for header         | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
+| for header         | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-Added by #1322, when E0853 moved out of codegen into pass 2.1. Each `off` is a
-recorded claim that the cell cannot exist, not an admission that nobody wrote a
-fixture:
+off: `global variable`, `scope member` and `for header` -- a `critical` block and a `return` are statements, so they cannot be written at file scope, as a scope member or inside a `for` header's declaration, which holds only a type, a name and an expression (all parse errors); a `return` in the body of a `for` loop inside a `critical` block is reported in the enclosing function, and E0853 has nowhere else to fire.
 
-- **`global variable` and `scope member`, in every relationship.** A `critical`
-  block is a STATEMENT. It appears in a function body and nowhere else, so there
-  is no declaration context for this rule to fire in. A `return` cannot appear in
-  an initializer either.
-- **Every `imported` relationship.** The rule is entirely local: it asks whether
-  a `return` is lexically inside a `critical` block in the same function. Nothing
-  about it crosses a file boundary, so an include cannot change the answer. This
-  is one of the few genuinely single-file rules in the corpus, and the matrix
-  should say so rather than leave twelve cells silent.
-
-The two `error` cells are the two places a critical section can be written, and
-both are occupied: `return-in-critical-error` and
-`return-in-critical-switch-error` for a top-level function,
-`return-in-critical-scope-method-error` for a scope method.
+Every `error` cell is occupied: `return-in-critical-error` and
+`return-in-critical-switch-error` for a top-level function in the same file,
+`return-in-critical-scope-method-error` for a scope method, and
+`imported-direct-error` / `imported-transitive-error` for both contexts with the
+guarded value one and two include hops away. The rule is lexical, so an include
+must not change the answer; those two fixtures are what show it does not.
 
 ## References
 

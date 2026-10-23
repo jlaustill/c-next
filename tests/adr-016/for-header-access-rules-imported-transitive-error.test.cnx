@@ -1,0 +1,61 @@
+// test-error
+// test-adr: 016
+// E0435, E0436 and E0437 at a `for` header's declaration, across TWO include
+// hops -- the for header / imported transitive cell of each code. Every name
+// the rules check is declared in scope-rules-lib.cnx, so each check has to
+// reach across the include.
+
+#include "scope-rules-relay.cnx"
+
+// Gate reopened here, so its own members are reached from inside it.
+scope Gate {
+    u32 selfCount() {
+        mut u32 n <- 0;
+        // ASSERTION 1 -- E0435: the scope's own imported member reached
+        // through the scope's name.
+        for (mut u32 i <- Gate.width; i < 10; i +<- 1) {
+            n +<- 1;
+        }
+        // NEGATIVE CONTROL -- the sanctioned spelling.
+        for (mut u32 j <- this.width; j < 10; j +<- 1) {
+            n +<- 1;
+        }
+        return n;
+    }
+}
+
+scope Painter {
+    u32 EShade <- 1;
+
+    u32 shadeCount() {
+        mut u32 n <- 0;
+        // ASSERTION 2 -- E0437: the imported global enum, shadowed by the
+        // member above, reached bare.
+        for (mut u32 i <- (EShade.DARK = global.EShade.DARK) ? 0 : 1; i < 2; i +<- 1) {
+            n +<- 1;
+        }
+        // NEGATIVE CONTROL -- `global.` past the shadow.
+        for (mut u32 j <- (global.EShade.DARK = global.EShade.LIGHT) ? 0 : 1; j < 2; j +<- 1) {
+            n +<- 1;
+        }
+        return n;
+    }
+}
+
+u32 outsideCount() {
+    mut u32 n <- 0;
+    // ASSERTION 3 -- E0436: the imported scope's private member reached from
+    // outside it.
+    for (mut u32 i <- Gate.code; i < 10; i +<- 1) {
+        n +<- 1;
+    }
+    // NEGATIVE CONTROL -- the public member of the same imported scope.
+    for (mut u32 j <- Gate.width; j < 10; j +<- 1) {
+        n +<- 1;
+    }
+    return n;
+}
+
+u32 main() {
+    return outsideCount();
+}

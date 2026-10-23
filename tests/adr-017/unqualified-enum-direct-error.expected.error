@@ -1,0 +1,6 @@
+15:18 error[E0424]: 'SPN_CAT_PRESSURE' is not defined; did you mean 'ESpnCategory.SPN_CAT_PRESSURE'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+19:15 error[E0424]: 'SPN_CAT_UNKNOWN' is not defined; did you mean 'ESpnCategory.SPN_CAT_UNKNOWN'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+23:15 error[E0424]: 'SPN_CAT_PRESSURE' is not defined; did you mean 'ESpnCategory.SPN_CAT_PRESSURE'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).

@@ -1,0 +1,12 @@
+// test-adr: 029
+// ADR-029 across ONE include hop: a scope method's parameter naming an
+// imported function-as-type is written as that type's function-pointer typedef.
+
+#include "callback-declarations.cnx"
+
+scope Board {
+    public void listen(onDown handler) {
+        Pixel p <- { v: 1 };
+        handler(p);
+    }
+}

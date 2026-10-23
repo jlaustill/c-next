@@ -1,0 +1,34 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a constant index past the end of an array declared
+// one include away is E0854, read from that declaration, in every
+// context a subscript can stand in.
+
+#include "matrix-lib.cnx"
+
+// NEGATIVE CONTROL -- the last valid index stays silent.
+u8 okGlobal <- libTable[3];
+
+// E0854 -- a global initializer.
+u8 badGlobal <- libTable[4];
+
+void f() {
+    // E0854 -- a function body.
+    u8 r <- libTable[5];
+    // E0854 -- a for header's initializer.
+    for (u8 i <- libTable[6]; i < 1; i +<- 1) {}
+}
+
+scope Motor {
+    // E0854 -- a scope member initializer.
+    u8 first <- libTable[7];
+
+    public void read() {
+        // E0854 -- a scope method body.
+        u8 a <- libTable[8];
+        // E0854 -- a for header inside a scope method.
+        for (u8 i <- libTable[9]; i < 1; i +<- 1) {}
+    }
+}
+
+void main() {}

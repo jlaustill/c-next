@@ -1,0 +1,2 @@
+14:27 error[E0897]: Type 'L.Cfg' has no field or length property 'zz'
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.type_byte_length, Point.x.type_bit_length). A value is read from a variable of the type.

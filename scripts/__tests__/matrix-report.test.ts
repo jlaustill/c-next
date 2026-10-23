@@ -148,3 +148,48 @@ describe("MatrixReport.undeclaredRules", () => {
     expect(MatrixReport.undeclaredRules(new Map(), occupancy)).toEqual([]);
   });
 });
+
+describe("MatrixReport.ungatedCodes (#1620 review)", () => {
+  it("names a code matrix whose code no ADR's table declares", () => {
+    const declarations = new Map([
+      ["071 E0900", MatrixTestHelpers.declare("071 E0900", [])],
+    ]);
+    const occupancy = new Map([
+      ["013 E0900", MatrixTestHelpers.occupy("013 E0900", [])],
+      ["071 E0896", MatrixTestHelpers.occupy("071 E0896", [])],
+      ["045 string-copy", MatrixTestHelpers.occupy("045 string-copy", [])],
+    ]);
+    expect(MatrixReport.ungatedCodes(declarations, occupancy)).toEqual([
+      "071 E0896",
+    ]);
+  });
+});
+
+describe("MatrixReport.contradictions (#1620 review)", () => {
+  it("names an off cell, declared or left out, that a fixture occupies", () => {
+    const declarations = new Map([
+      [
+        "071 E0899",
+        MatrixTestHelpers.declare("071 E0899", [
+          ["for-header", "same-file", "off"],
+          ["top-level-function", "same-file", "error"],
+        ]),
+      ],
+    ]);
+    const occupancy = new Map([
+      [
+        "071 E0899",
+        MatrixTestHelpers.occupy("071 E0899", [
+          ["for-header", "same-file"],
+          ["top-level-function", "same-file"],
+          ["scope-method", "imported-direct"],
+        ]),
+      ],
+    ]);
+    expect(
+      MatrixReport.contradictions(declarations, occupancy).map(
+        (cell) => `${cell.context} / ${cell.relationship}`,
+      ),
+    ).toEqual(["scope-method / imported-direct", "for-header / same-file"]);
+  });
+});

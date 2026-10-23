@@ -1,0 +1,43 @@
+// test-error
+// test-adr: 016
+// E0435, E0436 and E0437 in a scope member's initializer, in one file -- the
+// scope member / same file cell of each code. The other fixtures here assert
+// these rules in methods; a member's initializer is a reference too.
+
+enum EColor {
+    RED,
+    GREEN
+}
+
+scope Vault {
+    u32 secret <- 1;
+    public u32 open <- 2;
+
+    // E0435: the scope's own member reached through the scope's name.
+    u32 self <- Vault.open;
+
+    // NEGATIVE CONTROL -- the sanctioned spelling.
+    u32 selfOk <- this.open;
+}
+
+scope Thief {
+    // E0436: a private member of another scope.
+    u32 stolen <- Vault.secret;
+
+    // NEGATIVE CONTROL -- a public member of the same scope.
+    u32 borrowed <- Vault.open;
+}
+
+scope Palette {
+    u32 EColor <- 3;
+
+    // E0437: the global enum, shadowed by the member above, reached bare.
+    u32 favourite <- EColor.RED;
+
+    // NEGATIVE CONTROL -- `global.` past the shadow.
+    u32 second <- global.EColor.GREEN;
+}
+
+u32 main() {
+    return Vault.open;
+}

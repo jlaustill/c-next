@@ -173,6 +173,52 @@ file whose offending `#define` sat on line 7 pointed the reader at line 1.
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | off      |
 
+<!-- MATRIX-SEVERITY code: E0501 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+- off (same file): E0501 fires only on a function-like `#define` before the first declaration, which no declaration encloses; the same directive inside a function, a scope, a method, an initializer or a `for` header's declaration, or after any declaration, is a syntax error instead.
+- off (imported): an included `.cnx` reports E0501 at its own head, enclosed by no declaration, and a `#define` in an included C header is not checked at all.
+
+<!-- MATRIX-SEVERITY code: E0502 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| for header         | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+- off (same file): E0502 fires only on a `#define` with a value before the first declaration, which no declaration encloses; the same directive inside a function, a scope, a method, an initializer or a `for` header's declaration, or after any declaration, is a syntax error instead.
+- off (imported): an included `.cnx` reports E0502 at its own head, enclosed by no declaration, and a `#define` in an included C header is not checked at all.
+
 **Every cell is `off`, and that is a claim rather than a gap.** A `#define` is
 only grammatical before the first declaration, so it is enclosed by no scope, no
 function and no variable — after a declaration, inside a `scope`, or inside a

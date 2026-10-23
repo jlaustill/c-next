@@ -1,0 +1,4 @@
+21:24 error[E0424]: 'GREEN' is not defined; did you mean 'Color.GREEN'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+24:17 error[E0424]: 'RED' is not defined; did you mean 'Color.RED'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).

@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 024
+// E0868, E0869 and E0891 in the SAME file -- matrix cells: for header, same
+// file. A `for` header's declaration is a declaration, so its initializer must
+// fit the loop variable as any declaration's must: a literal in range (E0868),
+// an integer no wider (E0869), and a float only through a cast (E0891).
+
+u32 wideLocal <- 1000;
+f32 floatLocal <- 2.5;
+
+void loops() {
+    // NEGATIVE CONTROL 1 -- the boundary assertion 1 is one past.
+    for (u8 okLiteral <- 255; okLiteral < 9; okLiteral +<- 1) {}
+    // ASSERTION 1 -- E0868: a literal past the loop variable's range.
+    for (u8 literal <- 256; literal < 9; literal +<- 1) {}
+
+    // NEGATIVE CONTROL 2 -- the integer into a loop variable wide enough.
+    for (u32 okWidth <- wideLocal; okWidth < 9; okWidth +<- 1) {}
+    // ASSERTION 2 -- E0869: a wider integer into the loop variable.
+    for (u8 narrow <- wideLocal; narrow < 9; narrow +<- 1) {}
+
+    // NEGATIVE CONTROL 3 -- the explicit cast, which saturates.
+    for (u32 okCast <- (u32)floatLocal; okCast < 9; okCast +<- 1) {}
+    // ASSERTION 3 -- E0891: a float into an integer loop variable.
+    for (u32 truncated <- floatLocal; truncated < 9; truncated +<- 1) {}
+}

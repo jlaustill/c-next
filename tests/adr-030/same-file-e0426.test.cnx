@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 030
+// ADR-030 E0426 in every context it can fire in, with no cnx include.
+
+struct Known {
+    u8 x;
+}
+
+NopeGlobal g;
+// NEGATIVE CONTROL: Known is defined, so its uses below never fire E0426.
+Known knownGlobal;
+
+void top() {
+    u32 seen <- 1;
+    NopeLocal a;
+    Known knownLocal;
+    for (NopeFor i <- 0; i < 3; i +<- 1) {
+        u32 c <- 1;
+    }
+}
+
+scope S {
+    NopeMember m;
+    Known knownMember;
+
+    public void go() {
+        u32 seen <- 1;
+        NopeMethodLocal b;
+        Known knownMethodLocal;
+    }
+}

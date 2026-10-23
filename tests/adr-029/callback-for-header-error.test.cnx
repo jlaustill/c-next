@@ -1,0 +1,55 @@
+// test-error
+// test-adr: 029
+// ADR-029 inside a `for` header's declaration -- the `for header` row of the
+// E0879 and E0880 matrices, same file. The loop variable's initializer is a
+// callback slot, and so is an argument of a call in that initializer.
+
+struct Pixel {
+    u32 v;
+}
+
+void onDown(Pixel p) {}
+
+void onUp(Pixel p) {}
+
+// Not used as anyone's field type.
+void plain(Pixel p) {}
+
+// Differs in return type from onDown.
+u32 mismatched(Pixel p) {
+    return 0;
+}
+
+struct Handler {
+    onDown down;
+    onUp up;
+}
+
+u32 countDown(onDown cb) {
+    return 0;
+}
+
+mut u32 passes <- 0;
+
+void main() {
+    // NEGATIVE CONTROL -- a plain function of the right signature: silent in
+    // both slots.
+    for (onDown okVar <- plain; passes < 1; passes +<- 1) {}
+    for (mut u32 i <- countDown(plain); i < 1; i +<- 1) {}
+
+    // ASSERTION 1 -- E0879: the loop variable's initializer has the wrong
+    // signature.
+    for (onDown badVar <- mismatched; passes < 1; passes +<- 1) {}
+
+    // ASSERTION 2 -- E0879: an argument in the initializer has the wrong
+    // signature.
+    for (mut u32 j <- countDown(mismatched); j < 1; j +<- 1) {}
+
+    // ASSERTION 3 -- E0880: another field type in the loop variable's
+    // initializer.
+    for (onDown otherVar <- onUp; passes < 1; passes +<- 1) {}
+
+    // ASSERTION 4 -- E0880: another field type as an argument in the
+    // initializer.
+    for (mut u32 k <- countDown(onUp); k < 1; k +<- 1) {}
+}

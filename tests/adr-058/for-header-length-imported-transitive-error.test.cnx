@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 058
+// E0867 and E0886 inside a `for` header's declaration, the subjects declared
+// TWO includes away -- the for-header / imported-transitive cells of each
+// code's matrix (#1620). E0867 asks the subject's TYPE, which lives in the
+// included file, so a check reading only this file would find none.
+
+#include "length-relay.cnx"
+
+void loops() {
+    // NEGATIVE CONTROL -- the right property on the imported array stays silent.
+    for (mut u32 ok <- sharedArray.type_element_count; ok < 8; ok +<- 1) {}
+
+    // ASSERTION 1 -- E0867: a string's property asked of the imported array.
+    for (mut u32 i <- sharedArray.memory_char_count; i < 8; i +<- 1) {}
+
+    // ASSERTION 2 -- E0867: an array's property asked of the imported scalar.
+    for (mut u32 j <- sharedScalar.type_element_count; j < 8; j +<- 1) {}
+
+    // ASSERTION 3 -- E0886: `.length` is rejected by name.
+    for (mut u32 k <- sharedArray.length; k < 8; k +<- 1) {}
+}
+
+u32 main() {
+    loops();
+    return 0;
+}

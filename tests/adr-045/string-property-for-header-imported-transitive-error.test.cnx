@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 045
+// E0887 inside a `for` header's declaration, on the scalar `STRING_MARKER`
+// declared across TWO include hops (#1620). Whether a name has a buffer is decided
+// from its imported declaration, so a check reading only this file would go
+// quiet.
+
+#include "string-relay.cnx"
+
+u32 fromFunction() {
+    mut u32 total <- 0;
+
+    // NEGATIVE CONTROL -- the property on the imported string.
+    for (mut u32 okCapacity <- wideShared.capacity; okCapacity < 17; okCapacity +<- 1) {
+        total +<- okCapacity;
+    }
+
+    // ASSERTION 1 -- E0887, for header: .capacity of a u32.
+    for (mut u32 markerCapacity <- STRING_MARKER.capacity; markerCapacity < 1; markerCapacity +<- 1) {
+        total +<- markerCapacity;
+    }
+
+    // ASSERTION 2 -- E0887, for header: .size of a u32.
+    for (mut u32 markerSize <- STRING_MARKER.size; markerSize < 1; markerSize +<- 1) {
+        total +<- markerSize;
+    }
+    return total;
+}
+
+u32 main() {
+    return 0;
+}

@@ -9,7 +9,9 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import DiagnosticManifest from "../diagnostics/DiagnosticManifest";
 import AdrMatrixDeclaration from "./AdrMatrixDeclaration";
+import MatrixCell from "./MatrixCell";
 import MatrixRule from "./MatrixRule";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 
@@ -17,7 +19,8 @@ const ADR_FILENAME = /^adr-(\d{3})-.*\.md$/;
 
 /**
  * Parse the matrix declaration out of every `adr-NNN-*.md` in `decisionsDir`,
- * keyed by MatrixRule id: the ADR's own table, and one per rule table.
+ * keyed by MatrixRule id: the ADR's own table, and one per rule or code table.
+ * `retired` holds the codes the error registry retires (ErrorCodeRegistry).
  *
  * An ADR with no `MATRIX-SEVERITY` marker takes no part and is omitted. An ADR
  * that HAS the marker is always included, even when nothing could be read from
@@ -25,7 +28,28 @@ const ADR_FILENAME = /^adr-(\d{3})-.*\.md$/;
  * different facts, and only the first is a fault. Collapsing them is how a
  * malformed table removes every obligation without a word.
  */
-function read(decisionsDir: string): Map<string, IMatrixDeclaration> {
+/**
+ * #1620 review: a code table declares every derivable cell. A cell left out
+ * reads as `off` with no note, which is how a context added later (`for
+ * header`, #1646) went unexamined in 67 tables.
+ */
+function undeclaredCells(table: IMatrixDeclaration): string[] {
+  return MatrixCell.all()
+    .filter(({ relationship }) => MatrixCell.isDerivable(relationship))
+    .filter(
+      ({ context, relationship }) =>
+        !table.severities.has(MatrixCell.key(context, relationship)),
+    )
+    .map(
+      ({ context, relationship }) =>
+        `ADR-${table.adr}: leaves "${context} / ${relationship}" undeclared`,
+    );
+}
+
+function read(
+  decisionsDir: string,
+  retired: ReadonlySet<string> = new Set(),
+): Map<string, IMatrixDeclaration> {
   const declarations = new Map<string, IMatrixDeclaration>();
   if (!existsSync(decisionsDir)) return declarations;
 
@@ -36,9 +60,27 @@ function read(decisionsDir: string): Map<string, IMatrixDeclaration> {
     const adr = match[1];
     const markdown = readFileSync(join(decisionsDir, entry), "utf-8");
 
-    for (const rule of AdrMatrixDeclaration.rulesIn(markdown)) {
-      const ruleId = MatrixRule.id(adr, rule);
-      const ruleTable = AdrMatrixDeclaration.parse(markdown, ruleId, rule);
+    const tables = AdrMatrixDeclaration.tablesIn(markdown);
+    for (const table of tables) {
+      const ruleId = MatrixRule.id(adr, table.name);
+      if (table.kind === "code" && !DiagnosticManifest.isCode(table.name)) {
+        declarations.set(ruleId, {
+          adr: ruleId,
+          severities: new Map(),
+          errors: [
+            `ADR-${adr}: \`code: ${table.name}\` is not a diagnostic code`,
+          ],
+        });
+        continue;
+      }
+      const parsed = AdrMatrixDeclaration.parse(markdown, ruleId, table);
+      const ruleTable =
+        table.kind === "code" && parsed.severities.size > 0
+          ? {
+              ...parsed,
+              errors: [...parsed.errors, ...undeclaredCells(parsed)],
+            }
+          : parsed;
       declarations.set(
         ruleId,
         ruleTable.severities.size > 0 || ruleTable.errors.length > 0
@@ -50,6 +92,44 @@ function read(decisionsDir: string): Map<string, IMatrixDeclaration> {
               ],
             },
       );
+    }
+
+    // #1620: every code the ADR declares needs its own table, and every code
+    // table must name a code the ADR declares. Without the first, a code with
+    // no table would be gated by nothing; without the second, a typo'd code
+    // table would gate a code no fixture of this ADR can assert. A retired
+    // code is declared by nothing: nothing emits it, so a table would be dead.
+    if (markdown.includes(AdrMatrixDeclaration.ANY_MARKER)) {
+      const declared = AdrMatrixDeclaration.codesIn(markdown, retired);
+      const codeTables = tables
+        .filter((t) => t.kind === "code" && DiagnosticManifest.isCode(t.name))
+        .map((t) => t.name);
+      for (const code of declared) {
+        if (codeTables.includes(code)) continue;
+        const codeId = MatrixRule.id(adr, code);
+        declarations.set(codeId, {
+          adr: codeId,
+          severities: new Map(),
+          errors: [
+            `ADR-${adr}: declares ${code} but has no <!-- MATRIX-SEVERITY code: ${code} --> table`,
+          ],
+        });
+      }
+      for (const code of codeTables) {
+        if (declared.includes(code)) continue;
+        const codeId = MatrixRule.id(adr, code);
+        const existing = declarations.get(codeId)!;
+        const cause = retired.has(code)
+          ? "which docs/error-codes.md retires"
+          : "which its code table does not declare";
+        declarations.set(codeId, {
+          ...existing,
+          errors: [
+            ...existing.errors,
+            `ADR-${adr}: has a table for ${code}, ${cause}`,
+          ],
+        });
+      }
     }
 
     const declaration = AdrMatrixDeclaration.parse(markdown, adr);

@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 004
+// E0870/E0871/E0872 across TWO include hops in the function-body cells
+// register-imported-transitive-error.test.cnx leaves uncovered: E0870 and
+// E0872 in a top-level function, E0870 and E0871 in a scope method.
+
+#include "register-relay.cnx"
+
+scope Board {
+    // NEGATIVE CONTROL -- the rw member written and read, and the ro member
+    // read, from a method of this scope.
+    public u32 okAccess() {
+        global.HW.CTRL <- 1;
+        return global.HW.CTRL + global.HW.STATUS;
+    }
+
+    public void go() {
+        // ASSERTION 1 -- read of a wo member in a scope method (E0870).
+        u32 value <- global.HW.COMMAND;
+        // ASSERTION 2 -- write to an ro member in a scope method (E0871).
+        global.HW.STATUS <- value;
+    }
+}
+
+void main() {
+    // ASSERTION 3 -- read of a wo member in a top-level function (E0870).
+    u32 value <- HW.COMMAND;
+    // ASSERTION 4 -- zero to a w1s bit in a top-level function (E0872).
+    HW.SET[3] <- false;
+    Board.go();
+}

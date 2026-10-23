@@ -1,0 +1,30 @@
+// test-error
+// test-adr: 014
+// #1620: E0357 and E0358 in every context, with the struct and the arrays
+// declared in this file. A subscript supplies no type for what sits inside the
+// brackets, so it is E0357 at file scope and in a scope member as it is in a
+// function. A `u32` position is not a struct, so a brace initializer there is
+// E0358. The struct initializer of `Point` beside them is the control.
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+u8[4] table <- [1, 2, 3, 4];
+Point control <- { x: 1, y: 1 };
+u8 atFileScope <- table[{ x: 2, y: 2 }];
+u32 scalarAtFileScope <- { x: 3 };
+
+void f() {
+    u32 local <- { x: 4 };
+}
+
+scope S {
+    u8 member <- table[{ x: 5, y: 5 }];
+    u32 scalarMember <- { x: 6 };
+
+    public void method() {
+        u32 inside <- { x: 7 };
+    }
+}

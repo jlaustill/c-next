@@ -1,0 +1,5 @@
+7:0 error[E0426]: type 'NopeGlobal' is not defined
+13:4 error[E0426]: type 'NopeLocal' is not defined
+15:9 error[E0426]: type 'NopeFor' is not defined
+21:4 error[E0426]: type 'NopeMember' is not defined
+26:8 error[E0426]: type 'NopeMethodLocal' is not defined

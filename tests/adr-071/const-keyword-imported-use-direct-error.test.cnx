@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 071
+// E0898 in a file that reaches its names across ONE include hop(s): `const`
+// on a global, a scope member, a parameter and a local, in a top-level
+// function and in a scope method, each declared with a type or initializer
+// from an included file. CONTROL: each `Ok` twin, the same binding without
+// `const`, is silent.
+
+#include "imported-lib.cnx"
+
+const u32 COPY <- LIBG;
+u32 COPY_OK <- LIBG;
+
+scope Board {
+    const u32 M <- Lib.V;
+    u32 M_OK <- Lib.V;
+
+    public void m(const Slot p, Slot pOk) {
+        const u32 l <- LIBG;
+        u32 lOk <- LIBG;
+    }
+}
+
+void f(const Slot p, Slot pOk) {
+    const u32 l <- Lib.V;
+    u32 lOk <- Lib.V;
+}

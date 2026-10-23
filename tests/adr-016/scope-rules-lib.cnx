@@ -1,0 +1,15 @@
+// Helper (not a test): the declarations the cross-file ADR-016 rule fixtures
+// reach across an include -- a scope with a private and a public member, a
+// global enum, and a global variable. Each rule decides from the DECLARATION,
+// which lives here, so a check reading only the including file finds nothing.
+scope Gate {
+    u32 code <- 7;
+    public u32 width <- 8;
+}
+
+enum EShade {
+    DARK,
+    LIGHT
+}
+
+u32 GATE_MARKER <- 3;

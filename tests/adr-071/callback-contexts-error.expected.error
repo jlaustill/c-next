@@ -1,0 +1,8 @@
+21:26 error[E0879]: Function 'reads' signature does not match callback type 'onWrite'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+25:29 error[E0879]: Function 'reads' signature does not match callback type 'onWrite'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+30:30 error[E0879]: Function 'reads' signature does not match callback type 'onWrite'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+37:17 error[E0879]: Function 'reads' signature does not match callback type 'onWrite'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).

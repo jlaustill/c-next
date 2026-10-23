@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 045
+// E0887 in the contexts `string-storage-properties-error` leaves empty
+// (#1620): a global variable, a scope member and a scope method.
+
+string<8> source <- "abc";
+u32 count <- 5;
+
+// NEGATIVE CONTROL -- the property on a string.
+u32 SOURCE_CAPACITY <- source.capacity;
+
+// ASSERTION -- E0887, global variable.
+u32 COUNT_CAPACITY <- count.capacity;
+
+scope Holder {
+    // ASSERTION -- E0887, scope member.
+    u32 countSize <- count.size;
+
+    public u32 read() {
+        // NEGATIVE CONTROL -- the property on a string, inside the method.
+        u32 okSize <- source.size;
+
+        // ASSERTION -- E0887, scope method.
+        u32 countCapacity <- count.capacity;
+        return countCapacity;
+    }
+}
+
+u32 main() {
+    return 0;
+}

@@ -1,0 +1,14 @@
+19:19 error[E0701]: ternary condition must be a comparison, not 'flag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. flag = true
+22:19 error[E0702]: ternary condition may not call a function: 'isReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+26:19 error[E0701]: ternary condition must be a comparison, not 'flag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. flag = true
+30:19 error[E0702]: ternary condition may not call a function: 'isReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+41:23 error[E0701]: ternary condition must be a comparison, not 'this.ready'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. this.ready > 0 or this.ready != 0
+44:23 error[E0702]: ternary condition may not call a function: 'isReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+48:12 error[E0701]: if condition must be a comparison, not 'this.ready'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. this.ready > 0 or this.ready != 0

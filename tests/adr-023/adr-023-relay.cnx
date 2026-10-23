@@ -1,0 +1,4 @@
+// ADR-023 relay: includes adr-023-limits.cnx, so including it adds two cnx hops.
+#include "adr-023-limits.cnx"
+
+u8 RELAY_ID <- 2;

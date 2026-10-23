@@ -212,11 +212,11 @@ u8[5] data <- [1, 2, 3, 0, 0];  // OK: all elements explicit
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                                    | Asserted by                                                                                       |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| E0866 | An array's initializer is not a list, or a level of it has the wrong number of elements                                                                          | `tests/adr-035/array-init-error.test.cnx`                                                         |
-| E0876 | The fill-all form `[v*]` initializes an array whose size is inferred (`u8[]`)                                                                                    | `tests/adr-035/array-init-error.test.cnx`                                                         |
-| E0892 | A dimension has no size and nothing to count it from: any dimension of a multi-dimensional array, a one-dimensional array with no initializer, or a struct field | `tests/adr-035/empty-dimension-error.test.cnx`, `tests/adr-035/empty-dimension-included.test.cnx` |
+| Code  | Reported when                                                                                                                                                    | Asserted by                                                                                                                                                                                                                                                                                                |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0866 | An array's initializer is not a list, or a level of it has the wrong number of elements                                                                          | `tests/adr-035/array-init-error.test.cnx`, `tests/adr-035/array-form-error.test.cnx`, `tests/adr-035/array-count-included-error.test.cnx`, `tests/adr-035/array-count-transitive-error.test.cnx`, `tests/adr-035/array-form-included-error.test.cnx`, `tests/adr-035/array-form-transitive-error.test.cnx` |
+| E0876 | The fill-all form `[v*]` initializes an array whose size is inferred (`u8[]`)                                                                                    | `tests/adr-035/array-form-error.test.cnx`, `tests/adr-035/array-form-included-error.test.cnx`, `tests/adr-035/array-form-transitive-error.test.cnx`                                                                                                                                                        |
+| E0892 | A dimension has no size and nothing to count it from: any dimension of a multi-dimensional array, a one-dimensional array with no initializer, or a struct field | `tests/adr-035/empty-dimension-error.test.cnx`, `tests/adr-035/empty-dimension-included.test.cnx`, `tests/adr-035/array-form-included-error.test.cnx`, `tests/adr-035/array-form-transitive-error.test.cnx`                                                                                                |
 
 The count is checked at every nesting level against the dimension it fills:
 `u8[2][2] m <- [[1, 2, 3], [4, 5]]` is rejected on the inner list. Until #1322
@@ -265,7 +265,7 @@ array passed there must have the parameter's shape (#2194). Fixtures:
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0866 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -273,23 +273,80 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-An initializer sits on a declaration, which stands in every context, so the
-four same-file cells are `error`. Every fact the rules read -- the dimensions
-written on the type and the elements written in the list -- is in the file
-holding the declaration, so nothing crosses an include and the imported
-columns are `off`. (A dimension named by a const from an include is sized
-through the program's const table; the count itself is local.)
+off: a for header declares one scalar loop variable, so an array declared there
+is ADR-036's E0917 alone, in a file that includes others too; a scalar given a
+list there is #2305.
 
-This table covers a declaration's initializer. A whole array is also taken at a
+<!-- MATRIX-SEVERITY code: E0876 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: a for header declares one scalar loop variable, so an array declared there
+is ADR-036's E0917 alone, in a file that includes others too; a scalar given a
+list there is #2305.
+
+<!-- MATRIX-SEVERITY code: E0892 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: a for header declares one scalar loop variable, so an array declared there
+is ADR-036's E0917 alone, in a file that includes others too; a scalar given a
+list there is #2305.
+
+Each code has its own table (#1620). An initializer sits on a declaration,
+which stands in every context. A for header's declaration is one scalar loop
+variable, where an array is E0917, so every context but a for header is `error`
+for each code. Each rule is decided at the declaration's own position, and that declaration can use
+an included file's names -- a const dimension, an array -- so each code fires in
+a file that includes others as it does in a single file, and the imported cells
+are `error` too (`array-form-included-error`, `array-count-included-error` and
+their `-transitive` pair).
+
+These tables cover a declaration's initializer. A whole array is also taken at a
 field, at an assignment target, and at a parameter, and the rules above apply
 at each as they do here: one element per slot at every level, and a row's slot
 is a list too (#2195), so a plain fill-all of an array of rows (`u8[4][4] g <- [0*]`)

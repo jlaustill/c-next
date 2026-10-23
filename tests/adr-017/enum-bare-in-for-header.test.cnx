@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 017
+// E0424 in a `for` header's declaration -- matrix cell: for header / same file.
+// A bare member is accepted only where its enum is already named. The
+// initializer is an expression like any other, so a bare member there names no
+// enum unless the declaration's type does.
+
+enum Color {
+    RED,
+    GREEN
+}
+
+void main(u8 limit) {
+    mut u8 i <- 0;
+    Color c <- Color.RED;
+
+    // NEGATIVE CONTROL -- the same comparison with the member qualified.
+    for (bool ok <- (c = Color.GREEN); i < limit; i +<- 1) {}
+
+    // ASSERTION 1 -- a comparison operand names no enum.
+    for (bool b <- (c = GREEN); i < limit; i +<- 1) {}
+
+    // ASSERTION 2 -- a declaration of a non-enum type names no enum.
+    for (u8 k <- RED; i < limit; i +<- 1) {}
+}

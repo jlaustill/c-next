@@ -1,0 +1,8 @@
+12:19 error[E0891]: Implicit conversion from floating f32 to integer u32
+       help: Write the conversion as a cast, which saturates: (u32)value (ADR-024)
+16:17 error[E0891]: Implicit conversion from floating f32 to integer u32
+       help: Write the conversion as a cast, which saturates: (u32)value (ADR-024)
+23:18 error[E0891]: Implicit conversion from floating f32 to integer u32
+       help: Write the conversion as a cast, which saturates: (u32)value (ADR-024)
+27:22 error[E0891]: Implicit conversion from floating f32 to integer u32
+       help: Write the conversion as a cast, which saturates: (u32)value (ADR-024)

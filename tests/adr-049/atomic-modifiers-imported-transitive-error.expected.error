@@ -1,0 +1,20 @@
+11:0 error[E0889]: Cannot use both 'atomic' and 'volatile' on one declaration
+       help: `atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).
+12:0 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).
+17:4 error[E0889]: Cannot use both 'atomic' and 'volatile' on one declaration
+       help: `atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).
+18:4 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).
+22:8 error[E0889]: Cannot use both 'atomic' and 'volatile' on one declaration
+       help: `atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).
+23:8 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).
+34:4 error[E0889]: Cannot use both 'atomic' and 'volatile' on one declaration
+       help: `atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).
+35:4 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).
+37:9 error[E0889]: Cannot use both 'atomic' and 'volatile' on one declaration
+       help: `atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).
+38:9 error[E0919]: Cannot use both 'atomic' and 'mut' on one declaration
+       help: `atomic` already makes the binding writable: only a value something writes needs a read or write that cannot be torn. Remove `mut` (ADR-049, ADR-071).

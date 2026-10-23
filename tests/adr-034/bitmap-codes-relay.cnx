@@ -1,0 +1,4 @@
+// The middle hop of bitmap-codes-imported-transitive-error: it only passes
+// bitmap-codes-declarations along.
+
+#include "bitmap-codes-declarations.cnx"

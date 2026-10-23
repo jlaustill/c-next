@@ -1,0 +1,30 @@
+// test-execution
+// test-adr: 036
+// #1620 / ADR-036: a dimension is a constant expression, folded to its value
+// wherever it is written. Each array below renders one, in each context the
+// matrix tracks, in one file.
+
+u32 ROWS <- 2;
+
+u8[ROWS][3] grid <- [[1, 2, 3], [4, 5, 6]];
+
+scope Store {
+    u8[ROWS + 1] slots <- [7, 8, 9];
+
+    public u8 last() {
+        u8[ROWS] pick <- [this.slots[2], this.slots[0]];
+        return pick[0];
+    }
+}
+
+u32 main() {
+    u8[ROWS * 2] local <- [grid[1][2], 0, 0, 0];
+    if (local[0] != 6) {
+        return 1;
+    }
+    u8 picked <- Store.last();
+    if (picked != 9) {
+        return 2;
+    }
+    return 0;
+}

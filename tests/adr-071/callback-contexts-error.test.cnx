@@ -1,0 +1,39 @@
+// test-error
+// test-adr: 071
+// E0879 in every context a function is placed in a callback slot: a global
+// initializer, a scope member initializer, a scope method and a top-level
+// function. The callback type `onWrite` declares its parameter `mut`, so a
+// function whose parameter is read-only does not match it. CONTROL: each
+// placement of `writes`, which declares `mut`, is silent.
+
+void onWrite(mut u32 v) {}
+
+struct Slot {
+    onWrite handler;
+}
+
+void reads(u32 v) {}
+
+void writes(mut u32 v) {
+    v <- 1;
+}
+
+Slot gWrong <- { handler: reads };
+Slot gRight <- { handler: writes };
+
+scope Board {
+    Slot wrong <- { handler: reads };
+    Slot right <- { handler: writes };
+    mut Slot wired;
+
+    public void wire() {
+        this.wired.handler <- reads;
+        this.wired.handler <- writes;
+    }
+}
+
+void wire() {
+    mut Slot s;
+    s.handler <- reads;
+    s.handler <- writes;
+}

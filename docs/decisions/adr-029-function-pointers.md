@@ -329,10 +329,10 @@ Following MISRA C Rule 11.1:
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                   | Asserted by                                                                                                                                                                                                            |
-| ----- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0879 | A function's declared signature differs from the callback type of the slot it is placed in      | `tests/adr-029/callback-signature-error.test.cnx`, `tests/adr-029/callback-imported-*-error.test.cnx`, `tests/adr-029/callback-scope-type-imported-error.test.cnx`, `tests/adr-029/callback-c-header-*-error.test.cnx` |
-| E0880 | A function that is itself used as a struct field's type is placed in a slot of a different type | `tests/adr-029/callback-error-nominal.test.cnx`, `tests/adr-029/callback-uncovered-arms-error.test.cnx`                                                                                                                |
+| Code  | Reported when                                                                                   | Asserted by                                                                                                                                                                                                                                                                 |
+| ----- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0879 | A function's declared signature differs from the callback type of the slot it is placed in      | `tests/adr-029/callback-signature-error.test.cnx`, `tests/adr-029/callback-signature-*-error.test.cnx`, `tests/adr-029/callback-imported-*-error.test.cnx`, `tests/adr-029/callback-scope-type-imported-error.test.cnx`, `tests/adr-029/callback-c-header-*-error.test.cnx` |
+| E0880 | A function that is itself used as a struct field's type is placed in a slot of a different type | `tests/adr-029/callback-error-nominal.test.cnx`, `tests/adr-029/callback-uncovered-arms-error.test.cnx`                                                                                                                                                                     |
 
 A function name reaches a callback-typed slot in exactly four ways, and all
 four are decided on the same terms: an assignment target, a declaration's
@@ -380,23 +380,73 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | ------------------ | ------------------- | -------- |
 | top-level function | same file           | error    |
 | scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+This table holds what no diagnostic code carries: writing a parameter that
+names a function-as-type as that type's function-pointer typedef. The
+callback type can be declared in an included file, so both function contexts
+are `error` at one hop and at two.
+
+off: global variable and scope member -- a parameter only exists in a function
+or scope method signature.
+
+<!-- MATRIX-SEVERITY code: E0879 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
+| for header         | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0880 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 An assignment and a call are statements, so both rules occupy the two function
 contexts; a declaration's initializer is where a callback-typed global or scope
 member gets its value, which occupies the other two. Both the declared
 signature and the fact that makes a function a type can be declared in an
 included file, so every imported cell is `error` and is asserted at one hop and
-at two.
+at two. A `for` header's loop variable is a declaration too, so its
+initializer, and any call argument inside it, is a callback slot: the
+`for header` row is `error` in every column.
 
 ## Research: MISRA C Guidelines
 

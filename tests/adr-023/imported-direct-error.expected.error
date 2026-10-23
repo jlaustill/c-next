@@ -1,0 +1,10 @@
+8:17 error[E0603]: cnx has no 'sizeof'
+       help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).
+11:21 error[E0603]: cnx has no 'sizeof'
+       help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).
+14:21 error[E0603]: cnx has no 'sizeof'
+       help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).
+20:23 error[E0603]: cnx has no 'sizeof'
+       help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).
+22:22 error[E0603]: cnx has no 'sizeof'
+       help: Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).

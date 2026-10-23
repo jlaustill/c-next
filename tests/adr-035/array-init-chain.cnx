@@ -1,0 +1,3 @@
+// Helper for the array-*-transitive fixtures: re-includes array-init-lib.cnx,
+// so its names are two includes away from the fixture.
+#include "array-init-lib.cnx"

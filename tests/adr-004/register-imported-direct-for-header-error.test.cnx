@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 004
+// E0870 in a `for` header's declaration across ONE include hop(s) -- the
+// `for header` / `imported direct` cell of ADR-004's matrix.
+//
+// The access modifier is recorded where the register is declared, so a check
+// reading only this file finds no register and "not found" never rejects.
+
+#include "register-declarations.cnx"
+
+// NEGATIVE CONTROL -- the same `for` header reading the imported register's
+// rw and ro members.
+void okReads() {
+    for (mut u32 i <- HW.CTRL; i < 3; i <- i + 1) {}
+    for (mut u32 j <- HW.STATUS; j < 3; j <- j + 1) {}
+}
+
+// ASSERTION 1 -- a `for` header in a top-level function.
+void main() {
+    for (mut u32 i <- HW.COMMAND; i < 3; i <- i + 1) {}
+}
+
+scope Board {
+    // ASSERTION 2 -- a `for` header in a scope method.
+    public void scan() {
+        for (mut u32 i <- global.HW.COMMAND; i < 3; i <- i + 1) {}
+    }
+}

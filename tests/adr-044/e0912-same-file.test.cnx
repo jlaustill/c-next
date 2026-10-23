@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 044
+// ADR-044 "Integer Literals": there is no octal literal, so a decimal literal
+// never has a leading zero (E0912), wherever it is written: a file-scope
+// initializer, a function body, a scope member, a scope method and a for
+// header, in the same file.
+//
+// NEGATIVE CONTROLS stay silent: 0, 10, and a leading zero after 0x.
+
+u8 FileValue <- 010;
+u8 FileFine <- 10;
+
+u32 run() {
+    mut u32 sum <- 0;
+    u32 local <- 07 + 0;
+    for (mut u32 i <- 05; i < 10; i +<- 1) {
+        sum <- sum + i + local;
+    }
+    return sum + 0x010;
+}
+
+scope Holder {
+    u8 member <- 00;
+    u8 memberFine <- 0;
+
+    public u32 scaled(u32 x) {
+        return x * 03;
+    }
+}
+
+void main() {}

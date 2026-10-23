@@ -1,0 +1,6 @@
+// Helper for imported-transitive-error: a second hop to adr-050-shared.cnx.
+#include "adr-050-shared.cnx"
+
+u32 relayTicks() {
+    return sharedTicks;
+}

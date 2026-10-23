@@ -1,0 +1,2 @@
+13:22 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. In a function, write `global.Name` to reach a file-scope declaration past a local or parameter of that name, or move the code into the scope it belongs to.

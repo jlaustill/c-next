@@ -1,0 +1,15 @@
+// Declares the bitmap the imported ADR-034 per-code fixtures use, one include
+// away from bitmap-codes-imported-direct-error and two from
+// bitmap-codes-imported-transitive-error (through bitmap-codes-relay).
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+mut Flags fl <- 0;
+mut Flags[2] arr;

@@ -289,6 +289,90 @@ Could generate prototypes at top of `.c` file to allow any order.
 | scope member       | imported transitive | warn     |
 | scope method       | imported transitive | warn     |
 
+<!-- MATRIX-SEVERITY code: E0422 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0423 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+off: E0423 only fires inside a function body; a global or scope member initializer has no enclosing function to call itself, and a call there is E0909.
+
+<!-- MATRIX-SEVERITY code: E0426 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0427 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+The code tables carry a `for header` row the ADR-wide table predates: each of the four codes fires in a `for` header's declaration.
+
 **`same file` is where this fact is observable, which is not obvious and was got
 wrong once here.** The relationship axis counts cnx include hops. An opaque
 type arrives from a C header — `#include "fake_lib.h"` — and a C header is not a
@@ -357,12 +441,12 @@ made the harness link the include closure.
 Define-before-use is one promise, and a name can be used in three positions, so
 the rule is enforced in three places rather than decided in three places.
 
-| Code  | Reported when                                                               | Asserted by                                                                                                                                                                                                                                                                                                                                                      |
-| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`                                                                                                                                                                                                                                  |
-| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`                                                                                                                                                                                                                                                                               |
-| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders                                                                                                                                                                                                                                                                   |
-| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/`, `tests/bugs/issue-1643-self-referential-initializer/`, `tests/bugs/issue-1624-variable-above-declaration/`, `tests/bugs/issue-2019-header-unclosed-name/`, `tests/bugs/issue-1629-case-label-undeclared/` |
+| Code  | Reported when                                                               | Asserted by                                                                                                                                                                                                                                                                                                                                                                        |
+| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`, `tests/adr-030/`                                                                                                                                                                                                                                  |
+| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`, `tests/adr-030/`                                                                                                                                                                                                                                                                               |
+| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders; `tests/adr-030/`                                                                                                                                                                                                                                                                   |
+| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/`, `tests/bugs/issue-1643-self-referential-initializer/`, `tests/bugs/issue-1624-variable-above-declaration/`, `tests/bugs/issue-2019-header-unclosed-name/`, `tests/bugs/issue-1629-case-label-undeclared/`, `tests/adr-030/` |
 
 **Visibility is answered per file, not per run.** A name declared in a sibling
 that this file never includes is not visible here, and saying so is the whole

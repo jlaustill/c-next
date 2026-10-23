@@ -374,6 +374,13 @@ value is E0864 when it may not fit, and inside a function it is copied into
 the field like any string. At file scope only a literal can initialize one
 (E0863), for the reason a file-scope string takes only a literal.
 
+| Code  | Reported when                                                                     | Asserted by                                                                                                                                                                                                  |
+| ----- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E0862 | A string's capacity cannot be determined: none written, and none inferable        | `tests/adr-045/string-error-const-no-init.test.cnx`, `tests/adr-045/string-error-uncovered-forms.test.cnx`, `tests/adr-045/string-syntax-rules-*.test.cnx`                                                   |
+| E0863 | A string, or a string field, at file scope is initialized by other than a literal | `tests/adr-045/string-error-init-global.test.cnx`, `tests/adr-045/string-imported-global-error.test.cnx`, `tests/adr-045/string-syntax-rules-*.test.cnx`                                                     |
+| E0864 | A value written into a `string<N>` may not fit its capacity                       | `tests/adr-045/string-error-overflow.test.cnx`, `tests/adr-045/string-error-in-scope.test.cnx`, `tests/adr-045/string-fit-rules-imported-*.test.cnx`, `tests/adr-045/string-fit-rules-for-header-*.test.cnx` |
+| E0865 | A substring's bounds exceed its source's capacity                                 | `tests/adr-045/string-error-substring-bounds.test.cnx`, `tests/adr-045/string-fit-rules-*.test.cnx`                                                                                                          |
+
 ### No Silent Truncation
 
 Unlike C's `strncpy`, CNX **never silently truncates**. If data might not fit, it's a compile error.
@@ -618,9 +625,9 @@ type
 
 ## Diagnostics: the storage properties
 
-| Code  | Reported when                                               | Asserted by                                              |
-| ----- | ----------------------------------------------------------- | -------------------------------------------------------- |
-| E0887 | `.capacity` or `.size` is asked of something with no buffer | `tests/adr-045/string-storage-properties-error.test.cnx` |
+| Code  | Reported when                                               | Asserted by                                                                                          |
+| ----- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| E0887 | `.capacity` or `.size` is asked of something with no buffer | `tests/adr-045/string-storage-properties-error.test.cnx`, `tests/adr-045/string-property-*.test.cnx` |
 
 `.capacity` is the declared `N` and `.size` is that plus the null terminator.
 Both describe the BUFFER a string is, so neither has an answer for a scalar or
@@ -638,7 +645,7 @@ may only be initialized by a literal, the initializer must fit, a substring's
 bounds must stay within its source, and a string array's initializer must match
 its declaration.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0862 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -647,16 +654,106 @@ its declaration.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0862 judges a string declaration, and a `for` header cannot declare a string: one there is E0917 (ADR-036).
+
+<!-- MATRIX-SEVERITY code: E0863 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | error    |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | off      |
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | error    |
-| scope member       | imported transitive | off      |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0863 is a file-scope rule; inside a function or method a string may be copied, concatenated or sliced, and a string declared in a `for` header is E0917 (ADR-036).
+
+<!-- MATRIX-SEVERITY code: E0864 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0865 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0887 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 A string declaration is a DECLARATION, so unlike a statement rule it reaches all
 four same-file contexts.
+A `for` header cannot declare a string (E0917), but its loop variable's
+initializer can pass one to a `string<N>` parameter or ask a storage property,
+so E0864, E0865 and E0887 reach it too.
 
 The imported columns matter because the rules compare a destination's capacity
 against a SOURCE's, and the source may be declared in another file. A check

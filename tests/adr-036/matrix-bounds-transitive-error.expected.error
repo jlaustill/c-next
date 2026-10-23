@@ -1,0 +1,12 @@
+13:24 error[E0854]: Array index out of bounds: 4 >= 4 for 'libTable' dimension 1
+       help: The last valid index is 3 (ADR-036).
+17:20 error[E0854]: Array index out of bounds: 5 >= 4 for 'libTable' dimension 1
+       help: The last valid index is 3 (ADR-036).
+19:25 error[E0854]: Array index out of bounds: 6 >= 4 for 'libTable' dimension 1
+       help: The last valid index is 3 (ADR-036).
+24:24 error[E0854]: Array index out of bounds: 7 >= 4 for 'libTable' dimension 1
+       help: The last valid index is 3 (ADR-036).
+28:24 error[E0854]: Array index out of bounds: 8 >= 4 for 'libTable' dimension 1
+       help: The last valid index is 3 (ADR-036).
+30:29 error[E0854]: Array index out of bounds: 9 >= 4 for 'libTable' dimension 1
+       help: The last valid index is 3 (ADR-036).

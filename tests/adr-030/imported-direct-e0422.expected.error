@@ -1,0 +1,5 @@
+7:9 error[E0422]: function 'laterGlobal' called before definition
+11:13 error[E0422]: function 'laterTop' called before definition
+12:18 error[E0422]: function 'laterFor' called before definition
+18:13 error[E0422]: function 'laterMember' called before definition
+22:17 error[E0422]: function 'laterMethod' called before definition

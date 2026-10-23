@@ -1,0 +1,8 @@
+// Helper (not a test): the names the cross-file E0705 and E0707 fixtures use.
+// E0705 reads the enclosing function's declared type, which is declared here.
+enum Mode {
+    IDLE,
+    RUN
+}
+
+u8 LOOP_LIMIT <- 3;

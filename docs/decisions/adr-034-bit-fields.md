@@ -405,14 +405,14 @@ uint8_t mode = ((status.flags >> 3) & 0x7);
 
 ## Diagnostics
 
-| Code  | Reported when                                                                    | Asserted by                                                                                                          |
-| ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| E0857 | A compound operator such as `+<-` writes a bitmap field (#2159)                  | `tests/compound-assign/bitmap-field-compound.test.cnx`                                                               |
-| E0881 | A value written to a bitmap field does not fit the field's declared width        | `tests/adr-034/bitmap-error-overflow.test.cnx`                                                                       |
-| E0882 | A member access names something the bitmap does not declare                      | `tests/adr-034/bitmap-unknown-field-error.test.cnx`                                                                  |
-| E0883 | A bitmap is addressed by bit index rather than by named field                    | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`                                                               |
-| E0893 | A bitmap's field widths do not add up to its size, at the bitmap                 | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx` |
-| E0921 | A field is read or written on a bitmap array that names no whole element (#2186) | `tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx`                                               |
+| Code  | Reported when                                                                    | Asserted by                                                                                                                                                                                                                                                 |
+| ----- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0857 | A compound operator such as `+<-` writes a bitmap field (#2159)                  | `tests/compound-assign/bitmap-field-compound.test.cnx`, `tests/adr-034/bitmap-compound-same-file-error.test.cnx`, `tests/adr-034/bitmap-compound-imported-transitive-error.test.cnx`                                                                        |
+| E0881 | A value written to a bitmap field does not fit the field's declared width        | `tests/adr-034/bitmap-error-overflow.test.cnx`, `tests/adr-034/bitmap-codes-same-file-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-direct-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-transitive-error.test.cnx`                         |
+| E0882 | A member access names something the bitmap does not declare                      | `tests/adr-034/bitmap-unknown-field-error.test.cnx`, `tests/adr-034/bitmap-codes-same-file-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-direct-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-transitive-error.test.cnx`                    |
+| E0883 | A bitmap is addressed by bit index rather than by named field                    | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`, `tests/adr-034/bitmap-codes-same-file-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-direct-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-transitive-error.test.cnx`                 |
+| E0893 | A bitmap's field widths do not add up to its size, at the bitmap                 | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx`                                                                                                                                        |
+| E0921 | A field is read or written on a bitmap array that names no whole element (#2186) | `tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx`, `tests/adr-034/bitmap-codes-same-file-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-direct-error.test.cnx`, `tests/adr-034/bitmap-codes-imported-transitive-error.test.cnx` |
 
 A bitmap is reached two ways -- through a variable declared with a bitmap type,
 and through a register member typed by one -- and E0881, E0882, E0883 and
@@ -439,19 +439,148 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | ------------------ | ------------------- | -------- |
 | top-level function | same file           | error    |
 | scope method       | same file           | error    |
-| global variable    | same file           | error    |
-| scope member       | same file           | warn     |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
-| global variable    | imported direct     | warn     |
-| scope member       | imported direct     | warn     |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
 | top-level function | imported transitive | warn     |
 | scope method       | imported transitive | warn     |
-| global variable    | imported transitive | warn     |
-| scope member       | imported transitive | warn     |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+off: since #1620 only the bitmap field write lowering occupies this table, and a field write is a statement, which no initializer can hold.
+
+<!-- MATRIX-SEVERITY code: E0857 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| for header         | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+off: a compound operator is a statement, which no initializer can hold (`u8 g <- f.Mode +<- 1;` is a parse error).
+
+<!-- MATRIX-SEVERITY code: E0881 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| for header         | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+off: E0881 judges a write to a field, a statement no initializer can hold, and a bitmap has no initializer literal to overflow (`Flags g <- {Mode: 9};` is E0358).
+
+<!-- MATRIX-SEVERITY code: E0882 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0883 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0893 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| for header         | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+off: E0893 fires at a bitmap's declaration, which is none of these contexts.
+
+<!-- MATRIX-SEVERITY code: E0921 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 A bitmap's fields and a register member's type can both be declared in an
-included file, so every imported cell is reachable and none is `off`.
+included file, so every imported cell a field write can reach is reachable and
+none of those is `off`.
 
 `top-level function | imported direct` is `error`: #1651 built it, and
 `scope method | imported direct` is `error`:

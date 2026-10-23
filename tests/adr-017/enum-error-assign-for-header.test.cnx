@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 017
+// E0428 in a `for` header's declaration -- matrix cell: for header / same file.
+// A value assigned to an enum-typed declaration must be of that enum.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+enum Power {
+    OFF,
+    ON
+}
+
+void main(u8 limit) {
+    mut u8 i <- 0;
+
+    // NEGATIVE CONTROL -- a member of the declared enum.
+    for (State ok <- State.IDLE; i < limit; i +<- 1) {}
+
+    // ASSERTION 1 -- an integer.
+    for (State s <- 1; i < limit; i +<- 1) {}
+
+    // ASSERTION 2 -- a member of a different enum.
+    for (State t <- Power.ON; i < limit; i +<- 1) {}
+}

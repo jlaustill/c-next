@@ -1,0 +1,2 @@
+// ADR-023 helper: a plain file-scope const, so including it adds one cnx hop.
+u8 LIMIT_ID <- 1;

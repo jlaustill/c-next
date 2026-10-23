@@ -1,0 +1,4 @@
+12:17 error[E0899]: 'i' is never written; remove `mut`
+       help: A binding is declared `mut` only when something writes it (ADR-071).
+24:21 error[E0899]: 'i' is never written; remove `mut`
+       help: A binding is declared `mut` only when something writes it (ADR-071).

@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a for header works on scalars, so a whole array copied in
+// a for clause is E0917 when the array copied is declared one include away
+// too, in a function and in a scope method.
+
+#include "matrix-lib.cnx"
+
+void f() {
+    mut u8[4] pair <- [0, 0, 0, 0];
+    // NEGATIVE CONTROL -- a scalar write in a for clause stays silent.
+    for (u32 k <- 0; k < 2; pair[0] <- libTable[0]) {}
+    // E0917 -- the init clause.
+    for (pair <- libTable; pair[0] < 2; pair[0] <- 2) {}
+}
+
+scope Copier {
+    public void go() {
+        mut u8[4] pair <- [0, 0, 0, 0];
+        // E0917 -- the update clause, in a scope method.
+        for (u32 a <- 0; a < 2; pair <- libTable) {}
+    }
+}
+
+void main() {}

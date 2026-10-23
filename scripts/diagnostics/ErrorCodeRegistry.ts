@@ -98,6 +98,15 @@ class ErrorCodeRegistry {
     return row.description.includes("_(reserved)_") || row.source === "Planned";
   }
 
+  /** #1620 review: the codes the registry marks `_(retired)_`. */
+  static retired(markdown: string): Set<string> {
+    return new Set(
+      ErrorCodeRegistry.rows(markdown)
+        .filter((row) => row.description.startsWith("_(retired)_"))
+        .map((row) => row.code),
+    );
+  }
+
   static check(markdown: string, emitted: ReadonlySet<string>): string[] {
     const rows = ErrorCodeRegistry.rows(markdown);
     const errors: string[] = [];

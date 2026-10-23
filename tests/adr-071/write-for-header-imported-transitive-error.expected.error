@@ -1,0 +1,6 @@
+17:23 error[E0900]: cannot pass read-only 'LIBG' to `mut` parameter 'v' of function 'take'
+       help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).
+19:29 error[E0900]: cannot assign to read-only variable 'LIBG' (safe_div output)
+       help: safe_div writes its result through its first argument, so it must be declared `mut` (ADR-071).
+29:27 error[E0900]: cannot pass read-only 'global.LIBG' to `mut` parameter 'v' of function 'take'
+       help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).

@@ -480,6 +480,116 @@ enum's variants exactly.
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
+<!-- MATRIX-SEVERITY code: E0711 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0711 reports a switch on a bool, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
+
+<!-- MATRIX-SEVERITY code: E0712 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0712 reports a one-clause switch, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
+
+<!-- MATRIX-SEVERITY code: E0713 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0713 reports a duplicate case value, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
+
+<!-- MATRIX-SEVERITY code: E0714 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0714 reports an enum switch that miscounts its variants, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
+
+<!-- MATRIX-SEVERITY code: E0717 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0717 reports a case label that is not a constant, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
+
 A switch is a **statement**. It appears in a function body and nowhere else, so
 the two declaration contexts cannot hold one and are `off`.
 

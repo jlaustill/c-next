@@ -1,0 +1,20 @@
+14:19 error[E0701]: ternary condition must be a comparison, not 'libFlag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. libFlag = true
+17:19 error[E0702]: ternary condition may not call a function: 'libReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+25:8 error[E0701]: if condition must be a comparison, not 'libFlag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. libFlag = true
+28:8 error[E0702]: if condition may not call a function: 'libReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+35:19 error[E0701]: ternary condition must be a comparison, not 'libFlag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. libFlag = true
+39:19 error[E0702]: ternary condition may not call a function: 'libReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+46:23 error[E0701]: ternary condition must be a comparison, not 'libFlag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. libFlag = true
+49:23 error[E0702]: ternary condition may not call a function: 'libReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
+53:12 error[E0701]: if condition must be a comparison, not 'libFlag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. libFlag = true
+56:15 error[E0702]: while condition may not call a function: 'libReady() = true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

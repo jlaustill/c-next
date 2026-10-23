@@ -1,0 +1,30 @@
+// test-error
+// test-adr: 030
+// ADR-030 E0423 in every context it can fire in, at include depth 1.
+
+#include "adr-030-lib.cnx"
+
+void top(u32 n) {
+    u32 seen <- libValue();
+    if (n = 0) {
+        return;
+    }
+    top(n - 1);
+}
+
+u32 count(u32 n) {
+    for (u32 i <- count(n - 1); i < 3; i +<- 1) {
+        u32 c <- i;
+    }
+    return n;
+}
+
+scope S {
+    public void go(u32 n) {
+        u32 seen <- libValue();
+        if (n = 0) {
+            return;
+        }
+        this.go(n - 1);
+    }
+}

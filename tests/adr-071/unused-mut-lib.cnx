@@ -1,0 +1,10 @@
+// Functions ADR-071's imported E0899 fixtures call: a read-only parameter,
+// which leaves the argument unwritten, and a `mut` twin, which writes it.
+
+void libShow(u32 v) {
+    u32 a <- v;
+}
+
+void libBump(mut u32 v) {
+    v <- v + 1;
+}

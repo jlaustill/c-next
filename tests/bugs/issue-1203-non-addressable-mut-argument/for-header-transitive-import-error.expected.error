@@ -1,0 +1,2 @@
+12:33 error[E0915]: cannot pass '3' to `mut` parameter 'value' of function 'takeShared': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.

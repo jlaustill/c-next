@@ -1,0 +1,53 @@
+// test-error
+// test-adr: 045
+// The capacity rules with the string `wideShared` (string<16>) declared
+// across TWO include hops (#1620): E0864 and E0865 in all four contexts. Both
+// need the imported capacity, so a check reading only this file would go
+// quiet. E0887 is decided by a later step, so
+// `string-property-imported-transitive-error` asserts it.
+
+#include "string-relay.cnx"
+
+u32 take(string<8> s) {
+    return 0;
+}
+
+// ASSERTION -- E0864, global variable. A file-scope string takes only a
+// literal, so the literal is what does not fit.
+string<4> TOO_SMALL <- "Hello";
+
+// ASSERTION -- E0865, global variable.
+u32 OUT_OF_BOUNDS <- take(wideShared[12, 8]);
+
+u32 fromFunction() {
+    // NEGATIVE CONTROL -- a substring within the imported source.
+    string<8> okWithin <- wideShared[8, 8];
+
+    // ASSERTION -- E0864, top-level function.
+    string<8> narrowLocal <- wideShared;
+
+    // ASSERTION -- E0865, top-level function.
+    string<8> outOfBoundsLocal <- wideShared[12, 8];
+    return 0;
+}
+
+scope Holder {
+    // ASSERTION -- E0864, scope member.
+    string<4> tooSmallMember <- "Hello";
+
+    // ASSERTION -- E0865, scope member.
+    u32 outOfBounds <- take(wideShared[12, 8]);
+
+    public u32 read() {
+        // ASSERTION -- E0864, scope method.
+        string<8> narrowLocal <- wideShared;
+
+        // ASSERTION -- E0865, scope method.
+        string<8> outOfBoundsLocal <- wideShared[12, 8];
+        return 0;
+    }
+}
+
+u32 main() {
+    return 0;
+}

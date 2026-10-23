@@ -1,0 +1,4 @@
+// Helper for the array-*-included and array-*-transitive fixtures: a const
+// dimension and an array, both declared one include away from the fixture.
+u8 LIMIT <- 3;
+u8[2] source <- [1, 2];

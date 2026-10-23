@@ -1,0 +1,37 @@
+// test-error
+// test-adr: 045
+// The capacity rules inside a `for` header's declaration, with the string
+// `wideShared` (string<16>) declared across TWO include hops (#1620): E0864 and
+// E0865 on an argument the loop variable's initializer writes into a
+// `string<8>` parameter. Both need the imported capacity, so a check reading
+// only this file would go quiet.
+
+#include "string-relay.cnx"
+
+u32 take(string<8> s) {
+    return 0;
+}
+
+u32 fromFunction() {
+    mut u32 total <- 0;
+
+    // NEGATIVE CONTROL -- a substring that is within the imported source and fits.
+    for (mut u32 okWithin <- take(wideShared[8, 8]); okWithin < 1; okWithin +<- 1) {
+        total +<- okWithin;
+    }
+
+    // ASSERTION 1 -- E0864, for header: string<16> passed to string<8>.
+    for (mut u32 narrow <- take(wideShared); narrow < 1; narrow +<- 1) {
+        total +<- narrow;
+    }
+
+    // ASSERTION 2 -- E0865, for header: [12, 8] runs past string<16>.
+    for (mut u32 outOfBounds <- take(wideShared[12, 8]); outOfBounds < 1; outOfBounds +<- 1) {
+        total +<- outOfBounds;
+    }
+    return total;
+}
+
+u32 main() {
+    return 0;
+}

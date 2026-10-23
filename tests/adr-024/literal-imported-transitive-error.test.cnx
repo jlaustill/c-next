@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 024
+// E0868 across TWO include hops -- matrix cells: imported transitive, in all four
+// contexts. In a function or method the literal is written into a u8 declared
+// elsewhere, so the rule must read the target's range across the include. A
+// declaration at file or scope level names its own target, so there the
+// include changes nothing the rule reads, and it must still fire.
+#include "literal-relay.cnx"
+
+// NEGATIVE CONTROL -- the boundary each assertion is one past.
+u8 exactlyFull <- 255;
+
+// ASSERTION -- global variable context.
+u8 atFileScope <- 256;
+
+void f() {
+    // NEGATIVE CONTROL -- the imported target's own maximum.
+    byteShared <- 255;
+    // ASSERTION -- top-level function context.
+    byteShared <- 256;
+}
+
+scope S {
+    // ASSERTION -- scope member context.
+    u8 member <- 256;
+
+    public void method() {
+        // ASSERTION -- scope method context.
+        byteShared <- 256;
+    }
+}

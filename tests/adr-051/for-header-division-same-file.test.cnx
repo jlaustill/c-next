@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 051
+// E0800 and E0802 at a position inside a for header's declaration -- the
+// initializer in `for (mut u32 i <- <here>; ...)`.
+// Matrix cells: for header -- same file.
+
+u32 ZERO <- 0;
+u32 TWO <- 2;
+
+void topLevelFunction() {
+    // NEGATIVE CONTROL -- a nonzero const divisor.
+    for (mut u32 a <- 10 / TWO; a < 10; a +<- 1) {}
+    for (mut u32 b <- 10 % TWO; b < 10; b +<- 1) {}
+
+    // ASSERTION 1 -- E0800: division by a const zero.
+    for (mut u32 c <- 10 / ZERO; c < 10; c +<- 1) {}
+
+    // ASSERTION 2 -- E0802: modulo by a const zero.
+    for (mut u32 d <- 10 % ZERO; d < 10; d +<- 1) {}
+}

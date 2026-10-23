@@ -442,12 +442,16 @@ index or range, a function's name, or a header's `#define` or enum constant --
 is E0915: C would take the write into a temporary and lose it, or not compile.
 Passing a read-only binding to a `mut` parameter stays E0900 (ADR-071).
 
+| Code  | Meaning                                        | Fixtures                                              |
+| ----- | ---------------------------------------------- | ----------------------------------------------------- |
+| E0915 | a `mut` parameter's argument is not a variable | `tests/bugs/issue-1203-non-addressable-mut-argument/` |
+
 ## Scope-Context Matrix (#1219)
 
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0915 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -463,10 +467,14 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 The rule is about a call's argument, so every place a call can be written can
-break it: a function or scope method body, and a global variable's or scope
-member's initializer (`u32 g <- take(5);`). A callee one or two `#include`
+break it: a function or scope method body, a global variable's or scope
+member's initializer (`u32 g <- take(5);`), and a `for` header's declaration
+(`for (mut u32 i <- take(3); ...)`). A callee one or two `#include`
 hops away is the same `mut` parameter. Every cell is `error`, with a fixture
 under `tests/bugs/issue-1203-non-addressable-mut-argument/`.
 

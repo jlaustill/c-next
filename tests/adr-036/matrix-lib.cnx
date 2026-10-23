@@ -1,0 +1,11 @@
+// Helper for ADR-036's cross-file matrix fixtures (#1620): every name those
+// fixtures reach across an include is declared here.
+
+u32 LIB_N <- 4;
+u8 LIB_A <- 200;
+mut u32 libCount <- 4;
+u8[4] libTable <- [1, 2, 3, 4];
+
+struct LibCell {
+    u8 v;
+}

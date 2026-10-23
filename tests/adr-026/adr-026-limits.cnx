@@ -1,0 +1,4 @@
+// Included by the imported ADR-026 fixtures so that each sits one or two
+// `.cnx` includes deep. E0703 is about the word written in the including file,
+// so this file only has to exist and be valid.
+u32 LOOP_LIMIT <- 10;
