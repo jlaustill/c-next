@@ -57,9 +57,12 @@ const BASELINE = new Map<string, string>([
   // lowering calls to (void) at their single emit site and makes author-written
   // discards a compile error (E0708), so the rule is enforced, not baselined.
   // --- rules surfaced by #1057, newly tracked (#1059–#1072) ---
-  // 8.6 (#1059), 5.8 (#1063) and 8.5 (#1064) are deliberately absent: each
-  // measured 0 generated violations and closed (#2091), so they are enforced,
-  // and docs/misra-compliance.md names cppcheck as their guard (#1610).
+  // 8.6 (#1059) and 8.5 (#1064) are deliberately absent: each measured 0
+  // generated violations and closed (#2091), so they are enforced, and
+  // docs/misra-compliance.md names cppcheck as their guard (#1610).
+  // 5.8 closed at 0 too (#1063), but the clamp helpers' `a`/`b` parameters
+  // now reuse a global's name, so it is baselined again on #2325.
+  ["misra-c2012-5.8", "#2325"],
   ["misra-c2012-5.9", "#1060"],
   ["misra-c2012-5.6", "#1061"],
   ["misra-c2012-7.2", "#1062"],

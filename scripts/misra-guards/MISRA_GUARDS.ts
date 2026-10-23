@@ -43,7 +43,6 @@ const MISRA_GUARDS: ReadonlyMap<string, readonly TMisraGuard[]> = new Map<
   ["4.1", [cppcheck]],
   ["4.2", [cppcheck]],
   ["5.1", [cppcheck, diagnostic("E0204")]],
-  ["5.8", [cppcheck, diagnostic("E0204")]],
   ["6.1", [cppcheck]],
   ["6.2", [cppcheck]],
   ["7.1", [cppcheck, diagnostic("E0912")]],

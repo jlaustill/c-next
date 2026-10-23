@@ -44,7 +44,7 @@ assessment claimed N/A.
 | Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
 | Directives (1-4) | 1        | 8         | 1       | 0       | 1   | 1            | 1         |
-| Rules 1-5        | 4        | 3         | 5       | 0       | 0   | 10           | 1         |
+| Rules 1-5        | 3        | 3         | 6       | 0       | 0   | 10           | 1         |
 | Rules 6-10       | 4        | 13        | 9       | 0       | 0   | 7            | 0         |
 | Rules 11-15      | 2        | 12        | 7       | 0       | 1   | 8            | 1         |
 | Rules 16-22      | 6        | 26        | 6       | 0       | 1   | 17           | 1         |
@@ -99,7 +99,6 @@ fails when such a row has no guard or names one that does not exist
 | 4.1       | `validate:c` (cppcheck 4.1)                                                                          |
 | 4.2       | `validate:c` (cppcheck 4.2)                                                                          |
 | 5.1       | `validate:c` (cppcheck 5.1); E0204 fixture                                                           |
-| 5.8       | `validate:c` (cppcheck 5.8); E0204 fixture                                                           |
 | 6.1       | `validate:c` (cppcheck 6.1)                                                                          |
 | 6.2       | `validate:c` (cppcheck 6.2)                                                                          |
 | 7.1       | `validate:c` (cppcheck 7.1); E0912 fixture                                                           |
@@ -258,7 +257,7 @@ fails when such a row has no guard or names one that does not exist
 | 5.5  | Identifiers distinct from macros         | Not Enforced | A flag define may share a declaration's name, which then does not compile: #2127                                            |
 | 5.6  | Unique typedef names                     | Partial      | #1341 — see below                                                                                                           |
 | 5.7  | Unique tag names                         | Partial      | #1341 — see below                                                                                                           |
-| 5.8  | Unique external identifiers              | **Enforced** | E0204 — see below                                                                                                           |
+| 5.8  | Unique external identifiers              | Partial      | E0204 — see below; the clamp helpers' `a`/`b` parameters reuse a global's name: #2325                                       |
 | 5.9  | Unique internal identifiers              | Not Enforced | #1338                                                                                                                       |
 
 ### Rule 5.1 and the cost of `Scope__member` (issue #1307)
