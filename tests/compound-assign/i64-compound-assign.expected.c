@@ -191,7 +191,7 @@ int main(void) {
         return 52U;
     }
     val = 0x0F0F0F0F0F0F0F0F;
-    val &= -0x0F0F0F0F0F0F0F10;
+    val &= 0xF0F0F0F0F0F0F0F0;
     if (val != 0) {
         return 53U;
     }
@@ -216,7 +216,7 @@ int main(void) {
         return 70U;
     }
     val = 0x0F0F0F0F0F0F0F0F;
-    val ^= -0x0F0F0F0F0F0F0F10;
+    val ^= 0xF0F0F0F0F0F0F0F0;
     if (val != -1) {
         return 71U;
     }

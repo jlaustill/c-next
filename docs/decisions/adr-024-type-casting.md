@@ -732,7 +732,8 @@ the fixture is in.
 A literal operand is checked as a lone literal is (owner ruling on #1618):
 a value known at compile time that does not fit the target is E0868, and
 ADR-044's clamp is for runtime values only. `u8 a +<- 300` and
-`a <- a + 300` are both rejected; `a +<- 255` is not.
+`a <- a + 300` are both rejected; `a +<- 255` is not. The operators beside a
+literal decide what it must fit; ADR-044's _Compile time first_ lists them.
 
 <!-- MATRIX-POSITION code: E0868 -->
 

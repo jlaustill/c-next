@@ -198,12 +198,12 @@ int main(void) {
         return 51U;
     }
     andVal = 0x55555555;
-    andVal &= -0x55555556;
+    andVal &= 0xAAAAAAAA;
     if (andVal != 0) {
         return 52U;
     }
     andVal = 0x0F0F0F0F;
-    andVal &= -0x0F0F0F10;
+    andVal &= 0xF0F0F0F0;
     if (andVal != 0) {
         return 53U;
     }

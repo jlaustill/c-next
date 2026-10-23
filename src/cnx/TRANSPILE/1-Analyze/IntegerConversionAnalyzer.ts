@@ -86,6 +86,9 @@ import SourceOrder from "../../utils/SourceOrder";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
+/** What a literal operand must fit: the range, the width, or nothing */
+type TLiteralRole = "value" | "bits" | "exempt";
+
 /** The expressions that build a value rather than name one (#1618). */
 const CONSTANT_FORMS: ReadonlySet<TExpression["kind"]> = new Set([
   "literal",
@@ -189,7 +192,13 @@ class IntegerConversionCheck {
       OperandTyper.typeOfTarget(site.target, this.context),
       ...(shift ? [] : OperandTyper.valueLeaves(site.value, this.context)),
     ]);
-    if (!shift) this.checkLiteralLeaves(targetType, site.value);
+    if (!shift) {
+      this.checkLiteralLeaves(
+        targetType,
+        site.value,
+        IntegerConversionCheck.roleOf(binary, null),
+      );
+    }
     if (source !== null) {
       this.checkConversion(targetType, source, site.value, "assign");
     }
@@ -203,7 +212,12 @@ class IntegerConversionCheck {
    * `OperandTyper.constantOf`, decides what is known, so `-(128)` is -128. A
    * value built from a name is typed, and E0869 judges it by its type.
    */
-  private checkLiteralLeaves(target: string, value: TExpression): void {
+  private checkLiteralLeaves(
+    target: string,
+    value: TExpression,
+    role: TLiteralRole = "value",
+  ): void {
+    const roles = new Map<TExpression, TLiteralRole>([[value, role]]);
     // `~` folds at C's int width, not the target's: `u8 m <- ~1` is 0xFE
     const complement = (expr: TExpression): boolean =>
       expr.kind === "unary" && expr.operator === "~";
@@ -215,13 +229,73 @@ class IntegerConversionCheck {
           IntegerConversionCheck.integerLiteralText(leaf) !== null,
       ) &&
       OperandTyper.constantOf(expr, this.context) !== null;
-    for (const leaf of OperandTyper.valueLeafExpressions(value, constant)) {
+    const isLeaf = (expr: TExpression): boolean => {
+      if (expr.kind === "binary")
+        IntegerConversionCheck.assignRoles(expr, roles);
+      return roles.get(expr) === "exempt" || constant(expr);
+    };
+    for (const leaf of OperandTyper.valueLeafExpressions(value, isLeaf)) {
+      const leafRole = roles.get(leaf) ?? "value";
+      if (leafRole === "exempt") continue;
       const text =
         IntegerConversionCheck.integerLiteralText(leaf) ??
         IntegerConversionCheck.foldedText(
           constant(leaf) ? OperandTyper.constantOf(leaf, this.context) : null,
         );
-      if (text !== null) this.checkLiteral(target, text, leaf);
+      if (text === null) continue;
+      if (leafRole === "bits") this.checkBits(target, text, leaf);
+      else this.checkLiteral(target, text, leaf);
+    }
+  }
+
+  /**
+   * What a literal operand must fit, by the operators beside it (#1618):
+   * one of `+ - *` its target's range, since clamp or wrap would act on a
+   * known value; one of `| ^` its target's width, since bits past it would be
+   * dropped. `&` only clears bits, and a `/` or `%` divisor only shrinks the
+   * result, so neither can push it out of range: nothing to catch.
+   */
+  private static roleOf(
+    before: string | null,
+    after: string | null,
+  ): TLiteralRole {
+    const beside = [before, after];
+    if (beside.includes("&") || before === "/" || before === "%") {
+      return "exempt";
+    }
+    return beside.includes("|") || beside.includes("^") ? "bits" : "value";
+  }
+
+  private static assignRoles(
+    expr: Extract<TExpression, { kind: "binary" }>,
+    roles: Map<TExpression, TLiteralRole>,
+  ): void {
+    expr.operands.forEach((operand, index) => {
+      roles.set(
+        operand,
+        IntegerConversionCheck.roleOf(
+          expr.operators[index - 1] ?? null,
+          expr.operators[index] ?? null,
+        ),
+      );
+    });
+  }
+
+  /** E0868 for a bit pattern wider than its target: `u8 a <- b | 0x100` */
+  private checkBits(target: string, text: string, at: TExpression): void {
+    const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
+    const width = TYPE_WIDTH[target];
+    const fits =
+      value >= 0n
+        ? value < 1n << BigInt(width)
+        : value >= -(1n << BigInt(width - 1));
+    if (!fits) {
+      this.report(
+        at,
+        "E0868",
+        `Value ${text} has bits outside ${target}'s ${width} bits`,
+        "Widen the target type, or drop the bits it cannot hold.",
+      );
     }
   }
 

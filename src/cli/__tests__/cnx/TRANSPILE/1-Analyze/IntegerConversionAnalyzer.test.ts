@@ -105,6 +105,13 @@ describe("IntegerConversionAnalyzer", () => {
         errors(inMain("    u8 x <- byte + 300;")).map((e) => e.code),
       ).toEqual(["E0868"]);
       expect(errors(inMain("    u8 x <- byte + 255;"))).toEqual([]);
+      expect(
+        errors(inMain("    u8 x <- byte | 0x100;")).map((e) => e.code),
+      ).toEqual(["E0868"]);
+      expect(errors(inMain("    u8 x <- byte / 300;"))).toEqual([]);
+      expect(errors(inMain("    u8 x <- byte & 0x1FF;"))).toEqual([]);
+      expect(errors(inMain("    u8 x <- 0;\n    x %<- 300;"))).toEqual([]);
+      expect(errors(inMain("    i16 x <- 0;\n    x ^<- 0xAAAA;"))).toEqual([]);
       expect(errors(inMain("    u8 x <- 0;\n    x +<- 255;"))).toEqual([]);
     });
 

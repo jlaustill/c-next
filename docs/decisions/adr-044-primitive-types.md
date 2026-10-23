@@ -344,13 +344,15 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 compile error. `clamp` and `wrap` never apply to it. They exist only for values that are not
 known until runtime, where no compiler could have caught the overflow.
 
-- A literal operand that does not fit the target is E0868 (ADR-024), with `clamp`, with `wrap`
-  and with neither. `u8 a +<- 300` and `a <- a + 300` are rejected; they do not saturate to 255
-  or wrap to `a + 44`.
+- A literal operand of `+`, `-` or `*` that does not fit the target is E0868 (ADR-024), with
+  `clamp`, with `wrap` and with neither: clamp or wrap would act on a known value.
+  `u8 a +<- 300` and `a <- a + 300` are rejected; they do not saturate to 255 or wrap to
+  `a + 44`. A literal operand of `|` or `^` must fit the target's width, since bits past it
+  would be dropped: `u8 a <- b | 0x100` is rejected, `i16 m ^<- 0xAAAA` is not.
+- `&`, and the divisor of `/` or `%`, cannot push a result out of range, so there is nothing to
+  catch and nothing is rejected: `u8 a <- b & 0x1FF` and `a <- b / 300` compile.
 - A wider operand is E0869 (ADR-024): `u8 a +<- big` with `u32 big` is rejected, and code that
   means the low bits says so with `a +<- big[0, 8]`.
-- A signed bit pattern is written as the literal of the type that holds it:
-  `i16 m &<- -0x5556`, not `0xAAAA`.
 - Clamping or wrapping a runtime value is still allowed, but it can hide a bug. `--debug`
   (below) is there to catch that: every `clamp` and `wrap` operation panics on overflow instead,
   so the overflows they would hide in production surface during development.

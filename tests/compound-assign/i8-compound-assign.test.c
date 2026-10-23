@@ -197,7 +197,7 @@ int main(void) {
         return 51U;
     }
     andVal = 0x55;
-    andVal = (int8_t)(andVal & -0x56);
+    andVal = (int8_t)(andVal & 0xAA);
     if (andVal != 0) {
         return 52U;
     }
