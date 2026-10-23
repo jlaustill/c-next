@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 017
+// E0434 across ONE include hop in a `for` header's declaration -- matrix cell:
+// for header / imported direct. The two sides of a comparison must be the same
+// enum type. Both enums are declared in other files, so a check reading only
+// this file finds no enum and "no enum" would read as "rule does not apply".
+
+#include "enum-declarations.cnx"
+#include "cross-file-types.cnx"
+
+void main(u8 limit) {
+    mut u8 i <- 0;
+
+    // NEGATIVE CONTROL -- an enum compared to its own members.
+    for (bool ok <- (Shared.A = Shared.B); i < limit; i +<- 1) {}
+
+    // ASSERTION 1 -- an enum compared to an integer.
+    for (bool b <- (Shared.A = 1); i < limit; i +<- 1) {}
+
+    // ASSERTION 2 -- an enum compared to a different enum.
+    for (bool d <- (Shared.B = ESpnCategory.SPN_CAT_PRESSURE); i < limit; i +<- 1) {}
+}
