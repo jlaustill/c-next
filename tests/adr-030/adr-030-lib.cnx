@@ -3,6 +3,10 @@
 // undefined name shows the include does not make the undefined name visible.
 u32 LIB_LIMIT <- 4;
 
+struct LibKnown {
+    u8 x;
+}
+
 u32 libValue() {
     return LIB_LIMIT;
 }

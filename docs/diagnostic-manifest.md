@@ -12,15 +12,18 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-823 fixture(s) assert a diagnostic; 809 carry a code.
+885 fixture(s) assert a diagnostic; 871 carry a code.
 
 | Fixture                                                                                                   | Codes                             |
 | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | tests/adr-004/register-access-uncovered-arms-error.test.cnx                                               | E0870, E0871, E0872               |
+| tests/adr-004/register-for-header-read-wo-error.test.cnx                                                  | E0870                             |
 | tests/adr-004/register-imported-bitmap-access-error.test.cnx                                              | E0870, E0871, E0872               |
 | tests/adr-004/register-imported-direct-error.test.cnx                                                     | E0870, E0871, E0872               |
+| tests/adr-004/register-imported-direct-for-header-error.test.cnx                                          | E0870                             |
 | tests/adr-004/register-imported-direct-method-error.test.cnx                                              | E0870, E0871                      |
 | tests/adr-004/register-imported-transitive-error.test.cnx                                                 | E0870, E0871, E0872               |
+| tests/adr-004/register-imported-transitive-for-header-error.test.cnx                                      | E0870                             |
 | tests/adr-004/register-imported-transitive-method-error.test.cnx                                          | E0870, E0871, E0872               |
 | tests/adr-004/register-read-wo-error.test.cnx                                                             | E0870                             |
 | tests/adr-004/register-wo-set-false-error.test.cnx                                                        | E0872                             |
@@ -83,6 +86,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-013/constructor-arg-imported-transitive-error.test.cnx                                          | E0432, E0433                      |
 | tests/adr-014/cpp-class-direct-error.test.cnx                                                             | E0508                             |
 | tests/adr-014/cpp-class-transitive-error.test.cnx                                                         | E0508                             |
+| tests/adr-014/struct-init-for-header-direct-error.test.cnx                                                | E0357, E0358                      |
+| tests/adr-014/struct-init-for-header-same-file-error.test.cnx                                             | E0357, E0358                      |
+| tests/adr-014/struct-init-for-header-transitive-error.test.cnx                                            | E0357, E0358                      |
 | tests/adr-014/struct-init-non-struct-direct-error.test.cnx                                                | E0358                             |
 | tests/adr-014/struct-init-non-struct-transitive-error.test.cnx                                            | E0358                             |
 | tests/adr-014/struct-init-same-file-error.test.cnx                                                        | E0357, E0358                      |
@@ -103,6 +109,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-016/duplicate-definition-imported-direct-error.test.cnx                                         | E0425                             |
 | tests/adr-016/duplicate-definition-imported-transitive-error.test.cnx                                     | E0425                             |
 | tests/adr-016/duplicate-definition-same-file-error.test.cnx                                               | E0425                             |
+| tests/adr-016/for-header-access-rules-imported-direct-error.test.cnx                                      | E0435, E0436, E0437               |
+| tests/adr-016/for-header-access-rules-imported-transitive-error.test.cnx                                  | E0435, E0436, E0437               |
+| tests/adr-016/for-header-access-rules-same-file-error.test.cnx                                            | E0435, E0436, E0437               |
+| tests/adr-016/for-header-this-outside-scope-imported-direct-error.test.cnx                                | E0431                             |
+| tests/adr-016/for-header-this-outside-scope-imported-transitive-error.test.cnx                            | E0431                             |
+| tests/adr-016/for-header-this-outside-scope-same-file-error.test.cnx                                      | E0431                             |
 | tests/adr-016/global-outside-scope-error.test.cnx                                                         | E0431                             |
 | tests/adr-016/global-outside-scope-imported-error.test.cnx                                                | E0431                             |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                                        | E0435, E0436                      |
@@ -124,11 +136,20 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-017/bare-enum-uncovered-arms-error.test.cnx                                                     | E0424                             |
 | tests/adr-017/enum-bare-in-array-dim.test.cnx                                                             | E0424                             |
 | tests/adr-017/enum-bare-in-comparison.test.cnx                                                            | E0424                             |
+| tests/adr-017/enum-bare-in-for-header-imported-direct.test.cnx                                            | E0424                             |
+| tests/adr-017/enum-bare-in-for-header-imported-transitive.test.cnx                                        | E0424                             |
+| tests/adr-017/enum-bare-in-for-header.test.cnx                                                            | E0424                             |
 | tests/adr-017/enum-bare-in-function-arg.test.cnx                                                          | E0424                             |
+| tests/adr-017/enum-error-assign-for-header-imported-direct.test.cnx                                       | E0428                             |
+| tests/adr-017/enum-error-assign-for-header-imported-transitive.test.cnx                                   | E0428                             |
+| tests/adr-017/enum-error-assign-for-header.test.cnx                                                       | E0428                             |
 | tests/adr-017/enum-error-assign-int.test.cnx                                                              | E0428                             |
 | tests/adr-017/enum-error-assign-non-enum.test.cnx                                                         | E0428                             |
 | tests/adr-017/enum-error-assign-wrong-enum.test.cnx                                                       | E0428                             |
 | tests/adr-017/enum-error-compare-contexts.test.cnx                                                        | E0434                             |
+| tests/adr-017/enum-error-compare-for-header-imported-direct.test.cnx                                      | E0434                             |
+| tests/adr-017/enum-error-compare-for-header-imported-transitive.test.cnx                                  | E0434                             |
+| tests/adr-017/enum-error-compare-for-header.test.cnx                                                      | E0434                             |
 | tests/adr-017/enum-error-compare-imported-direct.test.cnx                                                 | E0434                             |
 | tests/adr-017/enum-error-compare-imported-transitive.test.cnx                                             | E0434                             |
 | tests/adr-017/enum-error-compare-int.test.cnx                                                             | E0434                             |
@@ -185,6 +206,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-024/float-imported-direct-error.test.cnx                                                        | E0891                             |
 | tests/adr-024/float-imported-transitive-error.test.cnx                                                    | E0891                             |
 | tests/adr-024/float-same-file-error.test.cnx                                                              | E0891                             |
+| tests/adr-024/forheader-category-imported-direct-error.test.cnx                                           | E0810, E0811, E0812               |
+| tests/adr-024/forheader-category-imported-transitive-error.test.cnx                                       | E0810, E0811, E0812               |
+| tests/adr-024/forheader-category-same-file-error.test.cnx                                                 | E0810, E0811, E0812               |
+| tests/adr-024/forheader-conversion-imported-direct-error.test.cnx                                         | E0868, E0869, E0891               |
+| tests/adr-024/forheader-conversion-imported-transitive-error.test.cnx                                     | E0868, E0869, E0891               |
+| tests/adr-024/forheader-conversion-same-file-error.test.cnx                                               | E0868, E0869, E0891               |
 | tests/adr-024/literal-binary-overflow-error.test.cnx                                                      | E0868                             |
 | tests/adr-024/literal-contexts-error.test.cnx                                                             | E0868                             |
 | tests/adr-024/literal-hex-overflow-error.test.cnx                                                         | E0868                             |
@@ -221,6 +248,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-029/callback-c-header-host-error.test.cnx                                                       | E0879                             |
 | tests/adr-029/callback-c-header-volatile-error.test.cnx                                                   | E0879                             |
 | tests/adr-029/callback-error-nominal.test.cnx                                                             | E0880                             |
+| tests/adr-029/callback-for-header-error.test.cnx                                                          | E0879, E0880                      |
+| tests/adr-029/callback-for-header-imported-direct-error.test.cnx                                          | E0879, E0880                      |
+| tests/adr-029/callback-for-header-imported-transitive-error.test.cnx                                      | E0879, E0880                      |
 | tests/adr-029/callback-imported-direct-error.test.cnx                                                     | E0879, E0880                      |
 | tests/adr-029/callback-imported-transitive-error.test.cnx                                                 | E0879, E0880                      |
 | tests/adr-029/callback-inner-dimension-error.test.cnx                                                     | E0879                             |
@@ -275,6 +305,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-036/matrix-bounds-transitive-error.test.cnx                                                     | E0854                             |
 | tests/adr-036/matrix-dimensions-direct-error.test.cnx                                                     | E0909, E0910                      |
 | tests/adr-036/matrix-dimensions-error.test.cnx                                                            | E0909, E0910                      |
+| tests/adr-036/matrix-dimensions-for-header-direct-error.test.cnx                                          | E0909, E0910                      |
+| tests/adr-036/matrix-dimensions-for-header-error.test.cnx                                                 | E0909, E0910                      |
+| tests/adr-036/matrix-dimensions-for-header-transitive-error.test.cnx                                      | E0909, E0910                      |
 | tests/adr-036/matrix-dimensions-transitive-error.test.cnx                                                 | E0909, E0910                      |
 | tests/adr-036/matrix-for-clause-direct-error.test.cnx                                                     | E0917                             |
 | tests/adr-036/matrix-for-clause-error.test.cnx                                                            | E0917                             |
@@ -310,6 +343,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-error-uncovered-fit.test.cnx                                                         | E0864                             |
 | tests/adr-045/string-error-uncovered-forms.test.cnx                                                       | E0862                             |
 | tests/adr-045/string-fit-rules-contexts-error.test.cnx                                                    | E0865                             |
+| tests/adr-045/string-fit-rules-for-header-error.test.cnx                                                  | E0864, E0865                      |
+| tests/adr-045/string-fit-rules-for-header-imported-direct-error.test.cnx                                  | E0864, E0865                      |
+| tests/adr-045/string-fit-rules-for-header-imported-transitive-error.test.cnx                              | E0864, E0865                      |
 | tests/adr-045/string-fit-rules-imported-direct-error.test.cnx                                             | E0864, E0865                      |
 | tests/adr-045/string-fit-rules-imported-transitive-error.test.cnx                                         | E0864, E0865                      |
 | tests/adr-045/string-imported-direct-error.test.cnx                                                       | E0864                             |
@@ -317,6 +353,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-imported-transitive-error.test.cnx                                                   | E0864                             |
 | tests/adr-045/string-imported-transitive-global-error.test.cnx                                            | E0863                             |
 | tests/adr-045/string-property-contexts-error.test.cnx                                                     | E0887                             |
+| tests/adr-045/string-property-for-header-error.test.cnx                                                   | E0887                             |
+| tests/adr-045/string-property-for-header-imported-direct-error.test.cnx                                   | E0887                             |
+| tests/adr-045/string-property-for-header-imported-transitive-error.test.cnx                               | E0887                             |
 | tests/adr-045/string-property-imported-direct-error.test.cnx                                              | E0887                             |
 | tests/adr-045/string-property-imported-transitive-error.test.cnx                                          | E0887                             |
 | tests/adr-045/string-storage-properties-error.test.cnx                                                    | E0887                             |
@@ -342,11 +381,23 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-050/return-in-critical-error.test.cnx                                                           | E0853                             |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                              | E0853                             |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                                    | E0853                             |
+| tests/adr-051/for-header-division-imported-direct.test.cnx                                                | E0800, E0802                      |
+| tests/adr-051/for-header-division-imported-transitive.test.cnx                                            | E0800, E0802                      |
+| tests/adr-051/for-header-division-same-file.test.cnx                                                      | E0800, E0802                      |
+| tests/adr-051/for-header-shape-imported-direct.test.cnx                                                   | E0884, E0885                      |
+| tests/adr-051/for-header-shape-imported-transitive.test.cnx                                               | E0884, E0885                      |
+| tests/adr-051/for-header-shape-same-file.test.cnx                                                         | E0884, E0885                      |
 | tests/adr-051/safe-division-const-output-error.test.cnx                                                   | E0900                             |
 | tests/adr-051/safe-division-shape-contexts.test.cnx                                                       | E0884, E0885                      |
 | tests/adr-051/safe-division-shape-error.test.cnx                                                          | E0884, E0885                      |
 | tests/adr-051/safe-division-shape-imported-direct.test.cnx                                                | E0884, E0885                      |
 | tests/adr-051/safe-division-shape-imported-transitive.test.cnx                                            | E0884, E0885                      |
+| tests/adr-058/for-header-length-imported-direct-error.test.cnx                                            | E0867, E0886                      |
+| tests/adr-058/for-header-length-imported-transitive-error.test.cnx                                        | E0867, E0886                      |
+| tests/adr-058/for-header-length-same-file-error.test.cnx                                                  | E0867, E0886                      |
+| tests/adr-058/for-header-type-named-as-value-imported-direct-error.test.cnx                               | E0897                             |
+| tests/adr-058/for-header-type-named-as-value-imported-transitive-error.test.cnx                           | E0897                             |
+| tests/adr-058/for-header-type-named-as-value-same-file-error.test.cnx                                     | E0897                             |
 | tests/adr-058/kinds-errors-error.test.cnx                                                                 | E0867                             |
 | tests/adr-058/kinds-header-error.test.cnx                                                                 | E0867                             |
 | tests/adr-058/kinds-memory-dimension-bitfield-error.test.cnx                                              | E0867                             |
@@ -391,6 +442,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-071/callback-contexts-error.test.cnx                                                            | E0879                             |
 | tests/adr-071/callback-contexts-imported-direct-error.test.cnx                                            | E0879                             |
 | tests/adr-071/callback-contexts-imported-transitive-error.test.cnx                                        | E0879                             |
+| tests/adr-071/callback-for-header-error.test.cnx                                                          | E0879                             |
+| tests/adr-071/callback-for-header-imported-direct-error.test.cnx                                          | E0879                             |
+| tests/adr-071/callback-for-header-imported-transitive-error.test.cnx                                      | E0879                             |
 | tests/adr-071/callback-imported-direct-error.test.cnx                                                     | E0879                             |
 | tests/adr-071/callback-imported-transitive-error.test.cnx                                                 | E0879                             |
 | tests/adr-071/callback-mut-match-error.test.cnx                                                           | E0879                             |
@@ -402,9 +456,14 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-071/cpp-method-receiver-error.test.cnx                                                          | E0900                             |
 | tests/adr-071/opaque-handle-copy-error.test.cnx                                                           | E0900                             |
 | tests/adr-071/unused-mut-error.test.cnx                                                                   | E0899                             |
+| tests/adr-071/unused-mut-for-header-imported-direct-error.test.cnx                                        | E0899                             |
+| tests/adr-071/unused-mut-for-header-imported-transitive-error.test.cnx                                    | E0899                             |
 | tests/adr-071/unused-mut-imported-direct-error.test.cnx                                                   | E0899                             |
 | tests/adr-071/unused-mut-imported-transitive-error.test.cnx                                               | E0899                             |
 | tests/adr-071/write-every-kind-error.test.cnx                                                             | E0900                             |
+| tests/adr-071/write-for-header-error.test.cnx                                                             | E0900                             |
+| tests/adr-071/write-for-header-imported-direct-error.test.cnx                                             | E0900                             |
+| tests/adr-071/write-for-header-imported-transitive-error.test.cnx                                         | E0900                             |
 | tests/adr-071/write-imported-direct-error.test.cnx                                                        | E0900                             |
 | tests/adr-071/write-imported-transitive-error.test.cnx                                                    | E0900                             |
 | tests/analysis/division-by-const-zero.test.cnx                                                            | E0800                             |
@@ -508,6 +567,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1195-parenthesized-comparison/parenthesized-call-error.test.cnx                          | E0702                             |
 | tests/bugs/issue-1195-parenthesized-comparison/parenthesized-literal-loop-error.test.cnx                  | E0707                             |
 | tests/bugs/issue-1203-non-addressable-mut-argument/direct-import-error.test.cnx                           | E0915                             |
+| tests/bugs/issue-1203-non-addressable-mut-argument/for-header-direct-import-error.test.cnx                | E0915                             |
+| tests/bugs/issue-1203-non-addressable-mut-argument/for-header-error.test.cnx                              | E0915                             |
+| tests/bugs/issue-1203-non-addressable-mut-argument/for-header-transitive-import-error.test.cnx            | E0915                             |
 | tests/bugs/issue-1203-non-addressable-mut-argument/header-constant-error.test.cnx                         | E0915                             |
 | tests/bugs/issue-1203-non-addressable-mut-argument/initializer-error.test.cnx                             | E0915                             |
 | tests/bugs/issue-1203-non-addressable-mut-argument/non-addressable-mut-argument-error.test.cnx            | E0915                             |

@@ -55,7 +55,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-004 E0871
 
@@ -102,7 +102,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-007 E0856
 
@@ -338,7 +338,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-014 E0358
 
@@ -348,7 +348,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-014 E0508
 
@@ -358,7 +358,7 @@ cell is declared by the ADR that owns it.
 | top-level function | -         | -      | -          | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | -         | -      | -          | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | warn      | warn   | warn       | n/a         | n/a        |
 
 ## ADR-014 E0866
 
@@ -426,7 +426,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | -         | -      | -          | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-016 E0435
 
@@ -436,7 +436,7 @@ cell is declared by the ADR that owns it.
 | top-level function | -         | -      | -          | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-016 E0436
 
@@ -446,7 +446,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-016 E0437
 
@@ -456,7 +456,7 @@ cell is declared by the ADR that owns it.
 | top-level function | -         | -      | -          | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-017
 
@@ -495,7 +495,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-017 E0428
 
@@ -505,7 +505,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | ok        | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-017 E0434
 
@@ -515,7 +515,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-017 E0894
 
@@ -642,7 +642,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-024 E0811
 
@@ -652,7 +652,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-024 E0812
 
@@ -662,7 +662,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-024 E0854
 
@@ -682,7 +682,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-024 E0869
 
@@ -692,7 +692,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-024 E0873
 
@@ -712,7 +712,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-025
 
@@ -829,7 +829,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-029 E0880
 
@@ -839,7 +839,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-030
 
@@ -1095,7 +1095,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-036 E0910
 
@@ -1105,7 +1105,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-036 E0917
 
@@ -1238,7 +1238,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-045 E0865
 
@@ -1248,7 +1248,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-045 E0866
 
@@ -1268,7 +1268,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-045 string-copy
 
@@ -1442,7 +1442,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-051 E0802
 
@@ -1452,7 +1452,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-051 E0884
 
@@ -1462,7 +1462,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-051 E0885
 
@@ -1472,7 +1472,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-057
 
@@ -1574,7 +1574,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-058 E0886
 
@@ -1584,7 +1584,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-058 E0897
 
@@ -1594,7 +1594,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-058 E0909
 
@@ -1716,7 +1716,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-071 E0896
 
@@ -1746,7 +1746,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | ok        | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-071 E0900
 
@@ -1756,4 +1756,4 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |

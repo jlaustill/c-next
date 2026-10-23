@@ -5,10 +5,13 @@
 #include "adr-030-lib.cnx"
 
 NopeGlobal g;
+// NEGATIVE CONTROL: LibKnown is defined, so its uses below never fire E0426.
+LibKnown knownGlobal;
 
 void top() {
     u32 seen <- libValue();
     NopeLocal a;
+    LibKnown knownLocal;
     for (NopeFor i <- 0; i < 3; i +<- 1) {
         u32 c <- 1;
     }
@@ -16,9 +19,11 @@ void top() {
 
 scope S {
     NopeMember m;
+    LibKnown knownMember;
 
     public void go() {
         u32 seen <- libValue();
         NopeMethodLocal b;
+        LibKnown knownMethodLocal;
     }
 }
