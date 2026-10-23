@@ -1,0 +1,3 @@
+// Helper for the ADR-050 imported fixtures: the value a critical section
+// guards lives in another file.
+mut u32 sharedTicks <- 0;
