@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 023
+// ADR-023: E0603 rejects `sizeof` in all five contexts of a file one cnx
+// include away from its helper (imported direct).
+
+#include "adr-023-limits.cnx"
+
+u32 globalBad <- sizeof(u32);
+
+scope Probe {
+    u32 memberBad <- sizeof(u8);
+
+    public u32 methodBad() {
+        u32 local <- sizeof(u16);
+        return local;
+    }
+}
+
+u32 main() {
+    u32 functionBad <- sizeof(u64);
+    mut u32 total <- functionBad;
+    for (mut u32 i <- sizeof(u8); i < 4; i +<- 1) {
+        total +<- i;
+    }
+    return total;
+}

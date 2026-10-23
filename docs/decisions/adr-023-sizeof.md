@@ -317,9 +317,9 @@ size_t arrSize = sizeof(buffer);
 
 ## Diagnostics
 
-| Code  | Reported when                         | Asserted by                                    |
-| ----- | ------------------------------------- | ---------------------------------------------- |
-| E0603 | `sizeof(...)` is written, in any form | `tests/adr-023/sizeof-rejected-error.test.cnx` |
+| Code  | Reported when                         | Asserted by                                                                                                                                                                                           |
+| ----- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0603 | `sizeof(...)` is written, in any form | `tests/adr-023/sizeof-rejected-error.test.cnx`, `tests/adr-023/same-file-contexts-error.test.cnx`, `tests/adr-023/imported-direct-error.test.cnx`, `tests/adr-023/imported-transitive-error.test.cnx` |
 
 E0601 (`sizeof` of an array parameter measured a pointer) and E0602 (an operand
 with a side effect, MISRA C:2012 Rule 13.6) are retired by #1975 and not
@@ -331,27 +331,30 @@ property reads no value, so it has no operand to evaluate.
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0603 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
 | top-level function | same file           | error    |
-| scope method       | same file           | warn     |
-| global variable    | same file           | warn     |
-| scope member       | same file           | warn     |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
-E0603 is decided by the syntax alone, where `sizeof` is written: a global
-variable's or a scope member's initializer can write it as a function can, so
-those cells exist, and no fixture covers them yet. Nothing about it crosses an
-include, so every imported cell records that it cannot exist.
+E0603 is decided by the syntax alone, where `sizeof` is written, so it fires in
+every context and at every include depth: a global variable's or a scope
+member's initializer, or a `for` header, can write it as a function body can,
+and an include changes nothing about it.
 
 ## References
 
