@@ -1,0 +1,5 @@
+7:9 error[E0427]: 'nopeGlobal' is not defined
+11:13 error[E0427]: 'nopeLocal' is not defined
+12:18 error[E0427]: 'nopeFor' is not defined
+18:13 error[E0427]: 'nopeMember' is not defined
+22:17 error[E0427]: 'nopeMethod' is not defined

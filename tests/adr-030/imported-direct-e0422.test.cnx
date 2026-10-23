@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 030
+// ADR-030 E0422 in every context it can fire in, at include depth 1.
+
+#include "adr-030-lib.cnx"
+
+u32 g <- laterGlobal();
+
+void top() {
+    u32 seen <- libValue();
+    u32 a <- laterTop();
+    for (u32 i <- laterFor(); i < 3; i +<- 1) {
+        u32 c <- i;
+    }
+}
+
+scope S {
+    u32 m <- laterMember();
+
+    public void go() {
+        u32 seen <- libValue();
+        u32 b <- laterMethod();
+    }
+}
+
+u32 laterGlobal() {
+    return 1;
+}
+
+u32 laterTop() {
+    return 1;
+}
+
+u32 laterFor() {
+    return 1;
+}
+
+u32 laterMember() {
+    return 1;
+}
+
+u32 laterMethod() {
+    return 1;
+}

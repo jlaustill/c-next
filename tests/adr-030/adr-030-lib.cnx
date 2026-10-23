@@ -1,0 +1,8 @@
+// Helper for the ADR-030 scope-context matrix fixtures. Every name here is
+// visible to a file that includes it, so a fixture using one beside an
+// undefined name shows the include does not make the undefined name visible.
+u32 LIB_LIMIT <- 4;
+
+u32 libValue() {
+    return LIB_LIMIT;
+}
