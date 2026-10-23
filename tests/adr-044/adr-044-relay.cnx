@@ -1,0 +1,7 @@
+// Intermediate link for the transitive ADR-044 fixtures: a fixture including
+// THIS file reaches adr-044-values.cnx at depth 2, which the matrix calls
+// "imported transitive". It declares a value of its own because a .cnx whose
+// entire content is an include emits no header (#1234).
+#include "adr-044-values.cnx"
+
+u8 RELAY <- 1;

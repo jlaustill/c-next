@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 044
+// ADR-044 "Values fixed at compile time": an array's size is fixed at compile
+// time, so arithmetic in it that overflows its operands' width is E0910 rather
+// than a silently clamped size. Exercised in all four structural contexts, with the operand read across two .cnx includes.
+//
+// NEGATIVE CONTROL: each wide array adds at u16, where 400 fits, and must stay
+// silent.
+
+#include "adr-044-relay.cnx"
+u8[BASE + BASE] fileBuf;
+u8[(u16)BASE + (u16)BASE] fileWide;
+
+void run() {
+    u8[BASE + BASE] localBuf;
+    u8[(u16)BASE + (u16)BASE] localWide;
+    localBuf[0] <- 1;
+    localWide[0] <- 1;
+}
+
+scope Holder {
+    u8[BASE + BASE] memberBuf;
+    u8[(u16)BASE + (u16)BASE] memberWide;
+
+    public void fill() {
+        u8[BASE + BASE] methodBuf;
+        u8[(u16)BASE + (u16)BASE] methodWide;
+        methodBuf[0] <- 1;
+        methodWide[0] <- 1;
+    }
+}
+
+void main() {}

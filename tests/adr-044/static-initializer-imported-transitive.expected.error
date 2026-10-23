@@ -1,0 +1,8 @@
+13:19 error[E0909]: Static initializer must be known at compile time: 'counter' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+14:10 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+18:18 error[E0909]: Static initializer must be known at compile time: 'counter' is a variable
+       help: A file-scope or scope variable's initializer is a value fixed at compile time (ADR-044), in C++ as in C: literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts
+19:18 error[E0910]: Static initializer overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type

@@ -702,6 +702,72 @@ chances for them to disagree.
 | scope member       | imported transitive | warn     |
 | scope method       | imported transitive | warn     |
 
+<!-- MATRIX-SEVERITY code: E0909 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | off      |
+| scope member       | same file           | error    |
+| scope method       | same file           | off      |
+| for header         | same file           | off      |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| for header         | imported transitive | off      |
+
+off: E0909 fires only on a file-scope or scope variable's initializer; a function or method body, and a `for` header, declare variables that have no static storage, so reading a `mut` variable or calling a function there is accepted.
+
+<!-- MATRIX-SEVERITY code: E0910 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | off      |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
+
+off: E0910 fires only on a value fixed at compile time, and a `for` header holds none: its variable's initializer is evaluated at run time, and an array declared there is E0917 (ADR-036).
+
+<!-- MATRIX-SEVERITY code: E0912 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| for header         | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+E0912 is about how a literal is spelled, so it fires wherever a literal can be written, a `for` header included; that row is declared here although the ADR-wide table has none.
+
 Until #1303 this ADR declared no matrix at all, which per
 [`README.md`](README.md) reads as a claim that clamp and wrap cannot occur
 anywhere — and the defect #1303 fixed was precisely a cell nothing was watching:
