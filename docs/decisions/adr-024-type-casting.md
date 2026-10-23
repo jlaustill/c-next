@@ -479,6 +479,15 @@ Casts are primarily removed from the language. Bit indexing (ADR-007) handles na
 
 ### Error Messages
 
+| Code  | Meaning                                                                                        | Fixtures                                                                                             |
+| ----- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| E0810 | Operands of different essential type categories, under one operator or in a conditional's arms | `tests/adr-024/category-*-error`, `tests/bugs/issue-1668-int-float-clamp/`                           |
+| E0811 | An integer combined by `+`, `-` or `*` with a header macro whose type cnx cannot read          | `tests/adr-024/category-*-error`, `tests/bugs/issue-1688-float-macro/unreadable-macro-error`         |
+| E0812 | An integer combined with such a macro by any other operator E0810 covers, or in a conditional  | `tests/adr-024/category-*-error`, `tests/bugs/issue-1688-float-macro/unreadable-macro-error`         |
+| E0868 | An integer literal does not fit its target's range                                             | `tests/adr-024/literal-*-error`                                                                      |
+| E0869 | An implicit narrowing or sign-changing integer conversion, a cast included                     | `tests/adr-024/conversion-*-error`, `narrowing-*-error`, `sign-*-error`, `composite-narrowing-error` |
+| E0891 | An implicit conversion from a floating value to an integer                                     | `tests/adr-024/float-*-error`                                                                        |
+
 ```
 ERROR: Cannot narrow u32 to u8 (potential data loss)
   --> src/main.cnx:10:5
@@ -536,7 +545,92 @@ must fit its target's range, and a non-literal integer source must be neither
 wider than its target nor of the other signedness -- whether it reaches the
 target through a declaration, an assignment, or a cast.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0810 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0811 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0812 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0868 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0869 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0891 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |

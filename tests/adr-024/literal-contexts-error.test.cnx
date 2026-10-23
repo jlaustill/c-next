@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 024
+// E0868 in the SAME file -- matrix cells: same file, in all four contexts.
+// A literal must fit its target's range wherever it lands.
+
+// NEGATIVE CONTROL -- the boundary each assertion is one past.
+u8 exactlyFull <- 255;
+
+// ASSERTION -- global variable context.
+u8 atFileScope <- 256;
+
+void f() {
+    // ASSERTION -- top-level function context.
+    u8 local <- 256;
+}
+
+scope S {
+    // ASSERTION -- scope member context.
+    u8 member <- 256;
+
+    public void method() {
+        // ASSERTION -- scope method context.
+        u8 inside <- 256;
+    }
+}
