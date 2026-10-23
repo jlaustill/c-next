@@ -1,0 +1,45 @@
+// test-error
+// test-adr: 024
+// E0810, E0811 and E0812 in the SAME file -- matrix cells: same file, in all
+// four contexts. E0810: an integer and a float under one operator (Rule
+// 10.4). E0811 and E0812: an integer beside a header macro whose type cnx
+// cannot read, under + - * (E0811) or under / and every other operator
+// E0810 covers (E0812). A C header is not an include hop.
+#include "unreadable_macros.h"
+
+u32 count <- 3;
+f32 scale <- 2.5;
+
+// NEGATIVE CONTROLS -- the integer cast to the float's category, and the
+// macro cast to the type it has.
+f32 castCategory <- (f32)count * scale;
+u32 castMacro <- count + (u32)SCALED_CALL;
+
+// ASSERTIONS -- global variable context.
+f32 mixedGlobal <- count * scale;
+u32 sumGlobal <- count + SCALED_CALL;
+u32 quotientGlobal <- count / SCALED_CALL;
+
+void f() {
+    // ASSERTIONS -- top-level function context.
+    f32 mixed <- count * scale;
+    u32 sum <- count + SCALED_CALL;
+    u32 quotient <- count / SCALED_CALL;
+}
+
+scope S {
+    u32 n <- 4;
+    f32 k <- 1.5;
+
+    // ASSERTIONS -- scope member context.
+    f32 mixedMember <- this.n * this.k;
+    u32 sumMember <- this.n + SCALED_CALL;
+    u32 quotientMember <- this.n / SCALED_CALL;
+
+    public void method() {
+        // ASSERTIONS -- scope method context.
+        f32 mixed <- this.n * this.k;
+        u32 sum <- this.n + SCALED_CALL;
+        u32 quotient <- this.n / SCALED_CALL;
+    }
+}

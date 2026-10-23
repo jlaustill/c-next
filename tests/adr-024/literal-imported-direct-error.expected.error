@@ -1,0 +1,8 @@
+14:18 error[E0868]: Value 256 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+20:18 error[E0868]: Value 256 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+25:17 error[E0868]: Value 256 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+29:22 error[E0868]: Value 256 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.

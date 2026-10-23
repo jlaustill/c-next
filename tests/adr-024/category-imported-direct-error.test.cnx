@@ -1,0 +1,42 @@
+// test-error
+// test-adr: 024
+// E0810, E0811 and E0812 across ONE include hop -- matrix cells: imported
+// direct, in all four contexts. The integer (wideShared) and the float
+// (floatShared) are declared elsewhere: a check reading only this file finds
+// no category for them, and an unknown category never rejects. The macro's
+// header is this file's own, because the macros a file sees are the ones C
+// sees for it (ADR-024); a C header is not an include hop.
+#include "conversion-declarations.cnx"
+#include "float-declarations.cnx"
+#include "unreadable_macros.h"
+
+// NEGATIVE CONTROLS -- the integer cast to the float's category, and the
+// macro cast to the type it has.
+f32 castCategory <- (f32)wideShared * floatShared;
+u32 castMacro <- wideShared + (u32)SCALED_CALL;
+
+// ASSERTIONS -- global variable context.
+f32 mixedGlobal <- wideShared * floatShared;
+u32 sumGlobal <- wideShared + SCALED_CALL;
+u32 quotientGlobal <- wideShared / SCALED_CALL;
+
+void f() {
+    // ASSERTIONS -- top-level function context.
+    f32 mixed <- wideShared * floatShared;
+    u32 sum <- wideShared + SCALED_CALL;
+    u32 quotient <- wideShared / SCALED_CALL;
+}
+
+scope S {
+    // ASSERTIONS -- scope member context.
+    f32 mixedMember <- wideShared * floatShared;
+    u32 sumMember <- wideShared + SCALED_CALL;
+    u32 quotientMember <- wideShared / SCALED_CALL;
+
+    public void method() {
+        // ASSERTIONS -- scope method context.
+        f32 mixed <- wideShared * floatShared;
+        u32 sum <- wideShared + SCALED_CALL;
+        u32 quotient <- wideShared / SCALED_CALL;
+    }
+}
