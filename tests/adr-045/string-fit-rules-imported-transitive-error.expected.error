@@ -1,0 +1,16 @@
+17:23 error[E0864]: String literal (5 chars) exceeds string<4> capacity
+       help: Widen the declaration to string<5>, or shorten the literal.
+27:29 error[E0864]: Cannot initialize string<8> from string<16> -- the source may not fit
+       help: Widen the declaration to string<16>, or extract a substring of the source.
+30:34 error[E0865]: Substring bounds [12, 8] exceed the source string<16>
+       help: The bounds are counted in characters from zero; keep start + length within the source's capacity.
+36:32 error[E0864]: String literal (5 chars) exceeds string<4> capacity
+       help: Widen the declaration to string<5>, or shorten the literal.
+43:33 error[E0864]: Cannot initialize string<8> from string<16> -- the source may not fit
+       help: Widen the declaration to string<16>, or extract a substring of the source.
+46:38 error[E0865]: Substring bounds [12, 8] exceed the source string<16>
+       help: The bounds are counted in characters from zero; keep start + length within the source's capacity.
+20:26 error[E0865]: Substring bounds [12, 8] exceed the source string<16>
+       help: The bounds are counted in characters from zero; keep start + length within the source's capacity.
+39:28 error[E0865]: Substring bounds [12, 8] exceed the source string<16>
+       help: The bounds are counted in characters from zero; keep start + length within the source's capacity.

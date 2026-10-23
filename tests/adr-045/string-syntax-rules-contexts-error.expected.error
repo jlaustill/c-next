@@ -1,0 +1,8 @@
+15:25 error[E0862]: A read-only string without a capacity requires a string literal to infer it from
+       help: Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.
+24:29 error[E0862]: A read-only string without a capacity requires a string literal to infer it from
+       help: Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.
+27:31 error[E0863]: A string at file scope may only be initialized by a literal, not 'source'
+       help: Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize it empty and assign later.
+34:32 error[E0862]: A read-only string without a capacity requires a string literal to infer it from
+       help: Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.

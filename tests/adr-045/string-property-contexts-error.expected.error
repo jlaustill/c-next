@@ -1,0 +1,6 @@
+13:27 error[E0887]: .capacity is only available on strings, not on 'u32'
+       help: Use .type_element_count for an array's length, or .type_byte_length for a value's size in bytes (ADR-045).
+17:26 error[E0887]: .size is only available on strings, not on 'u32'
+       help: Use .type_element_count for an array's length, or .type_byte_length for a value's size in bytes (ADR-045).
+24:34 error[E0887]: .capacity is only available on strings, not on 'u32'
+       help: Use .type_element_count for an array's length, or .type_byte_length for a value's size in bytes (ADR-045).

@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 045
+// The substring-bounds rule (E0865) in the contexts the other same-file
+// fixtures leave empty (#1620): a global variable, a scope member and a scope
+// method. At file scope a substring can only be read as an argument, since a
+// string there takes only a literal.
+
+string<8> source <- "abc";
+
+u32 take(string<8> s) {
+    return 0;
+}
+
+// ASSERTION -- E0865, global variable.
+u32 OUT_OF_BOUNDS <- take(source[6, 4]);
+
+scope Holder {
+    // ASSERTION -- E0865, scope member.
+    u32 outOfBounds <- take(source[6, 4]);
+
+    public u32 read() {
+        // NEGATIVE CONTROL -- a substring within its source.
+        string<4> okWithin <- source[4, 4];
+
+        // ASSERTION -- E0865, scope method.
+        string<4> outOfBoundsLocal <- source[6, 4];
+        return 0;
+    }
+}
+
+u32 main() {
+    return 0;
+}
