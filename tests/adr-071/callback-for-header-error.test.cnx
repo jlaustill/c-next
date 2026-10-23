@@ -1,0 +1,36 @@
+// test-error
+// test-adr: 071
+// E0879 inside a `for` header's declaration: the loop variable's initializer
+// places a function in a callback slot whose parameter's `mut` differs from
+// the callback type's, in a top-level function and in a scope method.
+
+void onWrite(mut u32 v) {}
+
+struct Slot {
+    onWrite handler;
+}
+
+void reads(u32 v) {}
+
+void writes(mut u32 v) {
+    v <- 1;
+}
+
+void wire(u32 n) {
+    // ASSERTION 1: a callback-typed loop variable initialized with `reads`.
+    for (onWrite h <- reads; n < 3; ) {}
+    // ASSERTION 2: a struct loop variable whose callback field is `reads`.
+    for (Slot s <- { handler: reads }; n < 3; ) {}
+    // NEGATIVE CONTROL: the same two loops with `writes`, which declares `mut`.
+    for (onWrite hOk <- writes; n < 3; ) {}
+    for (Slot sOk <- { handler: writes }; n < 3; ) {}
+}
+
+scope Board {
+    public void wire(u32 n) {
+        // ASSERTION 3: the callback-typed loop variable, in a scope method.
+        for (onWrite h <- reads; n < 3; ) {}
+        // NEGATIVE CONTROL: its `writes` twin.
+        for (onWrite hOk <- writes; n < 3; ) {}
+    }
+}

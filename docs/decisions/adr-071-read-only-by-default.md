@@ -285,7 +285,8 @@ includes it transitively; its `mut` sits in the declaring file. A call into a `m
 also happens in a global or scope-member initializer: today's E0878 fires there
 (`u32 g <- twice(LIMIT);` at file scope and inside a scope both report it), and Q3 changes it.
 
-Every cell is `error`, and each diagnostic is asserted in every cell it can occur in:
+Every cell is `error` unless the `off:` note under its table says why it cannot occur, and each
+diagnostic is asserted in every cell it can occur in:
 
 - **E0900:** an assignment in the two function contexts and a call into a `mut` parameter from
   the two initializers, across zero, one and two include hops
@@ -295,19 +296,29 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
   (`tests/adr-071/write-imported-direct-error`, `write-imported-transitive-error`). A C pointer,
   a C array and an opaque handle the same way (`c-write-imported-direct-error`,
   `c-write-imported-transitive-error`), and a scope method's own locals and parameters passed to
-  them (`c-write-scope-method-error`).
+  them (`c-write-scope-method-error`). Inside a `for` header's declaration, a call into a `mut`
+  parameter and a `safe_div` output in the loop variable's initializer, from the same file and one
+  and two includes away (`write-for-header-error`, `write-for-header-imported-direct-error`,
+  `write-for-header-imported-transitive-error`).
 - **E0898:** on each kind of declaration, in a top-level function and in a scope method
   (`const-keyword-error`), and in a file one and two includes away
   (`const-keyword-imported-error`). The matrix cannot place that last one, because a diagnostic
   naming another file is not resolved against it (#1408), so it is listed below as a fixture
   with no derivable context.
 - **E0899:** in a top-level function, a scope method and a private scope member
-  (`unused-mut-error`). It cannot occur across an include: what it checks (locals, parameters,
-  `for` variables and private members) is visible only in its own file, and a global or public
-  member is exempt (Decision 6).
+  (`unused-mut-error`), including a `for` variable in each function context. What it checks
+  (locals, parameters, `for` variables and private members) is declared only in its own file, and
+  a global or public member is exempt (Decision 6), but whether such a binding is written can
+  depend on an included function's signature: passed only to an imported read-only parameter, it
+  is never written, one and two includes away (`unused-mut-imported-direct-error`,
+  `unused-mut-imported-transitive-error`, and for a `for` variable
+  `unused-mut-for-header-imported-direct-error`, `unused-mut-for-header-imported-transitive-error`).
 - **E0879:** a callback type from the same file and from one and two includes away
   (`callback-mut-match-error`, `c-callback-mut-match-error`, `callback-imported-direct-error`,
-  `callback-imported-transitive-error`).
+  `callback-imported-transitive-error`), and in a `for` loop variable's initializer, as the
+  variable itself or a struct field, from the same file and one and two includes away
+  (`callback-for-header-error`, `callback-for-header-imported-direct-error`,
+  `callback-for-header-imported-transitive-error`).
 
 <!-- MATRIX-SEVERITY code: E0879 -->
 
@@ -325,6 +336,9 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0898 -->
 
@@ -342,6 +356,11 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0898 never fires in a `for` header, whose declaration has no place for `const`: `for (const u32 i <- 0; ...)` is a parse error.
 
 <!-- MATRIX-SEVERITY code: E0899 -->
 
@@ -359,6 +378,9 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 off: E0899 never fires on a global, which is exempt (Decision 6), and a global's initializer declares no binding it could check.
 
@@ -378,6 +400,9 @@ off: E0899 never fires on a global, which is exempt (Decision 6), and a global's
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 ## Consequences
 
