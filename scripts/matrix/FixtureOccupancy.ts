@@ -16,6 +16,7 @@ import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";
 import MatrixRule from "./MatrixRule";
 import TestUtils from "../test-utils";
+import DiagnosticManifest from "../diagnostics/DiagnosticManifest";
 import AdrProvenanceLines from "./AdrProvenanceLines";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
 import ISourcePosition from "../types/ISourcePosition";
@@ -41,22 +42,33 @@ import TMatrixContext from "../types/TMatrixContext";
  * context -- but there is no guard, and every diagnostic that gains a real
  * cross-file position turns a skipped 1:0 into a real number aimed at the wrong
  * tree.
+ *
+ * #1620: positions are grouped by the code each line asserts, so a cell is
+ * occupied for that code alone. A line asserting no code (a parse error) is
+ * grouped under `null` and speaks for the ADR's own matrix, as before.
  */
-function diagnosticPositions(expectedErrorPath: string): ISourcePosition[] {
-  if (!existsSync(expectedErrorPath)) return [];
+function diagnosticPositions(
+  expectedErrorPath: string,
+): Map<string | null, ISourcePosition[]> {
+  const byCode = new Map<string | null, ISourcePosition[]>();
+  if (!existsSync(expectedErrorPath)) return byCode;
 
-  const positions: ISourcePosition[] = [];
   const content = readFileSync(expectedErrorPath, "utf-8");
-  const pattern = /^(\d+):(\d+)/gm;
-  let match: RegExpExecArray | null;
-
-  while ((match = pattern.exec(content)) !== null) {
+  for (const text of content.split("\n")) {
+    const match = /^(\d+):(\d+)/.exec(text);
+    if (match === null) continue;
     const line = Number(match[1]);
     const column = Number(match[2]);
     if (line === 1 && column === 0) continue;
-    addPosition(positions, { line, column });
+
+    const codes = DiagnosticManifest.parseCodes(text);
+    for (const code of codes.length > 0 ? codes : [null]) {
+      const positions = byCode.get(code) ?? [];
+      addPosition(positions, { line, column });
+      byCode.set(code, positions);
+    }
   }
-  return positions;
+  return byCode;
 }
 
 function addPosition(
@@ -119,14 +131,19 @@ function recordFixture(
   const diagnostics = diagnosticPositions(expectedError);
 
   for (const adr of adrs) {
-    const positions = [...diagnostics];
+    const positions = [...(diagnostics.get(null) ?? [])];
     for (const line of provenance.get(adr) ?? []) {
       addPosition(positions, { line });
     }
 
     // #1731 review: a rule with its own table is occupied only by provenance
-    // recorded for that rule. A diagnostic stays the ADR's own: it names no rule.
+    // recorded for that rule. #1620: a coded diagnostic occupies only its
+    // code's matrix -- never the ADR's own, nor another code's.
     const matrices: [string, ISourcePosition[]][] = [[adr, positions]];
+    for (const [code, codePositions] of diagnostics) {
+      if (code !== null)
+        matrices.push([MatrixRule.id(adr, code), codePositions]);
+    }
     for (const [matrixId, ruleLines] of provenance) {
       if (matrixId !== adr && MatrixRule.adrOf(matrixId) === adr) {
         matrices.push([matrixId, ruleLines.map((line) => ({ line }))]);

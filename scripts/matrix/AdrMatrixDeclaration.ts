@@ -11,6 +11,7 @@
  * already reviewed rather than assumed silently.
  */
 
+import DiagnosticManifest from "../diagnostics/DiagnosticManifest";
 import MatrixCell from "./MatrixCell";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 import TMatrixContext from "../types/TMatrixContext";
@@ -24,15 +25,39 @@ const SEVERITY_MARKER = "<!-- MATRIX-SEVERITY -->";
  * #1731 review: marks the table of one of the ADR's rules, which only that
  * rule's provenance occupies (see MatrixRule).
  */
-const RULE_MARKER = /<!-- MATRIX-SEVERITY rule: ([a-z0-9-]+) -->/g;
+const RULE_MARKER =
+  /<!-- MATRIX-SEVERITY (?:rule: ([a-z0-9-]+)|code: (\S+)) -->/g;
+
+/** Any severity marker: the ADR's own, a rule's or a code's. */
+const ANY_MARKER = "<!-- MATRIX-SEVERITY";
 
 function ruleMarker(rule: string): string {
-  return `<!-- MATRIX-SEVERITY rule: ${rule} -->`;
+  const kind = DiagnosticManifest.isCode(rule) ? "code" : "rule";
+  return `<!-- MATRIX-SEVERITY ${kind}: ${rule} -->`;
 }
 
-/** The rules with their own table, in the order the ADR declares them. */
+/**
+ * The rules and codes with their own table, in the order the ADR declares them.
+ * #1620: a code's table is named by the code itself (`code: E0879`).
+ */
 function rulesIn(markdown: string): string[] {
-  return [...markdown.matchAll(RULE_MARKER)].map((match) => match[1]);
+  return [...markdown.matchAll(RULE_MARKER)].map(
+    (match) => match[1] ?? match[2],
+  );
+}
+
+/**
+ * #1620: the diagnostic codes an ADR declares -- the first cell of any table
+ * row that is exactly a code, as in an ADR's `| Code | ... |` table.
+ */
+function codesIn(markdown: string): string[] {
+  const codes = new Set<string>();
+  for (const line of markdown.split("\n")) {
+    if (!/^\s*\|/.test(line) || isSeparatorRow(line)) continue;
+    const [first] = splitRow(line);
+    if (DiagnosticManifest.isCode(first)) codes.add(first);
+  }
+  return [...codes];
 }
 
 const SEVERITIES: readonly TMatrixSeverity[] = ["off", "warn", "error"];
@@ -180,7 +205,9 @@ function severityOf(
 
 class AdrMatrixDeclaration {
   static readonly SEVERITY_MARKER = SEVERITY_MARKER;
+  static readonly ANY_MARKER = ANY_MARKER;
   static rulesIn = rulesIn;
+  static codesIn = codesIn;
   static parse = parse;
   static severityOf = severityOf;
 }

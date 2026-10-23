@@ -47,7 +47,7 @@ describe("FixtureOccupancy.build", () => {
     );
     write("division.expected.error", "4:22 error[E0800]: Division by zero\n");
 
-    const occupancy = await occupancyFor("051", [fixture]);
+    const occupancy = await occupancyFor("051 E0800", [fixture]);
     expect([...occupancy!.cells.keys()]).toEqual([
       MatrixCell.key("top-level-function", "same-file"),
     ]);
@@ -103,7 +103,7 @@ describe("FixtureOccupancy.build", () => {
     );
     write("consumer.expected.error", "4:22 error[E0800]: Division by zero\n");
 
-    const occupancy = await occupancyFor("051", [fixture]);
+    const occupancy = await occupancyFor("051 E0800", [fixture]);
     expect([...occupancy!.cells.keys()]).toEqual([
       MatrixCell.key("top-level-function", "imported-direct"),
     ]);
@@ -130,7 +130,7 @@ describe("FixtureOccupancy.build", () => {
     );
     write("both.expected.error", "8:24 error[E0800]: Division by zero\n");
 
-    const occupancy = await occupancyFor("051", [fixture]);
+    const occupancy = await occupancyFor("051 E0800", [fixture]);
     expect([...occupancy!.cells.keys()]).toEqual([
       MatrixCell.key("scope-method", "same-file"),
     ]);
@@ -174,7 +174,8 @@ describe("FixtureOccupancy.build", () => {
     write("multi.expected.error", "3:14 error[E0800]: Division by zero\n");
 
     const report = await FixtureOccupancy.build([fixture], dir);
-    expect([...report.keys()]).toEqual(["013", "051"]);
+    // #1620: a coded diagnostic occupies its code's matrix in each ADR.
+    expect([...report.keys()]).toEqual(["013 E0800", "051 E0800"]);
   });
 
   it("occupies a rule's matrix only from that rule's provenance (#1731 review)", async () => {

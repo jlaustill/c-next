@@ -121,13 +121,21 @@ function obligationCount(
  * A rule name the transpiler records and the ADR does not declare is a typo on
  * one side. Its occupancy would otherwise render under its own heading with no
  * obligation, and the rule's real table would sit unoccupied without a word.
+ *
+ * #1620: a code matrix is exempt. A fixture may assert a code its ADR does not
+ * own, and an owned code without a table is reported by the reader instead.
  */
 function undeclaredRules(
   declarations: ReadonlyMap<string, IMatrixDeclaration>,
   occupancy: ReadonlyMap<string, IMatrixOccupancy>,
 ): string[] {
   return [...occupancy.keys()]
-    .filter((id) => MatrixRule.ruleOf(id) !== null && !declarations.has(id))
+    .filter(
+      (id) =>
+        MatrixRule.ruleOf(id) !== null &&
+        !MatrixRule.isCode(id) &&
+        !declarations.has(id),
+    )
     .sort();
 }
 

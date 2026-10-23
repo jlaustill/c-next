@@ -7,8 +7,15 @@
  * cells `ok` with their own fixtures untagged. A rule with its own table gets
  * its own id, and only provenance recorded for that rule occupies it.
  *
+ * #1620: a diagnostic code is named the same way ("029 E0879"). One fixture
+ * asserting E0880 used to green every cell for E0879 too, because both codes
+ * shared ADR-029's matrix; each code now has its own, occupied only by
+ * diagnostics carrying that code.
+ *
  * The sole encoder of the id, as `MatrixCell.key` is of a cell's.
  */
+
+import DiagnosticManifest from "../diagnostics/DiagnosticManifest";
 
 /** "045" for the ADR's own matrix, "045 string-copy" for a rule's. */
 function id(adr: string, rule?: string | null): string {
@@ -26,8 +33,15 @@ function ruleOf(matrixId: string): string | null {
   return space === -1 ? null : matrixId.slice(space + 1);
 }
 
+/** Whether a matrix id names one diagnostic code's matrix. */
+function isCode(matrixId: string): boolean {
+  const rule = ruleOf(matrixId);
+  return rule !== null && DiagnosticManifest.isCode(rule);
+}
+
 class MatrixRule {
   static id = id;
+  static isCode = isCode;
   static adrOf = adrOf;
   static ruleOf = ruleOf;
 }
