@@ -148,3 +148,19 @@ describe("MatrixReport.undeclaredRules", () => {
     expect(MatrixReport.undeclaredRules(new Map(), occupancy)).toEqual([]);
   });
 });
+
+describe("MatrixReport.ungatedCodes (#1620 review)", () => {
+  it("names a code matrix whose code no ADR's table declares", () => {
+    const declarations = new Map([
+      ["071 E0900", MatrixTestHelpers.declare("071 E0900", [])],
+    ]);
+    const occupancy = new Map([
+      ["013 E0900", MatrixTestHelpers.occupy("013 E0900", [])],
+      ["071 E0896", MatrixTestHelpers.occupy("071 E0896", [])],
+      ["045 string-copy", MatrixTestHelpers.occupy("045 string-copy", [])],
+    ]);
+    expect(MatrixReport.ungatedCodes(declarations, occupancy)).toEqual([
+      "071 E0896",
+    ]);
+  });
+});

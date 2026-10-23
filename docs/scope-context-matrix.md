@@ -297,26 +297,6 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
-## ADR-013 E0877
-
-| Context            | same file | direct | transitive | from 1 away | thru chain |
-| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | -         | -      | -          | n/a         | n/a        |
-| top-level function | -         | -      | -          | n/a         | n/a        |
-| scope member       | -         | -      | -          | n/a         | n/a        |
-| scope method       | -         | -      | -          | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
-
-## ADR-013 E0878
-
-| Context            | same file | direct | transitive | from 1 away | thru chain |
-| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | -         | -      | -          | n/a         | n/a        |
-| top-level function | -         | -      | -          | n/a         | n/a        |
-| scope member       | -         | -      | -          | n/a         | n/a        |
-| scope method       | -         | -      | -          | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
-
 ## ADR-013 E0900
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

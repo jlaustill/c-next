@@ -122,8 +122,8 @@ function obligationCount(
  * one side. Its occupancy would otherwise render under its own heading with no
  * obligation, and the rule's real table would sit unoccupied without a word.
  *
- * #1620: a code matrix is exempt. A fixture may assert a code its ADR does not
- * own, and an owned code without a table is reported by the reader instead.
+ * #1620: a code matrix is left to `ungatedCodes`, since a fixture may assert a
+ * code its ADR does not own.
  */
 function undeclaredRules(
   declarations: ReadonlyMap<string, IMatrixDeclaration>,
@@ -139,9 +139,29 @@ function undeclaredRules(
     .sort();
 }
 
+/**
+ * #1620 review: code matrices fixtures occupy whose code no ADR's table gates.
+ * A code another ADR declares is that ADR's to gate; a code no ADR declares
+ * would otherwise render under its own heading and be checked by nothing.
+ */
+function ungatedCodes(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+): string[] {
+  const gated = new Set(
+    [...declarations.keys()]
+      .filter((id) => MatrixRule.isCode(id))
+      .map((id) => MatrixRule.ruleOf(id)),
+  );
+  return [...occupancy.keys()]
+    .filter((id) => MatrixRule.isCode(id) && !gated.has(MatrixRule.ruleOf(id)))
+    .sort();
+}
+
 class MatrixReport {
   static isOccupied = isOccupied;
   static undeclaredRules = undeclaredRules;
+  static ungatedCodes = ungatedCodes;
   static violations = violations;
   static undeterminable = undeterminable;
   static obligationCount = obligationCount;

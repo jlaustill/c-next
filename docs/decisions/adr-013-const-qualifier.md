@@ -478,44 +478,6 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
 
-<!-- MATRIX-SEVERITY code: E0877 -->
-
-| Context            | Relationship        | Severity |
-| ------------------ | ------------------- | -------- |
-| top-level function | same file           | off      |
-| scope method       | same file           | off      |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
-
-off: E0877 is retired -- ADR-071's E0900 reports an assignment to a read-only binding, and nothing emits E0877.
-
-<!-- MATRIX-SEVERITY code: E0878 -->
-
-| Context            | Relationship        | Severity |
-| ------------------ | ------------------- | -------- |
-| top-level function | same file           | off      |
-| scope method       | same file           | off      |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
-
-off: E0878 is retired -- ADR-071's E0900 reports a read-only argument to a `mut` parameter, and nothing emits E0878.
-
 An assignment is a statement, so E0877 occupies the two function contexts; a
 call is an expression, so E0878 reaches a declaration's initializer and
 occupies the other two. Const-ness is read from the declaration, which may sit

@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import ErrorCodeRegistry from "./diagnostics/ErrorCodeRegistry";
 import AdrDeclarationReader from "./matrix/AdrDeclarationReader";
 import FixtureOccupancy from "./matrix/FixtureOccupancy";
 import MatrixRenderer from "./matrix/MatrixRenderer";
@@ -28,6 +29,7 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const decisionsDir = join(rootDir, "docs", "decisions");
 const testsDir = join(rootDir, "tests");
 const reportPath = join(rootDir, "docs", "scope-context-matrix.md");
+const registryPath = join(rootDir, "docs", "error-codes.md");
 const searchPaths = [join(testsDir, "include")];
 
 async function render(): Promise<{
@@ -36,7 +38,10 @@ async function render(): Promise<{
   occupancy: Awaited<ReturnType<typeof FixtureOccupancy.build>>;
   declarationErrors: string[];
 }> {
-  const declarations = AdrDeclarationReader.read(decisionsDir);
+  const declarations = AdrDeclarationReader.read(
+    decisionsDir,
+    ErrorCodeRegistry.retired(readFileSync(registryPath, "utf-8")),
+  );
   const fixtures = existsSync(testsDir)
     ? FileScanner.findTestFiles(testsDir)
     : [];
@@ -191,6 +196,17 @@ async function main(): Promise<void> {
       ),
     );
     printViolations(warnings);
+  }
+  // #1620 review: listed rather than failed until #2301 gives every
+  // registered code an owner or marks it as having none.
+  const ungated = MatrixReport.ungatedCodes(declarations, occupancy);
+  if (ungated.length > 0) {
+    console.log(
+      chalk.yellow(
+        `${ungated.length} code(s) asserted by tagged fixtures but declared by no ADR's code table (#2301):`,
+      ),
+    );
+    for (const id of ungated) console.log(chalk.yellow(`  ADR-${id}`));
   }
   // Say what was enforced, not just that nothing failed. An identical
   // "satisfied" line for twelve obligations and for zero is what would let a

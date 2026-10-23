@@ -14,6 +14,7 @@
 import DiagnosticManifest from "../diagnostics/DiagnosticManifest";
 import MatrixCell from "./MatrixCell";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
+import IMatrixTable from "../types/IMatrixTable";
 import TMatrixContext from "../types/TMatrixContext";
 import TMatrixRelationship from "../types/TMatrixRelationship";
 import TMatrixSeverity from "../types/TMatrixSeverity";
@@ -31,31 +32,45 @@ const RULE_MARKER =
 /** Any severity marker: the ADR's own, a rule's or a code's. */
 const ANY_MARKER = "<!-- MATRIX-SEVERITY";
 
-function ruleMarker(rule: string): string {
-  const kind = DiagnosticManifest.isCode(rule) ? "code" : "rule";
-  return `<!-- MATRIX-SEVERITY ${kind}: ${rule} -->`;
+function tableMarker(table: IMatrixTable): string {
+  return `<!-- MATRIX-SEVERITY ${table.kind}: ${table.name} -->`;
 }
 
 /**
- * The rules and codes with their own table, in the order the ADR declares them.
- * #1620: a code's table is named by the code itself (`code: E0879`).
+ * The rule and code tables, in the order the ADR declares them. The kind is
+ * the marker's (`rule:` or `code:`), never re-derived from the name.
  */
-function rulesIn(markdown: string): string[] {
-  return [...markdown.matchAll(RULE_MARKER)].map(
-    (match) => match[1] ?? match[2],
+function tablesIn(markdown: string): IMatrixTable[] {
+  return [...markdown.matchAll(RULE_MARKER)].map((match) =>
+    match[1] === undefined
+      ? { kind: "code", name: match[2] }
+      : { kind: "rule", name: match[1] },
   );
 }
 
 /**
- * #1620: the diagnostic codes an ADR declares -- the first cell of any table
- * row that is exactly a code, as in an ADR's `| Code | ... |` table.
+ * #1620: the diagnostic codes an ADR declares -- the first cells of its
+ * `| Code | ... |` table. A code `retired` lists needs no table.
  */
-function codesIn(markdown: string): string[] {
+function codesIn(
+  markdown: string,
+  retired: ReadonlySet<string> = new Set(),
+): string[] {
   const codes = new Set<string>();
+  let header: string | null = null;
   for (const line of markdown.split("\n")) {
-    if (!/^\s*\|/.test(line) || isSeparatorRow(line)) continue;
+    if (!/^\s*\|/.test(line)) {
+      header = null;
+      continue;
+    }
+    if (isSeparatorRow(line)) continue;
     const [first] = splitRow(line);
-    if (DiagnosticManifest.isCode(first)) codes.add(first);
+    if (header === null) {
+      header = slug(first);
+      continue;
+    }
+    if (header !== "code" || !DiagnosticManifest.isCode(first)) continue;
+    if (!retired.has(first)) codes.add(first);
   }
   return [...codes];
 }
@@ -93,7 +108,7 @@ function isSeparatorRow(line: string): boolean {
 }
 
 /**
- * Parse the severity table for one ADR, or for its rule `rule`.
+ * Parse the severity table for one ADR, or for one of its rule or code tables.
  *
  * An unrecognized context, relationship or severity is an ERROR rather than a
  * skipped row. Silently ignoring a typo would turn the declared cell into `off`
@@ -103,13 +118,13 @@ function isSeparatorRow(line: string): boolean {
 function parse(
   markdown: string,
   adr: string,
-  rule?: string,
+  table?: IMatrixTable,
 ): IMatrixDeclaration {
   const severities = new Map<string, TMatrixSeverity>();
   const errors: string[] = [];
 
   const markerIndex = markdown.indexOf(
-    rule === undefined ? SEVERITY_MARKER : ruleMarker(rule),
+    table === undefined ? SEVERITY_MARKER : tableMarker(table),
   );
   if (markerIndex === -1) {
     return { adr, severities, errors };
@@ -206,7 +221,7 @@ function severityOf(
 class AdrMatrixDeclaration {
   static readonly SEVERITY_MARKER = SEVERITY_MARKER;
   static readonly ANY_MARKER = ANY_MARKER;
-  static rulesIn = rulesIn;
+  static tablesIn = tablesIn;
   static codesIn = codesIn;
   static parse = parse;
   static severityOf = severityOf;

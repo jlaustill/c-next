@@ -123,3 +123,63 @@ describe("AdrDeclarationReader.read", () => {
     );
   });
 });
+
+describe("AdrDeclarationReader.read code tables (#1620)", () => {
+  const codeTable = (...codes: string[]): string =>
+    [
+      "| Code | Rule |",
+      "| ---- | ---- |",
+      ...codes.map((code) => `| ${code} | r |`),
+      "",
+    ].join("\n");
+  const codeMatrix = (code: string): string =>
+    wellFormed.replace(
+      AdrMatrixDeclaration.SEVERITY_MARKER,
+      `<!-- MATRIX-SEVERITY code: ${code} -->`,
+    ) + "\n";
+
+  it("fails a declared code that has no table of its own", () => {
+    writeAdr("adr-029-x.md", codeTable("E0879", "E0880") + codeMatrix("E0880"));
+    expect(AdrDeclarationReader.read(dir).get("029 E0879")?.errors).toEqual([
+      expect.stringContaining("declares E0879 but has no"),
+    ]);
+  });
+
+  it("fails a code table for a code the ADR does not declare", () => {
+    writeAdr(
+      "adr-029-x.md",
+      codeTable("E0879") + codeMatrix("E0879") + "\n" + codeMatrix("E0880"),
+    );
+    expect(
+      AdrDeclarationReader.read(dir).get("029 E0880")?.errors,
+    ).toContainEqual(
+      expect.stringContaining("which its code table does not declare"),
+    );
+  });
+
+  it("asks no table of a code the registry retires", () => {
+    writeAdr("adr-013-x.md", codeTable("E0877", "E0900") + codeMatrix("E0900"));
+    const declarations = AdrDeclarationReader.read(dir, new Set(["E0877"]));
+    expect(declarations.has("013 E0877")).toBe(false);
+    expect(declarations.get("013 E0900")?.errors).toEqual([]);
+  });
+
+  it("fails a table for a code the registry retires", () => {
+    writeAdr("adr-013-x.md", codeTable("E0877") + codeMatrix("E0877"));
+    expect(
+      AdrDeclarationReader.read(dir, new Set(["E0877"])).get("013 E0877")
+        ?.errors,
+    ).toEqual([expect.stringContaining("which docs/error-codes.md retires")]);
+  });
+
+  it("names a `code:` marker whose name is not a diagnostic code", () => {
+    writeAdr("adr-029-x.md", codeTable("E0879") + codeMatrix("E879"));
+    const declarations = AdrDeclarationReader.read(dir);
+    expect(declarations.get("029 E879")?.errors).toEqual([
+      "ADR-029: `code: E879` is not a diagnostic code",
+    ]);
+    expect(declarations.get("029 E0879")?.errors).toEqual([
+      expect.stringContaining("declares E0879 but has no"),
+    ]);
+  });
+});

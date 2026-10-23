@@ -144,3 +144,13 @@ describe("ErrorCodeRegistry.check", () => {
     expect(ErrorCodeRegistry.check(piped, new Set(["E0807"]))).toEqual([]);
   });
 });
+
+describe("ErrorCodeRegistry.retired (#1620 review)", () => {
+  it("lists the codes whose row is marked retired", () => {
+    const markdown = doc(
+      "| E0877 | _(retired)_ — was: assignment to a const binding | Folded into E0900 | `a.ts` |",
+      "| E0900 | Write to a binding not declared mut | Declare it mut | `b.ts` |",
+    );
+    expect([...ErrorCodeRegistry.retired(markdown)]).toEqual(["E0877"]);
+  });
+});

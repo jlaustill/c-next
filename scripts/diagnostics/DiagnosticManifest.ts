@@ -40,6 +40,10 @@ class DiagnosticManifest {
     DiagnosticManifest.CODE_SOURCE +
     ")\\b\\]?:";
 
+  private static readonly CODE_EXACT = new RegExp(
+    `^(?:${DiagnosticManifest.CODE_SOURCE})$`,
+  );
+
   /** Shown in place of a code list for a fixture whose diagnostic carries none. */
   private static readonly UNCODED = "(uncoded)";
 
@@ -62,7 +66,7 @@ class DiagnosticManifest {
 
   /** Whether `text` is exactly one diagnostic code, e.g. `E0879`. */
   static isCode(text: string): boolean {
-    return new RegExp(`^(?:${DiagnosticManifest.CODE_SOURCE})$`).test(text);
+    return DiagnosticManifest.CODE_EXACT.test(text);
   }
 
   /**
