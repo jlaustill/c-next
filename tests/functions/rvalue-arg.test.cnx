@@ -11,7 +11,7 @@ u32 main() {
 
     // Test: passing bitwise expression (rvalue) to u8 parameter
     // Should generate: process(&crc, &(uint8_t){value & 0xFF})
-    crc <- process(crc, value & 0xFF);
+    crc <- process(crc, value[0, 8]);
     if (crc != 0x78) {
         return 1;
     }

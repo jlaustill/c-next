@@ -27,7 +27,7 @@ typedef struct Handlers {
 uint32_t sink32(const uint32_t v);
 void sinkVoid(const uint32_t v);
 int32_t sinkI(const int32_t v);
-uint64_t wide(const uint64_t v);
+int64_t wide(const int64_t v);
 uint32_t run(const Handlers* h, sinkI_fp cb);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Handlers Handlers_init(void);

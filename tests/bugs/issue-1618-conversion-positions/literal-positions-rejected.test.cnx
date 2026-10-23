@@ -1,0 +1,35 @@
+// test-error
+// #1618: ADR-024's literal range (E0868) holds at every position a value
+// lands in a typed target. 300 and -1 reached a u8 through a return, an
+// argument, an array element, a struct field initializer and a ternary's arm,
+// each at exit 0. The controls stay silent: an in-range literal at each.
+struct P {
+    u8 x;
+}
+
+void take(u8 v) {}
+
+u8 give() {
+    return 300;
+}
+
+u8 giveInRange() {
+    return 255;
+}
+
+void positions(u32 c) {
+    take(300);
+    take(-1);
+    u8[2] list <- [300, 0];
+    P p <- { x: 300 };
+    u8 t <- (c = 1) ? 300 : 0;
+
+    take(255);
+    u8[2] fits <- [255, 0];
+    P q <- { x: 0 };
+    (void) list;
+    (void) p;
+    (void) t;
+    (void) fits;
+    (void) q;
+}

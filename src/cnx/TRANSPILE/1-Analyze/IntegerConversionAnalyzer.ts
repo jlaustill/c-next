@@ -70,6 +70,7 @@ import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import invariant from "../../utils/invariant";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import CompositeType from "../../utils/CompositeType";
+import CompoundOperator from "../../utils/CompoundOperator";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ValuePositions from "./helpers/ValuePositions";
 import IIntegerConversionError from "./types/IIntegerConversionError";
@@ -100,21 +101,21 @@ class IntegerConversionCheck {
     this.check(target, declaration.initializer, "assign", true);
   }
 
-  /** The values E0891 types from their position: arguments, fields, elements */
+  /** The values typed by their position: arguments, fields, elements (#1618) */
   public checkExpression(expr: TExpression): void {
     switch (expr.kind) {
       case "postfix":
         for (const op of expr.ops) {
           if (op.kind !== "call") continue;
-          for (const argument of op.arguments) this.checkFloatingAt(argument);
+          for (const argument of op.arguments) this.checkAt(argument);
         }
         return;
       case "structInitializer":
-        for (const field of expr.fields) this.checkFloatingAt(field.value);
+        for (const field of expr.fields) this.checkAt(field.value);
         return;
       case "arrayInitializer":
-        if (expr.fill) this.checkFloatingAt(expr.fill);
-        for (const element of expr.elements) this.checkFloatingAt(element);
+        if (expr.fill) this.checkAt(expr.fill);
+        for (const element of expr.elements) this.checkAt(element);
         return;
       case "cast":
         this.checkCast(expr);
@@ -124,14 +125,17 @@ class IntegerConversionCheck {
     }
   }
 
-  /** E0914, then E0891, for a value at the type its position gives it */
-  public checkFloatingAt(value: TExpression): void {
+  /**
+   * E0914, then every integer rule, for a value at the type its position
+   * gives it: a return value, an argument, a field, an element (#1618)
+   */
+  public checkAt(value: TExpression): void {
     if (this.checkStringsAt(value)) return;
     const target = StructInitializerType.valueTypeAt(
       ValuePositions.at(this.positions, value),
     );
     if (target !== null && TypeCheckUtils.isInteger(target)) {
-      this.checkFloating(target, value);
+      this.check(target, value, "assign", true);
     }
   }
 
@@ -141,9 +145,6 @@ class IntegerConversionCheck {
     if (this.writesWholeString(site) && this.checkNonStringAt(site.value)) {
       return;
     }
-    // A compound operator is arithmetic at the operands' width, which ADR-044
-    // governs; only a plain `<-` is a conversion.
-    if (site.operator !== "<-") return;
     const target = site.target;
     if (
       target.kind === "postfix" &&
@@ -156,7 +157,28 @@ class IntegerConversionCheck {
     const targetType =
       OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
-    this.check(targetType, site.value, "assign", true);
+    if (site.operator === "<-") {
+      this.check(targetType, site.value, "assign", true);
+      return;
+    }
+    this.checkCompound(targetType, site);
+  }
+
+  /**
+   * ADR-024: `y op<- b` is `y <- y op b`, so what lands in `y` is the
+   * composite of the two, typed as any composite is. A shift's count is no
+   * leaf of it, so `y <<<- n` lands `y`'s own type.
+   */
+  private checkCompound(targetType: string, site: IAssignmentSyntax): void {
+    const binary = CompoundOperator.binaryOf(site.operator);
+    const shift = binary === "<<" || binary === ">>";
+    const source = CompositeType.integerOf([
+      OperandTyper.typeOfTarget(site.target, this.context),
+      ...(shift ? [] : OperandTyper.valueLeaves(site.value, this.context)),
+    ]);
+    if (source !== null) {
+      this.checkConversion(targetType, source, site.value, "assign");
+    }
   }
 
   /** E0914, then E0923: a string lands only in a string, and only a string does */
@@ -275,8 +297,24 @@ class IntegerConversionCheck {
       return;
     }
     if (this.checkFloating(target, value)) return;
+    const ternary = IntegerConversionCheck.ternaryOf(value);
+    if (ternary !== null) {
+      this.check(target, ternary.whenTrue, kind, typeComposites);
+      this.check(target, ternary.whenFalse, kind, typeComposites);
+      return;
+    }
     const source = this.conversionSource(value, typeComposites);
     if (source !== null) this.checkConversion(target, source, value, kind);
+  }
+
+  /** The ternary a value is, past its parentheses: each arm lands (ADR-022) */
+  private static ternaryOf(
+    value: TExpression,
+  ): Extract<TExpression, { kind: "ternary" }> | null {
+    if (value.kind === "parenthesized") {
+      return IntegerConversionCheck.ternaryOf(value.expression);
+    }
+    return value.kind === "ternary" ? value : null;
   }
 
   /** An integer literal, or a minus over one, as one token: `-1`, `0xFF` */
@@ -431,7 +469,7 @@ class IntegerConversionAnalyzer {
       }
       for (const statement of StatementNodes.in(declaration)) {
         if (statement.kind === "return" && statement.value) {
-          check.checkFloatingAt(statement.value);
+          check.checkAt(statement.value);
         }
       }
       for (const site of StatementNodes.assignments(declaration)) {

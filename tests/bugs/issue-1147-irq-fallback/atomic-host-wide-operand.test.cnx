@@ -1,38 +1,39 @@
 // test-execution
 // #2120 review 2: a retry loop's single-evaluation temporary must not narrow
 // the value before the clamp helper sees it. The helper takes the wider type
-// (#94), so a saturating write of a value wider than the variable saturates,
-// as the non-atomic form does. A wider float keeps its precision.
+// (#94), so a saturating write saturates, as the non-atomic form does. A
+// wider integer reaches it only through the bit extraction ADR-024 asks for
+// (#1618). A wider float keeps its precision.
 #pragma target host
 
-atomic u8 counter <- 0;
+atomic u8 counter <- 200;
 atomic u8 falling <- 10;
-atomic i8 signed_up <- 0;
-atomic i8 signed_down <- 0;
+atomic i8 signed_up <- 100;
+atomic i8 signed_down <- -100;
 atomic f32 sum <- 0.0;
-mut u8 plain <- 0;
-mut u32 big <- 256;
+mut u8 plain <- 200;
+mut u32 big <- 456;
 mut i32 wide <- 300;
 mut f64 tiny <- 0.1;
 
 u32 main() {
-    plain +<- big;
+    plain +<- big[0, 8];
     if (plain != 255) {
         return 1;
     }
-    counter +<- big;
+    counter +<- big[0, 8];
     if (counter != 255) {
         return 2;
     }
-    falling -<- big;
+    falling -<- big[0, 8];
     if (falling != 0) {
         return 3;
     }
-    signed_up +<- wide;
+    signed_up +<- wide[0, 8];
     if (signed_up != 127) {
         return 4;
     }
-    signed_down -<- wide;
+    signed_down -<- wide[0, 8];
     if (signed_down != -128) {
         return 5;
     }

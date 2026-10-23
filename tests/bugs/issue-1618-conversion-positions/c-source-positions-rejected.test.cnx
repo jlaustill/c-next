@@ -1,0 +1,33 @@
+// test-error
+// #1618: a C function's result is a source like any other (ADR-024, "a C or
+// C++ header's integer ... has its width on this target"). Its uint64_t or
+// int32_t reached a u32 through a return and an argument at exit 0, where a
+// declaration and an assignment already reported it. The controls stay
+// silent: the bit extraction at each position.
+#include "wide64.h"
+
+void take(u32 v) {}
+
+u32 give() {
+    return global.cWide();
+}
+
+u32 giveSigned() {
+    return global.cSigned();
+}
+
+u32 giveBits() {
+    return global.cWide()[0, 32];
+}
+
+void positions() {
+    u32 d <- global.cWide();
+    mut u32 a <- 0;
+    a <- global.cWide();
+    take(global.cWide());
+    take(global.cSigned());
+
+    take(global.cWide()[0, 32]);
+    (void) d;
+    (void) a;
+}

@@ -458,6 +458,25 @@ they permitted is the code this decision exists to reject:
   `c.col <- wide` — a `u32` into a `u8` field — was never checked at all,
   because `c` is a struct. It emitted `c.col = wide;`.
 
+Until #1618 the integer rules (E0868, E0869) were checked at only four of the
+positions a value lands in -- a declaration's initializer, an assignment, and
+an element or field reached through an assignment's chain -- while E0891 was
+checked at all of them. These all accepted a `u64 wide` into a `u32`:
+
+- a compound assignment, `a +<- wide`, which lands `a + wide`;
+- a return value, `return wide;` in a `u32` function;
+- an argument, `take(wide)`, direct or through a callback field
+  (`h.handler(wide)`);
+- an array element, listed or filled: `[wide, 0]`, `[wide*]`;
+- a struct field's initializer, `{ x: wide }`;
+- either arm of a ternary, `(c = 1) ? wide : 0`.
+
+A C function's result (`global.cWide()`) leaked at the return and the
+argument the same way. Each position is now asked the type its position gives
+the value, the one question E0891 already asked, so the three rules are
+checked at the same places. The bit extraction (`wide[0, 32]`) stays silent at
+every one.
+
 ---
 
 ## Implementation Notes

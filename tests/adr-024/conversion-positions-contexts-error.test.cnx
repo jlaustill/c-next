@@ -1,0 +1,69 @@
+// test-error
+// test-adr: 024
+// #1618: E0868 and E0869 at every position a value lands in, in the
+// contexts other than a top-level function -- matrix cells: same file, in
+// the global-variable, scope-member, scope-method and for-header contexts.
+// Each context keeps the bit extraction beside it as a silent control.
+struct P {
+    u32 x;
+}
+
+u32 pass(u32 v) {
+    return v;
+}
+
+void sink(u32 v) {}
+
+u64 wideGlobal <- 5;
+u32 condGlobal <- 1;
+u32 n <- 0;
+
+P fieldGlobal <- { x: wideGlobal };
+u32[2] listGlobal <- [wideGlobal, 0];
+u32 ternGlobal <- (condGlobal = 1) ? wideGlobal : 0;
+P literalGlobal <- { x: 0x1FFFFFFFF };
+P okGlobal <- { x: wideGlobal[0, 32] };
+
+scope Sensor {
+    u64 wide <- 5;
+    u32 cond <- 1;
+
+    P field <- { x: this.wide };
+    u32[2] list <- [this.wide, 0];
+    u32 tern <- (this.cond = 1) ? this.wide : 0;
+    P literal <- { x: 0x1FFFFFFFF };
+    P okField <- { x: this.wide[0, 32] };
+
+    public u32 give() {
+        return this.wide;
+    }
+
+    public u32 giveBits() {
+        return this.wide[0, 32];
+    }
+
+    public void positions() {
+        mut u32 a <- 0;
+        a +<- this.wide;
+        sink(this.wide);
+        sink(0x1FFFFFFFF);
+        P p <- { x: this.wide };
+        u32[2] l <- [this.wide, 0];
+        u32 t <- (this.cond = 1) ? this.wide : 0;
+
+        a +<- this.wide[0, 32];
+        sink(this.wide[0, 32]);
+        (void) a;
+        (void) p;
+        (void) l;
+        (void) t;
+    }
+}
+
+void loops(u64 wide) {
+    for (u32 i <- pass(wide); n < 1; n +<- 1) {}
+    for (u32 j <- (n = 1) ? wide : 0; n < 1; n +<- 1) {}
+    for (P s <- { x: wide }; n < 1; n +<- 1) {}
+    for (u32 k <- pass(0x1FFFFFFFF); n < 1; n +<- 1) {}
+    for (u32 m <- pass(wide[0, 32]); n < 1; n +<- 1) {}
+}

@@ -1,0 +1,34 @@
+// test-error
+// #1618: ADR-024's sign change (E0869) holds at every position a value lands
+// in a typed target. An i32 reached a u32 through a return, an argument, an
+// array element, a struct field initializer and a ternary's arm, each at
+// exit 0. The controls stay silent: the bit reinterpret at each position.
+struct P {
+    u32 x;
+}
+
+void take(u32 v) {}
+
+u32 give(i32 s) {
+    return s;
+}
+
+u32 giveBits(i32 s) {
+    return s[0, 32];
+}
+
+void positions(i32 s, u32 c) {
+    take(s);
+    u32[2] list <- [s, 0];
+    P p <- { x: s };
+    u32 t <- (c = 1) ? s : 0;
+
+    take(s[0, 32]);
+    u32[2] bitsList <- [s[0, 32], 0];
+    P q <- { x: s[0, 32] };
+    (void) list;
+    (void) p;
+    (void) t;
+    (void) bitsList;
+    (void) q;
+}
