@@ -428,9 +428,12 @@ CNX does not support:
 ### Where a conversion is checked
 
 **Wherever a value meets a typed target**, and the target is the one the value
-actually lands in — not the variable its name starts with. A declaration's
-initializer, an assignment statement, an element of an array, a field reached
-through a chain, and a cast are all conversions and all checked the same way.
+actually lands in — not the variable its name starts with. Every position
+in E0868's and E0869's position tables below -- a declaration's initializer, an
+assignment (to a variable, an element or a field), a compound assignment, a
+return value, a call argument, an array element initializer, a struct field
+initializer and either arm of a ternary -- and a cast are all conversions, all
+checked the same way.
 
 **Every program names a target (ADR-049)**, and every platform-dependent width in this ADR is read from it. A suffixed literal is typed by its suffix, so `u8 x <- 300u16` is a narrowing. A header integer of unknown width never selects saturating arithmetic (ADR-044).
 

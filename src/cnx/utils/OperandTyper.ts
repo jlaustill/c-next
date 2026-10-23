@@ -203,23 +203,30 @@ class OperandTyper {
     );
   }
 
-  /** The expressions `valueLeaves` types, by the same collection rule. */
-  static valueLeafExpressions(expr: TExpression): TExpression[] {
+  /**
+   * The expressions `valueLeaves` types, by the same collection rule. An
+   * expression `isLeaf` accepts is one leaf, however it is built.
+   */
+  static valueLeafExpressions(
+    expr: TExpression,
+    isLeaf: (expr: TExpression) => boolean = () => false,
+  ): TExpression[] {
+    if (isLeaf(expr)) return [expr];
     if (OperandTyper.isCompositeLevel(expr)) {
       return expr.operands.flatMap((operand) =>
-        OperandTyper.valueLeafExpressions(operand),
+        OperandTyper.valueLeafExpressions(operand, isLeaf),
       );
     }
     if (expr.kind === "ternary") {
       return [expr.whenTrue, expr.whenFalse].flatMap((arm) =>
-        OperandTyper.valueLeafExpressions(arm),
+        OperandTyper.valueLeafExpressions(arm, isLeaf),
       );
     }
     if (expr.kind === "unary" && expr.operator === "&") return [];
     const operand = OperandTyper.wrappedOperand(expr);
     return operand === null
       ? [expr]
-      : OperandTyper.valueLeafExpressions(operand);
+      : OperandTyper.valueLeafExpressions(operand, isLeaf);
   }
 
   /**

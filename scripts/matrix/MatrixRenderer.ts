@@ -148,7 +148,7 @@ function positionCell(severity: string, occupants: number): string {
 /** #1618: each code's position table, beside how many fixtures land there. */
 function renderPositions(
   declarations: ReadonlyMap<string, IMatrixDeclaration>,
-  occupancy: ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>,
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
 ): string {
   if (declarations.size === 0) return "";
   const parts: string[] = [
@@ -162,7 +162,8 @@ function renderPositions(
     parts.push(`### ADR-${id}`, "");
     parts.push("| Position | Severity | Fixtures |", "| --- | --- | --- |");
     for (const [position, severity] of declarations.get(id)!.severities) {
-      const occupants = occupancy.get(id)?.get(position)?.length ?? 0;
+      const occupants =
+        occupancy.get(id)?.positions?.get(position)?.length ?? 0;
       parts.push(
         `| ${position.replaceAll("-", " ")} | ${severity} | ${positionCell(severity, occupants)} |`,
       );

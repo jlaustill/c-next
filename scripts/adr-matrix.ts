@@ -38,7 +38,6 @@ async function render(): Promise<{
   declarations: Map<string, IMatrixDeclaration>;
   occupancy: Awaited<ReturnType<typeof FixtureOccupancy.build>>;
   positionDeclarations: Map<string, IMatrixDeclaration>;
-  positionOccupancy: Map<string, Map<string, string[]>>;
   declarationErrors: string[];
 }> {
   const declarations = AdrDeclarationReader.read(
@@ -54,7 +53,6 @@ async function render(): Promise<{
     searchPaths,
   );
   const positionDeclarations = AdrDeclarationReader.readPositions(decisionsDir);
-  const positionOccupancy = FixtureOccupancy.positions(fixtures, testsDir);
   const declarationErrors = [
     ...declarations.values(),
     ...positionDeclarations.values(),
@@ -62,7 +60,7 @@ async function render(): Promise<{
   const document = await GeneratedMarkdown.format(
     [
       MatrixRenderer.renderDocument(declarations, occupancy),
-      MatrixRenderer.renderPositions(positionDeclarations, positionOccupancy),
+      MatrixRenderer.renderPositions(positionDeclarations, occupancy),
     ].join("\n"),
     reportPath,
   );
@@ -71,7 +69,6 @@ async function render(): Promise<{
     declarations,
     occupancy,
     positionDeclarations,
-    positionOccupancy,
     declarationErrors,
   };
 }
@@ -122,6 +119,21 @@ function printContextNotDerivableHint(
   );
 }
 
+/** #1618: position rows the fixtures contradict, one per line. */
+function printPositionViolations(
+  violations: ReturnType<typeof MatrixReport.positionViolations>,
+): void {
+  if (violations.length === 0) return;
+  console.log(
+    chalk.yellow(
+      `${violations.length} position(s) declared \`warn\` or \`error\` that no fixture reaches, or \`off\` that one does:`,
+    ),
+  );
+  for (const v of violations) {
+    console.log(chalk.yellow(`  ADR-${v.id}  ${v.position} (${v.severity})`));
+  }
+}
+
 function printSummary(
   violations: ReturnType<typeof MatrixReport.violations>,
   pending: ReturnType<typeof MatrixReport.undeterminable>,
@@ -149,11 +161,14 @@ async function main(): Promise<void> {
     declarations,
     occupancy,
     positionDeclarations,
-    positionOccupancy,
     declarationErrors,
   } = await render();
   const violations = MatrixReport.violations(declarations, occupancy);
   const pending = MatrixReport.undeterminable(declarations);
+  const positionViolations = MatrixReport.positionViolations(
+    positionDeclarations,
+    occupancy,
+  );
 
   if (mode === "write") {
     writeFileSync(reportPath, document, "utf-8");
@@ -167,6 +182,7 @@ async function main(): Promise<void> {
       console.log(chalk.bold("\nUnmet obligations:"));
       printViolations(violations);
     }
+    printPositionViolations(positionViolations);
     printSummary(violations, pending);
     return;
   }
@@ -222,10 +238,9 @@ async function main(): Promise<void> {
 
   // #1618: a position declared `error` that no fixture reaches, or one left
   // `off` that a fixture reaches, fails whatever context the fixtures are in.
-  const positionFailures = MatrixReport.positionViolations(
-    positionDeclarations,
-    positionOccupancy,
-  ).filter((v) => v.severity !== "warn");
+  const positionFailures = positionViolations.filter(
+    (v) => v.severity !== "warn",
+  );
   if (positionFailures.length > 0) {
     failures.push(
       `${positionFailures.length} position(s) no fixture of the code reaches (\`error\`) or one reaches (\`off\`):`,
@@ -255,6 +270,9 @@ async function main(): Promise<void> {
     );
     printViolations(warnings);
   }
+  printPositionViolations(
+    positionViolations.filter((v) => v.severity === "warn"),
+  );
   const otherContradictions = contradictions.filter(
     (c) => !MatrixRule.isCode(c.adr),
   );

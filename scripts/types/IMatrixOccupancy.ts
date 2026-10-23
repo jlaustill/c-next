@@ -17,6 +17,12 @@ interface IMatrixOccupancy {
    * would be the file-structure guess this tool exists to avoid.
    */
   readonly fixturesWithoutContext: readonly string[];
+
+  /**
+   * #1618: for a code's matrix, the positions (TMatrixPosition) its
+   * diagnostics land in, to the fixtures landing them there.
+   */
+  readonly positions?: ReadonlyMap<string, readonly string[]>;
 }
 
 export default IMatrixOccupancy;

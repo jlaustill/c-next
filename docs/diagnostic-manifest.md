@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-892 fixture(s) assert a diagnostic; 878 carry a code.
+893 fixture(s) assert a diagnostic; 879 carry a code.
 
 | Fixture                                                                                                   | Codes                             |
 | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
@@ -891,6 +891,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/null-check/null-in-ternary.test.cnx                                                                 | (uncoded)                         |
 | tests/null-check/null-neq-check.test.cnx                                                                  | E0905, E0907                      |
 | tests/null-check/valid-fgetc-check.test.cnx                                                               | E0905                             |
+| tests/overflow-modifiers/clamp-wide-literal-rejected.test.cnx                                             | E0868                             |
 | tests/preprocessor/include-impl-file-error.test.cnx                                                       | E0503                             |
 | tests/register/register-bits-syntax-error.test.cnx                                                        | (uncoded)                         |
 | tests/scope/nested-scope-error.test.cnx                                                                   | E0430                             |

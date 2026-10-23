@@ -105,6 +105,20 @@ describe("AdrMatrixDeclaration.parsePositions (#1618)", () => {
     ]);
   });
 
+  it("skips a narrower stray table before the position table", () => {
+    const stray = table(EVERY_ROW).replace(
+      "<!-- MATRIX-POSITION code: E0869 -->\n",
+      "<!-- MATRIX-POSITION code: E0869 -->\n\n| Note |\n| --- |\n| x |\n\nProse.\n",
+    );
+    const parsed = AdrMatrixDeclaration.parsePositions(
+      stray,
+      "024 E0869",
+      "E0869",
+    );
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.severities.size).toBe(10);
+  });
+
   it("rejects a missing, unknown or repeated row", () => {
     const parsed = AdrMatrixDeclaration.parsePositions(
       table([
@@ -140,15 +154,23 @@ describe("MatrixReport.positionViolations (#1618)", () => {
     ],
   ]);
 
-  it("reports an `error` row no fixture reaches and an `off` row one does", () => {
-    const occupancy = new Map([
+  const occupied = (id: string, positions: [string, string[]][]) =>
+    new Map([
       [
-        "024 E0869",
-        new Map([
-          ["declaration-initializer", ["a.test.cnx"]],
-          ["ternary-branch", ["b.test.cnx"]],
-        ]),
+        id,
+        {
+          adr: id,
+          cells: new Map<string, string[]>(),
+          fixturesWithoutContext: [],
+          positions: new Map(positions),
+        },
       ],
+    ]);
+
+  it("reports an `error` row no fixture reaches and an `off` row one does", () => {
+    const occupancy = occupied("024 E0869", [
+      ["declaration-initializer", ["a.test.cnx"]],
+      ["ternary-branch", ["b.test.cnx"]],
     ]);
     expect(MatrixReport.positionViolations(declarations, occupancy)).toEqual([
       { id: "024 E0869", position: "return-statement", severity: "error" },
@@ -157,14 +179,9 @@ describe("MatrixReport.positionViolations (#1618)", () => {
   });
 
   it("does not let another code's fixture reach the row", () => {
-    const occupancy = new Map([
-      [
-        "024 E0868",
-        new Map([
-          ["declaration-initializer", ["a.test.cnx"]],
-          ["return-statement", ["a.test.cnx"]],
-        ]),
-      ],
+    const occupancy = occupied("024 E0868", [
+      ["declaration-initializer", ["a.test.cnx"]],
+      ["return-statement", ["a.test.cnx"]],
     ]);
     expect(
       MatrixReport.positionViolations(declarations, occupancy).map(

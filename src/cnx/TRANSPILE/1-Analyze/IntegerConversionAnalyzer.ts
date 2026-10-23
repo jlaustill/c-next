@@ -15,6 +15,11 @@
  * whole of it, whichever of the three spellings reaches it -- which is why it
  * is one analyzer with three listener methods rather than three checks.
  *
+ * #1618: those three were not the only places a value lands. Every position
+ * `ValuePositions` names reaches `checkAt` -- a return, an argument, an array
+ * element, a field initializer, a ternary's arm -- and a compound assignment
+ * lands its target and value combined, so each is checked as a declaration is.
+ *
  * ## What is deliberately NOT typed
  *
  * A lone bit extraction, `large[0, 8]`, is ADR-024's explicit reinterpret --
@@ -80,6 +85,14 @@ import type IOperandType from "../../types/IOperandType";
 import SourceOrder from "../../utils/SourceOrder";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
+
+/** The expressions that build a value rather than name one (#1618). */
+const CONSTANT_FORMS: ReadonlySet<TExpression["kind"]> = new Set([
+  "literal",
+  "unary",
+  "parenthesized",
+  "binary",
+]);
 
 class IntegerConversionCheck {
   private readonly found: IIntegerConversionError[] = [];
@@ -183,15 +196,33 @@ class IntegerConversionCheck {
   }
 
   /**
-   * A literal operand lands as a lone literal does: a value known at compile
-   * time that does not fit the target is E0868. ADR-044's clamp is for runtime
-   * values only, so `u8 a +<- 300` and `a <- a + 300` are errors (#1618).
+   * A value known at compile time lands as a lone literal does: one that does
+   * not fit the target is E0868, however it is built. ADR-044's clamp is for
+   * runtime values only, so `u8 a +<- 300`, `a <- a + 300` and
+   * `a +<- (100 + 200)` are errors (#1618). The one evaluator,
+   * `OperandTyper.constantOf`, decides what is known, so `-(128)` is -128. A
+   * value built from a name is typed, and E0869 judges it by its type.
    */
   private checkLiteralLeaves(target: string, value: TExpression): void {
-    for (const leaf of OperandTyper.valueLeafExpressions(value)) {
-      const text = IntegerConversionCheck.integerLiteralText(leaf);
+    const constant = (expr: TExpression): boolean =>
+      CONSTANT_FORMS.has(expr.kind) &&
+      OperandTyper.valueLeafExpressions(expr).every(
+        (leaf) => IntegerConversionCheck.integerLiteralText(leaf) !== null,
+      ) &&
+      OperandTyper.constantOf(expr, this.context) !== null;
+    for (const leaf of OperandTyper.valueLeafExpressions(value, constant)) {
+      const text =
+        IntegerConversionCheck.integerLiteralText(leaf) ??
+        IntegerConversionCheck.foldedText(
+          constant(leaf) ? OperandTyper.constantOf(leaf, this.context) : null,
+        );
       if (text !== null) this.checkLiteral(target, text, leaf);
     }
+  }
+
+  /** A folded value as literal text, when a double holds it exactly. */
+  private static foldedText(value: number | null): string | null {
+    return value !== null && Number.isSafeInteger(value) ? String(value) : null;
   }
 
   /** E0914, then E0923: a string lands only in a string, and only a string does */
@@ -417,9 +448,8 @@ class IntegerConversionCheck {
    * The integer type a source converts from, as a cnx integer name, or
    * null when the rule does not judge it (#1668, the design's §5 row):
    *
-   * - a top-level ternary: its branches are what matter, and
-   *   `(val > 0) ? 1 : -1` has literal branches with no declared type (a
-   *   `test-no-warnings` execution fixture asserts it is fine);
+   * - a top-level ternary, which only a cast brings here: `check` takes
+   *   each arm where it stands;
    * - a lone bit extraction, `large[0, 8]`: ADR-024's explicit reinterpret,
    *   the form this rule tells the author to use;
    * - a composite, `a + b`: its integer type, as the typer settled it -- the
@@ -428,7 +458,6 @@ class IntegerConversionCheck {
    * - anything else: the typer's type, a C or C++ integer included, at its
    *   width on this target; a suffixed literal is its suffix's type.
    */
-  /** A ternary is ADR-022's, whose arms are each checked where they stand */
   private conversionSource(
     expr: TExpression,
     composites: boolean,
@@ -450,7 +479,6 @@ class IntegerConversionCheck {
     return null;
   }
 
-  /** Whether the expression, past its single-child levels, is a real ternary. */
   private report(
     at: TExpression,
     code: string,

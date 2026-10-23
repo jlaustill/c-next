@@ -167,9 +167,21 @@ function readPositions(decisionsDir: string): Map<string, IMatrixDeclaration> {
     const adr = match[1];
     const markdown = readFileSync(join(decisionsDir, entry), "utf-8");
     const declared = AdrMatrixDeclaration.codesIn(markdown);
-    for (const code of AdrMatrixDeclaration.positionCodesIn(markdown)) {
+    const codes = AdrMatrixDeclaration.positionCodesIn(markdown);
+    for (const code of codes) {
       const id = MatrixRule.id(adr, code);
-      const parsed = AdrMatrixDeclaration.parsePositions(markdown, id, code);
+      if (declarations.has(id)) continue;
+      const read = AdrMatrixDeclaration.parsePositions(markdown, id, code);
+      const parsed =
+        codes.filter((c) => c === code).length > 1
+          ? {
+              ...read,
+              errors: [
+                ...read.errors,
+                `ADR-${adr}: declares more than one position table for ${code}`,
+              ],
+            }
+          : read;
       declarations.set(
         id,
         declared.includes(code)

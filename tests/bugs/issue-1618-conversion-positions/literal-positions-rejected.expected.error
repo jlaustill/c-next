@@ -18,3 +18,7 @@
        help: Widen the target type, or narrow the value.
 35:13 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
+36:10 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+37:19 error[E0868]: Negative value -300 cannot be assigned to unsigned type u16
+       help: An unsigned type holds no negative values; use a signed type such as i16.
