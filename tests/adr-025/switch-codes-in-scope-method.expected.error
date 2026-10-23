@@ -1,0 +1,4 @@
+18:16 error[E0711]: Cannot switch on a boolean
+       help: MISRA C:2012 Rule 16.7: a bool has two states and a switch implies more. Use if/else.
+25:16 error[E0712]: Switch requires at least 2 clauses
+       help: MISRA C:2012 Rule 16.6: a one-clause switch is an if statement written the long way.
