@@ -496,8 +496,11 @@ enum's variants exactly.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0711 reports a switch on a bool, and a switch is a statement, which the grammar admits only in a function body.
+off: E0711 reports a switch on a bool, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
 
 <!-- MATRIX-SEVERITY code: E0712 -->
 
@@ -515,8 +518,11 @@ off: E0711 reports a switch on a bool, and a switch is a statement, which the gr
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0712 reports a one-clause switch, and a switch is a statement, which the grammar admits only in a function body.
+off: E0712 reports a one-clause switch, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
 
 <!-- MATRIX-SEVERITY code: E0713 -->
 
@@ -534,8 +540,11 @@ off: E0712 reports a one-clause switch, and a switch is a statement, which the g
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0713 reports a duplicate case value, and a switch is a statement, which the grammar admits only in a function body.
+off: E0713 reports a duplicate case value, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
 
 <!-- MATRIX-SEVERITY code: E0714 -->
 
@@ -553,8 +562,11 @@ off: E0713 reports a duplicate case value, and a switch is a statement, which th
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0714 reports an enum switch that miscounts its variants, and a switch is a statement, which the grammar admits only in a function body.
+off: E0714 reports an enum switch that miscounts its variants, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
 
 <!-- MATRIX-SEVERITY code: E0717 -->
 
@@ -572,8 +584,11 @@ off: E0714 reports an enum switch that miscounts its variants, and a switch is a
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0717 reports a case label that is not a constant, and a switch is a statement, which the grammar admits only in a function body.
+off: E0717 reports a case label that is not a constant, and a switch is a statement, which the grammar admits only in a function body; a `for` header's declaration takes an expression, and `switch` there is a parse error.
 
 A switch is a **statement**. It appears in a function body and nowhere else, so
 the two declaration contexts cannot hold one and are `off`.
