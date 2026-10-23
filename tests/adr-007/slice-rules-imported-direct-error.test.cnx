@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 007
+// #1620: E0858, E0859, E0860 and E0861 on buffers declared across ONE include hop
+// -- matrix cells: imported direct, in a top-level function and in a scope
+// method. A slice's rules are checked against the buffer's declaration, which
+// lives in another file here.
+
+#include "access-decls.cnx"
+
+scope Packer {
+    public void go() {
+        u32 v <- 0x11223344;
+        u64 w <- 0xDEADBEEFDEADBEEF;
+        global.sharedBoard[0, 4] <- v;
+        global.sharedBuf[global.sharedOffset, 4] <- v;
+        global.sharedBuf[4, 8] <- w;
+        global.sharedBuf[0, 8] <- v;
+        // NEGATIVE CONTROL -- one dimension, constant span, fits, source fits
+        global.sharedBuf[0, 4] <- v;
+    }
+}
+
+void main() {
+    u32 v <- 0x11223344;
+    u64 w <- 0xDEADBEEFDEADBEEF;
+    sharedBoard[0, 4] <- v;
+    sharedBuf[sharedOffset, 4] <- v;
+    sharedBuf[4, 8] <- w;
+    sharedBuf[0, 8] <- v;
+    // NEGATIVE CONTROL -- one dimension, constant span, fits, source fits
+    sharedBuf[0, 4] <- v;
+}

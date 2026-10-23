@@ -1,0 +1,39 @@
+// test-error
+// test-adr: 007
+// #1620: E0856, E0920, E0888 and E0890 on bases declared across ONE include hop --
+// matrix cells: imported direct. The rules are checked against the
+// declaration (a scalar's width, an array's dimensions, a float's type), which
+// lives in another file here.
+
+#include "access-decls.cnx"
+
+// global variable
+u8 depthGlobal <- sharedFlags[4][3];
+bool widthGlobal <- sharedFlags[20];
+u32 floatGlobal <- sharedFloat[0, 8];
+
+scope Probe {
+    // scope member
+    u8 depthMember <- sharedFlags[4][3];
+    bool widthMember <- sharedFlags[0, 9];
+    u32 floatMember <- sharedFloat[8, 8];
+
+    // scope method
+    public void go() {
+        global.sharedFlags[1][2] <- true;
+        global.sharedFlags[12] <- true;
+        global.sharedArr[global.sharedIndex()][3] <- true;
+    }
+}
+
+// top-level function, and the `for` header's declaration inside it
+void main() {
+    sharedArr[1][2][3] <- true;
+    bool b <- sharedFlags[8];
+    sharedArr[sharedIndex()][0, 2] <- 1;
+    for (mut u8 i <- sharedFlags[4][3]; i < 3; i +<- 1) {}
+    for (mut u8 j <- sharedFlags[6, 4]; j < 3; j +<- 1) {}
+    // NEGATIVE CONTROL -- in range, one bit index, a literal subscript
+    sharedFlags[7] <- true;
+    sharedArr[1][3] <- true;
+}
