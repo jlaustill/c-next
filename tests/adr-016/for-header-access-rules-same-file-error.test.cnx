@@ -1,0 +1,66 @@
+// test-error
+// test-adr: 016
+// E0435, E0436 and E0437 at a `for` header's declaration, in one file -- the
+// for header / same file cell of each code. Each rule reads the loop variable's
+// initializer like any other value, so the header is a reference position too.
+// The condition and update stay legal: they count as the enclosing function,
+// not the header.
+
+enum EColor {
+    RED,
+    GREEN
+}
+
+scope Vault {
+    u32 secret <- 1;
+    public u32 open <- 2;
+
+    u32 selfCount() {
+        mut u32 n <- 0;
+        // ASSERTION 1 -- E0435: the scope's own member reached through the
+        // scope's name.
+        for (mut u32 i <- Vault.open; i < 4; i +<- 1) {
+            n +<- 1;
+        }
+        // NEGATIVE CONTROL -- the sanctioned spelling.
+        for (mut u32 j <- this.open; j < 4; j +<- 1) {
+            n +<- 1;
+        }
+        return n;
+    }
+}
+
+scope Palette {
+    u32 EColor <- 3;
+
+    u32 shadeCount() {
+        mut u32 n <- 0;
+        // ASSERTION 2 -- E0437: the global enum, shadowed by the member above,
+        // reached bare.
+        for (mut u32 i <- (EColor.RED = global.EColor.RED) ? 0 : 1; i < 2; i +<- 1) {
+            n +<- 1;
+        }
+        // NEGATIVE CONTROL -- `global.` past the shadow.
+        for (mut u32 j <- (global.EColor.RED = global.EColor.GREEN) ? 0 : 1; j < 2; j +<- 1) {
+            n +<- 1;
+        }
+        return n;
+    }
+}
+
+u32 outsideCount() {
+    mut u32 n <- 0;
+    // ASSERTION 3 -- E0436: a private member reached from outside its scope.
+    for (mut u32 i <- Vault.secret; i < 4; i +<- 1) {
+        n +<- 1;
+    }
+    // NEGATIVE CONTROL -- a public member of the same scope.
+    for (mut u32 j <- Vault.open; j < 4; j +<- 1) {
+        n +<- 1;
+    }
+    return n;
+}
+
+u32 main() {
+    return outsideCount();
+}
