@@ -180,6 +180,15 @@ function ungatedCodes(
     .sort();
 }
 
+/** #1618: whether any fixture lands `id`'s diagnostic in `position`. */
+function isPositionOccupied(
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+  id: string,
+  position: string,
+): boolean {
+  return (occupancy.get(id)?.positions.get(position)?.length ?? 0) > 0;
+}
+
 /**
  * #1618: position rows the fixtures contradict -- `warn` or `error` with no
  * fixture landing a diagnostic there, or `off` with one.
@@ -191,8 +200,7 @@ function positionViolations(
   const found: IPositionViolation[] = [];
   for (const id of [...declarations.keys()].sort()) {
     for (const [position, severity] of declarations.get(id)!.severities) {
-      const occupants = occupancy.get(id)?.positions?.get(position);
-      const occupied = (occupants?.length ?? 0) > 0;
+      const occupied = isPositionOccupied(occupancy, id, position);
       if (severity === "off" ? occupied : !occupied) {
         found.push({ id, position, severity });
       }
@@ -203,6 +211,7 @@ function positionViolations(
 
 class MatrixReport {
   static positionViolations = positionViolations;
+  static isPositionOccupied = isPositionOccupied;
   static isOccupied = isOccupied;
   static undeclaredRules = undeclaredRules;
   static ungatedCodes = ungatedCodes;

@@ -138,8 +138,12 @@ function renderDocument(
   return parts.join("\n");
 }
 
-function positionCell(severity: string, occupants: number): string {
-  if (occupants > 0) return `ok (${occupants})`;
+function positionCell(
+  severity: string,
+  occupied: boolean,
+  occupants: number,
+): string {
+  if (occupied) return `ok (${occupants})`;
   if (severity === "error") return "**MISSING**";
   if (severity === "warn") return "warn";
   return "-";
@@ -162,10 +166,11 @@ function renderPositions(
     parts.push(`### ADR-${id}`, "");
     parts.push("| Position | Severity | Fixtures |", "| --- | --- | --- |");
     for (const [position, severity] of declarations.get(id)!.severities) {
-      const occupants =
-        occupancy.get(id)?.positions?.get(position)?.length ?? 0;
+      const occupied = MatrixReport.isPositionOccupied(occupancy, id, position);
+      const occupants = occupancy.get(id)?.positions.get(position)?.length ?? 0;
+      const cell = positionCell(severity, occupied, occupants);
       parts.push(
-        `| ${position.replaceAll("-", " ")} | ${severity} | ${positionCell(severity, occupants)} |`,
+        `| ${position.replaceAll("-", " ")} | ${severity} | ${cell} |`,
       );
     }
     parts.push("");

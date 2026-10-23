@@ -58,6 +58,7 @@ void positions(u32 c) {
     m &<- ~0x8000;
     a <- a & (a | 0x1FF);
     u32 fitsU32 <- 0x8000 * 0x10000;
+    u64 fitsU64 <- 0x100000000 * 2;
     (void)list;
     (void)p;
     (void)t;

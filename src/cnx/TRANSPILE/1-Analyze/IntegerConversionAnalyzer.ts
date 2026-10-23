@@ -98,6 +98,15 @@ const CONSTANT_FORMS: ReadonlySet<TExpression["kind"]> = new Set([
 ]);
 
 class IntegerConversionCheck {
+  /**
+   * A literal's exact value. BigInt, not parseInt: a u64 bound is past 2^53,
+   * where a double stops being exact and `0xFFFFFFFFFFFFFFFF` would round
+   * into range.
+   */
+  static literalValue(text: string): bigint {
+    return text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
+  }
+
   private readonly found: IIntegerConversionError[] = [];
 
   public constructor(
@@ -114,7 +123,7 @@ class IntegerConversionCheck {
     if (this.checkStringsAt(declaration.initializer)) return;
     const target = declaration.type.text;
     if (!TypeCheckUtils.isInteger(target)) return;
-    this.check(target, declaration.initializer, "assign", true);
+    this.check(target, declaration.initializer, true);
   }
 
   /** The values typed by their position: arguments, fields, elements (#1618) */
@@ -151,7 +160,7 @@ class IntegerConversionCheck {
       ValuePositions.at(this.positions, value),
     );
     if (target !== null && TypeCheckUtils.isInteger(target)) {
-      this.check(target, value, "assign", true);
+      this.check(target, value, true);
     }
   }
 
@@ -174,7 +183,7 @@ class IntegerConversionCheck {
       OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
     if (site.operator === "<-") {
-      this.check(targetType, site.value, "assign", true);
+      this.check(targetType, site.value, true);
       return;
     }
     this.checkCompound(targetType, site);
@@ -291,7 +300,7 @@ class IntegerConversionCheck {
 
   /** E0868 for a bit pattern wider than its target: `u8 a <- b | 0x100` */
   private checkBits(target: string, text: string, at: TExpression): void {
-    const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
+    const value = IntegerConversionCheck.literalValue(text);
     const width = TYPE_WIDTH[target];
     const fits =
       value >= 0n
@@ -444,7 +453,6 @@ class IntegerConversionCheck {
   private check(
     target: string,
     value: TExpression,
-    kind: "assign" | "cast",
     typeComposites: boolean,
   ): void {
     const text = IntegerConversionCheck.integerLiteralText(value);
@@ -455,13 +463,13 @@ class IntegerConversionCheck {
     if (this.checkFloating(target, value)) return;
     const ternary = IntegerConversionCheck.ternaryOf(value);
     if (ternary !== null) {
-      this.check(target, ternary.whenTrue, kind, typeComposites);
-      this.check(target, ternary.whenFalse, kind, typeComposites);
+      this.check(target, ternary.whenTrue, typeComposites);
+      this.check(target, ternary.whenFalse, typeComposites);
       return;
     }
-    if (kind === "assign") this.checkLiteralLeaves(target, value);
+    this.checkLiteralLeaves(target, value);
     const source = this.conversionSource(value, typeComposites);
-    if (source !== null) this.checkConversion(target, source, value, kind);
+    if (source !== null) this.checkConversion(target, source, value, "assign");
   }
 
   /** The ternary a value is, past its parentheses: each arm lands (ADR-022) */
@@ -498,9 +506,7 @@ class IntegerConversionCheck {
   }
 
   private checkLiteral(target: string, text: string, at: TExpression): void {
-    // BigInt, not parseInt: a u64 bound is past 2^53, where a double stops
-    // being exact and `0xFFFFFFFFFFFFFFFF` would round into range.
-    const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
+    const value = IntegerConversionCheck.literalValue(text);
 
     if (TypeCheckUtils.isUnsigned(target) && value < 0n) {
       this.report(

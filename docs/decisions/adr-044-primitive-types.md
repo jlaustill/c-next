@@ -344,13 +344,20 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 compile error. `clamp` and `wrap` never apply to it. They exist only for values that are not
 known until runtime, where no compiler could have caught the overflow.
 
+How that ruling applies to each operator. The owner sent the scope question to the cnx-way
+skill rather than ruling on it, so this is the principle applied, not a further ruling
+([#1618](https://github.com/smeltworks/cnx/issues/1618#issuecomment-6376354988)):
+
 - A literal operand of `+`, `-` or `*` that does not fit the target is E0868 (ADR-024), with
   `clamp`, with `wrap` and with neither: clamp or wrap would act on a known value.
   `u8 a +<- 300` and `a <- a + 300` are rejected; they do not saturate to 255 or wrap to
   `a + 44`. A literal operand of `|` or `^` must fit the target's width, since bits past it
   would be dropped: `u8 a <- b | 0x100` is rejected, `i16 m ^<- 0xAAAA` is not.
 - `&`, and the divisor of `/` or `%`, cannot push a result out of range, so there is nothing to
-  catch and nothing is rejected: `u8 a <- b & 0x1FF` and `a <- b / 300` compile.
+  catch and nothing is rejected: `u8 a <- b & 0x1FF` and `a <- b / 300` compile. A `+`, `-` or `*`
+  inside such an operand is still checked: `a &<- (b + 300)` is rejected.
+- A value the compiler folds is checked as one value, at the target's width:
+  `u32 x <- 0x10000 * 0x10000` is E0868, and `i8 x <- -(128)` compiles.
 - A wider operand is E0869 (ADR-024): `u8 a +<- big` with `u32 big` is rejected, and code that
   means the low bits says so with `a +<- big[0, 8]`.
 - Clamping or wrapping a runtime value is still allowed, but it can hide a bug. `--debug`
