@@ -1,0 +1,5 @@
+// Provider for the imported for-header fixtures: a const zero for the
+// division checks and a nonzero const for their controls.
+
+u32 SHARED_ZERO <- 0;
+u32 SHARED_TWO <- 2;

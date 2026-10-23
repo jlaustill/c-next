@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 051
+// E0884 and E0885 at a position inside a for header's declaration -- the
+// initializer in `for (bool e <- <here>; ...)`.
+// Matrix cells: for header -- same file.
+
+mut u32 q <- 0;
+
+void helper() {}
+
+void topLevelFunction() {
+    // NEGATIVE CONTROL -- the correct shape.
+    for (bool ok <- safe_div(q, 10, 2, 0); ok = false; ) {}
+
+    // ASSERTION 1 -- E0884: safe_div with three arguments.
+    for (bool e <- safe_div(q, 10, 2); e = false; ) {}
+
+    // ASSERTION 2 -- E0885: the output is a function, not a variable.
+    for (bool f <- safe_div(helper, 10, 2, 0); f = false; ) {}
+}

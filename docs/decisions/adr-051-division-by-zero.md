@@ -645,8 +645,9 @@ void testFloatDivisionByZero() {
 
 ### 5. Scope-Context Matrix (#1219)
 
-A division can appear in all four structural contexts, and the check must hold in
-each of them however the zero-valued `const` reaches the division. No cell on the
+A division can appear in all five structural contexts -- a `for` header's
+declaration among them -- and the check must hold in each of them however the
+zero-valued `const` reaches the division. No cell on the
 derivable axes is `off` for this ADR.
 
 Severity follows the eslint model: `off` records that a cell cannot exist for this
@@ -661,14 +662,17 @@ Undeclared cells are `off`.
 | top-level function | same file           | error    |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
+| for header         | same file           | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0802 -->
 
@@ -678,14 +682,17 @@ Undeclared cells are `off`.
 | top-level function | same file           | error    |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
+| for header         | same file           | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 One limit of the tooling applies to any ADR declaring a matrix, tracked as
 #1402: the relationship axis measures the deepest include chain reachable from
@@ -699,8 +706,11 @@ Occupancy now derives from diagnostic positions union ADR provenance, so an ADR
 covering codegen behavior rather than a diagnostic can satisfy an `error` cell,
 provided it records where its rule fired.
 
-All twelve derivable cells are `error`, and all twelve are occupied -- see
-`docs/scope-context-matrix.md`.
+All fifteen derivable cells are `error`, and all fifteen are occupied -- see
+`docs/scope-context-matrix.md`. The three `for` header cells are occupied by
+`tests/adr-051/for-header-division-{same-file,imported-direct,imported-transitive}.test.cnx`,
+each dividing by a const zero in the initializer of a `for` header's declaration;
+in the imported two the zero is declared one and two includes away.
 
 The eight cross-file cells were `warn` while they were **known broken** (#1217):
 the constant folding behind E0800 resolved `const` values from the current
@@ -782,14 +792,17 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | top-level function | same file           | error    |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
+| for header         | same file           | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0885 -->
 
@@ -799,19 +812,24 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | top-level function | same file           | error    |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
+| for header         | same file           | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 Both rules are about the call as written -- how many arguments it has, and
 whether its first is a variable -- so each holds wherever a call can stand,
-including a file-scope or scope-member initializer, and however far the names in
-the call reach across includes.
+including a file-scope or scope-member initializer or a `for` header's
+declaration, and however far the names in the call reach across includes. The
+`for` header cells are occupied by
+`tests/adr-051/for-header-shape-{same-file,imported-direct,imported-transitive}.test.cnx`.
 
 ## Implementation Plan
 
