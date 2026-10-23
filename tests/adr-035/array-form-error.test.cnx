@@ -27,3 +27,18 @@ void main() {
     string<8>[2] names <- ["a", "b"];
     string<8>[2] namesCopy <- names;
 }
+
+void localFill() {
+    // ASSERTION 4 -- the fill-all form on an inferred size, a function local.
+    u8[] fill <- [0*];
+}
+
+scope Table {
+    // ASSERTION 5 -- a scope member.
+    u8[] memberFill <- [0*];
+
+    public void fill() {
+        // ASSERTION 6 -- a scope-method local.
+        u8[] methodFill <- [0*];
+    }
+}

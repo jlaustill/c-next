@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 035
+// ADR-035, E0866 across two includes: an initializer is counted against a dimension
+// named by a const from a file the included file includes (LIMIT, 3), in each context.
+#include "array-init-chain.cnx"
+
+// NEGATIVE CONTROL -- exactly LIMIT elements.
+u8[LIMIT] okList <- [1, 2, 3];
+
+// ASSERTION -- a global variable.
+u8[LIMIT] globalShort <- [1, 2];
+
+void main() {
+    // ASSERTION -- a function local.
+    u8[LIMIT] localShort <- [1, 2];
+}
+
+scope Table {
+    // ASSERTION -- a scope member.
+    u8[LIMIT] memberShort <- [1, 2];
+
+    public void fill() {
+        // ASSERTION -- a scope-method local.
+        u8[LIMIT] methodShort <- [1, 2];
+    }
+}
