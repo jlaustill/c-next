@@ -763,16 +763,19 @@ ADR-102 (v2) will explore compiler-assisted analysis including cycle estimation 
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: `global variable` and `scope member` -- a `critical` block is a statement, so it cannot be written at file scope or as a scope member (both are parse errors), and E0853 has nowhere to fire.
+off: `global variable`, `scope member` and `for header` -- a `critical` block and a `return` are statements, so they cannot be written at file scope, as a scope member or inside a `for` header's declaration, which holds only a type, a name and an expression (all parse errors); a `return` in the body of a `for` loop inside a `critical` block is reported in the enclosing function, and E0853 has nowhere else to fire.
 
 Every `error` cell is occupied: `return-in-critical-error` and
 `return-in-critical-switch-error` for a top-level function in the same file,
