@@ -1,0 +1,52 @@
+// test-error
+// test-adr: 022
+// E0701 and E0702 in the same-file contexts the other fixtures here do not
+// reach: a global variable initializer, a scope member initializer, a scope
+// method and a `for` header declaration. A ternary is an expression, so its
+// condition is a controlling expression wherever the ternary sits.
+
+bool flag <- true;
+u32 n <- 1;
+
+bool isReady() {
+    return true;
+}
+
+// NEGATIVE CONTROL -- explicit comparisons with no call, in the same contexts.
+u32 okGlobal <- (flag = true) ? 1 : 0;
+
+// ASSERTION 1 -- global variable initializer (E0701).
+u32 globalBare <- (flag) ? 1 : 0;
+
+// ASSERTION 2 -- global variable initializer (E0702).
+u32 globalCall <- (isReady() = true) ? 1 : 0;
+
+void loop() {
+    // ASSERTION 3 -- `for` header declaration (E0701).
+    for (u32 i <- (flag) ? 1 : 0; i < 3; i +<- 1) {
+        n <- i;
+    }
+    // ASSERTION 4 -- `for` header declaration (E0702).
+    for (u32 j <- (isReady() = true) ? 1 : 0; j < 3; j +<- 1) {
+        n <- j;
+    }
+}
+
+scope Board {
+    bool ready <- true;
+
+    u32 okMember <- (this.ready = true) ? 1 : 0;
+
+    // ASSERTION 5 -- scope member initializer (E0701).
+    u32 memberBare <- (this.ready) ? 1 : 0;
+
+    // ASSERTION 6 -- scope member initializer (E0702).
+    u32 memberCall <- (isReady() = true) ? 1 : 0;
+
+    // ASSERTION 7 -- scope method (E0701).
+    public void run() {
+        if (this.ready) {
+            n <- 2;
+        }
+    }
+}

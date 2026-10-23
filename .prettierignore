@@ -17,6 +17,7 @@ package-lock.json
 # name. This is a registry, not a mute button: `npm run format:fidelity` fails
 # BOTH ways -- on a file the parser rejects that is missing here, and on a file
 # listed here that parses fine -- so nothing can be silenced by adding it.
+tests/adr-022/nested-ternary-unparenthesized-contexts-error.test.cnx
 tests/adr-022/nested-ternary-unparenthesized-error.test.cnx
 tests/atomic/atomic-struct-member.test.cnx
 tests/bugs/issue-1306-nested-scope-diagnostic/nested-lib.cnx

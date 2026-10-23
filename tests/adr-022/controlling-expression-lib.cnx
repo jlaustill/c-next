@@ -1,0 +1,9 @@
+// Helper for the imported ADR-022 fixtures: a bool, a counter and a function
+// declared in another file, read by a controlling expression there.
+
+bool libFlag <- true;
+u32 libCount <- 1;
+
+bool libReady() {
+    return true;
+}

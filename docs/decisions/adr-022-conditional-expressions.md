@@ -358,6 +358,12 @@ Declared for the rules #1322 moved out of codegen into pass 2.1: **E0710**
 explicit comparison, MISRA C:2012 Rule 14.4) and **E0702** (a controlling
 expression may not call a function, Rule 13.5).
 
+| Code  | Meaning                                                 | Fixtures                                                                                                                                                                                                                                            |
+| ----- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0701 | A controlling expression must be an explicit comparison | `if-error-non-boolean`, `ternary-error-non-boolean`, `controlling-expression-every-kind-error`, `controlling-expression-contexts-error`, `controlling-expression-imported-direct-error`, `controlling-expression-imported-transitive-error`         |
+| E0702 | A controlling expression may not call a function        | `function-call-in-if-error`, `function-call-in-ternary-error`, `function-call-in-if-this-method-error`, `controlling-expression-contexts-error`, `controlling-expression-imported-direct-error`, `controlling-expression-imported-transitive-error` |
+| E0710 | A ternary may not appear inside another ternary         | `nested-ternary-error`, `nested-ternary-for-header-error`, `nested-ternary-imported-direct-error`, `nested-ternary-imported-transitive-error`                                                                                                       |
+
 The cells are shared, because a matrix cell is a claim about where an ADR's
 rules are observable rather than about one code. All three are properties of an
 EXPRESSION, so all three reach the same four same-file contexts and none of them
@@ -394,6 +400,68 @@ written out here rather than left to be re-derived.
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+
+<!-- MATRIX-SEVERITY code: E0701 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0702 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0710 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
+
+No code cell is `off`: a ternary reaches every initializer and a `for` header's declaration, and an imported name can be any operand (probed for all three codes).
 
 All four same-file cells are `error`, which is the way this rule differs from a
 statement-level one: a ternary is an **expression**, so it reaches an initializer
