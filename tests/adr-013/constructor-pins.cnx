@@ -1,0 +1,5 @@
+// Helper (not a test): the pins the constructor-argument fixtures pass, declared
+// here so their const-ness is read across an include.
+
+mut u8 PIN_MUT <- 10;
+u8 PIN_FIXED <- 11;

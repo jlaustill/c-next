@@ -1,0 +1,16 @@
+15:0 error[E0432]: Constructor argument 'PIN_MUT' must be read-only
+       help: A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Remove `mut` from the argument's declaration.
+16:0 error[E0433]: Constructor argument 'PIN_NONE_GLOBAL' is not declared
+       help: Declare 'PIN_NONE_GLOBAL' before the constructor, or pass a literal.
+20:11 error[E0432]: Constructor argument 'PIN_MUT' must be read-only
+       help: A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Remove `mut` from the argument's declaration.
+21:11 error[E0433]: Constructor argument 'PIN_NONE_MEMBER' is not declared
+       help: Declare 'PIN_NONE_MEMBER' before the constructor, or pass a literal.
+25:8 error[E0432]: Constructor argument 'PIN_MUT' must be read-only
+       help: A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Remove `mut` from the argument's declaration.
+26:8 error[E0433]: Constructor argument 'PIN_NONE_METHOD' is not declared
+       help: Declare 'PIN_NONE_METHOD' before the constructor, or pass a literal.
+32:4 error[E0432]: Constructor argument 'PIN_MUT' must be read-only
+       help: A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Remove `mut` from the argument's declaration.
+33:4 error[E0433]: Constructor argument 'PIN_NONE_FUNCTION' is not declared
+       help: Declare 'PIN_NONE_FUNCTION' before the constructor, or pass a literal.
