@@ -1,0 +1,41 @@
+// test-error
+// test-adr: 045
+// The two declaration rules pass 2.1 decides from syntax, in the contexts the
+// other same-file fixtures leave empty (#1620): E0862 in a top-level function,
+// a scope member and a scope method, and E0863 in a scope member. A scope
+// variable is static storage, so it takes only a literal, as a global does.
+
+string<16> source <- "wide";
+
+u32 fromFunction() {
+    // NEGATIVE CONTROL -- an unsized read-only string inferred from a literal.
+    string okInferred <- "literal";
+
+    // ASSERTION -- E0862, top-level function.
+    string fromSource <- source;
+    return 0;
+}
+
+scope Holder {
+    // NEGATIVE CONTROL -- a sized scope member initialized by a literal.
+    string<16> okLiteral <- "wide";
+
+    // ASSERTION -- E0862, scope member.
+    string inferredMember <- source;
+
+    // ASSERTION -- E0863, scope member.
+    string<16> copiedMember <- source;
+
+    public u32 read() {
+        // NEGATIVE CONTROL -- a copy inside a method is not E0863.
+        string<16> okCopy <- source;
+
+        // ASSERTION -- E0862, scope method.
+        string inferredLocal <- source;
+        return 0;
+    }
+}
+
+u32 main() {
+    return 0;
+}

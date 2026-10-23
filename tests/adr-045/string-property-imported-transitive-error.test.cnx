@@ -1,0 +1,34 @@
+// test-error
+// test-adr: 045
+// E0887 on the scalar `STRING_MARKER` declared across TWO include hops (#1620),
+// in all four contexts. Whether a name has a buffer is decided from its
+// imported declaration, so a check reading only this file would go quiet.
+
+#include "string-relay.cnx"
+
+// NEGATIVE CONTROL -- the property on the imported string.
+u32 SHARED_CAPACITY <- wideShared.capacity;
+
+// ASSERTION -- E0887, global variable.
+u32 MARKER_CAPACITY <- STRING_MARKER.capacity;
+
+u32 fromFunction() {
+    // ASSERTION -- E0887, top-level function.
+    u32 markerSize <- STRING_MARKER.size;
+    return markerSize;
+}
+
+scope Holder {
+    // ASSERTION -- E0887, scope member.
+    u32 markerCapacity <- STRING_MARKER.capacity;
+
+    public u32 read() {
+        // ASSERTION -- E0887, scope method.
+        u32 markerSize <- STRING_MARKER.size;
+        return markerSize;
+    }
+}
+
+u32 main() {
+    return 0;
+}

@@ -1,0 +1,41 @@
+// test-error
+// test-adr: 045
+// The two declaration rules pass 2.1 decides from syntax, with the source
+// `wideShared` declared across TWO include hops (#1620): E0862 in all four
+// contexts and E0863 in a scope member. Neither rule needs the source's
+// capacity, so the include must not change either verdict.
+
+#include "string-relay.cnx"
+
+// NEGATIVE CONTROL -- an unsized read-only string inferred from a literal.
+string OK_INFERRED <- "literal";
+
+// ASSERTION -- E0862, global variable.
+string INFERRED_GLOBAL <- wideShared;
+
+u32 fromFunction() {
+    // ASSERTION -- E0862, top-level function.
+    string inferredLocal <- wideShared;
+    return 0;
+}
+
+scope Holder {
+    // ASSERTION -- E0862, scope member.
+    string inferredMember <- wideShared;
+
+    // ASSERTION -- E0863, scope member.
+    string<16> copiedMember <- wideShared;
+
+    public u32 read() {
+        // NEGATIVE CONTROL -- a copy inside a method is not E0863.
+        string<16> okCopy <- wideShared;
+
+        // ASSERTION -- E0862, scope method.
+        string inferredLocal <- wideShared;
+        return 0;
+    }
+}
+
+u32 main() {
+    return 0;
+}
