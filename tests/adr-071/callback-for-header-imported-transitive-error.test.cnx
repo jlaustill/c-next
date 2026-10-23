@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 071
+// E0879 inside a `for` header's declaration, across TWO include hop(s): the
+// callback type `onWrite` and the struct `Slot` holding it take `mut` from
+// their declaration in an included file, so a loop variable initialized with
+// a function whose parameter is read-only does not match.
+
+#include "imported-relay.cnx"
+
+void reads(u32 v) {}
+
+void writes(mut u32 v) {
+    v <- 1;
+}
+
+void wire(u32 n) {
+    // ASSERTION 1: a callback-typed loop variable initialized with `reads`.
+    for (onWrite h <- reads; n < 3; ) {}
+    // ASSERTION 2: a struct loop variable whose callback field is `reads`.
+    for (Slot s <- { handler: reads }; n < 3; ) {}
+    // NEGATIVE CONTROL: the same two loops with `writes`, which declares `mut`.
+    for (onWrite hOk <- writes; n < 3; ) {}
+    for (Slot sOk <- { handler: writes }; n < 3; ) {}
+}
+
+scope Board {
+    public void wire(u32 n) {
+        // ASSERTION 3: the callback-typed loop variable, in a scope method.
+        for (onWrite h <- reads; n < 3; ) {}
+        // NEGATIVE CONTROL: its `writes` twin.
+        for (onWrite hOk <- writes; n < 3; ) {}
+    }
+}

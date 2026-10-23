@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 071
+// E0900 inside a `for` header's declaration: the loop variable's initializer
+// writes a read-only binding, as the argument to a `mut` parameter and as a
+// safe_div output, in a top-level function and in a scope method.
+
+u32 G <- 0;
+mut u32 G_M <- 0;
+
+u32 take(mut u32 v) {
+    v <- 1;
+    return v;
+}
+
+void f() {
+    // ASSERTION 1: read-only `G` passed to the `mut` parameter of `take`.
+    for (u32 i <- take(G); i < 3; ) {}
+    // ASSERTION 2: read-only `G` as the safe_div output.
+    for (bool ok <- safe_div(G, 10, 2, 0); ok = true; ) {}
+    // NEGATIVE CONTROL: the same two loops with `G_M`, declared `mut`.
+    for (u32 iOk <- take(G_M); iOk < 3; ) {}
+    for (bool okM <- safe_div(G_M, 10, 2, 0); okM = true; ) {}
+}
+
+scope Board {
+    public void g() {
+        // ASSERTION 3: read-only `G` passed to `take`, in a scope method.
+        for (u32 i <- take(global.G); i < 3; ) {}
+        // NEGATIVE CONTROL: its `G_M` twin.
+        for (u32 iOk <- take(global.G_M); iOk < 3; ) {}
+    }
+}

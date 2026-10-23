@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 071
+// E0899 inside a `for` header's declaration, across TWO include hop(s):
+// whether a `mut` loop variable is written depends on the signature of a
+// function declared in an included file. A loop variable passed only to the
+// imported read-only `libShow` is never written.
+
+#include "unused-mut-relay.cnx"
+
+void locals() {
+    // ASSERTION 1: `i`, passed only to `libShow`.
+    for (mut u32 i <- 0; i < 3; ) {
+        libShow(i);
+    }
+    // NEGATIVE CONTROL: `j`, passed to the `mut` parameter of `libBump`.
+    for (mut u32 j <- 0; j < 3; ) {
+        libBump(j);
+    }
+}
+
+scope Board {
+    public void method() {
+        // ASSERTION 2: `i`, passed only to `libShow`, in a scope method.
+        for (mut u32 i <- 0; i < 3; ) {
+            libShow(i);
+        }
+        // NEGATIVE CONTROL: its `libBump` twin.
+        for (mut u32 j <- 0; j < 3; ) {
+            libBump(j);
+        }
+    }
+}

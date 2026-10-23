@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 071
+// E0900 inside a `for` header's declaration, across ONE include hop(s): the
+// loop variable's initializer writes `LIBG`, which an included file declares
+// read-only, as the argument to a `mut` parameter and as a safe_div output,
+// in a top-level function and in a scope method.
+
+#include "imported-lib.cnx"
+
+u32 take(mut u32 v) {
+    v <- 1;
+    return v;
+}
+
+void f() {
+    // ASSERTION 1: imported read-only `LIBG` passed to `take`.
+    for (u32 i <- take(LIBG); i < 3; ) {}
+    // ASSERTION 2: imported read-only `LIBG` as the safe_div output.
+    for (bool ok <- safe_div(LIBG, 10, 2, 0); ok = true; ) {}
+    // NEGATIVE CONTROL: the same two loops with `LIBG_M`, declared `mut`.
+    for (u32 iOk <- take(LIBG_M); iOk < 3; ) {}
+    for (bool okM <- safe_div(LIBG_M, 10, 2, 0); okM = true; ) {}
+}
+
+scope Board {
+    public void g() {
+        // ASSERTION 3: imported read-only `LIBG` passed to `take`, in a scope
+        // method.
+        for (u32 i <- take(global.LIBG); i < 3; ) {}
+        // NEGATIVE CONTROL: its `LIBG_M` twin.
+        for (u32 iOk <- take(global.LIBG_M); iOk < 3; ) {}
+    }
+}
