@@ -442,12 +442,16 @@ index or range, a function's name, or a header's `#define` or enum constant --
 is E0915: C would take the write into a temporary and lose it, or not compile.
 Passing a read-only binding to a `mut` parameter stays E0900 (ADR-071).
 
+| Code  | Meaning                                        | Fixtures                                              |
+| ----- | ---------------------------------------------- | ----------------------------------------------------- |
+| E0915 | a `mut` parameter's argument is not a variable | `tests/bugs/issue-1203-non-addressable-mut-argument/` |
+
 ## Scope-Context Matrix (#1219)
 
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0915 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
