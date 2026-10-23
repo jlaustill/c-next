@@ -1,0 +1,4 @@
+11:17 error[E0431]: 'global' can only be used inside a scope or a function
+       help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.
+14:11 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. In a function, write `global.Name` to reach a file-scope declaration past a local or parameter of that name, or move the code into the scope it belongs to.

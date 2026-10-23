@@ -1,0 +1,18 @@
+6:0 error[E0425]: Symbol conflict: 'twiceVar' is defined multiple times in cnx:
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:6
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:7
+9:0 error[E0425]: Symbol conflict: 'twiceFn' is defined multiple times in cnx:
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:9
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:13
+18:4 error[E0425]: Symbol conflict: 'Box.twiceMember' is defined multiple times in cnx:
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:18
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:19
+  scope 'Box' is declared in:
+    tests/adr-016/duplicate-definition-same-file-error.test.cnx:17
+    tests/adr-016/duplicate-definition-same-file-error.test.cnx:31
+21:4 error[E0425]: Symbol conflict: 'Box.twiceMethod' is defined multiple times in cnx:
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:21
+  tests/adr-016/duplicate-definition-same-file-error.test.cnx:25
+  scope 'Box' is declared in:
+    tests/adr-016/duplicate-definition-same-file-error.test.cnx:17
+    tests/adr-016/duplicate-definition-same-file-error.test.cnx:31
