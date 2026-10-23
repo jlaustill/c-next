@@ -3,7 +3,8 @@
 // #1618: ADR-024's literal range (E0868) holds at every position a value
 // lands in a typed target. 300 and -1 reached a u8 through a return, an
 // argument, an array element, a struct field initializer and a ternary's arm,
-// each at exit 0; an element and a field assignment are here too. The
+// each at exit 0; an element and a field assignment, a compound and a
+// composite operand are here too. The
 // controls stay silent: an in-range literal at each.
 struct P {
     u8 x;
@@ -29,12 +30,17 @@ void positions(u32 c) {
     arr[0] <- 300;
     mut P r <- { x: 0 };
     r.x <- 300;
+    mut u8 a <- 0;
+    a +<- 300;
+    a <- a + 300;
 
     take(255);
     u8[2] fits <- [255, 0];
     P q <- { x: 0 };
     arr[1] <- 255;
     r.x <- 255;
+    a +<- 255;
+    a <- a + 255;
     (void)list;
     (void)p;
     (void)t;

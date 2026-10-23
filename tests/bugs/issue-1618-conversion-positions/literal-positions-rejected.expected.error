@@ -1,16 +1,20 @@
-15:11 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+16:11 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-23:9 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+24:9 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-24:9 error[E0868]: Negative value -1 cannot be assigned to unsigned type u8
+25:9 error[E0868]: Negative value -1 cannot be assigned to unsigned type u8
        help: An unsigned type holds no negative values; use a signed type such as i8.
-25:19 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+26:19 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-26:16 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+27:16 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-27:22 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+28:22 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-29:14 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+30:14 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.
-31:11 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+32:11 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+34:10 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+35:13 error[E0868]: Value 300 exceeds u8 range (0 to 255)
        help: Widen the target type, or narrow the value.

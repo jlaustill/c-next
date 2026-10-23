@@ -176,8 +176,21 @@ class IntegerConversionCheck {
       OperandTyper.typeOfTarget(site.target, this.context),
       ...(shift ? [] : OperandTyper.valueLeaves(site.value, this.context)),
     ]);
+    if (!shift) this.checkLiteralLeaves(targetType, site.value);
     if (source !== null) {
       this.checkConversion(targetType, source, site.value, "assign");
+    }
+  }
+
+  /**
+   * A literal operand lands as a lone literal does: a value known at compile
+   * time that does not fit the target is E0868. ADR-044's clamp is for runtime
+   * values only, so `u8 a +<- 300` and `a <- a + 300` are errors (#1618).
+   */
+  private checkLiteralLeaves(target: string, value: TExpression): void {
+    for (const leaf of OperandTyper.valueLeafExpressions(value)) {
+      const text = IntegerConversionCheck.integerLiteralText(leaf);
+      if (text !== null) this.checkLiteral(target, text, leaf);
     }
   }
 
@@ -303,6 +316,7 @@ class IntegerConversionCheck {
       this.check(target, ternary.whenFalse, kind, typeComposites);
       return;
     }
+    if (kind === "assign") this.checkLiteralLeaves(target, value);
     const source = this.conversionSource(value, typeComposites);
     if (source !== null) this.checkConversion(target, source, value, kind);
   }

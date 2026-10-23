@@ -726,9 +726,10 @@ E0868 and E0869 therefore also declare a position table: each position a value
 lands in must be reached by a fixture asserting that code, whatever context
 the fixture is in.
 
-E0868's compound-assignment row is `off`: a compound lands its target and its
-value combined (`a +<- 300` lands `a + 300`), never a lone literal, so the
-literal-range rule has nothing there to check.
+A literal operand is checked as a lone literal is (owner ruling on #1618):
+a value known at compile time that does not fit the target is E0868, and
+ADR-044's clamp is for runtime values only. `u8 a +<- 300` and
+`a <- a + 300` are both rejected; `a +<- 255` is not.
 
 <!-- MATRIX-POSITION code: E0868 -->
 
@@ -738,7 +739,7 @@ literal-range rule has nothing there to check.
 | assignment                | error    |
 | array element assignment  | error    |
 | struct field assignment   | error    |
-| compound assignment       | off      |
+| compound assignment       | error    |
 | return statement          | error    |
 | call argument             | error    |
 | array element initializer | error    |

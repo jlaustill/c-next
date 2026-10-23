@@ -97,6 +97,17 @@ describe("IntegerConversionAnalyzer", () => {
       expect(errors(inMain("    u8 x <- (u8)wide[0, 8];"))).toEqual([]);
     });
 
+    it("rejects a literal operand that does not fit the target", () => {
+      expect(
+        errors(inMain("    u8 x <- 0;\n    x +<- 300;")).map((e) => e.code),
+      ).toEqual(["E0868"]);
+      expect(
+        errors(inMain("    u8 x <- byte + 300;")).map((e) => e.code),
+      ).toEqual(["E0868"]);
+      expect(errors(inMain("    u8 x <- byte + 255;"))).toEqual([]);
+      expect(errors(inMain("    u8 x <- 0;\n    x +<- 255;"))).toEqual([]);
+    });
+
     it("checks a compound operator as its target and value combined", () => {
       const found = errors(inMain("    u8 x <- 0;\n    x +<- wide;"));
       expect(found.map((e) => e.code)).toEqual(["E0869"]);

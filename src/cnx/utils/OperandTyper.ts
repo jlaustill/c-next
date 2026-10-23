@@ -198,21 +198,28 @@ class OperandTyper {
     expr: TExpression,
     ctx: ITypingContext,
   ): Array<IOperandType | null> {
+    return OperandTyper.valueLeafExpressions(expr).map((leaf) =>
+      OperandTyper.typeOf(leaf, ctx),
+    );
+  }
+
+  /** The expressions `valueLeaves` types, by the same collection rule. */
+  static valueLeafExpressions(expr: TExpression): TExpression[] {
     if (OperandTyper.isCompositeLevel(expr)) {
       return expr.operands.flatMap((operand) =>
-        OperandTyper.valueLeaves(operand, ctx),
+        OperandTyper.valueLeafExpressions(operand),
       );
     }
     if (expr.kind === "ternary") {
       return [expr.whenTrue, expr.whenFalse].flatMap((arm) =>
-        OperandTyper.valueLeaves(arm, ctx),
+        OperandTyper.valueLeafExpressions(arm),
       );
     }
     if (expr.kind === "unary" && expr.operator === "&") return [];
     const operand = OperandTyper.wrappedOperand(expr);
     return operand === null
-      ? [OperandTyper.typeOf(expr, ctx)]
-      : OperandTyper.valueLeaves(operand, ctx);
+      ? [expr]
+      : OperandTyper.valueLeafExpressions(operand);
   }
 
   /**
