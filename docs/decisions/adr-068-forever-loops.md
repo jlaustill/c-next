@@ -163,11 +163,12 @@ generate.
 
 Diagnostics follow the existing `Error EXXXX: <message>\n  help: <suggestion>` format (see E0701).
 
-| Code  | Trigger                                            | Message → help                                                                                                                                               |
-| ----- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| E0705 | `forever` in a non-`void` function                 | `forever loop in non-void function '<name>'` → `a forever loop never returns a value; make '<name>' return void, or use a while loop with an exit condition` |
-| E0707 | `for (;;)` in source                               | `empty for-loop header is an infinite loop` → `write 'forever { … }' for an intentional infinite loop`                                                       |
-| E0707 | always-true loop condition (`while (1 = 1)`, etc.) | `loop condition is always true` → `write 'forever { … }' for an intentional infinite loop`                                                                   |
+| Code  | Trigger                                                   | Message → help                                                                                                                                                                                          |
+| ----- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0705 | `forever` in a non-`void` function                        | `forever loop in non-void function '<name>'` → `a forever loop never returns a value; make '<name>' return void, or use a while loop with an exit condition`                                            |
+| E0707 | `for (;;)` in source                                      | `empty for-loop header is an infinite loop` → `write 'forever { … }' for an intentional infinite loop`                                                                                                  |
+| E0707 | always-true loop condition (`while (1 = 1)`, etc.)        | `loop condition is always true` → `write 'forever { … }' for an intentional infinite loop`                                                                                                              |
+| E0715 | a `for` header assignment that is more than one statement | `a for-loop header cannot hold this assignment: <form>` → `assign before the loop and leave the init clause empty` (init) or `assign at the end of the loop body and write it as a while loop` (update) |
 
 **E0706 is allocated to ADR-069** (unreachable code); "code after a `forever` loop" is reported
 there, not by a `forever`-specific diagnostic.
@@ -411,7 +412,7 @@ codegen by #1322, and a for-header assignment that is more than one statement
 (E0715). Severity follows the eslint model: `off` records that a cell **cannot
 exist**, `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0705 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -427,6 +428,46 @@ exist**, `warn` that it should be covered and is not, `error` that it must be.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+
+off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors).
+
+<!-- MATRIX-SEVERITY code: E0707 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors).
+
+<!-- MATRIX-SEVERITY code: E0715 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors). A `for` header exists only in a function body.
 
 A loop is a **statement**: it stands in a function body and nowhere else, so the
 two declaration contexts are `off`. E0705 and E0707 read only facts in the file
