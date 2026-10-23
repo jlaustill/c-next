@@ -1,0 +1,5 @@
+11:23 mismatched input '{' expecting ';'
+15:21 missing ';' at '{'
+21:26 missing ';' at '{'
+27:22 mismatched input '{' expecting ';'
+27:39 extraneous input ';' expecting {<EOF>, 'scope', 'struct', 'enum', 'this', 'global', 'register', 'const', 'mut', 'volatile', 'void', 'string', 'bitmap8', 'bitmap16', 'bitmap24', 'bitmap32', 'clamp', 'wrap', 'atomic', 'u8', 'u16', 'u32', 'u64', 'i8', 'i16', 'i32', 'i64', 'f32', 'f64', 'bool', 'ISR', IDENTIFIER}

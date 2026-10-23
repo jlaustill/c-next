@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 014
+// #1620: E0357 is decided by the initializer's own position, and a program that
+// takes its struct from two includes away, through a helper fires it in every context.
+// A subscript supplies no type for what sits inside the brackets, at file scope
+// and in a scope member; a bare statement supplies none in a function. Each
+// `Cfg` declaration beside them is the control, and stays silent.
+#include "lib/struct-init-chain.cnx"
+
+u8[4] table <- [1, 2, 3, 4];
+Cfg control <- { word: 1, f: 0 };
+u8 atFileScope <- table[{ word: 2, f: 0 }];
+
+void f() {
+    Cfg local <- { word: 3, f: 0 };
+    { word: 4, f: 0 };
+}
+
+scope S {
+    u8 member <- table[{ word: 5, f: 0 }];
+
+    public void method() {
+        { word: 6, f: 0 };
+    }
+}
