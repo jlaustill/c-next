@@ -15,10 +15,10 @@
 
 uint8_t witness = 0U;
 
-char* gname = {};
+char* gname = nullptr;
 
 /* Scope: Board */
-static char* Board__label = {};
+static char* Board__label = nullptr;
 
 void Board__load(void) {
     Board__label = user_device_name();
@@ -31,7 +31,7 @@ int main(void) {
     }
     gname = user_device_name();
     Board__load();
-    char* c_local = {};
+    char* c_local = nullptr;
     c_local = user_device_name();
     if (c_local != nullptr) {
         witness = 2U;
