@@ -1,0 +1,36 @@
+// test-error
+// test-adr: 029
+// ADR-029 inside a `for` header's declaration across TWO include hops -- the `imported transitive`
+// column of the E0879 and E0880 matrices' `for header` row. The callback
+// type, each function's signature and the struct that makes onUp a type are
+// all declared in the included file.
+
+#include "callback-relay.cnx"
+
+u32 countDown(onDown cb) {
+    return 0;
+}
+
+mut u32 passes <- 0;
+
+void main() {
+    // NEGATIVE CONTROL -- the imported plain function, which is nobody's
+    // field type and matches onDown: silent in both slots.
+    for (onDown okVar <- plain; passes < 1; passes +<- 1) {}
+    for (mut u32 i <- countDown(plain); i < 1; i +<- 1) {}
+
+    // ASSERTION 1 -- E0879: the loop variable's initializer is the imported
+    // function whose return type differs.
+    for (onDown badVar <- mismatched; passes < 1; passes +<- 1) {}
+
+    // ASSERTION 2 -- E0879: the same function as an argument in the
+    // initializer.
+    for (mut u32 j <- countDown(mismatched); j < 1; j +<- 1) {}
+
+    // ASSERTION 3 -- E0880: the imported field type onUp in the loop
+    // variable's initializer.
+    for (onDown otherVar <- onUp; passes < 1; passes +<- 1) {}
+
+    // ASSERTION 4 -- E0880: onUp as an argument in the initializer.
+    for (mut u32 k <- countDown(onUp); k < 1; k +<- 1) {}
+}

@@ -407,14 +407,17 @@ or scope method signature.
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
+| for header         | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0880 -->
 
@@ -424,21 +427,26 @@ or scope method signature.
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
+| for header         | same file           | error    |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 An assignment and a call are statements, so both rules occupy the two function
 contexts; a declaration's initializer is where a callback-typed global or scope
 member gets its value, which occupies the other two. Both the declared
 signature and the fact that makes a function a type can be declared in an
 included file, so every imported cell is `error` and is asserted at one hop and
-at two.
+at two. A `for` header's loop variable is a declaration too, so its
+initializer, and any call argument inside it, is a callback slot: the
+`for header` row is `error` in every column.
 
 ## Research: MISRA C Guidelines
 
