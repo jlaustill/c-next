@@ -44,8 +44,8 @@ interface IFilePlan {
 
   /** Which private scope consts are inlined, not declared (#282) */
   readonly inlinedConsts: ReadonlySet<TDeclarationSyntax>;
-  /** ADR-030 (#948): each scalar scope member held through a pointer, initialized to the null pointer */
-  readonly nullInitializedMembers: ReadonlySet<IVariableDeclarationSyntax>;
+  /** ADR-015 / #1610: each uninitialized scalar declared as a pointer, at any site, whose zero is the null pointer */
+  readonly nullInitialized: ReadonlySet<IVariableDeclarationSyntax>;
   /** #1735: each static-storage value written as its folded value, as it is spelled */
   readonly staticValues: ReadonlyMap<TExpression, IPlannedStaticValue>;
   /** #1735: the declarations a name was folded in, annotated where they are written */

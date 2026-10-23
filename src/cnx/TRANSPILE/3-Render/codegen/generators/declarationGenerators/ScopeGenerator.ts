@@ -46,6 +46,7 @@ import TPlannedScopeMember from "../../types/TPlannedScopeMember";
 import TPlannedScopeVariable from "../../types/TPlannedScopeVariable";
 import registerGeneratorFor from "./RegisterGenerator";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
+import DeclaredPointer from "../../../../../utils/DeclaredPointer";
 import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
 import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
 import generateStructHeader from "../../../headers/generators/generateStructHeader";
@@ -148,11 +149,11 @@ function renderRegularVariable(
   }
 
   // Issue #948/#958: a scope member of an opaque type is declared as a pointer.
-  // The decision is `isHeldThroughPointer`, the one every declaration site and
-  // the header's `extern` read, so a public member's declaration in the `.h`
-  // cannot disagree with its definition here.
-  const isHandle = orchestrator.isHeldThroughPointer(type);
-  if (isHandle) {
+  // #1610: the decision is the declaration's `DeclaredPointer` answer, planned
+  // once (`plan.isPointer`) -- the one the header's `extern` and 2.2's null
+  // initializer read too, so the `*` cannot disagree with either.
+  const spelled = DeclaredPointer.spell(type, plan.isPointer);
+  if (spelled !== type) {
     // ADR-030 decided here: the type is incomplete, so the member is emitted as
     // a pointer. Recorded at the DECLARATION's position, which is what puts this
     // in the scope-member context rather than crediting the scope keyword's line.
@@ -164,7 +165,7 @@ function renderRegularVariable(
     // and its fixtures occupy cells here on their own reported positions (#1582),
     // so an occupied cell is not evidence that this line still exists.
     AdrProvenance.record("030", plan.declarationLine);
-    type = `${type}*`;
+    type = spelled;
     // A call site reads the same fact from the member's declared type
     // (`DeclaredPointer`), so nothing is recorded here for it: the set of
     // generated names this used to fill was a second store of that fact.
@@ -189,9 +190,8 @@ function renderRegularVariable(
   // ADR-045: Add string capacity dimension for string arrays
   decl += plan.renderStringCapacityDimension();
 
-  // Issue #948/#958/#996: a scalar handle is initialized to the null pointer
-  // and an array of them to ADR-015's zero; 2.2 decided which
-  // (`nullInitializedMembers`), so the initializer is the plan's
+  // ADR-015's zero, or the null pointer for a scalar declared as one (#948,
+  // #958, #996, #1610): 2.2 decided which, so the initializer is the plan's
   decl += plan.renderInitializer();
 
   return decl + ";";

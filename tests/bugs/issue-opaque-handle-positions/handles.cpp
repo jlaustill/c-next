@@ -10,7 +10,7 @@
 // `extern` there must say what the definition here says.
 #include "dev.h"
 
-Dev* shared = {};
+Dev* shared = nullptr;
 
 Dev* sharedPair[2] = {};
 

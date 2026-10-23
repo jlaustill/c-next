@@ -12,7 +12,7 @@
 
 #include <stddef.h>
 
-Dev* shared = {0};
+Dev* shared = NULL;
 
 /* Scope: Rack */
 Dev* Rack__unit = NULL;

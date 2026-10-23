@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-const Dev* G = {};
+const Dev* G = nullptr;
 
 int main(void) {
     const uint8_t v = dev_read(G);

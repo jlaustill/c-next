@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-Dev* gdev = {0};
+Dev* gdev = NULL;
 
 Dev* gdevs[2] = {0};
 
@@ -52,7 +52,7 @@ int32_t Board__pokes(void) {
 
 // A local handle, created through the out-parameter.
 int32_t makeLocal(void) {
-    Dev* d = {0};
+    Dev* d = NULL;
     dev_create_into(&d);
     dev_poke(d);
     dev_poke(d);

@@ -27,7 +27,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-Dev* gdev = {0};
+Dev* gdev = NULL;
 
 Dev* gdevs[2] = {0};
 

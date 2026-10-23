@@ -2016,6 +2016,7 @@ class CodeGenWalker {
       isPrivate,
       isConst,
       isArray,
+      isPointer: this.host.state.ownTypeInfo(decl)?.isPointer ?? false,
       declarationLine: decl.span.line,
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
@@ -2034,10 +2035,7 @@ class CodeGenWalker {
         ArrayDimensionUtils.renderStringCapacityDimension(
           FilePlanner.stringCapacityOf(decl.type),
         ),
-      // #1610: the null pointer is spelled by mode, from one helper
-      renderInitializer: this.filePlan.nullInitializedMembers.has(decl)
-        ? () => ` = ${CppModeHelper.nullLiteral(this.host.state)}`
-        : () => this.renderScopeInitializer(decl, isArray),
+      renderInitializer: () => this.renderScopeInitializer(decl, isArray),
       note: this.staticValueNote(decl),
     };
   }
@@ -2078,7 +2076,21 @@ class CodeGenWalker {
       return rendered;
     }
     // ADR-015: Zero initialization for uninitialized scope variables
-    return ` = ${this.zeroInitializerOf(decl.type, isArray, decl.dimensions)}`;
+    return ` = ${this.zeroOf(decl, isArray)}`;
+  }
+
+  /**
+   * ADR-015's zero for a declaration written without an initializer, at every
+   * declaration site. #1610: a scalar declared as a pointer is the null
+   * pointer, spelled by mode -- MISRA C:2012 Rule 11.9 makes `NULL`, not the
+   * integer `0` in `{0}`, a C pointer's null constant. 2.2 decided which
+   * declarations those are (`nullInitialized`).
+   */
+  private zeroOf(decl: IVariableDeclarationSyntax, isArray: boolean): string {
+    if (this.filePlan.nullInitialized.has(decl)) {
+      return CppModeHelper.nullLiteral(this.host.state);
+    }
+    return this.zeroInitializerOf(decl.type, isArray, decl.dimensions);
   }
 
   private generateRegister(register: IRegisterDeclarationSyntax): string {
@@ -2782,8 +2794,7 @@ class CodeGenWalker {
     if (!initializer) {
       return {
         kind: "zero",
-        render: (isArray) =>
-          this.zeroInitializerOf(decl.type, isArray, decl.dimensions),
+        render: (isArray) => this.zeroOf(decl, isArray),
       };
     }
     return {

@@ -13,10 +13,12 @@
 // so the non-pointer declaration is one C rejects.
 #include "opaque.h"
 
-widget_t* gw = {0};
+#include <stddef.h>
+
+widget_t* gw = NULL;
 
 void f(void) {
-    widget_t* w = {0};
+    widget_t* w = NULL;
     w = widget_create();
     widget_use(w);
     gw = w;

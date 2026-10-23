@@ -12,7 +12,7 @@
 
 #include <stddef.h>
 
-Dev* shared = {0};
+Dev* shared = NULL;
 
 Dev* sharedPair[2] = {0};
 

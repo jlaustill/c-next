@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 
-Dev* gdev = {};
+Dev* gdev = nullptr;
 
 Dev* gdevs[2] = {};
 

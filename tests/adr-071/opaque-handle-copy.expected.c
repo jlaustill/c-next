@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 uint8_t pickOne(Dev* a, Dev* b, const bool first) {
     Dev* x = (first == true) ? a : b;
@@ -25,7 +26,7 @@ uint8_t viaArray(Dev* d) {
 }
 
 int main(void) {
-    Dev* none = {0};
+    Dev* none = NULL;
     const uint8_t one = pickOne(none, none, true);
     const uint8_t two = viaArray(none);
     if (one != 1) {

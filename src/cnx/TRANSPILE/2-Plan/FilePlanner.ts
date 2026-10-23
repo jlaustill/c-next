@@ -71,6 +71,7 @@ import MutArgument from "../1-Analyze/helpers/MutArgument";
 import StringWriteSites from "../1-Analyze/helpers/StringWriteSites";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
+import CppModeHelper from "./CppModeHelper";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
 import StatementChildren from "../../utils/StatementChildren";
@@ -1087,13 +1088,9 @@ class FilePlanner {
       ),
     };
     const types = this.planTypeSites(program, unwritten);
-    const nullInitializedMembers = this.planNullInitializedMembers(
-      program,
-      types,
-      inlinedConsts,
-    );
+    const nullInitialized = this.planNullInitialized(program, inlinedConsts);
     // #1610: the NULL a C file writes is declared by <stddef.h>
-    if (this.writesNull(program, unwritten, nullInitializedMembers)) {
+    if (this.writesNull(program, unwritten, nullInitialized)) {
       requirements.require("stddef");
     }
     // Each planned type is written once 2.3 is done, so its include is decided here
@@ -1224,7 +1221,7 @@ class FilePlanner {
       selfInclude,
       includeDirectives,
       inlinedConsts,
-      nullInitializedMembers,
+      nullInitialized,
       staticValues: statics.values,
       staticValueNotes: statics.notes,
       types,
@@ -1741,42 +1738,56 @@ class FilePlanner {
     return foreign;
   }
 
-  /** Every variable a scope declares, at any depth */
   /**
-   * ADR-030 (#948, #996): each scalar scope member held through a pointer,
-   * which 2.3 initializes to the null pointer rather than ADR-015's zero
+   * ADR-015 / #1610: each declaration whose zero is the null pointer -- a
+   * scalar with no initializer that is declared as a pointer, at file scope, in
+   * a scope or in a body. The pointer is the declaration's own `DeclaredPointer`
+   * answer, the one its `*` is written from, so the two cannot disagree. An
+   * array of handles keeps ADR-015's brace zero (#996).
    */
-  private planNullInitializedMembers(
+  private planNullInitialized(
     program: IProgramSyntax,
-    types: ReadonlyMap<TTypeSyntax, IPlannedType>,
     inlined: ReadonlySet<ISyntaxNode>,
   ): ReadonlySet<IVariableDeclarationSyntax> {
-    const planned = new Set<IVariableDeclarationSyntax>();
-    for (const decl of FilePlanner.scopeVariables(program.declarations)) {
-      if (inlined.has(decl) || FilePlanner.isArrayDeclaration(decl)) continue;
-      const type = types.get(decl.type);
-      if (
-        type !== undefined &&
-        this.state.isHeldThroughPointer(this.cTypeOf(type))
-      ) {
-        planned.add(decl);
-      }
-    }
-    return planned;
+    return new Set(
+      FilePlanner.variableDeclarations(program).filter(
+        (decl) =>
+          !decl.initializer &&
+          !inlined.has(decl) &&
+          !FilePlanner.isArrayDeclaration(decl) &&
+          (this.state.ownTypeInfo(decl)?.isPointer ?? false),
+      ),
+    );
+  }
+
+  /** Every variable the file declares: at file scope, in a scope, in a body */
+  private static variableDeclarations(
+    program: IProgramSyntax,
+  ): IVariableDeclarationSyntax[] {
+    return program.declarations.flatMap((entry) => [
+      ...(entry.declaration.kind === "variableDeclaration"
+        ? [entry.declaration]
+        : []),
+      ...FilePlanner.scopeVariables([entry]),
+      ...StatementNodes.in(entry.declaration).flatMap((statement) =>
+        statement.kind === "variableDeclaration" ? [statement] : [],
+      ),
+    ]);
   }
 
   /**
-   * #1610: whether the file's C writes `NULL` -- a written `NULL` literal, or
-   * a null-initialized scope member. C++ writes `nullptr`, which needs no
-   * header (`CppModeHelper.nullLiteral`).
+   * #1610: whether the file writes `NULL` -- a written `NULL` literal, or a
+   * null-initialized declaration -- which `<stddef.h>` declares. The answer
+   * follows the spelling `CppModeHelper.nullLiteral` writes, so C++'s
+   * `nullptr` needs no header.
    */
   private writesNull(
     program: IProgramSyntax,
     unwritten: IUnwrittenSyntax,
-    nullInitializedMembers: ReadonlySet<IVariableDeclarationSyntax>,
+    nullInitialized: ReadonlySet<IVariableDeclarationSyntax>,
   ): boolean {
-    if (this.state.cppMode) return false;
-    if (nullInitializedMembers.size > 0) return true;
+    if (CppModeHelper.nullLiteral(this.state) !== "NULL") return false;
+    if (nullInitialized.size > 0) return true;
     return FilePlanner.writtenExpressions(program, unwritten).some(
       (expression) =>
         expression.kind === "literal" && expression.literalKind === "null",
@@ -1792,6 +1803,7 @@ class FilePlanner {
     return decl.dimensions.length > 0 || decl.type.kind === "array";
   }
 
+  /** Every variable a scope declares, at any depth */
   private static scopeVariables(
     declarations: readonly { readonly declaration: TDeclarationSyntax }[],
   ): ReadonlySet<IVariableDeclarationSyntax> {
