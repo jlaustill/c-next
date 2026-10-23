@@ -1,0 +1,5 @@
+// Values the ADR-044 imported fixtures read across a .cnx include: a
+// read-only u8 near its maximum, so BASE + BASE overflows u8, and a mut
+// variable, which has no value at compile time.
+u8 BASE <- 200;
+mut u32 counter <- 4;

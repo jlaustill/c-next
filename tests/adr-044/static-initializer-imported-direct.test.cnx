@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 044
+// ADR-044 "Values fixed at compile time" (#1735): a file-scope or scope
+// variable's initializer is fixed at compile time. Reading a mut variable
+// declared in another file gives it no value at compile time (E0909), and
+// arithmetic over an imported read-only value that overflows its width is
+// E0910. Exercised at file scope and as a scope member, with the names read across one .cnx include.
+//
+// NEGATIVE CONTROL: the Wide and Fits initializers have compile-time values that
+// fit, and must stay silent.
+#include "adr-044-values.cnx"
+
+u32 FromCounter <- counter;
+u8 Sum <- BASE + BASE;
+u16 Wide <- (u16)BASE + (u16)BASE;
+
+scope Holder {
+    u32 copied <- counter;
+    u8 doubled <- BASE + BASE;
+    u8 fits <- BASE + 5;
+
+    public u32 total() {
+        return copied + doubled + fits;
+    }
+}
+
+void main() {}
