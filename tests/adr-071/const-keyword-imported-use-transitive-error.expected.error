@@ -1,0 +1,12 @@
+11:0 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.
+15:4 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.
+18:18 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.
+19:8 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.
+24:7 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.
+25:4 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.

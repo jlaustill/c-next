@@ -272,6 +272,7 @@ typedef's pointer constness. Both are fixed, and the script's `mut` for them is 
 
 | Code  | Meaning                                                                                                                                                                                                                                                                                                                                         | Asserted by                                                                                                                                                                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0879 | A function placed in a callback slot whose parameters' `mut` differs from the callback type's (Q5): `mut` is part of the type, matched exactly as type and `const` are (ADR-029's E0879)                                                                                                                                                        | `tests/adr-071/callback-*-error.test.cnx`, `tests/adr-071/c-callback-mut-match-error.test.cnx`                                                                                                                                   |
 | E0898 | `const` written on a declaration (Decision 5)                                                                                                                                                                                                                                                                                                   | `tests/adr-071/`                                                                                                                                                                                                                 |
 | E0899 | A `mut` binding nothing writes, outside the two exemptions (Decision 6)                                                                                                                                                                                                                                                                         | `tests/adr-071/`                                                                                                                                                                                                                 |
 | E0900 | A write to a binding not declared `mut`: an assignment to or through it, a `safe_div`/`safe_mod` output, an argument to a `mut` cnx parameter or a C/C++ pointer or array parameter that is not const (Decision 2), or an opaque handle (ADR-030) stored in a `mut` binding, which can then write what it refers to. It retires E0877 and E0878 | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-051/safe-division-const-output-error.test.cnx`, `tests/bugs/issue-1977-struct-to-c-byte-pointer/`, `tests/bugs/issue-1722-opaque-param-forwarding/scope-this-callee.test.cnx` |
@@ -308,7 +309,60 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
   (`callback-mut-match-error`, `c-callback-mut-match-error`, `callback-imported-direct-error`,
   `callback-imported-transitive-error`).
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0879 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0898 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0899 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+off: E0899 never fires on a global, which is exempt (Decision 6), and a global's initializer declares no binding it could check.
+
+<!-- MATRIX-SEVERITY code: E0900 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
