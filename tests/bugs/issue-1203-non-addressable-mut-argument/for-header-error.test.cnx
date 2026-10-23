@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 006
+// ADR-006: a `for` header's declaration can call a function, so a literal
+// passed there to a `mut` parameter gets E0915 too -- matrix cell: for
+// header, same file (#1620).
+
+u32 take(mut u32 value) {
+    value +<- 1;
+    return value;
+}
+
+void run() {
+    // ASSERTION 1: a literal to a `mut` parameter in the header's initializer
+    for (mut u32 i <- take(3); i < 10; i +<- 1) {}
+
+    // NEGATIVE CONTROL: the same call with a `mut` variable stays silent
+    mut u32 start <- 3;
+    for (mut u32 j <- take(start); j < 10; j +<- 1) {}
+}
