@@ -204,10 +204,15 @@ class IntegerConversionCheck {
    * value built from a name is typed, and E0869 judges it by its type.
    */
   private checkLiteralLeaves(target: string, value: TExpression): void {
+    // `~` folds at C's int width, not the target's: `u8 m <- ~1` is 0xFE
+    const complement = (expr: TExpression): boolean =>
+      expr.kind === "unary" && expr.operator === "~";
     const constant = (expr: TExpression): boolean =>
       CONSTANT_FORMS.has(expr.kind) &&
-      OperandTyper.valueLeafExpressions(expr).every(
-        (leaf) => IntegerConversionCheck.integerLiteralText(leaf) !== null,
+      OperandTyper.valueLeafExpressions(expr, complement).every(
+        (leaf) =>
+          !complement(leaf) &&
+          IntegerConversionCheck.integerLiteralText(leaf) !== null,
       ) &&
       OperandTyper.constantOf(expr, this.context) !== null;
     for (const leaf of OperandTyper.valueLeafExpressions(value, constant)) {

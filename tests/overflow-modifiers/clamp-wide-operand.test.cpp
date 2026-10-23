@@ -70,10 +70,10 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 }
 
 // test-execution
-// Tests: clamp with the largest operand a type holds
-// Issue #94: Prevents silent truncation when operand exceeds type bounds
-// #1618: a literal operand past the type's range is E0868, not a clamp, so
-// each test below uses the type's own maximum.
+// Tests: clamp with the largest operand a type holds, at the type's boundary
+// #1618: an operand past the type's range is E0868 (a literal) or E0869 (a
+// wider type), so #94's truncation boundaries are compile errors now, asserted
+// in clamp-wide-literal-rejected.
 // ADR-044: Per-variable overflow semantics
 int main(void) {
     uint8_t val8 = 200U;
