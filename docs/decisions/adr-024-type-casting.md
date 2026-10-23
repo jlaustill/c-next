@@ -561,6 +561,9 @@ target through a declaration, an assignment, or a cast.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0811 -->
 
@@ -578,6 +581,9 @@ target through a declaration, an assignment, or a cast.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0812 -->
 
@@ -595,6 +601,9 @@ target through a declaration, an assignment, or a cast.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0868 -->
 
@@ -612,6 +621,9 @@ target through a declaration, an assignment, or a cast.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0869 -->
 
@@ -629,6 +641,9 @@ target through a declaration, an assignment, or a cast.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0891 -->
 
@@ -646,12 +661,23 @@ target through a declaration, an assignment, or a cast.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 A conversion happens wherever a value meets a typed target, so it reaches an
 initializer as well as a function body -- all four same-file contexts. The two
 scope contexts are where the rule had been SILENT: `u8 narrow <- this.wide;`
 inside a scope was accepted while the identical line at top level was not, and
 no fixture depended on that, so it is closed rather than reproduced.
+
+A `for` header's declaration is a declaration too, so its initializer is a
+typed target like any other: a literal past the loop variable's range, a
+wider or other-signedness integer, a float without a cast, and an operator
+mixing categories or naming an unreadable header macro are each rejected
+there, whether the source is declared in the same file or one or two
+includes away. Every `for header` cell is `error`, and each is occupied by a
+fixture that asserts it beside a silent control.
 
 The scope contexts reach an included file too (#1668). A scope member or
 method narrowing a value declared in another file is the same conversion as
