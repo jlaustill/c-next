@@ -281,6 +281,13 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: a for header declares one scalar loop variable, so an array declared there
+is ADR-036's E0917 alone, in a file that includes others too; a scalar given a
+list there is #2305.
 
 <!-- MATRIX-SEVERITY code: E0876 -->
 
@@ -298,6 +305,13 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: a for header declares one scalar loop variable, so an array declared there
+is ADR-036's E0917 alone, in a file that includes others too; a scalar given a
+list there is #2305.
 
 <!-- MATRIX-SEVERITY code: E0892 -->
 
@@ -315,10 +329,18 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: a for header declares one scalar loop variable, so an array declared there
+is ADR-036's E0917 alone, in a file that includes others too; a scalar given a
+list there is #2305.
 
 Each code has its own table (#1620). An initializer sits on a declaration,
-which stands in every context, so every context is `error` for each code. Each
-rule is decided at the declaration's own position, and that declaration can use
+which stands in every context. A for header's declaration is one scalar loop
+variable, where an array is E0917, so every context but a for header is `error`
+for each code. Each rule is decided at the declaration's own position, and that declaration can use
 an included file's names -- a const dimension, an array -- so each code fires in
 a file that includes others as it does in a single file, and the imported cells
 are `error` too (`array-form-included-error`, `array-count-included-error` and
