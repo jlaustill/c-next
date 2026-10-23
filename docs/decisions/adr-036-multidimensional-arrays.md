@@ -530,9 +530,12 @@ holds that cell.
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | off      |
 | for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
 off: a scope member still accepts the C-style form (below).
-off: a for header's declaration is judged by E0917 alone.
+off: a for header's declaration, wherever its names are declared, is judged
+by E0917 alone.
 
 <!-- MATRIX-SEVERITY code: E0875 -->
 
@@ -551,10 +554,13 @@ off: a for header's declaration is judged by E0917 alone.
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 | for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
 off: E0875 judges a parameter, which only a function or a scope method has;
 an unbounded global or member is ADR-035's E0892.
-off: a for header's declaration is judged by E0917 alone.
+off: a for header's declaration, wherever its names are declared, is judged
+by E0917 alone.
 
 <!-- MATRIX-SEVERITY code: E0909 -->
 
@@ -572,9 +578,13 @@ off: a for header's declaration is judged by E0917 alone.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
-| for header         | same file           | off      |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
-off: a for header's declaration is judged by E0917 alone.
+A for header's declaration reaches E0909 through a cast's array type,
+`for (u32 a <- (u8[count]) n; ...)`, since an array loop variable is E0917;
+that such a cast is accepted at all is #2306.
 
 <!-- MATRIX-SEVERITY code: E0910 -->
 
@@ -592,9 +602,13 @@ off: a for header's declaration is judged by E0917 alone.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
-| for header         | same file           | off      |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
-off: a for header's declaration is judged by E0917 alone.
+A for header's declaration reaches E0910 through a cast's array type,
+`for (u32 b <- (u8[A + A]) n; ...)`, since an array loop variable is E0917;
+that such a cast is accepted at all is #2306.
 
 <!-- MATRIX-SEVERITY code: E0917 -->
 
