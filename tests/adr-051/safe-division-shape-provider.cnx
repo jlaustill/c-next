@@ -1,0 +1,6 @@
+// Provider for the imported safe-division-shape fixtures: a variable that can
+// receive a result, and a function that cannot.
+
+mut u32 sharedOutput <- 0;
+
+void sharedHelper() {}

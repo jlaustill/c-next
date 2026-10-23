@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 051
+// E0884 and E0885 judge the call as written, so they hold wherever a call can
+// stand: a file-scope initializer, a scope member's initializer and a scope
+// method. The top-level function cells are safe-division-shape-error's.
+// Matrix cells: global variable, scope member, scope method -- same file.
+
+mut u32 q <- 0;
+
+void helper() {}
+
+bool globalCount <- safe_div(q, 10, 2);
+bool globalOutput <- safe_div(helper, 10, 2, 0);
+
+scope Widget {
+    bool memberCount <- safe_div(q, 10, 2);
+    bool memberOutput <- safe_div(helper, 10, 2, 0);
+
+    public void method() {
+        mut bool err <- false;
+
+        // NEGATIVE CONTROL -- the correct shape.
+        err <- safe_div(q, 10, 2, 0);
+
+        err <- safe_mod(q, 10, 3, 0, 1);
+        err <- safe_mod(1 + 1, 10, 3, 0);
+    }
+}

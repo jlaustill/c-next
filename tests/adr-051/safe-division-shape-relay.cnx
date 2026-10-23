@@ -1,0 +1,3 @@
+// Relay: puts safe-division-shape-provider one include further away.
+
+#include "safe-division-shape-provider.cnx"
