@@ -419,6 +419,9 @@ describe("ScopeGenerator", () => {
       expect(declarationsOf(result.code)).toContain(
         "char* Driver__counter = 0;",
       );
+      expect(
+        AdrProvenance.collect().filter((site) => site.adr === "030"),
+      ).toEqual([]);
     });
 
     // Issue #996: an array of handles is an array of pointers; which zero it

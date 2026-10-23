@@ -2016,7 +2016,7 @@ class CodeGenWalker {
       isPrivate,
       isConst,
       isArray,
-      isPointer: this.host.state.ownTypeInfo(decl)?.isPointer ?? false,
+      isPointer: this.host.state.isDeclaredPointer(decl),
       declarationLine: decl.span.line,
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
@@ -2584,7 +2584,7 @@ class CodeGenWalker {
       fillsAfterDeclaring ? { ...decl.modifiers, mut: true } : decl.modifiers,
       this.host.state.inFunctionBody,
       this.host.state,
-      this.host.state.ownTypeInfo(decl)?.isPointer ?? false,
+      this.host.state.isDeclaredPointer(decl),
     );
     const name = decl.name;
     const type = this._inferVariableType(decl);
@@ -2954,8 +2954,7 @@ class CodeGenWalker {
    */
   private _inferVariableType(decl: IVariableDeclarationSyntax): string {
     const type = this.renderDeclaredType(decl.type);
-    const info = this.host.state.ownTypeInfo(decl);
-    return DeclaredPointer.spell(type, info?.isPointer ?? false);
+    return DeclaredPointer.spell(type, this.host.state.isDeclaredPointer(decl));
   }
 
   /**

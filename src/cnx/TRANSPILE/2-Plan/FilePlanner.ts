@@ -1088,7 +1088,7 @@ class FilePlanner {
       ),
     };
     const types = this.planTypeSites(program, unwritten);
-    const nullInitialized = this.planNullInitialized(program, inlinedConsts);
+    const nullInitialized = this.planNullInitialized(program, unwritten);
     // #1610: the NULL a C file writes is declared by <stddef.h>
     if (this.writesNull(program, unwritten, nullInitialized)) {
       requirements.require("stddef");
@@ -1747,15 +1747,17 @@ class FilePlanner {
    */
   private planNullInitialized(
     program: IProgramSyntax,
-    inlined: ReadonlySet<ISyntaxNode>,
+    unwritten: IUnwrittenSyntax,
   ): ReadonlySet<IVariableDeclarationSyntax> {
+    // A scope member or local is typed without its `kind`, so it is looked up by node
+    const unwrittenNodes: ReadonlySet<ISyntaxNode> = unwritten.declarations;
     return new Set(
       FilePlanner.variableDeclarations(program).filter(
         (decl) =>
           !decl.initializer &&
-          !inlined.has(decl) &&
+          !unwrittenNodes.has(decl) &&
           !FilePlanner.isArrayDeclaration(decl) &&
-          (this.state.ownTypeInfo(decl)?.isPointer ?? false),
+          this.state.isDeclaredPointer(decl),
       ),
     );
   }

@@ -7,6 +7,8 @@
 
 // test-no-warnings
 // Tests: ADR-046 null check on a pointer from a user C header that does not define NULL (#1610)
+// An uninitialized cstring is a pointer at every declaration site, so its zero
+// is the null pointer (MISRA C:2012 Rule 11.9), not ADR-015's brace zero.
 #include "user-api-no-stddef.h"
 
 #include <stdint.h>
@@ -14,10 +16,26 @@
 
 uint8_t witness = 0U;
 
+char* gname = {0};
+
+/* Scope: Board */
+static char* Board__label = {0};
+
+void Board__load(void) {
+    Board__label = user_device_name();
+}
+
 int main(void) {
     const char* c_name = user_device_name();
     if (c_name != NULL) {
         witness = 1U;
+    }
+    gname = user_device_name();
+    Board__load();
+    char* c_local = {0};
+    c_local = user_device_name();
+    if (c_local != NULL) {
+        witness = 2U;
     }
     return 0U;
 }

@@ -956,7 +956,7 @@ Update: `src/cli/index.ts` (parse + pass), `src/cnx/types/ITranspilerConfig.ts` 
    `transpile-state-reads-no-later-pass` forbids the state importing `3-Render/`
 2. Require it in 2.2 through **`PlannedRequirements.require()`** (`2-Plan/`), the
    one sink; `planFile` makes one per file, so it is never shared state
-3. Read it into `IEmissionFacts` in **`CodeGenWalker.planEmissionFacts()`**
+3. Read it into `IEmissionFacts` in **`FilePlanner.planEmissionFacts()`**
 4. Emit it in **`CodeGenWalker.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
    a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
    members)

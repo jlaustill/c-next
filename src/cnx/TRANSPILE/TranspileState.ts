@@ -133,6 +133,17 @@ class TranspileState {
   }
 
   /**
+   * #1610 review: whether a declaration is declared as a pointer -- its
+   * `DeclaredPointer` answer, the one fact its `*` and its null zero are both
+   * planned from
+   */
+  isDeclaredPointer(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): boolean {
+    return this.ownTypeInfo(decl)?.isPointer ?? false;
+  }
+
+  /**
    * #1643 review: the local a declaration declares, found by its declarator's
    * identity -- undefined for a file-scope one
    */

@@ -149,9 +149,10 @@ function renderRegularVariable(
   }
 
   // Issue #948/#958: a scope member of an opaque type is declared as a pointer.
-  // #1610: the decision is the declaration's `DeclaredPointer` answer, planned
-  // once (`plan.isPointer`) -- the one the header's `extern` and 2.2's null
-  // initializer read too, so the `*` cannot disagree with either.
+  // #1610: `plan.isPointer` is the declaration's `DeclaredPointer` answer
+  // (`TranspileState.isDeclaredPointer`), the fact the header's `extern` and
+  // 2.2's null initializer are planned from too, so the `*` cannot disagree
+  // with either.
   const spelled = DeclaredPointer.spell(type, plan.isPointer);
   if (spelled !== type) {
     // ADR-030 decided here: the type is incomplete, so the member is emitted as

@@ -311,6 +311,15 @@ one indeterminate case still requires every reader to know which case it is.
 | `u8[256] buf;` | `uint8_t buf[256] = {0};` |
 | `Point p;`     | `Point p = {0};`          |
 | `UART u;`      | `UART u = {0};`           |
+| `cstring s;`   | `char* s = NULL;`         |
+| `Dev d;`       | `Dev* d = NULL;`          |
+
+A scalar declared as a pointer (an ADR-046 `cstring`, or an ADR-030 opaque
+handle `Dev` whose type is incomplete) zeroes to `NULL` in C and `nullptr` in
+C++, at file scope, in a scope and in a body. MISRA C:2012 Rule 11.9 permits
+only `NULL` as a null pointer constant, and MISRA rules win in generated C and
+C++ (owner ruling, #1610). Rule 11.9 allows `{0}` for an aggregate, so an array
+of handles keeps `{0}` (#996).
 
 ## Examples
 
