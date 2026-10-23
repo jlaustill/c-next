@@ -97,8 +97,13 @@ describe("IntegerConversionAnalyzer", () => {
       expect(errors(inMain("    u8 x <- (u8)wide[0, 8];"))).toEqual([]);
     });
 
-    it("skips a compound operator, which ADR-044 governs", () => {
-      expect(errors(inMain("    u8 x <- 0;\n    x +<- wide;"))).toEqual([]);
+    it("checks a compound operator as its target and value combined", () => {
+      const found = errors(inMain("    u8 x <- 0;\n    x +<- wide;"));
+      expect(found.map((e) => e.code)).toEqual(["E0869"]);
+      expect(found[0].helpText).toContain("[0, 8]");
+      expect(errors(inMain("    u8 x <- 0;\n    x +<- wide[0, 8];"))).toEqual(
+        [],
+      );
     });
 
     it("skips a slice target, which ADR-007 governs", () => {
@@ -365,10 +370,15 @@ describe("IntegerConversionAnalyzer -- on 1.2's syntax", () => {
     expect(found[0].message).toContain("-5");
   });
 
-  it("leaves a ternary's conversion to its arms", () => {
+  it("checks each arm of a ternary against the target", () => {
     const found = errors(
       "u16 a;\nu16 b;\nvoid f(bool c) {\n    u8 x <- (c) ? a : b;\n}",
     );
-    expect(found.map((e) => e.code)).not.toContain("E0869");
+    expect(found.map((e) => e.code)).toEqual(["E0869", "E0869"]);
+    expect(
+      errors(
+        "u16 a;\nu16 b;\nvoid f(bool c) {\n    u8 x <- (c) ? a[0, 8] : b[0, 8];\n}",
+      ),
+    ).toEqual([]);
   });
 });
