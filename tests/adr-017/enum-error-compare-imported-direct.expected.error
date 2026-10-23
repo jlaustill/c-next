@@ -1,0 +1,6 @@
+23:30 error[E0434]: Cannot compare Shared enum to integer
+       help: ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.
+26:34 error[E0434]: Cannot compare Shared enum to integer
+       help: ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.
+30:19 error[E0434]: Cannot compare Shared enum to integer
+       help: ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.

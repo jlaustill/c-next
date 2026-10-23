@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 017
+// E0434 across ONE include hop in a global initializer, a scope member
+// initializer and a scope method -- matrix cells: imported direct. The enum is
+// declared in another file, so a check reading only this file finds no enum
+// and would stay silent.
+
+#include "enum-declarations.cnx"
+
+// NEGATIVE CONTROL -- the imported enum compared to its own members.
+bool okGlobal <- (Shared.A = Shared.B);
+
+scope Ok {
+    bool okMember <- (Shared.B = Shared.A);
+
+    public bool okMethod() {
+        Shared s <- Shared.A;
+        return s = Shared.B;
+    }
+}
+
+// THE ASSERTIONS -- one per context.
+bool badGlobal <- (Shared.A = 1);
+
+scope Bad {
+    bool badMember <- (Shared.B = 0);
+
+    public bool badMethod() {
+        Shared s <- Shared.A;
+        return s = 1;
+    }
+}

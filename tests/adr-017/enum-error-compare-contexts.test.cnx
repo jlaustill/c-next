@@ -1,0 +1,40 @@
+// test-error
+// test-adr: 017
+// E0434 in the three contexts a comparison reaches besides a top-level
+// function -- a global initializer, a scope member initializer and a scope
+// method -- matrix cells: same file. A comparison is an expression, so the
+// rule must hold wherever an expression can stand.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+enum Power {
+    OFF,
+    ON
+}
+
+// NEGATIVE CONTROL -- each enum compared to its own members, in the same
+// three contexts. A rule that keyed on "two enums exist" would reject these.
+bool okGlobal <- (State.IDLE = State.RUNNING);
+
+scope Ok {
+    bool okMember <- (Power.OFF = Power.ON);
+
+    public bool okMethod() {
+        State s <- State.IDLE;
+        return s = State.RUNNING;
+    }
+}
+
+// THE ASSERTIONS -- one per context.
+bool badGlobal <- (State.IDLE = Power.ON);
+
+scope Bad {
+    bool badMember <- (State.RUNNING = Power.OFF);
+
+    public bool badMethod() {
+        State s <- State.IDLE;
+        return s = Power.ON;
+    }
+}
