@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 026
+// E0703 outside a loop body: the two words parse as identifiers, so they can
+// be written in a global initializer, a scope member's initializer and a
+// `for` header, and each is rejected where it is written.
+
+// NEGATIVE CONTROL -- the structured form ADR-026 asks for.
+void structured() {
+    u32 i <- 0;
+    while (i < 10 && i != 5) {
+        i +<- 1;
+    }
+}
+
+u32 earlyExit <- break;
+
+void header() {
+    for (u32 i <- continue; i < 10; i +<- 1) {
+        u32 v <- i;
+    }
+}
+
+scope Worker {
+    u32 skipped <- continue;
+}

@@ -1,0 +1,43 @@
+// test-error
+// test-adr: 026
+// E0703 at ONE include hop, in all five contexts -- the `imported direct`
+// column of ADR-026's E0703 matrix. Including a file changes nothing: the
+// word is rejected where it is written.
+
+#include "adr-026-limits.cnx"
+
+// NEGATIVE CONTROL -- the structured form ADR-026 asks for.
+void structured() {
+    u32 i <- 0;
+    while (i < 10 && i != 5) {
+        i +<- 1;
+    }
+}
+
+u32 earlyExit <- break;
+
+void demo() {
+    for (u32 i <- 0; i < 10; i +<- 1) {
+        if (i = 5) {
+            continue;
+        }
+    }
+}
+
+void header() {
+    for (u32 i <- continue; i < 10; i +<- 1) {
+        u32 v <- i;
+    }
+}
+
+scope Worker {
+    u32 skipped <- continue;
+
+    public void run() {
+        for (u32 i <- 0; i < 10; i +<- 1) {
+            if (i = 5) {
+                break;
+            }
+        }
+    }
+}

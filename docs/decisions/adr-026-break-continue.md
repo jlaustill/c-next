@@ -114,26 +114,32 @@ the word. Since #1322 it is decided during analysis with the other loop rules
 
 ## Scope-Context Matrix (#1219)
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0703 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
 | top-level function | same file           | error    |
 | scope method       | same file           | error    |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| for header         | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
-`break` and `continue` are statements inside a loop body, so the declaration
-contexts are `off`; the word itself is the whole fact, so nothing crosses an
-include and the imported columns are `off`.
+The two words parse as identifiers, so E0703 can be written in any expression:
+a loop body, a global or scope member initializer, or a `for` header. The rule
+reads only the word in the file that writes it, so a fixture one or two `.cnx`
+includes deep is rejected the same way. The ADR-wide table is gone: E0703 is
+this ADR's only diagnostic and no site records ADR-026 provenance, so nothing
+could occupy it.
 
 ## Proper Patterns
 
