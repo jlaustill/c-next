@@ -257,6 +257,10 @@ expression statement inside a function body:
   (`no viable alternative at input 'next('`), verified both ways. There is no
   program in which E0708 could fire in those contexts, so a fixture cannot be
   written for them.
+- **for header** is `off` as well. A call inside a `for` header's declaration
+  (`for (mut u32 i <- next(); ...)`) is the initializer, so its value is used,
+  and a bare call in the initializer position (`for (next(); ...)`) is a parse
+  error. The header's condition and update belong to the enclosing function.
 
 The relationship axis carries no such argument. The callee's return type is what
 the rule needs, and it may be declared in the same file, one `.cnx` include away,
@@ -272,16 +276,19 @@ relationships are `error` in both live rows.
 | top-level function | same file           | error    |
 | scope member       | same file           | off      |
 | scope method       | same file           | error    |
+| for header         | same file           | off      |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | error    |
+| for header         | imported direct     | off      |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | error    |
+| for header         | imported transitive | off      |
 
-off: E0708 cannot fire in a global-variable or scope-member position, because a bare call there is a parse error.
+off: E0708 cannot fire in a global-variable or scope-member position, because a bare call there is a parse error; nor inside a `for` header's declaration, where a call is the initializer, whose value is used (a bare call as the `for` initializer is itself a parse error).
 
 Six cells are `error` and all six are occupied — see
 `docs/scope-context-matrix.md`. Three of the six were reached only by fixtures
