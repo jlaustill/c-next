@@ -1,0 +1,49 @@
+// test-error
+// test-adr: 014
+// #1620: a `for` header's declaration is a position of its own, and E0357 and
+// E0358 fire inside it as they do in a function body, with the struct and the
+// bitmap declared in this file. The header gives its variable a type, but a
+// subscript inside the initializer supplies none for what sits inside the
+// brackets (E0357), and a `u32` or bitmap variable is not a struct (E0358).
+// Each assertion stands in a top-level function and in a scope method.
+
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+bitmap8 Flags {
+    A,
+    B,
+    C[6]
+}
+
+u8[4] table <- [1, 2, 3, 4];
+
+void f() {
+    // NEGATIVE CONTROL -- a struct variable takes the initializer, and a
+    // bitmap its backing integer. Both must stay silent.
+    for (mut Point p <- { x: 0, y: 0 }; p.x < 4; p.x +<- 1) {}
+    for (mut Flags g <- 0; table[0] < 1; g <- 0) {}
+
+    // ASSERTION 1 -- E0357: nothing says which struct sits in the subscript.
+    for (mut u8 i <- table[{ x: 1, y: 1 }]; i < 4; i +<- 1) {}
+    // ASSERTION 2 -- E0358: a `u32` is not a struct.
+    for (mut u32 j <- { x: 2 }; j < 4; j +<- 1) {}
+    // ASSERTION 3 -- E0358: a bitmap's value is its backing integer.
+    for (mut Flags g <- { A: 1 }; table[0] < 1; g <- 0) {}
+}
+
+scope S {
+    public void method() {
+        // NEGATIVE CONTROL
+        for (mut Point p <- { x: 0, y: 0 }; p.x < 4; p.x +<- 1) {}
+
+        // ASSERTION 4 -- E0357
+        for (mut u8 i <- table[{ x: 3, y: 3 }]; i < 4; i +<- 1) {}
+        // ASSERTION 5 -- E0358
+        for (mut u32 j <- { x: 4 }; j < 4; j +<- 1) {}
+        // ASSERTION 6 -- E0358
+        for (mut Flags g <- { A: 1 }; table[0] < 1; g <- 0) {}
+    }
+}
