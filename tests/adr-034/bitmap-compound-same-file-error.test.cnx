@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 034
+// E0857 in the same file, in the contexts it can fire in -- the same-file
+// column of E0857's own matrix (#1620). A compound operator is a statement, so
+// it reaches only function bodies.
+
+bitmap8 Flags {
+    A,
+    B,
+    Mode[3],
+    C,
+    D,
+    E
+}
+
+mut Flags fl <- 0;
+
+scope Sc {
+    // CONTEXT: scope method
+    public void bump() {
+        // NEGATIVE CONTROL -- a plain write to the same field
+        fl.Mode <- 1;
+
+        fl.Mode +<- 1;
+    }
+}
+
+// CONTEXT: top-level function
+u32 main() {
+    // NEGATIVE CONTROL -- a plain write to the same field
+    fl.Mode <- 1;
+
+    fl.Mode +<- 1;
+    return 0;
+}

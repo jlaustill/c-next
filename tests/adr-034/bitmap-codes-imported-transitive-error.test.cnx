@@ -1,0 +1,57 @@
+// test-error
+// test-adr: 034
+// ADR-034's codes on a bitmap declared TWO include hops away, in every context
+// each can fire in -- the imported-transitive column of each code's own matrix
+// (#1620). E0857 has its own fixture (bitmap-compound-imported-transitive-error):
+// it stops the run before these report.
+
+#include "bitmap-codes-relay.cnx"
+
+// CONTEXT: global variable -- E0882, E0883, E0921 in an initializer.
+u8 gUnknown <- fl.Nope;
+bool gIndexed <- fl[0];
+bool gWhole <- arr.A;
+
+scope Sc {
+    // CONTEXT: scope member -- E0882, E0883, E0921 in an initializer.
+    u8 mUnknown <- fl.Nope;
+    bool mIndexed <- fl[0];
+    bool mWhole <- arr.A;
+
+    // CONTEXT: scope method -- E0881, E0882, E0883, E0921.
+    public void run() {
+        // NEGATIVE CONTROLS -- a field write that fits, one whole element
+        fl.Mode <- 7;
+        arr[0].A <- true;
+
+        fl.Mode <- 9;
+        u8 unknown <- fl.Nope;
+        bool indexed <- fl[0];
+        arr.A <- true;
+    }
+}
+
+// CONTEXT: top-level function -- E0881, E0882, E0883, E0921.
+void run() {
+    // NEGATIVE CONTROLS -- a field write that fits, one whole element
+    fl.Mode <- 7;
+    arr[1].A <- true;
+
+    fl.Mode <- 9;
+    u8 unknown <- fl.Nope;
+    bool indexed <- fl[0];
+    arr.A <- true;
+}
+
+// CONTEXT: for header -- E0882, E0883, E0921 in the loop variable's initializer.
+void loops() {
+    for (mut u8 i <- fl.Nope; i < 3; i +<- 1) {}
+    for (mut bool j <- fl[0]; j = true; j <- false) {}
+    for (mut bool k <- arr.A; k = true; k <- false) {}
+}
+
+u32 main() {
+    run();
+    loops();
+    return 0;
+}

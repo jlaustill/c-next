@@ -1,0 +1,34 @@
+22:15 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
+       help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
+23:17 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).
+24:15 error[E0921]: Field 'A' of an array of 'Flags' names no element
+       help: A field belongs to one 'Flags' value; index every dimension first, e.g. NAME[i].A (ADR-034).
+28:19 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
+       help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
+29:21 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).
+30:19 error[E0921]: Field 'A' of an array of 'Flags' names no element
+       help: A field belongs to one 'Flags' value; index every dimension first, e.g. NAME[i].A (ADR-034).
+38:19 error[E0881]: Value 9 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+39:22 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
+       help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
+40:24 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).
+41:8 error[E0921]: Field 'A' of an array of 'Flags' names no element
+       help: A field belongs to one 'Flags' value; index every dimension first, e.g. NAME[i].A (ADR-034).
+51:15 error[E0881]: Value 9 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+52:18 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
+       help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
+53:20 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).
+54:4 error[E0921]: Field 'A' of an array of 'Flags' names no element
+       help: A field belongs to one 'Flags' value; index every dimension first, e.g. NAME[i].A (ADR-034).
+59:21 error[E0882]: Unknown bitmap field 'Nope' on 'Flags'
+       help: 'Flags' declares 'A', 'B', 'Mode', 'C', 'D', 'E' (ADR-034).
+60:23 error[E0883]: Cannot use bracket indexing on bitmap type 'Flags'
+       help: A bitmap is addressed by named field, not by bit index -- write fl.FIELD_NAME (ADR-034).
+61:23 error[E0921]: Field 'A' of an array of 'Flags' names no element
+       help: A field belongs to one 'Flags' value; index every dimension first, e.g. NAME[i].A (ADR-034).
