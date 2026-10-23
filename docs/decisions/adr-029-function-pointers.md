@@ -329,10 +329,10 @@ Following MISRA C Rule 11.1:
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                   | Asserted by                                                                                             |
-| ----- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| E0879 | A function's declared signature differs from the callback type of the slot it is placed in      | `tests/adr-029/callback-signature-error.test.cnx`, `tests/adr-029/callback-imported-*-error.test.cnx`   |
-| E0880 | A function that is itself used as a struct field's type is placed in a slot of a different type | `tests/adr-029/callback-error-nominal.test.cnx`, `tests/adr-029/callback-uncovered-arms-error.test.cnx` |
+| Code  | Reported when                                                                                   | Asserted by                                                                                                                                                                                                            |
+| ----- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0879 | A function's declared signature differs from the callback type of the slot it is placed in      | `tests/adr-029/callback-signature-error.test.cnx`, `tests/adr-029/callback-imported-*-error.test.cnx`, `tests/adr-029/callback-scope-type-imported-error.test.cnx`, `tests/adr-029/callback-c-header-*-error.test.cnx` |
+| E0880 | A function that is itself used as a struct field's type is placed in a slot of a different type | `tests/adr-029/callback-error-nominal.test.cnx`, `tests/adr-029/callback-uncovered-arms-error.test.cnx`                                                                                                                |
 
 A function name reaches a callback-typed slot in exactly four ways, and all
 four are decided on the same terms: an assignment target, a declaration's
@@ -340,6 +340,24 @@ initializer, a struct initializer's field, and a call argument -- the last
 being the case the "User Implementation" example above marks `COMPILE ERROR`.
 Each is reported at the value's own position, and every offense in a file is
 reported rather than only the first.
+
+A function a C header declares is held to the same rule (#1619). Its C
+signature is compared with the callback type's `_fp` typedef, type by type, by
+C type identity under the compiler that read the run's headers: two C types
+match when that compiler would take them as the same type, not when they merely
+have one width. The compiler's own predefined macros (`__UINT32_TYPE__` and its
+siblings) say which C type each `uN`/`iN` is. So `unsigned long millis(void)`
+fills a `u32 tickSource()` slot on stm32f4 and AVR, where `uint32_t` is
+`unsigned long`, and is E0879 on a 64-bit host, where it is `unsigned int`;
+`unsigned int clock32(void)` is the other way round. A variadic C function
+matches no callback type. A pointer typedef counts its own `*`s
+(`typedef Sample *SampleRef` is `Sample*`), and every dimension of an array
+parameter after the first is part of its type (`uint8_t g[4][8]` does not fill a
+`u8[4][4]` slot). A `const` or `volatile` pointee is part of the type, whether
+the parameter or a typedef spells it. Where a C type in the signature cannot be
+determined from the headers the program includes, that part is not reported;
+the C compiler remains the check. Asserted by
+`tests/adr-029/callback-c-header-*.test.cnx`.
 
 The signature compared is the one the author **declared**. A parameter may also
 acquire `const` because no body modifies it, but that is a property of an

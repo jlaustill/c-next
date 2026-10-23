@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 029
+// ADR-029: a 2-D array parameter's inner dimension is part of a cnx
+// function's signature too, the same rule a C-header function is held to, so
+// `u8[4][8]` does not fill a `u8[4][4]` slot (#1619).
+// NEGATIVE CONTROL -- grid44 has the slot's own [4][4]: silent.
+
+void gridSlot(u8[4][4] g) {
+    u8 b <- g[0][0];
+}
+
+void grid44(u8[4][4] g) {
+    u8 b <- g[0][0];
+}
+
+void grid48(u8[4][8] g) {
+    u8 b <- g[0][0];
+}
+
+struct Slots {
+    gridSlot grid;
+}
+
+Slots ok <- { grid: grid44 };
+
+// ASSERTION -- grid48 takes uint8_t (*)[8].
+Slots wide <- { grid: grid48 };

@@ -34,6 +34,7 @@ import TIncludeHeader from "../../types/TIncludeHeader";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import type INamedTypeResolution from "../../types/INamedTypeResolution";
 import type IPlannedType from "./types/IPlannedType";
+import userCType from "../../utils/userCType";
 
 /**
  * Result of generating a primitive type.
@@ -77,29 +78,6 @@ class TypeGenerationHelper {
 
     const cType = TYPE_MAP[type] || type;
     return { cType, include };
-  }
-
-  /**
-   * Generate C type for a user-defined type.
-   *
-   * @param typeName - The type name
-   * @param needsStructKeyword - Whether to prefix with 'struct'
-   * @returns The C type string
-   */
-  static generateUserType(
-    typeName: string,
-    needsStructKeyword: boolean,
-  ): string {
-    // ADR-046: cstring maps to char* for C library interop
-    if (typeName === "cstring") {
-      return "char*";
-    }
-
-    if (needsStructKeyword) {
-      return `struct ${typeName}`;
-    }
-
-    return typeName;
   }
 
   /**
@@ -162,7 +140,7 @@ class TypeGenerationHelper {
     // for the cast path too. It used to be answered here as well, before the
     // provenance lines -- two spellings of one mapping, and removing this one
     // reddened nothing because the other one caught it.
-    return TypeGenerationHelper.generateUserType(
+    return userCType(
       named.written,
       deps.checkNeedsStructKeyword(named.written),
     );

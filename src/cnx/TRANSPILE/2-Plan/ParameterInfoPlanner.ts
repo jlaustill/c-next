@@ -1,4 +1,5 @@
 import ParameterPassing from "./ParameterPassing";
+import ParameterByValue from "../../utils/ParameterByValue";
 import type TParameterInfo from "../../types/TParameterInfo";
 import type IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
@@ -55,7 +56,7 @@ class ParameterInfoPlanner {
     // is an array of pointers (#996), and the `!isArray` this once carried is
     // what left `Dev[2] arr` as `Dev arr[2]`.
     const isOpaqueHandle =
-      ParameterPassing.settledParameters(functionName, state)[paramIndex]
+      ParameterByValue.settledParameters(functionName, state)[paramIndex]
         ?.isOpaqueHandle === true;
 
     // Determine isStruct: for callback-compatible params, both typedef AND type info matter

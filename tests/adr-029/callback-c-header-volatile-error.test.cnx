@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 029
+// ADR-029: a volatile or const pointee is part of a C type, so a header
+// function taking `volatile uint32_t *`, or a `typedef const uint32_t *`,
+// does not fill a `mut u32` slot (#1619).
+// NEGATIVE CONTROL -- onMut takes a plain uint32_t *: silent.
+#include "callback-c-header-params.h"
+
+void mutSlot(mut u32 v) {
+    v <- 1;
+}
+
+struct Slots {
+    mutSlot value;
+}
+
+Slots ok <- { value: onMut };
+
+// ASSERTION -- onVolatile's pointee is volatile.
+Slots bad <- { value: onVolatile };
+
+// ASSERTION -- CU32Ptr's typedef spells a const pointee.
+Slots constPtr <- { value: onCU32 };

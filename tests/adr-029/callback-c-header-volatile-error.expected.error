@@ -1,0 +1,4 @@
+20:22 error[E0879]: Function 'onVolatile' signature does not match callback type 'mutSlot'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+23:27 error[E0879]: Function 'onCU32' signature does not match callback type 'mutSlot'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).

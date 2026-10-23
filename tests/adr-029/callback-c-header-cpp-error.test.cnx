@@ -1,0 +1,29 @@
+// test-error
+// test-cpp-only
+// test-adr: 029
+// ADR-029 in C++, where a mut scalar and a struct parameter of a callback
+// type are references: a C function taking a pointer there does not match it
+// (#1619). NEGATIVE CONTROL -- onValue takes uint32_t by value: silent.
+#include "callback-c-header-params.h"
+
+void valueSlot(u32 v) {
+    (void)v;
+}
+
+void mutSlot(mut u32 v) {
+    v <- 1;
+}
+
+void sampleSlot(Sample s) {
+    i32 x <- s.value;
+}
+
+struct Slots {
+    valueSlot value;
+    mutSlot mutValue;
+    sampleSlot sample;
+}
+
+// ASSERTION 1 -- mutValue is uint32_t&; onMut takes uint32_t*.
+// ASSERTION 2 -- sample is const Sample&; onSample takes const Sample*.
+Slots slots <- { value: onValue, mutValue: onMut, sample: onSample };

@@ -1,0 +1,10 @@
+scope Clock {
+    public u32 tickSource() {
+        return 0;
+    }
+
+    public struct Timer {
+        u32 dueEvery;
+        tickSource tick;
+    }
+}

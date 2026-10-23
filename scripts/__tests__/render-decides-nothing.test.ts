@@ -310,8 +310,10 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   // on each prototype's parameters for the header renderer to read; no
   // render module decides passing for itself.
   ParameterPassing: [
-    // reads a parameter's settled emitted name, not the passing decision
-    "codegen/helpers/FunctionContextManager.ts",
+    // #1619: `codegen/helpers/FunctionContextManager.ts` stood here, reading
+    // only a parameter's settled emitted name. It reads that from
+    // `utils/ParameterByValue.settledParameters` now, which is not a Plan
+    // decision, so it left this roster without deciding anything itself.
     "headers/HeaderEmissionCapture.ts",
   ],
   PublicInterface: [

@@ -37,8 +37,9 @@
  *
  * A function used only as a PARAMETER type (`void reg(onUp cb)`) is not a
  * nominal type here, as it was not in codegen; widening that is a language
- * decision (ADR-029 §Nominal Typing names struct fields). Array dimensions of
- * parameters are not compared, as they were not.
+ * decision (ADR-029 §Nominal Typing names struct fields). A cnx function's
+ * signature is then held to the C-header rule too, so an inner array
+ * dimension (`u8[4][8]` in a `u8[4][4]` slot) is E0879 for both (#1619).
  */
 
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
@@ -54,6 +55,7 @@ import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclara
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
+import CCallbackSignature from "./helpers/CCallbackSignature";
 import FunctionReference from "./helpers/FunctionReference";
 import ValuePositions from "./helpers/ValuePositions";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
@@ -163,16 +165,18 @@ class CallbackAssignmentCheck {
     );
     if (expected === null) return;
     const actual = FunctionReference.ofValue(value, scopePath, this.context);
-    if (actual === null) return;
+    if (actual === null) {
+      this.checkForeign(slotTypeText, value, expected);
+      return;
+    }
 
     const valueText = value.written;
-    if (!CallbackAssignmentCheck.signaturesMatch(expected, actual)) {
-      this.report(
-        value,
-        "E0879",
-        `Function '${valueText}' signature does not match callback type '${slotTypeText}'`,
-        "A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).",
-      );
+    if (
+      !CallbackAssignmentCheck.signaturesMatch(expected, actual) ||
+      CCallbackSignature.compareCnx(expected, actual, this.context) ===
+        "mismatch"
+    ) {
+      this.reportSignatureMismatch(value, slotTypeText);
       return;
     }
 
@@ -192,6 +196,39 @@ class CallbackAssignmentCheck {
         "A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).",
       );
     }
+  }
+
+  /**
+   * #1619: a function a C header declares is held to the callback type's
+   * signature too, by C type identity under the run's header compiler. A
+   * shape the header's lowering does not carry stays silent rather than
+   * guessed.
+   */
+  private checkForeign(
+    slotTypeText: string,
+    value: TExpression,
+    expected: IFunctionSymbol,
+  ): void {
+    const actual = CCallbackSignature.foreignFunction(value, this.context);
+    if (actual === null) return;
+    if (
+      CCallbackSignature.compare(expected, actual, this.context) !== "mismatch"
+    ) {
+      return;
+    }
+    this.reportSignatureMismatch(value, slotTypeText);
+  }
+
+  private reportSignatureMismatch(
+    value: TExpression,
+    slotTypeText: string,
+  ): void {
+    this.report(
+      value,
+      "E0879",
+      `Function '${value.written}' signature does not match callback type '${slotTypeText}'`,
+      "A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).",
+    );
   }
 
   private isFieldType(cName: string): boolean {

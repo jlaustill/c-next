@@ -31,6 +31,13 @@ import ArrayDimensionText from "../../../utils/ArrayDimensionText";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 
+/** `DeclarationSpecifiersContext` and `DeclarationSpecifiers2Context` alike */
+interface IQualifiedSpecifiers {
+  declarationSpecifier(): ReadonlyArray<{
+    typeQualifier(): { getText(): string } | null;
+  }>;
+}
+
 class CHeaderLowering {
   static header(tree: CompilationUnitContext): ICHeaderSyntax {
     const declarations: TCExternalDeclarationSyntax[] = [];
@@ -90,9 +97,11 @@ class CHeaderLowering {
         declarationSpecifiers,
         "extern",
       ),
-      isVolatile: specs.some(
-        (spec) => spec.typeQualifier()?.getText() === "volatile",
+      isVolatile: CHeaderLowering.hasQualifier(
+        declarationSpecifiers,
+        "volatile",
       ),
+      isConst: CHeaderLowering.hasQualifier(declarationSpecifiers, "const"),
       typeSpecifiers: CHeaderLowering.typeSpecifiers(declarationSpecifiers),
       struct: structSpec ? CHeaderLowering.struct(structSpec) : null,
       enum: enumSpec ? CHeaderLowering.enum(enumSpec) : null,
@@ -106,6 +115,20 @@ class CHeaderLowering {
           })
         : null,
     };
+  }
+
+  /**
+   * Whether a type qualifier token is among the specifiers. `getText()` joins
+   * tokens with no separator, so a substring test would read `constraint_t`
+   * as `const` and `nonvolatile_cfg_t` as `volatile`.
+   */
+  private static hasQualifier(
+    specifiers: IQualifiedSpecifiers,
+    qualifier: string,
+  ): boolean {
+    return specifiers
+      .declarationSpecifier()
+      .some((spec) => spec.typeQualifier()?.getText() === qualifier);
   }
 
   private static hasStorageClass(
@@ -164,6 +187,10 @@ class CHeaderLowering {
       // `parameterList ',' '...'`: the ellipsis has no accessor of its own
       isVariadic:
         (directDeclarator.parameterTypeList()?.getChildCount() ?? 0) > 1,
+      ...(hasParams &&
+        directDeclarator.parameterTypeList() === null && {
+          isUnprototyped: true,
+        }),
       isConstMember: false,
       arrayDimensions: ArrayDimensionText.parse(directDeclarator.getText()),
     };
@@ -216,16 +243,24 @@ class CHeaderLowering {
       return CHeaderLowering.unnamedParameter(parameterDeclaration);
     }
     const declarator = parameterDeclaration.declarator();
-    return ParameterExtractorUtils.buildParameterInfo(
-      declarator,
-      ...CHeaderLowering.parameterShape(
-        declarationSpecifiers,
-        CHeaderLowering.typeSpecifiers(declarationSpecifiers),
-        declarator?.pointer() ?? null,
-        CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "",
+    const directText =
+      CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "";
+    return {
+      ...ParameterExtractorUtils.buildParameterInfo(
+        declarator,
+        ...CHeaderLowering.parameterShape(
+          declarationSpecifiers,
+          CHeaderLowering.typeSpecifiers(declarationSpecifiers),
+          declarator?.pointer() ?? null,
+          directText,
+        ),
+        CHeaderLowering.declaratorName,
       ),
-      CHeaderLowering.declaratorName,
-    );
+      ...CHeaderLowering.declaratorExtras(
+        CHeaderLowering.hasQualifier(declarationSpecifiers, "volatile"),
+        directText,
+      ),
+    };
   }
 
   /**
@@ -245,13 +280,23 @@ class CHeaderLowering {
     ) {
       return null;
     }
+    const directText = abstract?.directAbstractDeclarator()?.getText() ?? "";
     const shape = CHeaderLowering.parameterShape(
       specifiers,
       typeSpecifiers,
       abstract?.pointer() ?? null,
-      abstract?.directAbstractDeclarator()?.getText() ?? "",
+      directText,
     );
-    return { name: "", type: shape[0], isConst: shape[1], isArray: shape[2] };
+    return {
+      name: "",
+      type: shape[0],
+      isConst: shape[1],
+      isArray: shape[2],
+      ...CHeaderLowering.declaratorExtras(
+        CHeaderLowering.hasQualifier(specifiers, "volatile"),
+        directText,
+      ),
+    };
   }
 
   /**
@@ -261,7 +306,7 @@ class CHeaderLowering {
    * lowering, so `T (*rows)[4]` and `T (*)[4]` lower alike.
    */
   private static parameterShape(
-    specifiers: { getText(): string },
+    specifiers: IQualifiedSpecifiers,
     typeSpecifiers: readonly ICTypeSpecifierSyntax[],
     pointer: { getText(): string } | null,
     directText: string,
@@ -271,9 +316,37 @@ class CHeaderLowering {
         DeclaratorTypes.baseType(typeSpecifiers),
         (pointer?.getText() ?? "").split("*").length - 1,
       ),
-      specifiers.getText().includes("const"),
+      CHeaderLowering.hasQualifier(specifiers, "const"),
       directText.includes("[") && directText.includes("]"),
     ];
+  }
+
+  /**
+   * #1619: what a parameter's type string cannot carry -- a `volatile`
+   * pointee, each `[...]` of an array, and whether the declarator nests (`(*f)(void)`, `(*rows)[4]`,
+   * `f(void)`), which makes it a pointer to a function or to an array.
+   */
+  private static declaratorExtras(
+    isVolatile: boolean,
+    directText: string,
+  ): {
+    arrayDimensions?: string[];
+    isNestedDeclarator?: true;
+    isVolatile?: true;
+  } {
+    const qualifiers = isVolatile ? { isVolatile: true as const } : {};
+    if (directText.includes("(")) {
+      return { ...qualifiers, isNestedDeclarator: true };
+    }
+    const open = directText.indexOf("[");
+    if (open < 0) return qualifiers;
+    // `[4][8]` splits on `]` to `[4`, `[8`, and a trailing empty part
+    const dimensions = directText
+      .slice(open)
+      .split("]")
+      .filter((part) => part.startsWith("["))
+      .map((part) => part.slice(1));
+    return { ...qualifiers, arrayDimensions: dimensions };
   }
 
   private static struct(

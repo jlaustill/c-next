@@ -7,6 +7,7 @@ import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
 import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
 import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
 import type IRenderedSource from "./3-Render/codegen/types/IRenderedSource";
+import userCType from "../utils/userCType";
 /**
  * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
  * that drives code generation.
@@ -159,7 +160,6 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
-import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
 import type IAnalysis from "./1-Analyze/types/IAnalysis";
 import AnalyzedFiles from "./1-Analyze/AnalyzedFiles";
 import PlanOptions from "./2-Plan/PlanOptions";
@@ -2248,10 +2248,7 @@ class CodeGenWalker {
     const needsStructKeyword =
       !this.host.state.cppMode &&
       this.host.state.symbolTable.checkNeedsStructKeyword(typeName);
-    const castType = TypeGenerationHelper.generateUserType(
-      typeName,
-      needsStructKeyword,
-    );
+    const castType = userCType(typeName, needsStructKeyword);
 
     // #1322: an empty-initializer branch stood here, reachable only through the
     // written form `Point {}` -- the inferred alternative has always required a

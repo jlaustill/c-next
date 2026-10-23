@@ -57,6 +57,7 @@ const noForeign = {
   typedefToTag: new Map<string, string>(),
   macros: new Map(),
   macrosUnread: new Set<string>(),
+  integerTypes: new Map<string, string>(),
   structTagsWithBodies: new Set<string>(),
 };
 
@@ -873,6 +874,7 @@ describe("Program", () => {
             ]),
             macros: new Map(),
             macrosUnread: new Set<string>(),
+            integerTypes: new Map<string, string>(),
             structTagsWithBodies: new Set(structTagsWithBodies),
           },
         },
@@ -979,6 +981,7 @@ describe("Program", () => {
           typedefToTag: new Map(typedefToTag),
           macros: new Map(),
           macrosUnread: new Set<string>(),
+          integerTypes: new Map<string, string>(),
           structTagsWithBodies: new Set(structTagsWithBodies),
         },
       });
@@ -1239,6 +1242,7 @@ scope Gauge {
         "enumMemberValues",
         "externalStructFields",
         "functionParamLists",
+        "headerIntegerType",
         "headerMacro",
         "headerMacrosUnread",
         "isOpaqueType",

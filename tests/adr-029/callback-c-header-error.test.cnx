@@ -1,0 +1,30 @@
+// test-error
+// test-adr: 029
+// ADR-029: a function declared in a C header placed in a callback slot is
+// checked against the slot's signature like a cnx function (#1619).
+// NEGATIVE CONTROL -- matchingClock has the slot's exact signature: silent.
+#include "callback-c-header.h"
+
+u32 tickSource() {
+    return 0;
+}
+
+struct Timer {
+    tickSource tick;
+}
+
+Timer ok <- { tick: matchingClock };
+
+// ASSERTION 1 -- wrong return type.
+Timer wide <- { tick: wideClock };
+
+// ASSERTION 2 -- void return.
+Timer none <- { tick: voidClock };
+
+// ASSERTION 3 -- wrong arity.
+Timer arity <- { tick: argClock };
+
+void main() {
+    mut Timer t;
+    t.tick <- argClock;
+}

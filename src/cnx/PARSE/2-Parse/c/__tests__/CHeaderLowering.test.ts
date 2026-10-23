@@ -128,7 +128,31 @@ describe("CHeaderLowering", () => {
         decl.kind === "declaration" && decl.declarators?.[0]?.parameters,
       ).toEqual([
         { name: "a", type: "int", isConst: true, isArray: false },
-        { name: "b", type: "int", isConst: false, isArray: true },
+        {
+          name: "b",
+          type: "int",
+          isConst: false,
+          isArray: true,
+          arrayDimensions: [""],
+        },
+      ]);
+    });
+
+    it("keeps each array dimension and marks a nested declarator (#1619)", () => {
+      const lowered = declarations(
+        `void grid(const unsigned char g[4][8], int (*f)(void), int (*)[4], int[2][3]);`,
+      )[0];
+      expect(
+        lowered.kind === "declaration" &&
+          lowered.declarators?.[0]?.parameters?.map((p) => [
+            p.arrayDimensions,
+            p.isNestedDeclarator,
+          ]),
+      ).toEqual([
+        [["4", "8"], undefined],
+        [undefined, true],
+        [undefined, true],
+        [["2", "3"], undefined],
       ]);
     });
 
@@ -148,7 +172,13 @@ describe("CHeaderLowering", () => {
         { name: "", type: "FILE*", isConst: false, isArray: false },
       ]);
       expect(parametersOf(2)).toEqual([
-        { name: "", type: "int", isConst: true, isArray: true },
+        {
+          name: "",
+          type: "int",
+          isConst: true,
+          isArray: true,
+          arrayDimensions: [""],
+        },
         { name: "", type: "int", isConst: false, isArray: false },
       ]);
     });
@@ -158,6 +188,17 @@ describe("CHeaderLowering", () => {
       expect(
         decl.kind === "declaration" && decl.declarators?.[0]?.parameters,
       ).toEqual([]);
+    });
+
+    it("marks only a parameter list with no parameter types as unprototyped (#1619)", () => {
+      const unprototyped = declarations(
+        `void a();\nvoid b(void);\nvoid c(int x);\nint (*d)();\n`,
+      ).map(
+        (decl) =>
+          decl.kind === "declaration" &&
+          decl.declarators?.[0]?.isUnprototyped === true,
+      );
+      expect(unprototyped).toEqual([true, false, false, true]);
     });
 
     it("skips only a declarator error recovery left without its direct declarator", () => {

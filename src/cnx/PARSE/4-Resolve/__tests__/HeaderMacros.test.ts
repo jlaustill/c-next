@@ -290,3 +290,40 @@ describe("HeaderMacros.collect", () => {
     expect(macros.get("__GNUC__")).toMatchObject({ kind: "integer" });
   });
 });
+
+describe("HeaderMacros.integerTypes (#1619)", () => {
+  it("names each exact-width type the compiler defines", () => {
+    const types = HeaderMacros.integerTypes(
+      [
+        "#define __UINT32_TYPE__ long unsigned int",
+        "#define __INT32_TYPE__ long int",
+        "#define __UINT8_TYPE__ unsigned char",
+        "#define __INT64_TYPE__ long long int",
+        "#define __UINT_LEAST32_TYPE__ long unsigned int",
+        "#define __INT_FAST16_TYPE__ int",
+        "#define __SIZE_TYPE__ unsigned int",
+        "#define __PTRDIFF_TYPE__ int",
+        "#define __UINTPTR_TYPE__ unsigned int",
+        "#define __INTMAX_TYPE__ long long int",
+        "#define __CHAR16_TYPE__ short unsigned int",
+        "#define __SIZEOF_LONG__ 4",
+      ].join("\n"),
+    );
+    expect([...types]).toEqual([
+      ["uint32_t", "long unsigned int"],
+      ["int32_t", "long int"],
+      ["uint8_t", "unsigned char"],
+      ["int64_t", "long long int"],
+      ["uint_least32_t", "long unsigned int"],
+      ["int_fast16_t", "int"],
+      ["size_t", "unsigned int"],
+      ["ptrdiff_t", "int"],
+      ["uintptr_t", "unsigned int"],
+      ["intmax_t", "long long int"],
+    ]);
+  });
+
+  it("names nothing for a dump that defines none of them", () => {
+    expect(HeaderMacros.integerTypes("#define FOO 1").size).toBe(0);
+  });
+});

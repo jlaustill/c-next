@@ -75,23 +75,6 @@ describe("TypeGenerationHelper", () => {
     });
   });
 
-  describe("generateUserType", () => {
-    it("maps cstring to char*", () => {
-      const result = TypeGenerationHelper.generateUserType("cstring", false);
-      expect(result).toBe("char*");
-    });
-
-    it("adds struct keyword when needed", () => {
-      const result = TypeGenerationHelper.generateUserType("MyStruct", true);
-      expect(result).toBe("struct MyStruct");
-    });
-
-    it("returns type unchanged when struct keyword not needed", () => {
-      const result = TypeGenerationHelper.generateUserType("MyType", false);
-      expect(result).toBe("MyType");
-    });
-  });
-
   describe("generateStringType", () => {
     it("returns char for bounded strings", () => {
       const result = TypeGenerationHelper.generateStringType();

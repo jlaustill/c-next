@@ -20,6 +20,9 @@ class FunctionCollector {
       type: p.type,
       isConst: p.isConst,
       isArray: p.isArray,
+      ...(p.arrayDimensions && { arrayDimensions: p.arrayDimensions }),
+      ...(p.isNestedDeclarator && { isNestedDeclarator: true }),
+      ...(p.isVolatile && { isVolatile: true }),
     }));
   }
 
@@ -47,6 +50,7 @@ class FunctionCollector {
       ),
       parameters: parameters.length > 0 ? parameters : undefined,
       isVariadic: declarator.isVariadic || undefined,
+      ...(declarator.isUnprototyped && { isUnprototyped: true }),
       isDeclaration: false,
     };
   }
@@ -70,6 +74,7 @@ class FunctionCollector {
       type: DeclaratorTypes.pointerType(baseType, declarator),
       parameters: parameters.length > 0 ? parameters : undefined,
       isVariadic: declarator.isVariadic || undefined,
+      ...(declarator.isUnprototyped && { isUnprototyped: true }),
       isDeclaration: true,
     };
   }

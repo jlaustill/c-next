@@ -20,9 +20,16 @@ class Resolve {
     // 1.1 took of that file's own C includes. Unread is not "no macros".
     const macros = new Map<string, ReadonlyMap<string, THeaderMacro>>();
     const macrosUnread = new Set<string>();
+    // #1619: one compiler reads every file's headers, so its predefined
+    // `<stdint.h>` types are the same in each dump
+    const integerTypes = new Map<string, string>();
     for (const [path, read] of input.discovery.headerMacroDumps) {
       if (!read.complete) macrosUnread.add(path);
-      if (read.dump !== null) macros.set(path, HeaderMacros.collect(read.dump));
+      if (read.dump === null) continue;
+      macros.set(path, HeaderMacros.collect(read.dump));
+      for (const [name, type] of HeaderMacros.integerTypes(read.dump)) {
+        integerTypes.set(name, type);
+      }
     }
     const program = Program.build(
       declared.map((entry) => entry.fileSymbols),
@@ -43,6 +50,7 @@ class Resolve {
           structTagsWithBodies: new Set(table.getAllStructTagsWithBodies()),
           macros,
           macrosUnread,
+          integerTypes,
         },
         // #1825: ADR-006's and ADR-029's derivations look callees and typedefs
         // up in it. 1.4 completes it with every file's resolved symbols and

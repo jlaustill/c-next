@@ -5,6 +5,10 @@ import CallbackAssignmentAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/C
 import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import testAnalysisContext from "../../../../../cnx/TRANSPILE/1-Analyze/__tests__/testAnalysisContext";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
+import type ICParameterInfo from "../../../../../cnx/types/symbols/c/ICParameterInfo";
+import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -249,5 +253,336 @@ describe("CallbackAssignmentAnalyzer", () => {
         ),
       ).toEqual([]);
     });
+  });
+});
+
+/**
+ * #1619: a function a C header declares is held to the slot's signature by C
+ * type identity under the header compiler, which names the C type of each
+ * `<stdint.h>` name (`__UINT32_TYPE__`).
+ */
+describe("CallbackAssignmentAnalyzer with a function a C header declares", () => {
+  const ARM = {
+    uint32_t: "long unsigned int",
+    uint16_t: "short unsigned int",
+    uint8_t: "unsigned char",
+    size_t: "unsigned int",
+  };
+  const X86_64 = { uint32_t: "unsigned int", uint8_t: "unsigned char" };
+
+  const declare = (
+    symbolTable: SymbolTable,
+    name: string,
+    type: string,
+    parameters: ICParameterInfo[] = [],
+    isVariadic = false,
+  ): void => {
+    symbolTable.addCSymbol({
+      name,
+      kind: "function",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type,
+      parameters: parameters.length > 0 ? parameters : undefined,
+      isVariadic: isVariadic || undefined,
+      isDeclaration: true,
+    });
+  };
+
+  const run = (
+    value: string,
+    integerTypes: Record<string, string>,
+    cppMode: boolean,
+  ): string[] => {
+    const symbolTable = new SymbolTable();
+    declare(symbolTable, "millis", "unsigned long");
+    declare(symbolTable, "spelled", "long unsigned int");
+    declare(symbolTable, "clock32", "unsigned int");
+    declare(symbolTable, "stdintClock", "uint32_t");
+    declare(symbolTable, "variadicClock", "uint32_t", [], true);
+    declare(symbolTable, "onByte", "void", [
+      { name: "b", type: "uint8_t", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onBytePtr", "void", [
+      { name: "b", type: "uint8_t *", isConst: false, isArray: false },
+    ]);
+    symbolTable.addCSymbol({
+      name: "tick_t",
+      kind: "type",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type: "unsigned long",
+    });
+    declare(symbolTable, "typedefClock", "tick_t");
+    const typedef = (name: string, type: string): void => {
+      symbolTable.addCSymbol({
+        name,
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "clock.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type,
+      });
+    };
+    typedef("U8Ref", "uint8_t*");
+    typedef("clock_fn", "uint32_t (*)(void)");
+    declare(symbolTable, "onByteRef", "void", [
+      { name: "b", type: "U8Ref", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onClockFn", "void", [
+      { name: "t", type: "clock_fn", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onClockPtr", "void", [
+      {
+        name: "t",
+        type: "uint32_t",
+        isConst: false,
+        isArray: false,
+        isNestedDeclarator: true,
+      },
+    ]);
+    declare(symbolTable, "onClockValue", "void", [
+      { name: "t", type: "uint32_t", isConst: false, isArray: false },
+    ]);
+    const grid = (name: string, dimensions: string[]): void => {
+      declare(symbolTable, name, "void", [
+        {
+          name: "g",
+          type: "uint8_t",
+          isConst: true,
+          isArray: true,
+          arrayDimensions: dimensions,
+        },
+      ]);
+    };
+    declare(symbolTable, "sizeClock", "size_t");
+    declare(symbolTable, "timeClock", "time_t");
+    declare(symbolTable, "onVolatileByte", "void", [
+      {
+        name: "b",
+        type: "uint8_t*",
+        isConst: false,
+        isArray: false,
+        isVolatile: true,
+      },
+    ]);
+    symbolTable.addCSymbol({
+      name: "CByte",
+      kind: "type",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type: "uint8_t",
+      isConst: true,
+    });
+    declare(symbolTable, "onCBytes", "void", [
+      { name: "b", type: "CByte*", isConst: false, isArray: false },
+    ]);
+    declare(symbolTable, "onMutBytes", "void", [
+      { name: "b", type: "uint8_t*", isConst: false, isArray: false },
+    ]);
+    grid("onGrid44", ["4", "4"]);
+    grid("onGrid48", ["4", "8"]);
+    grid("onGridMacro", ["4", "WIDTH"]);
+    grid("onGridFlat", ["16"]);
+    declare(symbolTable, "unsignedByte", "unsigned char");
+    declare(symbolTable, "plainChar", "char");
+    declare(symbolTable, "signedChar", "signed char");
+    declare(symbolTable, "unsignedShort", "unsigned short");
+    declare(symbolTable, "cBool", "_Bool");
+    for (const [name, type] of [
+      ["legacySink", "void"],
+      ["legacyCount", "uint16_t"],
+    ]) {
+      symbolTable.addCSymbol({
+        name,
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "clock.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type,
+        isUnprototyped: true,
+        isDeclaration: true,
+      });
+    }
+    symbolTable.addCSymbol({
+      name: "mac_t",
+      kind: "type",
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "clock.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+      type: "uint8_t",
+      arrayDimensions: ["6"],
+    });
+    declare(symbolTable, "onMacs", "void", [
+      {
+        name: "m",
+        type: "mac_t",
+        isConst: true,
+        isArray: true,
+        arrayDimensions: ["4"],
+      },
+    ]);
+    const { syntax, context } = testAnalysisContextFor(
+      [
+        "u32 tickSource() { return 0; }",
+        "void byteSink(u8 b) { (void) b; }",
+        "void byteOut(mut u8 b) { b <- 1; }",
+        "u8 byteSource() { return 0; }",
+        "u16 halfSource() { return 0; }",
+        "bool flagSource() { return false; }",
+        "void tickSink(tickSource t) { u32 n <- t(); }",
+        "void gridSink(u8[4][4] g) { u8 b <- g[0][0]; }",
+        "void rowSink(u8[4] r) { u8 b <- r[0]; }",
+        "struct T { tickSource tick; byteSink sink; byteOut out; byteSource byte; halfSource half; flagSource flag; tickSink sinkTick; gridSink grid; rowSink row; }",
+        `T t <- { ${value} };`,
+      ].join("\n"),
+      { symbolTable, integerTypes, cppMode },
+    );
+    return new CallbackAssignmentAnalyzer(context)
+      .analyze(syntax, ValuePositions.of(syntax, context).positions)
+      .map((e) => `${e.code} ${e.message}`);
+  };
+
+  it("accepts unsigned long where uint32_t is unsigned long", () => {
+    expect(run("tick: millis", ARM, false)).toEqual([]);
+    expect(run("tick: spelled", ARM, false)).toEqual([]);
+    expect(run("tick: stdintClock", ARM, false)).toEqual([]);
+  });
+
+  it("rejects unsigned int there, though it is 32 bits too", () => {
+    expect(run("tick: clock32", ARM, false)).toEqual([
+      "E0879 Function 'clock32' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("follows the compiler, not the spelling, on another target", () => {
+    expect(run("tick: clock32", X86_64, false)).toEqual([]);
+    expect(run("tick: millis", X86_64, false)).toEqual([
+      "E0879 Function 'millis' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("rejects a variadic function, though it takes no named parameter", () => {
+    expect(run("tick: variadicClock", ARM, false)).toEqual([
+      "E0879 Function 'variadicClock' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("compares a parameter as the callback typedef writes it", () => {
+    expect(run("sink: onByte", ARM, false)).toEqual([]);
+    expect(run("out: onBytePtr", ARM, false)).toEqual([]);
+    expect(run("sink: onBytePtr", ARM, false)).toEqual([
+      "E0879 Function 'onBytePtr' signature does not match callback type 'byteSink'",
+    ]);
+    expect(run("out: onByte", ARM, false)).toEqual([
+      "E0879 Function 'onByte' signature does not match callback type 'byteOut'",
+    ]);
+  });
+
+  it("names the function through global. as well as bare", () => {
+    expect(run("tick: global.millis", ARM, false)).toEqual([]);
+    expect(run("tick: global.clock32", ARM, false)).toEqual([
+      "E0879 Function 'global.clock32' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("follows a header typedef to the type it names", () => {
+    expect(run("tick: typedefClock", ARM, false)).toEqual([]);
+    expect(run("tick: typedefClock", X86_64, false)).toEqual([
+      "E0879 Function 'typedefClock' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("keeps char, signed char and unsigned char three types", () => {
+    expect(run("byte: unsignedByte", ARM, false)).toEqual([]);
+    expect(run("byte: plainChar", ARM, false)).toEqual([
+      "E0879 Function 'plainChar' signature does not match callback type 'byteSource'",
+    ]);
+    expect(run("byte: signedChar", ARM, false)).toEqual([
+      "E0879 Function 'signedChar' signature does not match callback type 'byteSource'",
+    ]);
+  });
+
+  it("matches short and bool by their C spellings", () => {
+    expect(run("half: unsignedShort", ARM, false)).toEqual([]);
+    expect(run("half: millis", ARM, false)).toEqual([
+      "E0879 Function 'millis' signature does not match callback type 'halfSource'",
+    ]);
+    expect(run("flag: cBool", ARM, false)).toEqual([]);
+  });
+
+  it("counts a pointer typedef's own *", () => {
+    expect(run("out: onByteRef", ARM, false)).toEqual([]);
+    expect(run("sink: onByteRef", ARM, false)).toEqual([
+      "E0879 Function 'onByteRef' signature does not match callback type 'byteSink'",
+    ]);
+  });
+
+  it("leaves a function-pointer parameter undecided, not mismatched", () => {
+    expect(run("sinkTick: onClockFn", ARM, false)).toEqual([]);
+    expect(run("sinkTick: onClockPtr", ARM, false)).toEqual([]);
+    expect(run("sinkTick: onClockValue", ARM, false)).toEqual([
+      "E0879 Function 'onClockValue' signature does not match callback type 'tickSink'",
+    ]);
+  });
+
+  it("holds an array's inner dimensions to the slot's", () => {
+    expect(run("grid: onGrid44", ARM, false)).toEqual([]);
+    expect(run("grid: onGridMacro", ARM, false)).toEqual([]);
+    expect(run("grid: onGrid48", ARM, false)).toEqual([
+      "E0879 Function 'onGrid48' signature does not match callback type 'gridSink'",
+    ]);
+    expect(run("grid: onGridFlat", ARM, false)).toEqual([
+      "E0879 Function 'onGridFlat' signature does not match callback type 'gridSink'",
+    ]);
+  });
+
+  it("decides a system typedef the compiler names, and leaves one it does not", () => {
+    expect(run("tick: sizeClock", ARM, false)).toEqual([
+      "E0879 Function 'sizeClock' signature does not match callback type 'tickSource'",
+    ]);
+    expect(run("tick: timeClock", ARM, false)).toEqual([]);
+  });
+
+  it("holds a volatile pointee and a typedef's const to the slot", () => {
+    expect(run("out: onVolatileByte", ARM, false)).toEqual([
+      "E0879 Function 'onVolatileByte' signature does not match callback type 'byteOut'",
+    ]);
+    expect(run("row: onCBytes", ARM, false)).toEqual([]);
+    expect(run("row: onMutBytes", ARM, false)).toEqual([
+      "E0879 Function 'onMutBytes' signature does not match callback type 'rowSink'",
+    ]);
+  });
+
+  it("takes a mut scalar as a reference in C++", () => {
+    expect(run("out: onBytePtr", ARM, true)).toEqual([
+      "E0879 Function 'onBytePtr' signature does not match callback type 'byteOut'",
+    ]);
+  });
+
+  it("leaves an unprototyped C function's parameters open, not its return type", () => {
+    expect(run("sink: legacySink", ARM, false)).toEqual([]);
+    expect(run("tick: legacyCount", ARM, false)).toEqual([
+      "E0879 Function 'legacyCount' signature does not match callback type 'tickSource'",
+    ]);
+  });
+
+  it("reads C++'s `f()` as `f(void)`", () => {
+    expect(run("sink: legacySink", ARM, true)).toEqual([
+      "E0879 Function 'legacySink' signature does not match callback type 'byteSink'",
+    ]);
+  });
+
+  it("leaves an array typedef's element open: its own dimensions are not counted", () => {
+    expect(run("grid: onMacs", ARM, false)).toEqual([]);
   });
 });

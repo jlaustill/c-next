@@ -1,0 +1,4 @@
+29:43 error[E0879]: Function 'onMut' signature does not match callback type 'mutSlot'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+29:58 error[E0879]: Function 'onSample' signature does not match callback type 'sampleSlot'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).

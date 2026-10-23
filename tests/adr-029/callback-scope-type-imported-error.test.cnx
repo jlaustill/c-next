@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 029
+// ADR-029: a callback type declared inside a scope, reached across an
+// include, is still checked (#1619 defect 1). The 'Clock__tickSource'
+// spelling in the expected error is #1292, not the intended wording.
+#include "../include/callback-scope-type.cnx"
+
+void notAClock(u32 n) {
+    (void)n;
+}
+
+u32 aClock() {
+    return 0;
+}
+
+// NEGATIVE CONTROL -- matching signature: silent.
+Clock.Timer ok <- { dueEvery: 0, tick: aClock };
+
+// ASSERTION 1 -- global initializer.
+Clock.Timer bad <- { dueEvery: 0, tick: notAClock };
+
+// ASSERTION 2 -- field assignment in a function body.
+void main() {
+    mut Clock.Timer t;
+    t.tick <- notAClock;
+}

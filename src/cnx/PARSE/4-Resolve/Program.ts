@@ -122,6 +122,7 @@ const NO_FOREIGN: IForeignSymbols = {
   structTagsWithBodies: EMPTY_NAMES,
   macros: new Map(),
   macrosUnread: EMPTY_NAMES,
+  integerTypes: new Map<string, string>(),
 };
 
 /** A program built without include information: each file sees only itself. */
@@ -282,6 +283,8 @@ class Program {
         foreign.macros.get(sourceFile)?.get(name) ?? null,
       headerMacrosUnread: (sourceFile: string): boolean =>
         foreign.macrosUnread.has(sourceFile),
+      headerIntegerType: (name: string): string | null =>
+        foreign.integerTypes.get(name) ?? null,
       functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>
         functionParamLists,
       codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
