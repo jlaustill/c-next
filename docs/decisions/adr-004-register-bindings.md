@@ -448,10 +448,12 @@ Undeclared cells are `off`.
 
 A register access is an expression or an assignment, and an expression can stand
 in a declaration initializer as well as in a function body, so every context is
-reachable. The rules read the member's access modifier from where the register is
-DECLARED, and a register declared in an included file is as much hardware as one
-declared here, so the imported columns are declared `error` and asserted by
-fixtures that reach the register across one and two include hops.
+reachable -- a `for` header's declaration included, for a read, since its
+initializer is an expression too. The rules read the member's access modifier
+from where the register is DECLARED, and a register declared in an included
+file is as much hardware as one declared here, so the imported columns are
+declared `error` and asserted by fixtures that reach the register across one and
+two include hops.
 
 <!-- MATRIX-SEVERITY code: E0870 -->
 
@@ -461,14 +463,17 @@ fixtures that reach the register across one and two include hops.
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | top-level function | same file           | error    |
+| for header         | same file           | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
+| for header         | imported direct     | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0871 -->
 
@@ -478,16 +483,19 @@ fixtures that reach the register across one and two include hops.
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | top-level function | same file           | error    |
+| for header         | same file           | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | error    |
+| for header         | imported direct     | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | error    |
+| for header         | imported transitive | off      |
 
-off: an assignment is a statement, so it cannot stand in a global or scope member initializer (`u32 g <- (HW.STATUS <- 1);` is a parse error).
+off: an assignment is a statement, so it cannot stand in a global or scope member initializer or in a `for` header's declaration (`u32 g <- (HW.STATUS <- 1);` and `for (mut u32 i <- (HW.STATUS <- 1); ...)` are parse errors); a `for` header's first clause written as an assignment, `for (HW.STATUS <- 1; ...)`, is the enclosing function's.
 
 <!-- MATRIX-SEVERITY code: E0872 -->
 
@@ -497,16 +505,19 @@ off: an assignment is a statement, so it cannot stand in a global or scope membe
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | top-level function | same file           | error    |
+| for header         | same file           | off      |
 | scope member       | imported direct     | off      |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | top-level function | imported direct     | error    |
+| for header         | imported direct     | off      |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | top-level function | imported transitive | error    |
+| for header         | imported transitive | off      |
 
-off: an assignment is a statement, so it cannot stand in a global or scope member initializer (`bool g <- (HW.SET[3] <- false);` is a parse error).
+off: an assignment is a statement, so it cannot stand in a global or scope member initializer or in a `for` header's declaration (`bool g <- (HW.SET[3] <- false);` and `for (mut bool b <- (HW.SET[3] <- false); ...)` are parse errors); a `for` header's update written as an assignment, `for (...; ...; HW.SET[3] <- false)`, is the enclosing function's.
 
 ---
 
