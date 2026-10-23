@@ -1,0 +1,6 @@
+15:33 error[E0867]: .memory_char_count is only available on strings, not on 'u32[4]'
+       help: Use .memory_byte_length for the memory a value takes.
+18:34 error[E0867]: .type_element_count is only available on arrays and structs, not on 'u32'
+       help: A scalar has one value; use .type_bit_length or .type_byte_length for its width, or .value_char_count for a string's characters.
+21:33 error[E0886]: '.length' is deprecated
+       help: Use .value_char_count for a string's length, .type_element_count for an array's, or .type_bit_length / .type_byte_length for a width (ADR-058).

@@ -708,6 +708,9 @@ wherever a shape property can.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0886 -->
 
@@ -725,6 +728,9 @@ wherever a shape property can.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0897 -->
 
@@ -742,6 +748,9 @@ wherever a shape property can.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0909 -->
 
@@ -759,8 +768,11 @@ wherever a shape property can.
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
 
-off: E0909's memory-size form fires only at an enum member's value, at file scope or in a scope, which is none of these contexts; a memory size initializing a file-scope or scope variable, or sizing an array, is the C compiler's to answer and is accepted (probed).
+off: E0909's memory-size form fires only at an enum member's value, at file scope or in a scope, which is none of these contexts; a memory size initializing a file-scope or scope variable, a `for` header's loop variable, or sizing an array, is the C compiler's to answer and is accepted (probed).
 
 A length property is an EXPRESSION, so it reaches an initializer as well as a
 function body -- all four same-file contexts, probed rather than assumed.
