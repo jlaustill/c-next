@@ -286,6 +286,101 @@ directive makes available, and a symbol is used inside a declaration like any
 other -- so a fixture occupies through the call or type use it performs, and the
 rejection fixtures occupy nothing.
 
+<!-- MATRIX-SEVERITY code: E0503 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+
+off: E0503 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context.
+
+<!-- MATRIX-SEVERITY code: E0504 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+
+off: E0504 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context.
+
+<!-- MATRIX-SEVERITY code: E0506 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+
+off: E0506 is reported at the `#include` directive, which is grammatical only before the first declaration and so is enclosed by no context.
+
+<!-- MATRIX-SEVERITY code: E0509 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+
+off: E0509 is reported at the marker of a generated C header, which is not cnx source and is enclosed by no context.
+
+<!-- MATRIX-SEVERITY code: E0518 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+
+off: E0518 is reported at the `#include` directive or at `1:0` of a run input, and neither is enclosed by a context.
+
 ---
 
 ## Known Limitations
