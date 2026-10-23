@@ -1,0 +1,36 @@
+// test-error
+// test-c-only
+// test-adr: 050
+#pragma target cortex-m7
+// ADR-050, E0853, in a fixture whose guarded value is TWO include hops (through adr-050-relay.cnx)
+// away, in both contexts a critical section can be written: a top-level
+// function and a scope method. The rule is lexical, so an include must not
+// hide the `return` that jumps past the interrupt restore.
+
+#include "adr-050-relay.cnx"
+
+// NEGATIVE CONTROL -- the imported value captured inside the block and
+// returned after it. Declared first, so an over-broad check changes the
+// messages asserted below.
+u32 readSafely() {
+    u32 captured <- 0;
+    critical {
+        captured <- sharedTicks;
+    }
+    return captured;
+}
+
+u32 readBadly() {
+    critical {
+        sharedTicks +<- 1;
+        return sharedTicks;
+    }
+}
+
+scope Counter {
+    public u32 readBadly() {
+        critical {
+            return sharedTicks;
+        }
+    }
+}
