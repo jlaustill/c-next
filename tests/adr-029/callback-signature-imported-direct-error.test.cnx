@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 029
+// ADR-029 E0879 across ONE include hop inside a scope: the imported function
+// 'mismatched' differs in return type from the imported callback type
+// 'onDown', as a scope member's initializer and in a scope method.
+
+#include "callback-declarations.cnx"
+
+scope Board {
+    // NEGATIVE CONTROL -- matching signature: silent.
+    onDown okMember <- plain;
+
+    // ASSERTION 1 -- scope member initializer.
+    onDown badMember <- mismatched;
+
+    // ASSERTION 2 -- scope method.
+    public void go() {
+        mut Handler h;
+        h.down <- mismatched;
+    }
+}

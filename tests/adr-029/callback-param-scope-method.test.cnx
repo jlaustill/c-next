@@ -1,0 +1,16 @@
+// test-adr: 029
+// ADR-029: a scope method's parameter naming a function-as-type is written as
+// that type's function-pointer typedef (same file).
+
+struct Message {
+    u32 id;
+}
+
+void onReceive(Message msg) {}
+
+scope Radio {
+    public void listen(onReceive handler) {
+        Message m <- { id: 1 };
+        handler(m);
+    }
+}

@@ -1,0 +1,18 @@
+// test-adr: 029
+// ADR-029 across TWO include hops: a parameter naming an imported
+// function-as-type is written as that type's function-pointer typedef, in a
+// top-level function and in a scope method.
+
+#include "callback-relay.cnx"
+
+void relay(onDown handler) {
+    Pixel p <- { v: 1 };
+    handler(p);
+}
+
+scope Board {
+    public void listen(onDown handler) {
+        Pixel p <- { v: 2 };
+        handler(p);
+    }
+}
