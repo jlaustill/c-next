@@ -1,0 +1,39 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a dimension is a constant expression in every context,
+// whatever file its names are declared in. Each name below is declared
+// one include away: a variable has no value at compile time (E0909),
+// and LIB_A + LIB_A overflows u8 (E0910, ADR-044).
+
+#include "matrix-lib.cnx"
+
+// NEGATIVE CONTROL -- a read-only binding folds and stays silent.
+u8[LIB_N] fine;
+
+// E0909, E0910 -- globals.
+u8[libCount] sharedVar;
+u8[LIB_A + LIB_A] sharedSum;
+
+scope Store {
+    // E0909, E0910 -- scope members.
+    u8[libCount] slots;
+    u8[LIB_A + LIB_A] wide;
+
+    public void fill() {
+        // E0909, E0910 -- scope method locals.
+        mut u8[libCount] scratch;
+        mut u8[LIB_A + LIB_A] big;
+        scratch[0] <- 1;
+        big[0] <- 1;
+    }
+}
+
+void f() {
+    // E0909, E0910 -- function locals.
+    mut u8[libCount] local;
+    mut u8[LIB_A + LIB_A] wider;
+    local[0] <- 1;
+    wider[0] <- 1;
+}
+
+void main() {}

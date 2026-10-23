@@ -1,0 +1,39 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a dimension is a constant expression in every context. A
+// variable or a parameter has no value at compile time (E0909), and A + A
+// overflows u8 (E0910, ADR-044), in each context the matrix tracks.
+
+u8 A <- 200;
+mut u32 count <- 4;
+
+// NEGATIVE CONTROL -- adding at u16, where 400 fits, stays silent.
+u8[(u16)A + (u16)A] fine;
+
+// E0909, E0910 -- globals.
+u8[count] sharedVar;
+u8[A + A] sharedSum;
+
+scope Store {
+    // E0909, E0910 -- scope members.
+    u8[count] slots;
+    u8[A + A] wide;
+
+    public void fill(u32 n) {
+        // E0909, E0910 -- scope method locals.
+        mut u8[n] scratch;
+        mut u8[A + A] big;
+        scratch[0] <- 1;
+        big[0] <- 1;
+    }
+}
+
+void f(u32 n) {
+    // E0909, E0910 -- function locals.
+    mut u8[n] local;
+    mut u8[A + A] wider;
+    local[0] <- 1;
+    wider[0] <- 1;
+}
+
+void main() {}

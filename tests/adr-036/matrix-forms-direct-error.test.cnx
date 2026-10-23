@@ -1,0 +1,34 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: the declaration-form rules, each written with a name
+// declared one include away -- a C-style dimension (E0874), an
+// unbounded parameter (E0875) and an array declared in a for header (E0917),
+// in every context each can stand in.
+
+#include "matrix-lib.cnx"
+
+// NEGATIVE CONTROL -- the prefix form, bounded, stays silent.
+u8[LIB_N] fine;
+
+// E0874 -- a C-style global.
+u8 grid[LIB_N];
+
+// E0874 and E0875 -- a C-style and an unbounded parameter.
+void take(u8 data[LIB_N], LibCell[] cells) {
+    // E0874 -- a C-style local.
+    u8 buf[LIB_N];
+    // E0917 -- an array declared in a for header.
+    for (u8[LIB_N] v; v[0] < 1; v[0] +<- 1) {}
+}
+
+scope Board {
+    // E0874 and E0875 -- the same parameters on a scope method.
+    public void go(u16 samples[LIB_N], LibCell[] cells) {
+        // E0874 -- a C-style local in a scope method.
+        u8 buf[LIB_N];
+        // E0917 -- the C-style spelling in a for header.
+        for (u8 c[LIB_N]; c[0] < 1; c[0] +<- 1) {}
+    }
+}
+
+void main() {}
