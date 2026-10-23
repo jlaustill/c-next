@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 045
+// E0887 inside a `for` header's declaration (#1620): the loop variable's
+// initializer asks a storage property of a scalar declared in this file.
+
+string<8> source <- "abc";
+u32 count <- 5;
+
+u32 fromFunction() {
+    mut u32 total <- 0;
+
+    // NEGATIVE CONTROL -- the property on a string.
+    for (mut u32 okCapacity <- source.capacity; okCapacity < 9; okCapacity +<- 1) {
+        total +<- okCapacity;
+    }
+
+    // ASSERTION 1 -- E0887, for header: .capacity of a u32.
+    for (mut u32 countCapacity <- count.capacity; countCapacity < 1; countCapacity +<- 1) {
+        total +<- countCapacity;
+    }
+
+    // ASSERTION 2 -- E0887, for header: .size of a u32.
+    for (mut u32 countSize <- count.size; countSize < 1; countSize +<- 1) {
+        total +<- countSize;
+    }
+    return total;
+}
+
+u32 main() {
+    return 0;
+}
