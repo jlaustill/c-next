@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 004
+// E0870/E0871 in a scope METHOD across ONE include hop -- the `imported
+// direct` cells register-imported-direct-error.test.cnx leaves to E0872.
+
+#include "register-declarations.cnx"
+
+scope Board {
+    // NEGATIVE CONTROL -- the rw member written and read, and the ro member
+    // read, from a method of this scope.
+    public u32 okAccess() {
+        global.HW.CTRL <- 1;
+        return global.HW.CTRL + global.HW.STATUS;
+    }
+
+    public void go() {
+        // ASSERTION 1 -- read of a wo member (E0870).
+        u32 value <- global.HW.COMMAND;
+        // ASSERTION 2 -- write to an ro member (E0871).
+        global.HW.STATUS <- value;
+    }
+}
+
+void main() {
+    Board.go();
+}

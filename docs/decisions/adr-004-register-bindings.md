@@ -453,7 +453,7 @@ DECLARED, and a register declared in an included file is as much hardware as one
 declared here, so the imported columns are declared `error` and asserted by
 fixtures that reach the register across one and two include hops.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0870 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -469,6 +469,44 @@ fixtures that reach the register across one and two include hops.
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0871 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+
+off: an assignment is a statement, so it cannot stand in a global or scope member initializer (`u32 g <- (HW.STATUS <- 1);` is a parse error).
+
+<!-- MATRIX-SEVERITY code: E0872 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | off      |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| top-level function | same file           | error    |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
+
+off: an assignment is a statement, so it cannot stand in a global or scope member initializer (`bool g <- (HW.SET[3] <- false);` is a parse error).
 
 ---
 
