@@ -28,6 +28,6 @@ void positions() {
     take(global.cSigned());
 
     take(global.cWide()[0, 32]);
-    (void) d;
-    (void) a;
+    (void)d;
+    (void)a;
 }

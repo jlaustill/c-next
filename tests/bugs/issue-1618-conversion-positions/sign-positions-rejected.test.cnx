@@ -26,9 +26,9 @@ void positions(i32 s, u32 c) {
     take(s[0, 32]);
     u32[2] bitsList <- [s[0, 32], 0];
     P q <- { x: s[0, 32] };
-    (void) list;
-    (void) p;
-    (void) t;
-    (void) bitsList;
-    (void) q;
+    (void)list;
+    (void)p;
+    (void)t;
+    (void)bitsList;
+    (void)q;
 }

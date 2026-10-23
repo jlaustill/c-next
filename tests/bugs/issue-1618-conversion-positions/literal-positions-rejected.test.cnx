@@ -27,9 +27,9 @@ void positions(u32 c) {
     take(255);
     u8[2] fits <- [255, 0];
     P q <- { x: 0 };
-    (void) list;
-    (void) p;
-    (void) t;
-    (void) fits;
-    (void) q;
+    (void)list;
+    (void)p;
+    (void)t;
+    (void)fits;
+    (void)q;
 }

@@ -43,7 +43,7 @@ scope Gauge {
         sink8(wideShared);
         a +<- wideShared;
         sink8(wideShared[0, 8]);
-        (void) a;
+        (void)a;
     }
 }
 
@@ -61,11 +61,11 @@ void positions() {
     P8 p <- { x: wideShared };
     u8 t <- (counter = 1) ? 0 : wideShared;
     sink8(wideShared[0, 8]);
-    (void) a;
-    (void) list;
-    (void) filled;
-    (void) p;
-    (void) t;
+    (void)a;
+    (void)list;
+    (void)filled;
+    (void)p;
+    (void)t;
 }
 
 // ASSERTION -- for header context: argument, ternary arm.

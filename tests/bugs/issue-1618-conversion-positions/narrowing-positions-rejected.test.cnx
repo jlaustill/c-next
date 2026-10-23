@@ -42,12 +42,12 @@ void positions(u64 wide, u16 narrow, u32 c) {
     u32[2] bitsList <- [wide[0, 32], narrow];
     P q <- { x: narrow };
     u32 u <- (c = 1) ? wide[0, 32] : narrow;
-    (void) a;
-    (void) list;
-    (void) filled;
-    (void) p;
-    (void) t;
-    (void) bitsList;
-    (void) q;
-    (void) u;
+    (void)a;
+    (void)list;
+    (void)filled;
+    (void)p;
+    (void)t;
+    (void)bitsList;
+    (void)q;
+    (void)u;
 }

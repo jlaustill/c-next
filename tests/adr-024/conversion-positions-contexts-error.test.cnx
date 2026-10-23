@@ -53,10 +53,10 @@ scope Sensor {
 
         a +<- this.wide[0, 32];
         sink(this.wide[0, 32]);
-        (void) a;
-        (void) p;
-        (void) l;
-        (void) t;
+        (void)a;
+        (void)p;
+        (void)l;
+        (void)t;
     }
 }
 
