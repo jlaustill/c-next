@@ -1,0 +1,16 @@
+14:3 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts (ADR-058). cnx has no variable-length arrays
+15:3 error[E0910]: Array dimension overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+19:7 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts (ADR-058). cnx has no variable-length arrays
+20:7 error[E0910]: Array dimension overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+24:15 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts (ADR-058). cnx has no variable-length arrays
+25:15 error[E0910]: Array dimension overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+33:11 error[E0909]: Array dimension must be known at compile time: 'libCount' is a variable
+       help: An array's size is built from literals, read-only bindings that are not `volatile` (ADR-064), length properties (.type_byte_length) and casts (ADR-058). cnx has no variable-length arrays
+34:11 error[E0910]: Array dimension overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type

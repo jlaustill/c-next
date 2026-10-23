@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: an unbounded parameter is E0875 on a scope method as on a
+// top-level function.
+
+scope Board {
+    // NEGATIVE CONTROL -- a bounded parameter stays silent.
+    public void ok(u8[4] data) {
+        data[0] <- 1;
+    }
+
+    // E0875 -- an unbounded scope method parameter.
+    public void take(u8[] data) {
+        data[0] <- 1;
+    }
+}
+
+void main() {}

@@ -487,7 +487,136 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+
+off: this table is occupied only by provenance, which carries a line and no
+column, and only a position with a column lands in a for header; E0917's table
+holds that cell.
+
+<!-- MATRIX-SEVERITY code: E0854 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
 | for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0874 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+
+off: a scope member still accepts the C-style form (below).
+off: a for header's declaration is judged by E0917 alone.
+
+<!-- MATRIX-SEVERITY code: E0875 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | off      |
+
+off: E0875 judges a parameter, which only a function or a scope method has;
+an unbounded global or member is ADR-035's E0892.
+off: a for header's declaration is judged by E0917 alone.
+
+<!-- MATRIX-SEVERITY code: E0909 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+
+off: a for header's declaration is judged by E0917 alone.
+
+<!-- MATRIX-SEVERITY code: E0910 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+
+off: a for header's declaration is judged by E0917 alone.
+
+<!-- MATRIX-SEVERITY code: E0917 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
+
+off: a `for` loop stands only in a function or a scope method body.
 
 A subscript is an expression, so it reaches an initializer as well as a
 function body; a C-style declaration stands at file scope; both occupy the

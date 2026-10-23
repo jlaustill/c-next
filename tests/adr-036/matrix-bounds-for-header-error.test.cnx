@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a constant index past the end is E0854 in a for header's
+// initializer, in a function and in a scope method.
+
+u8[4] table <- [1, 2, 3, 4];
+
+void f() {
+    // NEGATIVE CONTROL -- the last valid index stays silent.
+    for (u8 i <- table[3]; i < 1; i +<- 1) {}
+    // E0854 -- a for header in a function.
+    for (u8 j <- table[4]; j < 1; j +<- 1) {}
+}
+
+scope Motor {
+    public void read() {
+        // E0854 -- a for header in a scope method.
+        for (u8 i <- table[5]; i < 1; i +<- 1) {}
+    }
+}
+
+void main() {}

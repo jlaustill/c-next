@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 036
+// #1620 / ADR-036: a whole array copied in a for clause is E0917 in a scope
+// method as in a function (tests/bugs/issue-1782-whole-array-assignment).
+
+u8[2] src <- [1, 2];
+
+scope Copier {
+    public void go() {
+        mut u8[2] pair <- [0, 0];
+        // NEGATIVE CONTROL -- a scalar write in a for clause stays silent.
+        for (u32 k <- 0; k < 2; pair[0] <- 1) {}
+        // E0917 -- the update clause.
+        for (u32 a <- 0; a < 2; pair <- src) {}
+        // E0917 -- the init clause.
+        for (pair <- src; pair[0] < 2; pair[0] <- 2) {}
+    }
+}
+
+void main() {}
