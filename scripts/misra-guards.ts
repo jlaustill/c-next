@@ -137,6 +137,11 @@ function openIssues(issues: readonly number[]): Set<number> {
       ["api", `repos/${Repo.slug()}/issues/${issue}`, "--jq", ".state"],
       { cwd: rootDir, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] },
     ).trim();
+    if (state !== "open" && state !== "closed") {
+      throw new Error(
+        `gh api issues/${issue} returned '${state}', not a state`,
+      );
+    }
     if (state === "open") open.add(issue);
   }
   return open;

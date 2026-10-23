@@ -112,7 +112,7 @@ fails when such a row has no guard or names one that does not exist
 | 8.10      | `validate:c` (cppcheck 8.10)                                                                         |
 | 8.13      | E0899 fixture                                                                                        |
 | 8.14      | `validate:c` (cppcheck 8.14)                                                                         |
-| 9.2       | none yet: #1072                                                                                      |
+| 9.2       | `validate:c` (cppcheck 9.2)                                                                          |
 | 9.3       | `validate:c` (cppcheck 9.3)                                                                          |
 | 9.4       | `validate:c` (cppcheck 9.4)                                                                          |
 | 9.5       | `validate:c` (cppcheck 9.5)                                                                          |

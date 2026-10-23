@@ -146,7 +146,9 @@ class TranspileState {
   /**
    * #1610: whether a declaration's C value is a pointer, so its zero is the
    * null pointer -- declared as one (`isDeclaredPointer`), or of a typedef
-   * that already is one (#957's `typedef struct X *Y`, spelled with no `*`)
+   * that already is one and is spelled with no `*`: a C typedef whose
+   * declared type is a pointer (`void *`, `int *`, `void (*)(void)`, #957's
+   * `struct X *`), or a C++ header's `typedef T *name;`
    */
   holdsPointer(
     decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
@@ -154,7 +156,9 @@ class TranspileState {
     if (this.isDeclaredPointer(decl)) return true;
     const baseType = this.ownTypeInfo(decl)?.baseType;
     return (
-      baseType !== undefined && this.symbolTable.isPointerTypedef(baseType)
+      baseType !== undefined &&
+      (this.symbolTable.isCPointerTypedef(baseType) ||
+        this.symbolTable.isPointerTypedef(baseType))
     );
   }
 

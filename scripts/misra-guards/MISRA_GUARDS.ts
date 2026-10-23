@@ -56,8 +56,7 @@ const MISRA_GUARDS: ReadonlyMap<string, readonly TMisraGuard[]> = new Map<
   ["8.10", [cppcheck]],
   ["8.13", [diagnostic("E0899")]],
   ["8.14", [cppcheck]],
-  // Baselined: generated C still violates it
-  ["9.2", [issue(1072)]],
+  ["9.2", [cppcheck]],
   ["9.3", [cppcheck]],
   ["9.4", [cppcheck]],
   ["9.5", [cppcheck]],

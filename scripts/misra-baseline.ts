@@ -62,6 +62,7 @@ const BASELINE = new Map<string, string>([
   // docs/misra-compliance.md names cppcheck as their guard (#1610).
   // 5.8 closed at 0 too (#1063), but the clamp helpers' `a`/`b` parameters
   // now reuse a global's name, so it is baselined again on #2325.
+  // 9.2 (#1072) measured 0 too and is enforced (#1610 review).
   ["misra-c2012-5.8", "#2325"],
   ["misra-c2012-5.9", "#1060"],
   ["misra-c2012-5.6", "#1061"],
@@ -73,7 +74,6 @@ const BASELINE = new Map<string, string>([
   ["misra-c2012-21.7", "#1069"],
   ["misra-c2012-10.1", "#1070"],
   ["misra-c2012-14.1", "#1071"],
-  ["misra-c2012-9.2", "#1072"],
 ]);
 
 // Matches a cppcheck finding line and captures the file path and MISRA rule id:
