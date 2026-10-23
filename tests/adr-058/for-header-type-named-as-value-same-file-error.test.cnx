@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 058
+// E0897 inside a `for` header's declaration -- the for-header /
+// same-file cell of E0897's matrix (#1620): a chain that names a type,
+// declared in this file, ends in no length property (`Cfg.zz` is no field).
+
+struct Cfg {
+    u8[4] data;
+}
+
+void loops() {
+    // NEGATIVE CONTROL -- a field the type declares has a length.
+    for (mut u32 ok <- Cfg.data.type_byte_length; ok < 8; ok +<- 1) {}
+
+    // ASSERTION 1 -- E0897: the loop variable's initializer.
+    for (mut u32 i <- Cfg.zz.type_byte_length; i < 8; i +<- 1) {}
+}
+
+u32 main() {
+    loops();
+    return 0;
+}

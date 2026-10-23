@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 058
+// E0867 and E0886 inside a `for` header's declaration -- the for-header /
+// same-file cells of each code's matrix (#1620). A length property is an
+// expression, so it reaches the loop variable's initializer.
+
+u32[4] arr;
+u32 scalar <- 5;
+
+void loops() {
+    // NEGATIVE CONTROL -- the right property on the array stays silent.
+    for (mut u32 ok <- arr.type_element_count; ok < 8; ok +<- 1) {}
+
+    // ASSERTION 1 -- E0867: a string's property asked of an array.
+    for (mut u32 i <- arr.memory_char_count; i < 8; i +<- 1) {}
+
+    // ASSERTION 2 -- E0867: an array's property asked of a scalar.
+    for (mut u32 j <- scalar.type_element_count; j < 8; j +<- 1) {}
+
+    // ASSERTION 3 -- E0886: `.length` is rejected by name.
+    for (mut u32 k <- arr.length; k < 8; k +<- 1) {}
+}
+
+u32 main() {
+    loops();
+    return 0;
+}
