@@ -695,16 +695,16 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                               | Asserted by                                                                                                                                                                                                                                      |
-| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`, `atomic-volatile-in-scope-member-error.test.cnx`, `atomic-volatile-in-function-error.test.cnx`, `atomic-volatile-in-scope-method-error.test.cnx`, `atomic-volatile-in-for-header-error.test.cnx` |
-| E0919 | A declaration carries both `atomic` and `mut` (#2233)                                                                       | `tests/adr-049/atomic-mut-error.test.cnx`, `atomic-mut-in-function-error.test.cnx`, `atomic-mut-in-scope-method-error.test.cnx`, `atomic-mut-in-for-header-error.test.cnx`                                                                       |
-| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                                                                                                                                                                          |
-| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx`                                                                                                                                                       |
-| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                                                                                                                                                                      |
-| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`                                                                                                                                                          |
-| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                                                                                                                                                                       |
-| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                                                                                                                                                                               |
+| Code  | Reported when                                                                                                               | Asserted by                                                                                                                                                                                                                                                                                                                                                |
+| ----- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0889 | A declaration carries both `atomic` and `volatile`                                                                          | `tests/adr-049/atomic-volatile-error.test.cnx`, `atomic-volatile-in-scope-member-error.test.cnx`, `atomic-volatile-in-function-error.test.cnx`, `atomic-volatile-in-scope-method-error.test.cnx`, `atomic-volatile-in-for-header-error.test.cnx`, `atomic-modifiers-imported-direct-error.test.cnx`, `atomic-modifiers-imported-transitive-error.test.cnx` |
+| E0919 | A declaration carries both `atomic` and `mut` (#2233)                                                                       | `tests/adr-049/atomic-mut-error.test.cnx`, `atomic-mut-in-function-error.test.cnx`, `atomic-mut-in-scope-method-error.test.cnx`, `atomic-mut-in-for-header-error.test.cnx`, `atomic-modifiers-imported-direct-error.test.cnx`, `atomic-modifiers-imported-transitive-error.test.cnx`                                                                       |
+| E0510 | A name given as a target, in source or as the target option, is not a known target                                          | `tests/bugs/issue-1668-targets/unknown-pragma.test.cnx`                                                                                                                                                                                                                                                                                                    |
+| E0511 | Two target declarations in one program describe different platforms, or one names a target and another describes one inline | `tests/bugs/issue-1668-targets/conflicting-pragmas.test.cnx`, `target-and-inline.test.cnx`                                                                                                                                                                                                                                                                 |
+| E0512 | A pragma's key is neither `target` nor a description field                                                                  | `tests/bugs/issue-1668-targets/pragma-unknown-key.test.cnx`                                                                                                                                                                                                                                                                                                |
+| E0513 | A pragma's value is wrong in count, kind or range                                                                           | `tests/bugs/issue-1668-targets/pragma-bad-value.test.cnx`, `inline-bad-values.test.cnx`                                                                                                                                                                                                                                                                    |
+| E0514 | An inline description leaves a field out                                                                                    | `tests/bugs/issue-1668-targets/inline-incomplete.test.cnx`                                                                                                                                                                                                                                                                                                 |
+| E0515 | Nothing names the program's target: no pragma, no option, no build-system board                                             | `tests/bugs/issue-1668-targets/target-required/no-target.test.cnx`                                                                                                                                                                                                                                                                                         |
 
 `atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
 so writing both says one of two different things and the author has to be asked
@@ -761,18 +761,18 @@ off: a global's or a scope member's initializer cannot hold a write (`u32 b <- a
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | for header         | same file           | error    |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| for header         | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
-| for header         | imported transitive | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
-off: the modifiers are read off the declaration itself, so nothing crosses an include; an `atomic volatile` declaration in an included file is reported in that file, at its own line.
+The rule reads only the declaration, so it fires in a file that includes others as in one that includes nothing; `atomic-modifiers-imported-direct-error` and `atomic-modifiers-imported-transitive-error` assert it in every context there.
 
 E0889 is asserted on a global by `atomic-volatile-error`, on a scope member by
 `atomic-volatile-in-scope-member-error`, on a local by
@@ -788,18 +788,18 @@ and on a loop variable by `atomic-volatile-in-for-header-error`.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | for header         | same file           | error    |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| for header         | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
-| for header         | imported transitive | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| for header         | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| for header         | imported transitive | error    |
 
-off: the modifiers are read off the declaration itself, so nothing crosses an include; an `atomic mut` declaration in an included file is reported in that file, at its own line.
+The rule reads only the declaration, so it fires in a file that includes others as in one that includes nothing; `atomic-modifiers-imported-direct-error` and `atomic-modifiers-imported-transitive-error` assert it in every context there.
 
 E0919 is asserted on a global and a scope member by `atomic-mut-error`, on a
 local by `atomic-mut-in-function-error` and `atomic-mut-in-scope-method-error`,

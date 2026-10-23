@@ -1,0 +1,5 @@
+// Helper for atomic-modifiers-imported-transitive-error: one more include
+// hop on the way to atomic-modifiers-leaf.
+#include "atomic-modifiers-leaf.cnx"
+
+u32 hopLimit <- 4;
