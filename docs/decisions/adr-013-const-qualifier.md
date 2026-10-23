@@ -424,12 +424,12 @@ forgotten one is silent.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                    | Asserted by                                                                                          |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| E0432 | A C++ constructor argument is not a `const` variable                                                                             | `tests/constructor-syntax/`                                                                          |
-| E0433 | A C++ constructor argument names nothing declared                                                                                | `tests/constructor-syntax/`                                                                          |
-| E0877 | An assignment -- any operator, in a statement or a `for` header -- targets a const binding, whole or through an element or field | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-013/const-uncovered-arms-error.test.cnx`          |
-| E0878 | A const value is passed to a function's non-const parameter                                                                      | `tests/adr-013/const-uncovered-arms-error.test.cnx`, `tests/adr-013/const-imported-*-error.test.cnx` |
+| Code  | Reported when                                                                                                                    | Asserted by                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| E0432 | A C++ constructor argument is not a `const` variable                                                                             | `tests/constructor-syntax/`, `tests/adr-013/constructor-arg-*error.test.cnx` |
+| E0433 | A C++ constructor argument names nothing declared                                                                                | `tests/constructor-syntax/`, `tests/adr-013/constructor-arg-*error.test.cnx` |
+| E0877 | An assignment -- any operator, in a statement or a `for` header -- targets a const binding, whole or through an element or field | nothing: retired by ADR-071's E0900, which those fixtures now assert         |
+| E0878 | A const value is passed to a function's non-const parameter                                                                      | nothing: retired by ADR-071's E0900, which those fixtures now assert         |
 
 The target's ROOT decides: `table[0] <- 1` and `cfg.x <- 2` are assignments
 through `table` and `cfg`, and it is their const-ness that is asked, once, for
@@ -444,7 +444,7 @@ argument's own position, and every offense in a file is reported.
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0432 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -460,6 +460,61 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0433 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0877 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+off: E0877 is retired -- ADR-071's E0900 reports an assignment to a read-only binding, and nothing emits E0877.
+
+<!-- MATRIX-SEVERITY code: E0878 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+off: E0878 is retired -- ADR-071's E0900 reports a read-only argument to a `mut` parameter, and nothing emits E0878.
 
 An assignment is a statement, so E0877 occupies the two function contexts; a
 call is an expression, so E0878 reaches a declaration's initializer and

@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 013
+// test-cpp-only
+// E0432 (a mutable argument) and E0433 (an undeclared one) in all four contexts,
+// the argument declared in this file -- the `same file` column of ADR-013's
+// E0432 and E0433 matrices.
+#include "constructor-stubs.h"
+
+mut u8 PIN_MUT <- 10;
+u8 PIN_FIXED <- 11;
+
+// NEGATIVE CONTROL -- a read-only argument is accepted.
+Adafruit_MAX31856 okGlobal(PIN_FIXED);
+
+Adafruit_MAX31856 badGlobal(PIN_MUT);
+Adafruit_MAX31856 missingGlobal(PIN_NONE_GLOBAL);
+
+scope Sensor {
+    public Adafruit_MAX31856 okMember(PIN_FIXED);
+    public Adafruit_MAX31856 badMember(PIN_MUT);
+    public Adafruit_MAX31856 missingMember(PIN_NONE_MEMBER);
+
+    public void init() {
+        Adafruit_MAX31856 okMethodLocal(PIN_FIXED);
+        Adafruit_MAX31856 badMethodLocal(PIN_MUT);
+        Adafruit_MAX31856 missingMethodLocal(PIN_NONE_METHOD);
+    }
+}
+
+void main() {
+    Adafruit_MAX31856 okLocal(PIN_FIXED);
+    Adafruit_MAX31856 badLocal(PIN_MUT);
+    Adafruit_MAX31856 missingLocal(PIN_NONE_FUNCTION);
+    Sensor.init();
+}
