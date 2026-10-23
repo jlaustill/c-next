@@ -24,5 +24,5 @@
        help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).
 40:21 error[E0856]: too many subscripts on 'flags': it is a scalar 'u8', so it allows at most 1
        help: 0 for the array dimensions plus one optional bit index (ADR-036/ADR-007). Indexing further indexes a value that is not an array. Did you mean the bit range 'flags[start, width]'?
-42:21 error[E0920]: Bit index out of range in 'flags[6, 4]': bit range [6, 4] ends at bit 9, but the value has 8 bits (0-7)
+41:21 error[E0920]: Bit index out of range in 'flags[6, 4]': bit range [6, 4] ends at bit 9, but the value has 8 bits (0-7)
        help: A bit index counts within the indexed value's own bits: its declared type's, or a bitmap field's (ADR-007, ADR-034). Index a wider value, or a bit that exists.
