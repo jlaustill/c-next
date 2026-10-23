@@ -460,6 +460,11 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0432 is asked only of a constructor declaration (`Type name(arg);`), and a `for` header's declaration has no constructor form (`for (Adafruit_MAX31856 s(PIN); ...)` is a parse error).
 
 <!-- MATRIX-SEVERITY code: E0433 -->
 
@@ -477,6 +482,11 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | off      |
+| for header         | imported direct     | off      |
+| for header         | imported transitive | off      |
+
+off: E0433 is asked only of a constructor declaration (`Type name(arg);`), and a `for` header's declaration has no constructor form (`for (Adafruit_MAX31856 s(PIN); ...)` is a parse error).
 
 An assignment is a statement, so E0877 occupies the two function contexts; a
 call is an expression, so E0878 reaches a declaration's initializer and
