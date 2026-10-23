@@ -1,0 +1,12 @@
+// test-error
+// test-adr: 049
+// E0889 in a for-loop header: the loop variable's declaration carrying both
+// atomic and volatile is rejected as a local one is. The volatile-only loop
+// variable is a control that stays silent.
+#pragma target stm32f4
+
+void main() {
+    mut u8 n <- 0;
+    for (atomic volatile u8 i <- 0; i < 3; n +<- 1) {}
+    for (volatile mut u8 k <- 0; k < 3; k +<- 1) {}
+}
