@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 051
+// E0800 and E0802 at a position inside a for header's declaration, with the
+// const zero named by an include: a check reading only this file has no value
+// for it and stays silent. Matrix cells: for header -- imported direct (1 hop).
+
+#include "for-header-zero-provider.cnx"
+
+void topLevelFunction() {
+    // NEGATIVE CONTROL -- the imported nonzero const.
+    for (mut u32 a <- 10 / SHARED_TWO; a < 10; a +<- 1) {}
+    for (mut u32 b <- 10 % SHARED_TWO; b < 10; b +<- 1) {}
+
+    // ASSERTION 1 -- E0800: division by the imported const zero.
+    for (mut u32 c <- 10 / SHARED_ZERO; c < 10; c +<- 1) {}
+
+    // ASSERTION 2 -- E0802: modulo by the imported const zero.
+    for (mut u32 d <- 10 % SHARED_ZERO; d < 10; d +<- 1) {}
+}

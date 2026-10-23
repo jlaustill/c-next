@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 051
+// E0884 and E0885 at a position inside a for header's declaration, with the
+// output and the non-variable named by an include.
+// Matrix cells: for header -- imported transitive (2 hops).
+
+#include "safe-division-shape-relay.cnx"
+
+void topLevelFunction() {
+    // NEGATIVE CONTROL -- the imported variable is a valid output.
+    for (bool ok <- safe_div(sharedOutput, 10, 2, 0); ok = false; ) {}
+
+    // ASSERTION 1 -- E0884: safe_div with three arguments.
+    for (bool e <- safe_div(sharedOutput, 10, 2); e = false; ) {}
+
+    // ASSERTION 2 -- E0885: the output is the imported function.
+    for (bool f <- safe_div(sharedHelper, 10, 2, 0); f = false; ) {}
+}
