@@ -116,10 +116,5 @@ int main(void) {
     if (val != 0) {
         return 22U;
     }
-    val = 100U;
-    val = static_cast<uint8_t>((val + 256U));
-    if (val != 100) {
-        return 23U;
-    }
     return 0U;
 }

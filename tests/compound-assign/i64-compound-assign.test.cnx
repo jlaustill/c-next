@@ -191,7 +191,7 @@ u32 main() {
     }
 
     val <- 0x0F0F0F0F0F0F0F0F;
-    val &<- 0xF0F0F0F0F0F0F0F0; // Non-overlapping
+    val &<- -0x0F0F0F0F0F0F0F10; // 0xF0F0F0F0F0F0F0F0's bits; Non-overlapping
     if (val != 0) {
         return 53;
     }
@@ -223,7 +223,7 @@ u32 main() {
     }
 
     val <- 0x0F0F0F0F0F0F0F0F;
-    val ^<- 0xF0F0F0F0F0F0F0F0; // Complement nibbles
+    val ^<- -0x0F0F0F0F0F0F0F10; // 0xF0F0F0F0F0F0F0F0's bits; Complement nibbles
     if (val != -1) {
         return 71; // All 1s = -1 in signed
     }

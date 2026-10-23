@@ -5,7 +5,7 @@ u32 x <- 0;
 
 u32 f() {
     mut u8 x <- 1;
-    x +<- 1000;
+    x +<- 255;
     u32 local <- x;
     return local;
 }

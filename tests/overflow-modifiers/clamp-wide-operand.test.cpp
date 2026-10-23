@@ -70,62 +70,64 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 }
 
 // test-execution
-// Tests: clamp with operands larger than target type range
+// Tests: clamp with the largest operand a type holds
 // Issue #94: Prevents silent truncation when operand exceeds type bounds
+// #1618: a literal operand past the type's range is E0868, not a clamp, so
+// each test below uses the type's own maximum.
 // ADR-044: Per-variable overflow semantics
 int main(void) {
     uint8_t val8 = 200U;
-    val8 = cnx_clamp_sub_u8(val8, 300U);
+    val8 = cnx_clamp_sub_u8(val8, 255U);
     if (val8 != 0) {
         return 1U;
     }
     val8 = 100U;
-    val8 = cnx_clamp_add_u8(val8, 300U);
+    val8 = cnx_clamp_add_u8(val8, 255U);
     if (val8 != 255) {
         return 2U;
     }
     val8 = 10U;
-    val8 = cnx_clamp_mul_u8(val8, 300U);
+    val8 = cnx_clamp_mul_u8(val8, 255U);
     if (val8 != 255) {
         return 3U;
     }
     val8 = 100U;
-    val8 = cnx_clamp_sub_u8(val8, 256U);
+    val8 = cnx_clamp_sub_u8(val8, 255U);
     if (val8 != 0) {
         return 4U;
     }
     uint16_t val16 = 1000U;
-    val16 = cnx_clamp_sub_u16(val16, 70000U);
+    val16 = cnx_clamp_sub_u16(val16, 65535U);
     if (val16 != 0) {
         return 5U;
     }
     val16 = 1000U;
-    val16 = cnx_clamp_add_u16(val16, 70000U);
+    val16 = cnx_clamp_add_u16(val16, 65535U);
     if (val16 != 65535) {
         return 6U;
     }
     uint32_t val32 = 1000U;
-    val32 = cnx_clamp_sub_u32(val32, 5000000000U);
+    val32 = cnx_clamp_sub_u32(val32, 4294967295U);
     if (val32 != 0) {
         return 7U;
     }
     val32 = 4000000000U;
-    val32 = cnx_clamp_add_u32(val32, 5000000000U);
+    val32 = cnx_clamp_add_u32(val32, 4294967295U);
     if (val32 != 4294967295) {
         return 8U;
     }
-    int8_t vali8 = 50;
-    vali8 = cnx_clamp_sub_i8(vali8, 200);
+    int8_t vali8 = -50;
+    vali8 = cnx_clamp_sub_i8(vali8, 127);
     if (vali8 != -128) {
         return 9U;
     }
     vali8 = 50;
-    vali8 = cnx_clamp_add_i8(vali8, 200);
+    vali8 = cnx_clamp_add_i8(vali8, 127);
     if (vali8 != 127) {
         return 10U;
     }
-    int16_t vali16 = 1000;
-    vali16 = cnx_clamp_sub_i16(vali16, 40000);
+    int16_t vali16 = -1000;
+    vali16 = cnx_clamp_sub_i16(vali16, 32767);
     if (vali16 != -32768) {
         return 11U;
     }
@@ -143,41 +145,6 @@ int main(void) {
     val8 = cnx_clamp_sub_u8(val8, 0U);
     if (val8 != 100) {
         return 14U;
-    }
-    val8 = 100U;
-    val8 = cnx_clamp_sub_u8(val8, 256U);
-    if (val8 != 0) {
-        return 15U;
-    }
-    val8 = 50U;
-    val8 = cnx_clamp_sub_u8(val8, 512U);
-    if (val8 != 0) {
-        return 16U;
-    }
-    val8 = 100U;
-    val8 = cnx_clamp_sub_u8(val8, 257U);
-    if (val8 != 0) {
-        return 17U;
-    }
-    val8 = 200U;
-    val8 = cnx_clamp_sub_u8(val8, 300U);
-    if (val8 != 0) {
-        return 18U;
-    }
-    val8 = 100U;
-    val8 = cnx_clamp_add_u8(val8, 256U);
-    if (val8 != 255) {
-        return 19U;
-    }
-    val16 = 1000U;
-    val16 = cnx_clamp_sub_u16(val16, 65536U);
-    if (val16 != 0) {
-        return 20U;
-    }
-    val16 = 1000U;
-    val16 = cnx_clamp_sub_u16(val16, 65537U);
-    if (val16 != 0) {
-        return 21U;
     }
     return 0U;
 }

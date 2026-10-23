@@ -198,13 +198,13 @@ u32 main() {
     }
 
     andVal <- 0x5555;
-    andVal &<- 0xAAAA; // Non-overlapping = 0
+    andVal &<- -0x5556; // 0xAAAA's bits; Non-overlapping = 0
     if (andVal != 0) {
         return 52;
     }
 
     andVal <- 0x0F0F;
-    andVal &<- 0xF0F0; // Non-overlapping
+    andVal &<- -0x0F10; // 0xF0F0's bits; Non-overlapping
     if (andVal != 0) {
         return 53;
     }

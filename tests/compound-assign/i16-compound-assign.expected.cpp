@@ -197,12 +197,12 @@ int main(void) {
         return 51U;
     }
     andVal = 0x5555;
-    andVal = static_cast<int16_t>((andVal & 0xAAAA));
+    andVal = static_cast<int16_t>((andVal & -0x5556));
     if (andVal != 0) {
         return 52U;
     }
     andVal = 0x0F0F;
-    andVal = static_cast<int16_t>((andVal & 0xF0F0));
+    andVal = static_cast<int16_t>((andVal & -0x0F10));
     if (andVal != 0) {
         return 53U;
     }

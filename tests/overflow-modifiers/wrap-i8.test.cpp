@@ -25,8 +25,8 @@ int main(void) {
     if (val != -56) {
         return 3U;
     }
-    val = 0;
-    val = static_cast<int8_t>((val + 200));
+    val = 100;
+    val = static_cast<int8_t>((val + 100));
     if (val != -56) {
         return 4U;
     }
@@ -35,7 +35,9 @@ int main(void) {
     if (val != -128) {
         return 5U;
     }
-    val = static_cast<int8_t>((val + 255));
+    val = static_cast<int8_t>((val + 127));
+    val = static_cast<int8_t>((val + 127));
+    val = static_cast<int8_t>((val + 1));
     if (val != 127) {
         return 6U;
     }
@@ -59,7 +61,9 @@ int main(void) {
     if (val != 127) {
         return 10U;
     }
-    val = static_cast<int8_t>((val - 255));
+    val = static_cast<int8_t>((val - 127));
+    val = static_cast<int8_t>((val - 127));
+    val = static_cast<int8_t>((val - 1));
     if (val != -128) {
         return 11U;
     }
