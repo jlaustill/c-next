@@ -36,7 +36,7 @@ static inline void register_buf(buf_cb_t handler) {
 /* Reads the handle WITHOUT dereferencing it -- an incomplete type has nothing
    to dereference, which is the whole point of the case below. */
 static inline uint8_t knob_id(knob_t *k) {
-    return (k == 0) ? 0U : 1U;
+    return k ? 1U : 0U;
 }
 
 static inline void register_knob(knob_cb_t handler) {

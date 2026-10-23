@@ -26,6 +26,7 @@ import TOOLCHAIN_REQUIREMENTS from "../src/cnx/utils/constants/TOOLCHAIN_REQUIRE
 import type IToolchainRequirement from "../src/cnx/types/IToolchainRequirement";
 import ToolchainRequirementUtils from "../src/cnx/utils/ToolchainRequirementUtils";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
+import MisraRows from "./misra-guards/MisraRows";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const compatibilityPath = join(rootDir, "docs", "compatibility.md");
@@ -35,17 +36,6 @@ const MISRA_BEGIN = "<!-- BEGIN GENERATED: toolchain-guidelines -->";
 const MISRA_END = "<!-- END GENERATED: toolchain-guidelines -->";
 const SUMMARY_BEGIN = "<!-- BEGIN GENERATED: misra-summary -->";
 const SUMMARY_END = "<!-- END GENERATED: misra-summary -->";
-
-/** Status buckets a guideline row can carry, longest-first for prefix matching. */
-const MISRA_STATUSES = [
-  "Not Enforced",
-  "By Design",
-  "Deviation",
-  "Enforced",
-  "Planned",
-  "Partial",
-  "N/A",
-] as const;
 
 /** Column order of the generated summary table. */
 const SUMMARY_COLUMNS = [
@@ -287,23 +277,9 @@ function buildMisraBlock(): string {
  * this issue exists to remove, applied to a table rather than to prose.
  */
 function buildSummaryBlock(document: string): string {
-  const withoutGenerated = stripGeneratedBlocks(document);
   const counts = new Map<string, Map<string, number>>();
-  const seen = new Set<string>();
-
-  for (const line of withoutGenerated.split("\n")) {
-    const match = /^\|\s*(Dir\s*\d+\.\d+|\d+\.\d+)\s*\|[^|]*\|([^|]*)\|/.exec(
-      line,
-    );
-    if (match === null) continue;
-    const id = match[1]!.replace(/\s+/g, " ").trim();
-    if (seen.has(id)) continue;
-    const cell = match[2]!.trim().replace(/\*/g, "");
-    const status = MISRA_STATUSES.find((candidate) =>
-      cell.startsWith(candidate),
-    );
-    if (status === undefined) continue;
-    seen.add(id);
+  const rows = MisraRows.parse(document);
+  for (const { id, status } of rows) {
     const category = categoryOf(id);
     const row = counts.get(category) ?? new Map<string, number>();
     row.set(status, (row.get(status) ?? 0) + 1);
@@ -326,7 +302,7 @@ function buildSummaryBlock(document: string): string {
   lines.push("");
   lines.push(
     `Counted from the guideline tables below by \`npm run docs:toolchain\` ` +
-      `(${seen.size} guidelines).`,
+      `(${rows.length} guidelines).`,
   );
   lines.push("");
   lines.push(SUMMARY_END);
@@ -349,13 +325,6 @@ function categoryOf(id: string): string {
   if (major <= 10) return "Rules 6-10";
   if (major <= 15) return "Rules 11-15";
   return "Rules 16-22";
-}
-
-/** Remove generated regions so their rows are not counted as guideline rows. */
-function stripGeneratedBlocks(document: string): string {
-  return document
-    .replace(new RegExp(`${MISRA_BEGIN}[\\s\\S]*?${MISRA_END}`), "")
-    .replace(new RegExp(`${SUMMARY_BEGIN}[\\s\\S]*?${SUMMARY_END}`), "");
 }
 
 /** Splice one generated block into a document between its markers. */
@@ -400,7 +369,7 @@ async function main(): Promise<void> {
             SUMMARY_BEGIN,
             SUMMARY_END,
             // Counted from the PRE-splice document, which is equivalent
-            // precisely because stripGeneratedBlocks removes every generated
+            // precisely because MisraRows.parse skips every generated
             // region either way -- so the aggregate reflects only the
             // hand-maintained guideline tables.
             buildSummaryBlock(misraExisting),

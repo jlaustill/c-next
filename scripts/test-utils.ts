@@ -765,6 +765,22 @@ class TestUtils {
   }
 
   /**
+   * #1610: MISRA C:2012 Rule 11.9 in generated C++ -- a literal `0` used as a
+   * null pointer fails the compile, so a generated null cannot regress to `0`
+   * or `{0}`. Only the host cell asks: how generated code spells a null does
+   * not depend on the target, and avr-g++ 7.3 misfires on code with no
+   * pointer in it (the `}` closing `int main` and `x << 0`).
+   */
+  static nullPointerConstantFlags(
+    compiler: string,
+    toolchain: IGccToolchain,
+  ): string[] {
+    return compiler === "g++" && toolchain.driverPrefix === ""
+      ? ["-Wzero-as-null-pointer-constant"]
+      : [];
+  }
+
+  /**
    * Compile ONE translation unit for a target: how this corpus compiles every
    * unit, for every cell of the target matrix (#1668 box 15).
    *
@@ -823,6 +839,10 @@ class TestUtils {
           ...(strict ? ["-O3"] : []),
           compilerConfig.stdFlag,
           ...(strict ? ["-Wall", "-Wextra"] : []),
+          ...TestUtils.nullPointerConstantFlags(
+            compilerConfig.compiler,
+            toolchain,
+          ),
           "-Werror",
           ...cmsis,
           ...TestUtils.fixtureCompileFlags(sourceRootDir, rootDir),

@@ -240,6 +240,16 @@ jobs:
         run: npm run docs:toolchain:check
         continue-on-error: true
 
+      # Issue #1610: Rule 11.9 read "By Design" while generated C wrote
+      # `Dev* d = {0};` at six sites, because cppcheck's addon cannot see that
+      # shape and nothing said so. Every Enforced or By Design row of
+      # docs/misra-compliance.md names a guard that exists, or the open issue
+      # tracking that it has none.
+      - name: Check MISRA compliance claims name a guard
+        id: misraguards
+        run: npm run docs:misra-guards:check
+        continue-on-error: true
+
       # Issue #1219: the scope-context matrix. Occupancy is derived from the
       # fixture corpus and the obligation for each cell is declared by the ADR
       # that owns it, so docs/scope-context-matrix.md is generated and must be
@@ -404,6 +414,7 @@ jobs:
           [ "${{ steps.testlocation.outcome }}" != "success" ] && echo "❌ Test file locations" && FAILED=1 || echo "✅ Test file locations"
           [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
+          [ "${{ steps.misraguards.outcome }}" != "success" ] && echo "❌ MISRA guards" && FAILED=1 || echo "✅ MISRA guards"
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
           [ "${{ steps.adrindependence.outcome }}" != "success" ] && echo "❌ ADR rewrite test" && FAILED=1 || echo "✅ ADR rewrite test"
           [ "${{ steps.ghpagination.outcome }}" != "success" ] && echo "❌ Bounded gh reads" && FAILED=1 || echo "✅ Bounded gh reads"

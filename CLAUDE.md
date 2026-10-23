@@ -294,11 +294,11 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of thirty-seven — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs thirty-three more with no local
+**`test:all` is four checks of thirty-eight — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs thirty-four more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
 `cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
-`analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
+`analyze:duplication`, `docs:toolchain:check`, `docs:misra-guards:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
 `adr:independence:check`, `gh:pagination:check`, `parse-tree:check`, `unused-code:check`,
 `typedef-const:parity:check`, `layout:check`, `plan-render-state:check`,

@@ -102,6 +102,9 @@ class MisraBaseline {
       // Without this the MISRA addon is a silent no-op (#1057).
       "--enable=style",
       "--inline-suppr",
+      // Keep the dump the addon reads: `MisraDump` checks what the addon
+      // cannot see in it (#1610, Rule 11.9's `{0}` pointer initializer).
+      "--dump",
       "--error-exitcode=1",
       "--suppress=missingIncludeSystem",
       "--suppress=unusedFunction",
