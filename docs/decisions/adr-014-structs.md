@@ -382,6 +382,9 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0358 -->
 
@@ -399,6 +402,9 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
+| for header         | imported direct     | error    |
+| for header         | imported transitive | error    |
 
 <!-- MATRIX-SEVERITY code: E0508 -->
 
@@ -416,8 +422,13 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | off      |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | warn     |
+| for header         | imported direct     | warn     |
+| for header         | imported transitive | warn     |
 
 off: E0508 only fires outside a function body; inside a function or a method the fields are assigned as statements.
+
+warn: a `for` header's declaration has no statement position after it either, so E0508 should fire there; it does not, and the fields are dropped or assigned to an unrelated declaration in the loop body (#2304).
 
 E0357 is decided entirely within the file that writes the initializer, because
 whether the position supplies a type is a question about the initializer's own
@@ -428,6 +439,16 @@ with braces in all four contexts beside a struct initializer that stays silent
 (`tests/adr-014/struct-init-non-struct-direct-error.test.cnx`,
 `tests/adr-014/struct-init-non-struct-transitive-error.test.cnx`). Until #1802
 these cells were `off`, recorded as unable to exist.
+
+A `for` header's declaration gives its variable a type, so both codes fire
+inside it as they do in a function body: a subscript in the initializer
+supplies no type (E0357), and a `u32` or bitmap variable is not a struct
+(E0358). Its cells record that with the struct and the bitmap in the same file,
+one include away and two includes away, each beside a struct variable and a
+bitmap given its integer that stay silent
+(`tests/adr-014/struct-init-for-header-same-file-error.test.cnx`,
+`tests/adr-014/struct-init-for-header-direct-error.test.cnx`,
+`tests/adr-014/struct-init-for-header-transitive-error.test.cnx`).
 
 ## Implementation Notes
 
