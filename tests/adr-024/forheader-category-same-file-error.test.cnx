@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 024
+// E0810, E0811 and E0812 in the SAME file -- matrix cells: for header, same
+// file. A `for` header's declaration is a declaration, so its initializer is
+// an operand position like any other: an integer and a float under one
+// operator (E0810), or an integer beside a header macro whose type cnx cannot
+// read under + - * (E0811) or / (E0812). A C header is not an include hop.
+#include "unreadable_macros.h"
+
+u32 wideLocal <- 1000;
+f32 floatLocal <- 2.5;
+
+void loops() {
+    // NEGATIVE CONTROL 1 -- the integer cast to the float's category.
+    for (f32 okCategory <- (f32)wideLocal * floatLocal; okCategory < 9.0; okCategory +<- 1.0) {}
+    // ASSERTION 1 -- E0810: an integer and a float under one operator.
+    for (f32 mixed <- wideLocal * floatLocal; mixed < 9.0; mixed +<- 1.0) {}
+
+    // NEGATIVE CONTROL 2 -- the macro cast to the type it has, under +.
+    for (u32 okSum <- wideLocal + (u32)SCALED_CALL; okSum < 9; okSum +<- 1) {}
+    // ASSERTION 2 -- E0811: an integer beside an unreadable macro under +.
+    for (u32 sum <- wideLocal + SCALED_CALL; sum < 9; sum +<- 1) {}
+
+    // NEGATIVE CONTROL 3 -- the macro cast to the type it has, under /.
+    for (u32 okQuotient <- wideLocal / (u32)SCALED_CALL; okQuotient < 9; okQuotient +<- 1) {}
+    // ASSERTION 3 -- E0812: an integer beside an unreadable macro under /.
+    for (u32 quotient <- wideLocal / SCALED_CALL; quotient < 9; quotient +<- 1) {}
+}

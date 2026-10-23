@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 024
+// E0868, E0869 and E0891 across ONE include hop -- matrix cells: for header,
+// imported direct. The wider integer (wideShared) and the float (floatShared)
+// are declared elsewhere: the rule asks the SOURCE's type, a check reading
+// only this file finds none, and untyped never rejects. E0868 reads the loop
+// variable's own range, which the include does not change, and must still
+// fire.
+#include "conversion-declarations.cnx"
+#include "float-declarations.cnx"
+
+void loops() {
+    // NEGATIVE CONTROL 1 -- the boundary assertion 1 is one past.
+    for (u8 okLiteral <- 255; okLiteral < 9; okLiteral +<- 1) {}
+    // ASSERTION 1 -- E0868: a literal past the loop variable's range.
+    for (u8 literal <- 256; literal < 9; literal +<- 1) {}
+
+    // NEGATIVE CONTROL 2 -- the integer into a loop variable wide enough.
+    for (u32 okWidth <- wideShared; okWidth < 9; okWidth +<- 1) {}
+    // ASSERTION 2 -- E0869: a wider integer into the loop variable.
+    for (u8 narrow <- wideShared; narrow < 9; narrow +<- 1) {}
+
+    // NEGATIVE CONTROL 3 -- the explicit cast, which saturates.
+    for (u32 okCast <- (u32)floatShared; okCast < 9; okCast +<- 1) {}
+    // ASSERTION 3 -- E0891: a float into an integer loop variable.
+    for (u32 truncated <- floatShared; truncated < 9; truncated +<- 1) {}
+}
