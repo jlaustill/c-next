@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 024
 // #1618: ADR-024's narrowing (E0869) holds "wherever a value meets a typed
 // target", as E0891 already does at these positions. A u64 reached a u32
 // through a compound assignment, a return, an argument (direct and through a

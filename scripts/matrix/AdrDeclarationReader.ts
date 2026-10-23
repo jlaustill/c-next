@@ -152,8 +152,44 @@ function read(
   return declarations;
 }
 
+/**
+ * #1618: every ADR's position tables, keyed by MatrixRule id ("024 E0869").
+ * A table for a code its ADR does not declare would gate nothing, so it is an
+ * error like a code table's.
+ */
+function readPositions(decisionsDir: string): Map<string, IMatrixDeclaration> {
+  const declarations = new Map<string, IMatrixDeclaration>();
+  if (!existsSync(decisionsDir)) return declarations;
+
+  for (const entry of readdirSync(decisionsDir).sort()) {
+    const match = ADR_FILENAME.exec(entry);
+    if (match === null) continue;
+    const adr = match[1];
+    const markdown = readFileSync(join(decisionsDir, entry), "utf-8");
+    const declared = AdrMatrixDeclaration.codesIn(markdown);
+    for (const code of AdrMatrixDeclaration.positionCodesIn(markdown)) {
+      const id = MatrixRule.id(adr, code);
+      const parsed = AdrMatrixDeclaration.parsePositions(markdown, id, code);
+      declarations.set(
+        id,
+        declared.includes(code)
+          ? parsed
+          : {
+              ...parsed,
+              errors: [
+                ...parsed.errors,
+                `ADR-${adr}: has a position table for ${code}, which its code table does not declare`,
+              ],
+            },
+      );
+    }
+  }
+  return declarations;
+}
+
 class AdrDeclarationReader {
   static read = read;
+  static readPositions = readPositions;
 }
 
 export default AdrDeclarationReader;

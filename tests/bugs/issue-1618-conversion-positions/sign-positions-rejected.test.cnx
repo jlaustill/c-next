@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 024
 // #1618: ADR-024's sign change (E0869) holds at every position a value lands
 // in a typed target. An i32 reached a u32 through a return, an argument, an
 // array element, a struct field initializer and a ternary's arm, each at

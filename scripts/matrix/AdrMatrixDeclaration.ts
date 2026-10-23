@@ -29,6 +29,12 @@ const SEVERITY_MARKER = "<!-- MATRIX-SEVERITY -->";
 const RULE_MARKER =
   /<!-- MATRIX-SEVERITY (?:rule: ([a-z0-9-]+)|code: (\S+)) -->/g;
 
+/**
+ * #1618: marks a code's position table, occupied by the part of its statement
+ * each diagnostic with that code reports.
+ */
+const POSITION_MARKER = /<!-- MATRIX-POSITION code: (\S+) -->/g;
+
 /** Any severity marker: the ADR's own, a rule's or a code's. */
 const ANY_MARKER = "<!-- MATRIX-SEVERITY";
 
@@ -207,6 +213,66 @@ function parse(
   return { adr, severities, errors };
 }
 
+/** The codes an ADR declares a position table for, in order. */
+function positionCodesIn(markdown: string): string[] {
+  return [...markdown.matchAll(POSITION_MARKER)].map((match) => match[1]);
+}
+
+/**
+ * #1618: parse one code's `| Position | Severity |` table. Like a code table,
+ * it declares every position: a row left out is an error, not `off`.
+ */
+function parsePositions(
+  markdown: string,
+  id: string,
+  code: string,
+): IMatrixDeclaration {
+  const severities = new Map<string, TMatrixSeverity>();
+  const errors: string[] = [];
+  const marker = `<!-- MATRIX-POSITION code: ${code} -->`;
+  const lines = markdown
+    .slice(markdown.indexOf(marker) + marker.length)
+    .split("\n");
+  let started = false;
+
+  for (const line of lines) {
+    if (!/^\s*\|/.test(line)) {
+      if (started && line.trim() !== "") break;
+      continue;
+    }
+    started = true;
+    if (isSeparatorRow(line)) continue;
+    const [rawPosition, rawSeverity = ""] = splitRow(line);
+    const position = slug(rawPosition);
+    if (position === "position") continue;
+    const severity = slug(rawSeverity);
+    if (!MatrixCell.isPosition(position)) {
+      errors.push(
+        `ADR-${id}: unknown position "${rawPosition}" (expected one of ${MatrixCell.POSITIONS.join(", ")})`,
+      );
+      continue;
+    }
+    if (!isSeverity(severity)) {
+      errors.push(
+        `ADR-${id}: unknown severity "${rawSeverity}" (expected off, warn or error)`,
+      );
+      continue;
+    }
+    if (severities.has(position)) {
+      errors.push(`ADR-${id}: position "${position}" declared more than once`);
+      continue;
+    }
+    severities.set(position, severity);
+  }
+
+  for (const position of MatrixCell.POSITIONS) {
+    if (!severities.has(position)) {
+      errors.push(`ADR-${id}: leaves position "${position}" undeclared`);
+    }
+  }
+  return { adr: id, severities, errors };
+}
+
 /** Severity for a cell; undeclared cells are `off`. */
 function severityOf(
   declaration: IMatrixDeclaration,
@@ -224,6 +290,8 @@ class AdrMatrixDeclaration {
   static tablesIn = tablesIn;
   static codesIn = codesIn;
   static parse = parse;
+  static positionCodesIn = positionCodesIn;
+  static parsePositions = parsePositions;
   static severityOf = severityOf;
 }
 

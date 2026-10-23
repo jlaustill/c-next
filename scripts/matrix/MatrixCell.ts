@@ -8,6 +8,7 @@
  */
 
 import TMatrixContext from "../types/TMatrixContext";
+import TMatrixPosition from "../types/TMatrixPosition";
 import TMatrixRelationship from "../types/TMatrixRelationship";
 
 const CONTEXTS: readonly TMatrixContext[] = [
@@ -25,6 +26,24 @@ const RELATIONSHIPS: readonly TMatrixRelationship[] = [
   "exercised-from-one-away",
   "exercised-through-chain",
 ];
+
+/** #1618: the rows of a code's position table, in report order. */
+const POSITIONS: readonly TMatrixPosition[] = [
+  "declaration-initializer",
+  "assignment",
+  "array-element-assignment",
+  "struct-field-assignment",
+  "compound-assignment",
+  "return-statement",
+  "call-argument",
+  "array-element-initializer",
+  "struct-field-initializer",
+  "ternary-branch",
+];
+
+function isPosition(value: string): value is TMatrixPosition {
+  return (POSITIONS as readonly string[]).includes(value);
+}
 
 /**
  * Relationships the tooling can currently establish.
@@ -89,6 +108,8 @@ function relationshipForDepth(depth: number): TMatrixRelationship {
 class MatrixCell {
   static readonly CONTEXTS = CONTEXTS;
   static readonly RELATIONSHIPS = RELATIONSHIPS;
+  static readonly POSITIONS = POSITIONS;
+  static isPosition = isPosition;
   static key = key;
   static all = all;
   static isDerivable = isDerivable;

@@ -37,6 +37,8 @@ async function render(): Promise<{
   document: string;
   declarations: Map<string, IMatrixDeclaration>;
   occupancy: Awaited<ReturnType<typeof FixtureOccupancy.build>>;
+  positionDeclarations: Map<string, IMatrixDeclaration>;
+  positionOccupancy: Map<string, Map<string, string[]>>;
   declarationErrors: string[];
 }> {
   const declarations = AdrDeclarationReader.read(
@@ -51,12 +53,27 @@ async function render(): Promise<{
     testsDir,
     searchPaths,
   );
-  const declarationErrors = [...declarations.values()].flatMap((d) => d.errors);
+  const positionDeclarations = AdrDeclarationReader.readPositions(decisionsDir);
+  const positionOccupancy = FixtureOccupancy.positions(fixtures, testsDir);
+  const declarationErrors = [
+    ...declarations.values(),
+    ...positionDeclarations.values(),
+  ].flatMap((d) => d.errors);
   const document = await GeneratedMarkdown.format(
-    MatrixRenderer.renderDocument(declarations, occupancy),
+    [
+      MatrixRenderer.renderDocument(declarations, occupancy),
+      MatrixRenderer.renderPositions(positionDeclarations, positionOccupancy),
+    ].join("\n"),
     reportPath,
   );
-  return { document, declarations, occupancy, declarationErrors };
+  return {
+    document,
+    declarations,
+    occupancy,
+    positionDeclarations,
+    positionOccupancy,
+    declarationErrors,
+  };
 }
 
 function printViolations(
@@ -127,8 +144,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const { document, declarations, occupancy, declarationErrors } =
-    await render();
+  const {
+    document,
+    declarations,
+    occupancy,
+    positionDeclarations,
+    positionOccupancy,
+    declarationErrors,
+  } = await render();
   const violations = MatrixReport.violations(declarations, occupancy);
   const pending = MatrixReport.undeterminable(declarations);
 
@@ -197,6 +220,23 @@ async function main(): Promise<void> {
     );
   }
 
+  // #1618: a position declared `error` that no fixture reaches, or one left
+  // `off` that a fixture reaches, fails whatever context the fixtures are in.
+  const positionFailures = MatrixReport.positionViolations(
+    positionDeclarations,
+    positionOccupancy,
+  ).filter((v) => v.severity !== "warn");
+  if (positionFailures.length > 0) {
+    failures.push(
+      `${positionFailures.length} position(s) no fixture of the code reaches (\`error\`) or one reaches (\`off\`):`,
+    );
+    failures.push(
+      ...positionFailures.map(
+        (v) => `  ADR-${v.id}  ${v.position} (${v.severity})`,
+      ),
+    );
+  }
+
   if (failures.length > 0) {
     console.error(chalk.red(failures.join("\n")));
     if (errors.length > 0) {
@@ -247,7 +287,8 @@ async function main(): Promise<void> {
   console.log(
     chalk.green(
       `Scope-context matrix is satisfied ` +
-        `(${declarations.size} ADR(s), ${MatrixReport.obligationCount(declarations)} obligation(s))`,
+        `(${declarations.size} ADR(s), ${MatrixReport.obligationCount(declarations)} obligation(s), ` +
+        `${MatrixReport.obligationCount(positionDeclarations)} position obligation(s))`,
     ),
   );
 }

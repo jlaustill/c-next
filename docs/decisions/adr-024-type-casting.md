@@ -716,6 +716,50 @@ and an assignment is checked against the declared type of the variable or
 field it writes, not its root's: with `u32 a, b`, `u8 g` and a `u8` field `f`,
 both `g <- a + b` and `p.f <- a` are E0869 (narrowing).
 
+### Positions (#1618)
+
+A context cell says which declaration encloses a diagnostic, not which part of
+the statement it reports. E0869 at `u32 a <- wide;` and silence at
+`return wide;` in the same function both landed in `top-level function | same
+file`, so the declaration's fixture greened the cell while every return leaked.
+E0868 and E0869 therefore also declare a position table: each position a value
+lands in must be reached by a fixture asserting that code, whatever context
+the fixture is in.
+
+E0868's compound-assignment row is `off`: a compound lands its target and its
+value combined (`a +<- 300` lands `a + 300`), never a lone literal, so the
+literal-range rule has nothing there to check.
+
+<!-- MATRIX-POSITION code: E0868 -->
+
+| Position                  | Severity |
+| ------------------------- | -------- |
+| declaration initializer   | error    |
+| assignment                | error    |
+| array element assignment  | error    |
+| struct field assignment   | error    |
+| compound assignment       | off      |
+| return statement          | error    |
+| call argument             | error    |
+| array element initializer | error    |
+| struct field initializer  | error    |
+| ternary branch            | error    |
+
+<!-- MATRIX-POSITION code: E0869 -->
+
+| Position                  | Severity |
+| ------------------------- | -------- |
+| declaration initializer   | error    |
+| assignment                | error    |
+| array element assignment  | error    |
+| struct field assignment   | error    |
+| compound assignment       | error    |
+| return statement          | error    |
+| call argument             | error    |
+| array element initializer | error    |
+| struct field initializer  | error    |
+| ternary branch            | error    |
+
 ## References
 
 ### Vulnerability Research

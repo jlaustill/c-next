@@ -111,6 +111,7 @@ function at(
 
 class FixtureContext {
   static at = at;
+  static spans = spans;
 }
 
 export default FixtureContext;

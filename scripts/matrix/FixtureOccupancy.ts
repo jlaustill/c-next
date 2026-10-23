@@ -12,6 +12,7 @@ import { relative } from "node:path";
 
 import CnxSourceParser from "../../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import FixtureContext from "./FixtureContext";
+import FixturePosition from "./FixturePosition";
 import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";
 import MatrixRule from "./MatrixRule";
@@ -217,8 +218,55 @@ async function build(
   return result;
 }
 
+/**
+ * #1618: which positions each code's diagnostics land in, keyed by MatrixRule
+ * id and then by position, across every fixture tagged for that code's ADR.
+ */
+function positions(
+  fixturePaths: readonly string[],
+  testsDir: string,
+): Map<string, Map<string, string[]>> {
+  const result = new Map<string, Map<string, string[]>>();
+
+  for (const fixturePath of fixturePaths) {
+    let source: string;
+    try {
+      source = readFileSync(fixturePath, "utf-8");
+    } catch {
+      continue;
+    }
+    const adrs = TestUtils.findAdrReferences(source);
+    if (adrs.length === 0) continue;
+    const diagnostics = diagnosticPositions(
+      fixturePath.replace(/\.test\.cnx$/, ".expected.error"),
+    );
+    if (diagnostics.size === 0) continue;
+
+    const { tree } = CnxSourceParser.parse(source);
+    const shortPath = relative(testsDir, fixturePath);
+    for (const [code, codePositions] of diagnostics) {
+      if (code === null) continue;
+      for (const { line, column } of codePositions) {
+        if (column === undefined) continue;
+        const position = FixturePosition.at(tree, line, column);
+        if (position === null) continue;
+        for (const adr of adrs) {
+          const id = MatrixRule.id(adr, code);
+          const cells = result.get(id) ?? new Map<string, string[]>();
+          const occupants = cells.get(position) ?? [];
+          if (!occupants.includes(shortPath)) occupants.push(shortPath);
+          cells.set(position, occupants);
+          result.set(id, cells);
+        }
+      }
+    }
+  }
+  return result;
+}
+
 class FixtureOccupancy {
   static build = build;
+  static positions = positions;
 }
 
 export default FixtureOccupancy;

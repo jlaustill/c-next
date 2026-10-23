@@ -12,6 +12,7 @@ import MatrixRule from "./MatrixRule";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
 import IMatrixViolation from "../types/IMatrixViolation";
+import IPositionViolation from "../types/IPositionViolation";
 import TMatrixContext from "../types/TMatrixContext";
 import TMatrixRelationship from "../types/TMatrixRelationship";
 import TMatrixSeverity from "../types/TMatrixSeverity";
@@ -179,7 +180,28 @@ function ungatedCodes(
     .sort();
 }
 
+/**
+ * #1618: position rows the fixtures contradict -- `warn` or `error` with no
+ * fixture landing a diagnostic there, or `off` with one.
+ */
+function positionViolations(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>,
+): IPositionViolation[] {
+  const found: IPositionViolation[] = [];
+  for (const id of [...declarations.keys()].sort()) {
+    for (const [position, severity] of declarations.get(id)!.severities) {
+      const occupied = (occupancy.get(id)?.get(position)?.length ?? 0) > 0;
+      if (severity === "off" ? occupied : !occupied) {
+        found.push({ id, position, severity });
+      }
+    }
+  }
+  return found;
+}
+
 class MatrixReport {
+  static positionViolations = positionViolations;
   static isOccupied = isOccupied;
   static undeclaredRules = undeclaredRules;
   static ungatedCodes = ungatedCodes;

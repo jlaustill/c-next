@@ -138,7 +138,42 @@ function renderDocument(
   return parts.join("\n");
 }
 
+function positionCell(severity: string, occupants: number): string {
+  if (occupants > 0) return `ok (${occupants})`;
+  if (severity === "error") return "**MISSING**";
+  if (severity === "warn") return "warn";
+  return "-";
+}
+
+/** #1618: each code's position table, beside how many fixtures land there. */
+function renderPositions(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>,
+): string {
+  if (declarations.size === 0) return "";
+  const parts: string[] = [
+    "## Positions",
+    "",
+    "Which part of its statement each code's diagnostics land in, for a code whose",
+    "ADR declares a position table.",
+    "",
+  ];
+  for (const id of [...declarations.keys()].sort()) {
+    parts.push(`### ADR-${id}`, "");
+    parts.push("| Position | Severity | Fixtures |", "| --- | --- | --- |");
+    for (const [position, severity] of declarations.get(id)!.severities) {
+      const occupants = occupancy.get(id)?.get(position)?.length ?? 0;
+      parts.push(
+        `| ${position.replaceAll("-", " ")} | ${severity} | ${positionCell(severity, occupants)} |`,
+      );
+    }
+    parts.push("");
+  }
+  return parts.join("\n");
+}
+
 class MatrixRenderer {
+  static renderPositions = renderPositions;
   /** @public test seam: matrix-renderer.test.ts drives this module value directly */
   static readonly BANNER = BANNER;
   /** @public test seam: matrix-renderer.test.ts drives this module function directly */
