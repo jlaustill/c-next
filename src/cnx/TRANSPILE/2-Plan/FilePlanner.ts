@@ -1740,10 +1740,10 @@ class FilePlanner {
 
   /**
    * ADR-015 / #1610: each declaration whose zero is the null pointer -- a
-   * scalar with no initializer that is declared as a pointer, at file scope, in
-   * a scope or in a body. The pointer is the declaration's own `DeclaredPointer`
-   * answer, the one its `*` is written from, so the two cannot disagree. An
-   * array of handles keeps ADR-015's brace zero (#996).
+   * scalar with no initializer whose C value is a pointer, at file scope, in
+   * a scope or in a body. That is the declaration's own `DeclaredPointer`
+   * answer, the one its `*` is written from, or a pointer typedef (#957),
+   * which needs no `*`. An array of handles keeps ADR-015's brace zero (#996).
    */
   private planNullInitialized(
     program: IProgramSyntax,
@@ -1757,7 +1757,7 @@ class FilePlanner {
           !decl.initializer &&
           !unwrittenNodes.has(decl) &&
           !FilePlanner.isArrayDeclaration(decl) &&
-          this.state.isDeclaredPointer(decl),
+          this.state.holdsPointer(decl),
       ),
     );
   }

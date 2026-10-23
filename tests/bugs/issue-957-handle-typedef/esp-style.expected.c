@@ -13,9 +13,10 @@
 #include "esp_style.h"
 
 #include <stdint.h>
+#include <stddef.h>
 
 /* Scope: SPI */
-static spi_device_handle_t SPI__device = {0};
+static spi_device_handle_t SPI__device = NULL;
 
 void SPI__init(void) {
     (void)spi_device_init(&SPI__device);
