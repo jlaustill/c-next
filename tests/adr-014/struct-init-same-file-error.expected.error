@@ -1,0 +1,12 @@
+16:24 error[E0357]: Cannot infer struct type: nothing here says which struct this is
+       help: Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).
+17:25 error[E0358]: A struct initializer cannot be a value of 'u32', which is not a struct
+       help: Give a value of type 'u32'; only a struct takes '{ field: value }' (ADR-014).
+20:17 error[E0358]: A struct initializer cannot be a value of 'u32', which is not a struct
+       help: Give a value of type 'u32'; only a struct takes '{ field: value }' (ADR-014).
+24:23 error[E0357]: Cannot infer struct type: nothing here says which struct this is
+       help: Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).
+25:24 error[E0358]: A struct initializer cannot be a value of 'u32', which is not a struct
+       help: Give a value of type 'u32'; only a struct takes '{ field: value }' (ADR-014).
+28:22 error[E0358]: A struct initializer cannot be a value of 'u32', which is not a struct
+       help: Give a value of type 'u32'; only a struct takes '{ field: value }' (ADR-014).

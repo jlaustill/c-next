@@ -366,6 +366,59 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
 
+<!-- MATRIX-SEVERITY code: E0357 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0358 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0508 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+off: E0508 only fires outside a function body; inside a function or a method the fields are assigned as statements.
+
 E0357 is decided entirely within the file that writes the initializer, because
 whether the position supplies a type is a question about the initializer's own
 ancestors. E0358 asks which type the position supplies, and that type can be

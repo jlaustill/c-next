@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 014
+// #1620: `Point { x: 1 }` is a parse error in every context, not only in a
+// function (`struct-written-type-rejected-error`): at file scope, in a scope
+// method and in a scope member. The scope member stands last, alone in its
+// scope, because the parser's recovery after it consumes the rest of that
+// scope. The inferred form beside each is the control.
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+Point control <- { x: 1, y: 1 };
+Point atFileScope <- Point { x: 2, y: 2 };
+
+scope S {
+    public void method() {
+        Point ok <- { x: 3, y: 3 };
+        Point inside <- Point { x: 4, y: 4 };
+    }
+}
+
+scope T {
+    Point okMember <- { x: 5, y: 5 };
+    Point member <- Point { x: 6, y: 6 };
+}

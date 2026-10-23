@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 014
+// #1620: `Cfg { word: 1 }` is a parse error in every context when the struct
+// is declared two includes away, through a helper, as it is with no include. The
+// scope member stands last, alone in its scope, because the parser's recovery
+// after it consumes the rest of that scope. The inferred form beside each is
+// the control.
+#include "lib/struct-init-chain.cnx"
+
+Cfg control <- { word: 1, f: 0 };
+Cfg atFileScope <- Cfg { word: 2, f: 0 };
+
+void f() {
+    Cfg ok <- { word: 3, f: 0 };
+    Cfg local <- Cfg { word: 4, f: 0 };
+}
+
+scope S {
+    public void method() {
+        Cfg ok <- { word: 5, f: 0 };
+        Cfg inside <- Cfg { word: 6, f: 0 };
+    }
+}
+
+scope T {
+    Cfg okMember <- { word: 7, f: 0 };
+    Cfg member <- Cfg { word: 8, f: 0 };
+}
