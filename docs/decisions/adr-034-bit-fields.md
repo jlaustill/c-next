@@ -450,7 +450,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
-off: since #1620 only the bitmap field write lowering (`AdrProvenance.record("034", ...)`) occupies this table, and a field write is a statement, which no initializer can hold.
+off: since #1620 only the bitmap field write lowering occupies this table, and a field write is a statement, which no initializer can hold.
 
 <!-- MATRIX-SEVERITY code: E0857 -->
 
