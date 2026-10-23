@@ -1,0 +1,16 @@
+8:20 error[E0884]: safe_div takes exactly 4 arguments (output, numerator, divisor, defaultValue), not 3
+       help: The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).
+9:30 error[E0885]: safe_div writes its result to the first argument, and 'sharedHelper' is not a variable
+       help: The generated helper takes the output's address. Declare a variable of the result's type and pass that (ADR-051).
+17:11 error[E0884]: safe_div takes exactly 4 arguments (output, numerator, divisor, defaultValue), not 3
+       help: The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).
+18:20 error[E0885]: safe_div writes its result to the first argument, and 'sharedHelper' is not a variable
+       help: The generated helper takes the output's address. Declare a variable of the result's type and pass that (ADR-051).
+22:24 error[E0884]: safe_mod takes exactly 4 arguments (output, numerator, divisor, defaultValue), not 3
+       help: The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).
+23:34 error[E0885]: safe_mod writes its result to the first argument, and 'sharedHelper' is not a variable
+       help: The generated helper takes the output's address. Declare a variable of the result's type and pass that (ADR-051).
+31:15 error[E0884]: safe_mod takes exactly 4 arguments (output, numerator, divisor, defaultValue), not 5
+       help: The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).
+32:24 error[E0885]: safe_mod writes its result to the first argument, and 'sharedHelper' is not a variable
+       help: The generated helper takes the output's address. Declare a variable of the result's type and pass that (ADR-051).

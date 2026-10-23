@@ -1,0 +1,34 @@
+// test-error
+// test-adr: 051
+// E0884 and E0885 with the output and the non-variable named by an include, in
+// all four contexts. Matrix cells: imported transitive (2 hops).
+
+#include "safe-division-shape-relay.cnx"
+
+bool globalCount <- safe_div(sharedOutput, 10, 2);
+bool globalOutput <- safe_div(sharedHelper, 10, 2, 0);
+
+void topLevelFunction() {
+    mut bool err <- false;
+
+    // NEGATIVE CONTROL -- the imported variable is a valid output.
+    err <- safe_div(sharedOutput, 10, 2, 0);
+
+    err <- safe_div(sharedOutput, 10, 2);
+    err <- safe_div(sharedHelper, 10, 2, 0);
+}
+
+scope Widget {
+    bool memberCount <- safe_mod(sharedOutput, 10, 3);
+    bool memberOutput <- safe_mod(sharedHelper, 10, 3, 0);
+
+    public void method() {
+        mut bool err <- false;
+
+        // NEGATIVE CONTROL -- the imported variable is a valid output.
+        err <- safe_mod(sharedOutput, 10, 3, 0);
+
+        err <- safe_mod(sharedOutput, 10, 3, 0, 1);
+        err <- safe_mod(sharedHelper, 10, 3, 0);
+    }
+}

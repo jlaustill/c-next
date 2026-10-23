@@ -653,7 +653,24 @@ Severity follows the eslint model: `off` records that a cell cannot exist for th
 feature, `warn` that it should be covered and is not, `error` that it must be.
 Undeclared cells are `off`.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0800 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0802 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -734,12 +751,12 @@ for (x /<- 0; x < 5; x %<- ZERO) {} // E0800, E0802
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                      | Asserted by                                                                                                                          |
-| ----- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| E0800 | `/` or `/<-` by a compile-time zero: a literal, a const or a constant expression, integer or float | `tests/arithmetic/division-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx` |
-| E0802 | `%` or `%<-` by a compile-time zero: a literal, a const or a constant expression                   | `tests/arithmetic/modulo-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`   |
-| E0884 | `safe_div` or `safe_mod` is called with other than four arguments                                  | `tests/adr-051/safe-division-shape-error.test.cnx`                                                                                   |
-| E0885 | The first argument is not a variable that can receive the result                                   | `tests/adr-051/safe-division-shape-error.test.cnx`                                                                                   |
+| Code  | Reported when                                                                                      | Asserted by                                                                                                                                     |
+| ----- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0800 | `/` or `/<-` by a compile-time zero: a literal, a const or a constant expression, integer or float | `tests/arithmetic/division-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`            |
+| E0802 | `%` or `%<-` by a compile-time zero: a literal, a const or a constant expression                   | `tests/arithmetic/modulo-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`              |
+| E0884 | `safe_div` or `safe_mod` is called with other than four arguments                                  | `tests/adr-051/safe-division-shape-error.test.cnx`, `tests/adr-051/safe-division-shape-{contexts,imported-direct,imported-transitive}.test.cnx` |
+| E0885 | The first argument is not a variable that can receive the result                                   | `tests/adr-051/safe-division-shape-error.test.cnx`, `tests/adr-051/safe-division-shape-{contexts,imported-direct,imported-transitive}.test.cnx` |
 
 The result is written THROUGH the first argument, which is why it must be a
 variable rather than an expression: the generated helper takes its address. A
@@ -757,29 +774,44 @@ pointer parameter.
 Severity follows the eslint model: `off` records that a cell **cannot exist**,
 `warn` that it should be covered and is not, `error` that it must be.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0884 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
 | top-level function | same file           | error    |
-| scope method       | same file           | warn     |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
-| top-level function | imported direct     | off      |
-| scope method       | imported direct     | off      |
-| global variable    | imported direct     | off      |
-| scope member       | imported direct     | off      |
-| top-level function | imported transitive | off      |
-| scope method       | imported transitive | off      |
-| global variable    | imported transitive | off      |
-| scope member       | imported transitive | off      |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+<!-- MATRIX-SEVERITY code: E0885 -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
 
 Both rules are about the call as written -- how many arguments it has, and
-whether its first is a variable -- so nothing crosses an include and the
-imported cells record that they cannot exist. The two variable-initializer
-contexts are `off` for the same reason a call cannot appear there: `safe_div`
-returns a status that must be bound, and a file-scope initializer is not a
-statement that can bind one.
+whether its first is a variable -- so each holds wherever a call can stand,
+including a file-scope or scope-member initializer, and however far the names in
+the call reach across includes.
 
 ## Implementation Plan
 
