@@ -19,6 +19,7 @@
 #include "dev.h"
 
 #include <stdint.h>
+#include <stddef.h>
 
 /* Scope: UI */
 static Dev* UI__held = NULL;

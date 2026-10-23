@@ -5,11 +5,11 @@
 
 #include "test.test.hpp"
 
-// test-transpile-only
+// test-no-warnings
 #include "fake_lib.h"
 
 /* Scope: MyScope */
-static widget_t* MyScope__w = NULL;
+static widget_t* MyScope__w = nullptr;
 
 void MyScope__init(void) {
     MyScope__w = widget_create();

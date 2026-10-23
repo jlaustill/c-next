@@ -34,6 +34,8 @@ interface IEmissionFacts {
   readonly needsString: boolean;
   readonly needsCMSIS: boolean;
   readonly needsLimits: boolean;
+  /** #1610: the C file writes `NULL`, which `<stddef.h>` declares */
+  readonly needsStddef: boolean;
 
   readonly needsFloatStaticAssert: boolean;
   readonly needsIrqWrappers: boolean;

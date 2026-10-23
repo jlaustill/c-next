@@ -53,6 +53,7 @@ import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionFacts from "../../types/IEmissionFacts";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
 import type TStatement from "../../types/syntax/TStatement";
 import type IStructDeclarationSyntax from "../../types/syntax/IStructDeclarationSyntax";
@@ -1086,6 +1087,15 @@ class FilePlanner {
       ),
     };
     const types = this.planTypeSites(program, unwritten);
+    const nullInitializedMembers = this.planNullInitializedMembers(
+      program,
+      types,
+      inlinedConsts,
+    );
+    // #1610: the NULL a C file writes is declared by <stddef.h>
+    if (this.writesNull(program, unwritten, nullInitializedMembers)) {
+      requirements.require("stddef");
+    }
     // Each planned type is written once 2.3 is done, so its include is decided here
     for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -1214,6 +1224,7 @@ class FilePlanner {
       selfInclude,
       includeDirectives,
       inlinedConsts,
+      nullInitializedMembers,
       staticValues: statics.values,
       staticValueNotes: statics.notes,
       types,
@@ -1731,6 +1742,56 @@ class FilePlanner {
   }
 
   /** Every variable a scope declares, at any depth */
+  /**
+   * ADR-030 (#948, #996): each scalar scope member held through a pointer,
+   * which 2.3 initializes to the null pointer rather than ADR-015's zero
+   */
+  private planNullInitializedMembers(
+    program: IProgramSyntax,
+    types: ReadonlyMap<TTypeSyntax, IPlannedType>,
+    inlined: ReadonlySet<ISyntaxNode>,
+  ): ReadonlySet<IVariableDeclarationSyntax> {
+    const planned = new Set<IVariableDeclarationSyntax>();
+    for (const decl of FilePlanner.scopeVariables(program.declarations)) {
+      if (inlined.has(decl) || FilePlanner.isArrayDeclaration(decl)) continue;
+      const type = types.get(decl.type);
+      if (
+        type !== undefined &&
+        this.state.isHeldThroughPointer(this.cTypeOf(type))
+      ) {
+        planned.add(decl);
+      }
+    }
+    return planned;
+  }
+
+  /**
+   * #1610: whether the file's C writes `NULL` -- a written `NULL` literal, or
+   * a null-initialized scope member. C++ writes `nullptr`, which needs no
+   * header (`CppModeHelper.nullLiteral`).
+   */
+  private writesNull(
+    program: IProgramSyntax,
+    unwritten: IUnwrittenSyntax,
+    nullInitializedMembers: ReadonlySet<IVariableDeclarationSyntax>,
+  ): boolean {
+    if (this.state.cppMode) return false;
+    if (nullInitializedMembers.size > 0) return true;
+    return FilePlanner.writtenExpressions(program, unwritten).some(
+      (expression) =>
+        expression.kind === "literal" && expression.literalKind === "null",
+    );
+  }
+
+  /**
+   * Issue #500: both spellings make an array -- C-style trailing dimensions
+   * and the cnx array type. The one predicate for a local, a scope member
+   * and a file-scope variable.
+   */
+  static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
+    return decl.dimensions.length > 0 || decl.type.kind === "array";
+  }
+
   private static scopeVariables(
     declarations: readonly { readonly declaration: TDeclarationSyntax }[],
   ): ReadonlySet<IVariableDeclarationSyntax> {
@@ -2714,6 +2775,7 @@ class FilePlanner {
       needsString: requirements.requires("string"),
       needsCMSIS: requirements.requires("cmsis"),
       needsLimits: requirements.requires("limits"),
+      needsStddef: requirements.requires("stddef"),
       needsFloatStaticAssert: requirements.requires("float_static_assert"),
       needsIrqWrappers: requirements.requires("irq_wrappers"),
       needsISR: requirements.requires("isr"),

@@ -189,18 +189,10 @@ function renderRegularVariable(
   // ADR-045: Add string capacity dimension for string arrays
   decl += plan.renderStringCapacityDimension();
 
-  // Issue #948: Opaque types use NULL initialization instead of {0}
-  // Issue #958: External typedef struct types also use NULL initialization
-  // Issue #996: ...but only for SCALAR handles, which are single pointers. An
-  // *array* of opaque handles needs a brace initializer ({0}), not a scalar
-  // NULL -- which is why the plan's initializer thunk routes through
-  // getZeroInitializer(type, isArray), the single source of truth for
-  // zero-initialization (ADR-015).
-  if (isHandle && !plan.isArray) {
-    decl += " = NULL";
-  } else {
-    decl += plan.renderInitializer();
-  }
+  // Issue #948/#958/#996: a scalar handle is initialized to the null pointer
+  // and an array of them to ADR-015's zero; 2.2 decided which
+  // (`nullInitializedMembers`), so the initializer is the plan's
+  decl += plan.renderInitializer();
 
   return decl + ";";
 }

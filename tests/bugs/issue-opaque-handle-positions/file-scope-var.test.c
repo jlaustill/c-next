@@ -25,6 +25,7 @@
 #include "dev.h"
 
 #include <stdint.h>
+#include <stddef.h>
 
 Dev* gdev = {0};
 

@@ -15,7 +15,7 @@ Dev* shared = {};
 Dev* sharedPair[2] = {};
 
 /* Scope: Rack */
-Dev* Rack__unit = NULL;
+Dev* Rack__unit = nullptr;
 
 void Rack__attach(void) {
     Rack__unit = dev_create();

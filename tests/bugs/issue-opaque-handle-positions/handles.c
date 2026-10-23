@@ -10,6 +10,8 @@
 // `extern` there must say what the definition here says.
 #include "dev.h"
 
+#include <stddef.h>
+
 Dev* shared = {0};
 
 Dev* sharedPair[2] = {0};

@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 #include <string.h>
+#include <stddef.h>
 
 char buffer[257] = "";
 

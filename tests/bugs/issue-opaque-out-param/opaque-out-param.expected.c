@@ -28,6 +28,7 @@
 #include "devout.h"
 
 #include <stdint.h>
+#include <stddef.h>
 
 Dev* gdev = {0};
 

@@ -13,4 +13,4 @@
 Dev* shared = {};
 
 /* Scope: Rack */
-Dev* Rack__unit = NULL;
+Dev* Rack__unit = nullptr;

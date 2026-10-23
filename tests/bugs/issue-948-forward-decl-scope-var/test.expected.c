@@ -5,8 +5,10 @@
 
 #include "test.test.h"
 
-// test-transpile-only
+// test-no-warnings
 #include "fake_lib.h"
+
+#include <stddef.h>
 
 /* Scope: MyScope */
 static widget_t* MyScope__w = NULL;

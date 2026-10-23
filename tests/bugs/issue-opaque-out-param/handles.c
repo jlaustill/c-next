@@ -10,6 +10,8 @@
 // a handle -- a `Dev*` -- whose address an out-parameter takes.
 #include "devout.h"
 
+#include <stddef.h>
+
 Dev* shared = {0};
 
 /* Scope: Rack */

@@ -1996,7 +1996,7 @@ class CodeGenWalker {
     const isConst = !decl.modifiers.mut;
     const arrayDims = decl.dimensions;
     const arrayType = decl.type.kind === "array" ? decl.type : null;
-    const isArray = CodeGenWalker.isArrayDeclaration(decl);
+    const isArray = FilePlanner.isArrayDeclaration(decl);
 
     // Issue #282: 2.2 decided which private consts are inlined at their uses
     if (this.filePlan.inlinedConsts.has(decl)) {
@@ -2034,7 +2034,10 @@ class CodeGenWalker {
         ArrayDimensionUtils.renderStringCapacityDimension(
           FilePlanner.stringCapacityOf(decl.type),
         ),
-      renderInitializer: () => this.renderScopeInitializer(decl, isArray),
+      // #1610: the null pointer is spelled by mode, from one helper
+      renderInitializer: this.filePlan.nullInitializedMembers.has(decl)
+        ? () => ` = ${CppModeHelper.nullLiteral(this.host.state)}`
+        : () => this.renderScopeInitializer(decl, isArray),
       note: this.staticValueNote(decl),
     };
   }
@@ -2668,7 +2671,7 @@ class CodeGenWalker {
   ): IPlannedArrayDeclaration {
     const arrayDims = decl.dimensions;
     const typeDims = decl.type.kind === "array" ? decl.type.dimensions : null;
-    if (!CodeGenWalker.isArrayDeclaration(decl)) {
+    if (!FilePlanner.isArrayDeclaration(decl)) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -2711,15 +2714,6 @@ class CodeGenWalker {
           }
         : null,
     };
-  }
-
-  /**
-   * Issue #500: both spellings make an array -- C-style trailing dimensions
-   * and the cnx array type. The one predicate for a local, a scope member
-   * and a file-scope variable.
-   */
-  private static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
-    return decl.dimensions.length > 0 || decl.type.kind === "array";
   }
 
   /** How many dimensions a declaration states, in both spellings together */

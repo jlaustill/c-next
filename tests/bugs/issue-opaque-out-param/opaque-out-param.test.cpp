@@ -34,7 +34,7 @@ Dev* gdev = {};
 Dev* gdevs[2] = {};
 
 /* Scope: Board */
-static Dev* Board__held = NULL;
+static Dev* Board__held = nullptr;
 
 void Board__make(void) {
     dev_create_into(&Board__held);
