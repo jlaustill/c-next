@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-885 fixture(s) assert a diagnostic; 871 carry a code.
+892 fixture(s) assert a diagnostic; 878 carry a code.
 
 | Fixture                                                                                                   | Codes                             |
 | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
@@ -201,6 +201,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-024/conversion-imported-transitive-error.test.cnx                                               | E0869                             |
 | tests/adr-024/conversion-in-scope-error.test.cnx                                                          | E0869                             |
 | tests/adr-024/conversion-other-scope-error.test.cnx                                                       | E0869                             |
+| tests/adr-024/conversion-positions-contexts-error.test.cnx                                                | E0868, E0869                      |
+| tests/adr-024/conversion-positions-imported-direct-error.test.cnx                                         | E0869                             |
+| tests/adr-024/conversion-positions-imported-transitive-error.test.cnx                                     | E0869                             |
 | tests/adr-024/conversion-scope-imported-direct-error.test.cnx                                             | E0869                             |
 | tests/adr-024/conversion-scope-imported-transitive-error.test.cnx                                         | E0869                             |
 | tests/adr-024/float-imported-direct-error.test.cnx                                                        | E0891                             |
@@ -648,6 +651,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx            | E0427                             |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx              | E0427                             |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                            | E0427                             |
+| tests/bugs/issue-1618-conversion-positions/c-source-positions-rejected.test.cnx                           | E0869                             |
+| tests/bugs/issue-1618-conversion-positions/literal-positions-rejected.test.cnx                            | E0868                             |
+| tests/bugs/issue-1618-conversion-positions/narrowing-positions-rejected.test.cnx                          | E0869                             |
+| tests/bugs/issue-1618-conversion-positions/sign-positions-rejected.test.cnx                               | E0869                             |
 | tests/bugs/issue-1624-variable-above-declaration/variable-above-declaration.test.cnx                      | E0427                             |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling.test.cnx                        | E0713                             |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-undeclared.test.cnx                                | E0427                             |
