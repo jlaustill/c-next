@@ -230,9 +230,15 @@ class IntegerConversionCheck {
       ) &&
       OperandTyper.constantOf(expr, this.context) !== null;
     const isLeaf = (expr: TExpression): boolean => {
-      if (expr.kind === "binary")
-        IntegerConversionCheck.assignRoles(expr, roles);
-      return roles.get(expr) === "exempt" || constant(expr);
+      const inherited = roles.get(expr) ?? "value";
+      if (expr.kind === "binary") {
+        IntegerConversionCheck.assignRoles(expr, roles, inherited);
+      } else if (expr.kind === "parenthesized") {
+        roles.set(expr.expression, inherited);
+      } else if (expr.kind === "unary") {
+        roles.set(expr.operand, inherited);
+      }
+      return constant(expr);
     };
     for (const leaf of OperandTyper.valueLeafExpressions(value, isLeaf)) {
       const leafRole = roles.get(leaf) ?? "value";
@@ -269,14 +275,21 @@ class IntegerConversionCheck {
   private static assignRoles(
     expr: Extract<TExpression, { kind: "binary" }>,
     roles: Map<TExpression, TLiteralRole>,
+    inherited: TLiteralRole,
   ): void {
+    // Inside an exempt operand, only a `+ - *` level hands its literal to a
+    // clamp or a wrap; any other level stays exempt with its parent
+    const arithmetic =
+      expr.level === "additive" || expr.level === "multiplicative";
     expr.operands.forEach((operand, index) => {
       roles.set(
         operand,
-        IntegerConversionCheck.roleOf(
-          expr.operators[index - 1] ?? null,
-          expr.operators[index] ?? null,
-        ),
+        inherited === "exempt" && !arithmetic
+          ? "exempt"
+          : IntegerConversionCheck.roleOf(
+              expr.operators[index - 1] ?? null,
+              expr.operators[index] ?? null,
+            ),
       );
     });
   }

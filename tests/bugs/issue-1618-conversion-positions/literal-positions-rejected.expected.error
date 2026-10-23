@@ -26,3 +26,7 @@
        help: Widen the target type, or drop the bits it cannot hold.
 39:10 error[E0868]: Value 0x1FF has bits outside u8's 8 bits
        help: Widen the target type, or drop the bits it cannot hold.
+40:15 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+41:18 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
