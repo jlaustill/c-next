@@ -420,16 +420,19 @@ exist**, `warn` that it should be covered and is not, `error` that it must be.
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors).
+off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors), nor in a `for` header's declaration, whose initializer is an expression (`for (mut u32 i <- forever {}; ...)` is a parse error).
 
 <!-- MATRIX-SEVERITY code: E0707 -->
 
@@ -439,16 +442,19 @@ off: a loop is a statement, so it cannot stand in a global or scope-member decla
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors).
+off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors), nor in a `for` header's declaration. E0707 is reported at the `for` keyword or at the condition, and neither is inside the declaration.
 
 <!-- MATRIX-SEVERITY code: E0715 -->
 
@@ -458,23 +464,27 @@ off: a loop is a statement, so it cannot stand in a global or scope-member decla
 | scope method       | same file           | error    |
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
+| for header         | same file           | off      |
 | top-level function | imported direct     | error    |
 | scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
+| for header         | imported direct     | off      |
 | top-level function | imported transitive | error    |
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
+| for header         | imported transitive | off      |
 
-off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors). A `for` header exists only in a function body.
+off: a loop is a statement, so it cannot stand in a global or scope-member declaration (`forever`, `for` and `while` at file or scope level are parse errors). A `for` header exists only in a function body. Its declaration is not an assignment. Its initializer is a C initialization, so `for (atomic u64 i <- big; ...)` lowers to one C declaration. A string or array declared there is E0917, and a slice or bit write cannot be written in a declaration.
 
 A loop is a **statement**: it stands in a function body and nowhere else, so the
-two declaration contexts are `off`. E0705 and E0707 read only facts in the file
-holding the loop -- the keyword, the header's condition, the two literals, the
-enclosing function's declared type. E0715 also reads the header target's type
-and whether it is declared `atomic`, and the target may be declared in an
-included file, so the imported cells of both function contexts are `error`.
+declaration contexts, a `for` header's declaration among them, are `off`. E0705
+and E0707 read only facts in the file holding the loop -- the keyword, the
+header's condition, the two literals, the enclosing function's declared type.
+E0715 also reads the header target's type and whether it is declared `atomic`,
+and the target may be declared in an included file, so the imported cells of
+both function contexts are `error`.
 
 Since #1322 the four rules are decided during analysis, each at the position
 of the loop, condition or clause that commits it, and every offense in a file
