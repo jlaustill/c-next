@@ -373,14 +373,19 @@ describe("ScopeGenerator", () => {
 
     // Issues #948 and #958 named one state twice: a typedef of a
     // forward-declared struct, now one handle mark (#1668)
-    it("emits a handle as a NULL-initialized pointer", () => {
+    // #1610: 2.2 plans the null initializer and spells it by mode, so the
+    // generator renders it rather than writing its own `NULL`
+    it("emits a handle as a pointer carrying the planned null initializer", () => {
       const orchestrator = createMockOrchestrator({ isOpaque: true });
 
       const result = generateScope(
         scope({
           members: [
             member({
-              variable: regular({ renderType: () => "Handle" }),
+              variable: regular({
+                renderType: () => "Handle",
+                renderInitializer: () => " = NULL",
+              }),
             }),
           ],
         }),
