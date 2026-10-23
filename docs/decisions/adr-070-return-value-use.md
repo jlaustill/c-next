@@ -264,7 +264,7 @@ or reached through an intermediate — and #847 shipped with the cross-file case
 silently unenforced precisely because nothing exercised it. All three
 relationships are `error` in both live rows.
 
-<!-- MATRIX-SEVERITY -->
+<!-- MATRIX-SEVERITY code: E0708 -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
@@ -280,6 +280,8 @@ relationships are `error` in both live rows.
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | off      |
 | scope method       | imported transitive | error    |
+
+off: E0708 cannot fire in a global-variable or scope-member position, because a bare call there is a parse error.
 
 Six cells are `error` and all six are occupied — see
 `docs/scope-context-matrix.md`. Three of the six were reached only by fixtures
