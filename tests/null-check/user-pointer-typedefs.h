@@ -2,6 +2,7 @@
 #define USER_POINTER_TYPEDEFS_H
 /* #1610 review: C typedefs that name a pointer type but not a struct pointer */
 typedef void *vhandle_t;
+typedef vhandle_t vh2_t; /* a typedef OF a pointer typedef: no `*` of its own */
 typedef int *intp_t;
 typedef void (*isr_t)(void);
 

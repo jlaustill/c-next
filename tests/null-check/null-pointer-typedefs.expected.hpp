@@ -16,6 +16,7 @@ extern "C" {
 extern vhandle_t gv;
 extern intp_t gi;
 extern isr_t gcb;
+extern vh2_t gchain;
 
 /* Function prototypes */
 void Board__load(void);

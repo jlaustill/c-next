@@ -8,7 +8,8 @@
 // test-no-warnings
 // Tests: a C typedef that names a pointer type zeroes to the null pointer (#1610)
 // `void *`, `int *` and a function pointer are pointers spelled with no `*`, so
-// their zero is NULL / nullptr (MISRA C:2012 Rule 11.9) at every declaration site.
+// their zero is NULL / nullptr (MISRA C:2012 Rule 11.9) at every declaration site,
+// as is a typedef of one (`vh2_t`), whose own declared type has no `*` either.
 #include "user-pointer-typedefs.h"
 
 #include <stdint.h>
@@ -19,13 +20,17 @@ intp_t gi = nullptr;
 
 isr_t gcb = nullptr;
 
+vh2_t gchain = nullptr;
+
 /* Scope: Board */
 static vhandle_t Board__sv = nullptr;
 static isr_t Board__scb = nullptr;
+static vh2_t Board__schain = nullptr;
 
 void Board__load(void) {
     Board__sv = user_handle();
     Board__scb = user_pick_isr();
+    Board__schain = user_handle();
 }
 
 int main(void) {
@@ -37,6 +42,9 @@ int main(void) {
     lv = user_handle();
     isr_t lcb = nullptr;
     lcb = user_pick_isr();
+    vh2_t lchain = nullptr;
+    lchain = user_handle();
+    gchain = lchain;
     gv = lv;
     gcb = lcb;
     return 0U;
