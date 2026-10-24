@@ -7,6 +7,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,6 +15,7 @@ extern "C" {
 
 /* External variables */
 extern uint8_t witness;
+extern bool matched;
 
 #ifdef __cplusplus
 }

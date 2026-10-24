@@ -5,13 +5,14 @@
 #include "user-pointer-typedefs.h"
 
 mut u8 witness;
+mut bool matched;
 
 u32 main() {
     vhandle_t first <- user_handle();
     for (mut vhandle_t h; witness < 1; witness +<- 1) {
         h <- user_handle();
         if (h = first) {
-            witness +<- 1;
+            matched <- true;
         }
     }
     return 0;

@@ -12,6 +12,7 @@
 #include "user-pointer-typedefs.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -28,12 +29,14 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 uint8_t witness = 0;
 
+bool matched = false;
+
 int main(void) {
     const vhandle_t first = user_handle();
     for (vhandle_t h; witness < 1; witness = cnx_clamp_add_u8(witness, 1U)) {
         h = user_handle();
         if (h == first) {
-            witness = cnx_clamp_add_u8(witness, 1U);
+            matched = true;
         }
     }
     return 0U;
