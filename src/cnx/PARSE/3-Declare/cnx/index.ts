@@ -100,13 +100,7 @@ class CnxResolver {
     // Pass 1: Collect all bitmaps, including those in scopes. Whether a
     // register member's type IS a bitmap is not decided here: the bitmap may be
     // another file's, which only 1.4 Resolve can see (#1514).
-    CnxResolver.collectBitmapsPass1(
-      registry,
-      program,
-      sourceFile,
-      symbols,
-      isScopeType,
-    );
+    CnxResolver.collectBitmapsPass1(registry, program, sourceFile, symbols);
 
     // Pass 2: Collect everything else
     CnxResolver.collectAllPass2(
@@ -214,7 +208,6 @@ class CnxResolver {
 
   /**
    * Pass 1: Collect all bitmaps (including those in scopes).
-   * Also collects structs in scopes early for type availability.
    * SonarCloud S3776: Refactored to use helper methods.
    */
   private static collectBitmapsPass1(
@@ -222,7 +215,6 @@ class CnxResolver {
     program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
-    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     // #1298: file scope is the empty path; the global scope object itself is
     // only needed where a mutable member list is.
@@ -240,37 +232,30 @@ class CnxResolver {
         symbols.push(symbol);
       }
 
-      // Bitmaps and structs inside scopes (collected early)
+      // Bitmaps inside scopes (collected early)
       if (syntax.kind === "scope") {
-        CnxResolver.collectScopedBitmapsAndStructs(
-          registry,
-          syntax,
-          sourceFile,
-          symbols,
-          isScopeType,
-        );
+        CnxResolver.collectScopedBitmaps(registry, syntax, sourceFile, symbols);
       }
     }
   }
 
   /**
-   * Collect bitmaps and structs from within a scope declaration.
+   * Collect bitmaps from within a scope declaration.
    * SonarCloud S3776: Extracted from collectBitmapsPass1().
    */
-  private static collectScopedBitmapsAndStructs(
+  private static collectScopedBitmaps(
     registry: SymbolRegistry,
     scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
-    isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const scopeName = scopeSyntax.name;
     const scopePath = ScopeUtils.pathOf(registry.getOrCreateScope(scopeName));
 
     for (const member of scopeSyntax.members) {
       const declaration = member.declaration;
-      // #1300: these are the scoped bitmap and struct symbols that SURVIVE --
-      // `collectScopeDeclaration` drops ScopeCollector's copies of both kinds.
+      // #1300: these are the scoped bitmap symbols that SURVIVE --
+      // `collectScopeDeclaration` drops ScopeCollector's copies of them.
       // Ask the same helper that pass 2 asks, so one fact has one answer.
       const visibility = ScopeUtils.memberVisibility(
         member.visibility,
@@ -286,24 +271,12 @@ class CnxResolver {
         );
         symbols.push(symbol);
       }
-
-      // Collect structs early so they're available as types
-      if (declaration.kind === "struct") {
-        const symbol = StructCollector.collect(
-          declaration,
-          sourceFile,
-          scopePath,
-          visibility,
-          isScopeType,
-        );
-        symbols.push(symbol);
-      }
     }
   }
 
   /**
    * Pass 2: Collect all remaining symbols.
-   * Bitmaps and scoped structs were already collected in pass 1.
+   * Bitmaps were already collected in pass 1.
    */
   private static collectAllPass2(
     registry: SymbolRegistry,
@@ -421,7 +394,7 @@ class CnxResolver {
   }
 
   /**
-   * Collect scope declaration and its non-bitmap/non-struct members.
+   * Collect scope declaration and its non-bitmap members.
    */
   private static _collectScopeDeclaration(
     registry: SymbolRegistry,
@@ -439,9 +412,14 @@ class CnxResolver {
 
     symbols.push(result.scopeSymbol);
 
-    // Add member symbols, but skip bitmaps and structs (already collected in pass 1)
+    // Add member symbols, but skip bitmaps (already collected in pass 1).
+    // #1332: a scope's structs are collected HERE, in source order with the
+    // top-level ones. The header defines structs in symbol order, so collecting
+    // them ahead of every top-level struct defined `S__Holder { Config c; }`
+    // before `Config`. ADR-030 (define before use) is what makes source order a
+    // valid order to define them in.
     for (const memberSymbol of result.memberSymbols) {
-      if (memberSymbol.kind === "bitmap" || memberSymbol.kind === "struct") {
+      if (memberSymbol.kind === "bitmap") {
         continue;
       }
       symbols.push(memberSymbol);

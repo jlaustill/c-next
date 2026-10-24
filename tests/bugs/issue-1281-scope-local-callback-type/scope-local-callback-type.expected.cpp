@@ -93,16 +93,14 @@ uint32_t Shadow__run(void) {
     return w.c();
 }
 
-// The control uses a global ENUM rather than a global struct, deliberately: a
-// scope struct whose field names a global STRUCT is emitted before that struct's
-// typedef, so the header does not compile. That is a pre-existing ordering
-// defect on main (#1332), unrelated to kind-awareness -- routing
-// around it keeps this fixture pinning the rule it is here for.
+// The control's field names the global STRUCT `Config` above, the same type
+// `Shadow` captures: the scope variable shares its name but is not type-forming,
+// so the field stays the global struct.
 /* Scope: NoCapture */
 
 uint32_t NoCapture__run(void) {
-    const NoCapture__Holder h = { .m = Mode__BETA };
-    return cnx_clamp_add_u32(static_cast<uint32_t>(h.m), 5U);
+    const NoCapture__Holder h = { .c = { .x = 2U } };
+    return cnx_clamp_add_u32(h.c.x, 5U);
 }
 
 int main(void) {
