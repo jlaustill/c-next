@@ -19,11 +19,14 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExecFailure from "../src/cnx/utils/ExecFailure";
@@ -422,6 +425,7 @@ function runMisra() {
   );
   console.log(`Running MISRA on ${misraFiles.length} C files...`);
   checkAddonHasGuardedRules();
+  checkDumpParserReadsThisCppcheck();
 
   // MisraBaseline owns the cppcheck invocation and the failure decision:
   //   - buildArgs() enables `--enable=style` so the addon actually reports (#1057)
@@ -522,6 +526,35 @@ function checkAddonHasGuardedRules() {
         `MISRA_GUARDS names cppcheck as the guard for Rule ${rule}, and this addon has no check for it`,
       );
     }
+  }
+}
+
+/**
+ * #1610: the Rule 11.9 dump guard reads attributes of cppcheck's `--dump`
+ * (`isPointer`, `isArray`, the `{ 0 }` tokens). A cppcheck that names or
+ * splits them differently would make `MisraDump.findings` silently find
+ * nothing, so this cppcheck's dump of a known violation must yield exactly it.
+ */
+function checkDumpParserReadsThisCppcheck() {
+  const dir = mkdtempSync(join(tmpdir(), "cnx-misra-dump-"));
+  try {
+    const probe = join(dir, "probe.c");
+    writeFileSync(probe, "static int *p = {0};\n", "utf-8");
+    if (runMisraOn(probe) === null) return;
+    const dumpFile = `${probe}.dump`;
+    const dump = existsSync(dumpFile) ? readFileSync(dumpFile, "utf-8") : "";
+    const found = MisraDump.findings(dump).filter((violation) =>
+      MisraDump.RULES.includes(violation.ruleId),
+    );
+    if (found.length !== 1) {
+      reportFailure(
+        "MISRA",
+        "dump probe",
+        `MisraDump found ${found.length} Rule 11.9 violations in this cppcheck's dump of \`static int *p = {0};\`, not 1, so it cannot be relied on to find any`,
+      );
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 }
 

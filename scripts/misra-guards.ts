@@ -109,7 +109,7 @@ function compileProbe(): string {
       "utf-8",
     );
     const toolchain = TargetMatrix.toolchainFor(TargetMatrix.HOST);
-    if (typeof toolchain === "string") return toolchain;
+    if (typeof toolchain === "string") throw new Error(toolchain);
     const result = TestUtils.compileTranslationUnit(
       unit,
       dir,
