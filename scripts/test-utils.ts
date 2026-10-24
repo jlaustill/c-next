@@ -767,15 +767,14 @@ class TestUtils {
   /**
    * #1610: MISRA C:2012 Rule 11.9 in generated C++ -- a literal `0` used as a
    * null pointer fails the compile, so a generated null cannot regress to `0`
-   * or `{0}`. Only the host cell asks: how generated code spells a null does
-   * not depend on the target, and avr-g++ 7.3 misfires on code with no
-   * pointer in it (the `}` closing `int main` and `x << 0`): #2327.
+   * or `{0}`. Every C++ cell asks but AVR's: avr-g++ 7.3 misfires on code with
+   * no pointer in it (the `}` closing `int main` and `x << 0`): #2327.
    */
   static nullPointerConstantFlags(
     compiler: string,
     toolchain: IGccToolchain,
   ): string[] {
-    return compiler === "g++" && toolchain.driverPrefix === ""
+    return compiler === "g++" && toolchain.driverPrefix !== "avr-"
       ? ["-Wzero-as-null-pointer-constant"]
       : [];
   }

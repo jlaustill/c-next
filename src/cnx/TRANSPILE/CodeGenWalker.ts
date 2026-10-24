@@ -407,13 +407,15 @@ class CodeGenWalker {
   }
 
   /**
-   * #1610: why a pointer declared without a value starts as `NULL`. C's rule
-   * alone: C++ writes `nullptr`, which is not an integer constant at all
+   * #1610: why a pointer declared without a value starts as `NULL`. Asked of
+   * the spelling `zeroOf` writes, so the note follows it: `nullptr` is not an
+   * integer constant, and the rule has nothing to say about it
    */
   private nullPointerNote(declaration: ISyntaxNode): string {
     const nullInitialized: ReadonlySet<ISyntaxNode> =
       this.filePlan.nullInitialized;
-    return nullInitialized.has(declaration) && !this.host.state.cppMode
+    return nullInitialized.has(declaration) &&
+      CppModeHelper.nullLiteral(this.host.state) === "NULL"
       ? ComplianceAnnotations.render(ComplianceAnnotations.NULL_POINTER) + "\n"
       : "";
   }

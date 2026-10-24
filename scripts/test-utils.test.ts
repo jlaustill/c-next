@@ -50,6 +50,11 @@ describe("test-utils exports", () => {
 describe("TestUtils.nullPointerConstantFlags (#1610)", () => {
   const host = { driverPrefix: "", archFlags: [], cmsisCore: false };
   const avr = { driverPrefix: "avr-", archFlags: [], cmsisCore: false };
+  const arm = {
+    driverPrefix: "arm-none-eabi-",
+    archFlags: [],
+    cmsisCore: true,
+  };
 
   it("rejects a literal 0 used as a null pointer in host C++", () => {
     expect(TestUtils.nullPointerConstantFlags("g++", host)).toEqual([
@@ -61,7 +66,13 @@ describe("TestUtils.nullPointerConstantFlags (#1610)", () => {
     expect(TestUtils.nullPointerConstantFlags("gcc", host)).toEqual([]);
   });
 
-  it("asks nothing of a cross driver (avr-g++ 7.3 misfires)", () => {
+  it("rejects it in Cortex-M C++ too", () => {
+    expect(TestUtils.nullPointerConstantFlags("g++", arm)).toEqual([
+      "-Wzero-as-null-pointer-constant",
+    ]);
+  });
+
+  it("asks nothing of the AVR driver (avr-g++ 7.3 misfires, #2327)", () => {
     expect(TestUtils.nullPointerConstantFlags("g++", avr)).toEqual([]);
   });
 });

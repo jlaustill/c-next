@@ -1,0 +1,18 @@
+// test-no-warnings
+// Tests: a `for` header's pointer declaration plans no null (#1610 review 7)
+// The header is written without ADR-015's zero (#2334 decides whether it gets
+// one), so this file writes no NULL and must not include <stddef.h> for one.
+#include "user-pointer-typedefs.h"
+
+mut u8 witness;
+
+u32 main() {
+    vhandle_t first <- user_handle();
+    for (mut vhandle_t h; witness < 1; witness +<- 1) {
+        h <- user_handle();
+        if (h = first) {
+            witness +<- 1;
+        }
+    }
+    return 0;
+}

@@ -1762,19 +1762,36 @@ class FilePlanner {
     );
   }
 
-  /** Every variable the file declares: at file scope, in a scope, in a body */
+  /**
+   * Every variable the file declares with ADR-015's zero: at file scope, in a
+   * scope, in a body. A `for` header's declaration is not one: the header is
+   * written without ADR-015's zero today (#2334 decides whether it gets one),
+   * so planning it a null would raise `<stddef.h>` for a `NULL` nothing writes.
+   */
   private static variableDeclarations(
     program: IProgramSyntax,
   ): IVariableDeclarationSyntax[] {
-    return program.declarations.flatMap((entry) => [
-      ...(entry.declaration.kind === "variableDeclaration"
-        ? [entry.declaration]
-        : []),
-      ...FilePlanner.scopeVariables([entry]),
-      ...StatementNodes.in(entry.declaration).flatMap((statement) =>
-        statement.kind === "variableDeclaration" ? [statement] : [],
-      ),
-    ]);
+    return program.declarations.flatMap((entry) => {
+      const statements = StatementNodes.in(entry.declaration);
+      const forHeaders = new Set<TStatement>(
+        statements.flatMap((statement) =>
+          statement.kind === "for" && statement.init !== null
+            ? [statement.init]
+            : [],
+        ),
+      );
+      return [
+        ...(entry.declaration.kind === "variableDeclaration"
+          ? [entry.declaration]
+          : []),
+        ...FilePlanner.scopeVariables([entry]),
+        ...statements.flatMap((statement) =>
+          statement.kind === "variableDeclaration" && !forHeaders.has(statement)
+            ? [statement]
+            : [],
+        ),
+      ];
+    });
   }
 
   /**
