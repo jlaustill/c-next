@@ -307,6 +307,38 @@ describe("CnxResolver Integration", () => {
     });
   });
 
+  describe("source order (#1332)", () => {
+    // The header defines structs in the order their symbols come out here, so
+    // that order must be the source order: ADR-030 (define before use) makes it
+    // the one order in which every struct follows the types its fields name.
+    it("returns scope structs and top-level structs in source order", () => {
+      const code = `
+        struct Config {
+          u32 x;
+        }
+        scope S {
+          public struct Holder {
+            Config c;
+          }
+        }
+        struct Top {
+          S.Holder h;
+        }
+      `;
+      const tree = parse(code);
+      const symbols = CnxResolver.resolve(
+        ProgramLowering.program(tree, null),
+        "test.cnx",
+        registry,
+      ).symbols;
+
+      const structNames = symbols
+        .filter((s) => SymbolGuards.isStruct(s))
+        .map((s) => s.cnxScopedName);
+      expect(structNames).toEqual(["Config", "S.Holder", "Top"]);
+    });
+  });
+
   describe("complex programs", () => {
     it("resolves a complete embedded program", () => {
       const code = `

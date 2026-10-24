@@ -31,8 +31,9 @@
  * to update this file.
  *
  * `this.T`, `global.T` and `Scope.T` are separate grammar branches that state
- * their scope outright; they are not `userType` and are deliberately not
- * checked here.
+ * their scope outright. They are checked for define-before-use only (#1332:
+ * the header defines types in source order, so a qualified use above its
+ * definition is unknown to gcc); whether they name a type at all is #1458.
  */
 
 import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
@@ -86,6 +87,23 @@ class UndeclaredTypeWalk {
           scope,
           type.span.line,
           type.span.column,
+        );
+        return;
+      case "scoped":
+        this.analyzer.checkQualifiedUse(
+          type.text,
+          scope ? `${scope}.${type.name}` : type.name,
+          type.span,
+        );
+        return;
+      case "global":
+        this.analyzer.checkQualifiedUse(type.text, type.name, type.span);
+        return;
+      case "qualified":
+        this.analyzer.checkQualifiedUse(
+          type.text,
+          type.path.join("."),
+          type.span,
         );
         return;
       case "array":
@@ -154,7 +172,8 @@ class UndeclaredTypeAnalyzer {
     if (BUILTIN_TYPE_NAMES.has(typeName)) {
       return;
     }
-    const definition = this.definitionAfter(typeName, scope, line, column);
+    const spellings = scope ? [`${scope}.${typeName}`, typeName] : [typeName];
+    const definition = this.definitionAfter(spellings, line, column);
     if (definition !== null) {
       this.addUsedBeforeDefinitionError(typeName, line, column, definition);
       return;
@@ -170,15 +189,39 @@ class UndeclaredTypeAnalyzer {
   }
 
   /**
-   * The definition of the type this file declares under the name a use at
-   * `line:column` spells, when that definition has not closed by then -- it
-   * comes later in the file, or the use sits inside it (a struct holding
-   * itself). Null when the name is not this file's type, or is defined above.
-   * The scope-qualified spelling is tried first, as `isVisibleType` does.
+   * A `this.T`, `global.T` or `Scope.T` use: `scopedName` is the type's
+   * `cnxScopedName` as the qualifier states it, so there is one spelling to try.
+   */
+  checkQualifiedUse(
+    written: string,
+    scopedName: string,
+    span: ISourceSpan,
+  ): void {
+    const definition = this.definitionAfter(
+      [scopedName],
+      span.line,
+      span.column,
+    );
+    if (definition !== null) {
+      this.addUsedBeforeDefinitionError(
+        written,
+        span.line,
+        span.column,
+        definition,
+      );
+    }
+  }
+
+  /**
+   * The definition of the type this file declares under the first of
+   * `spellings` it declares, when that definition has not closed by
+   * `line:column` -- it comes later in the file, or the use sits inside it (a
+   * struct holding itself). Null when no spelling is this file's type, or it is
+   * defined above. A bare use passes its scope-qualified spelling first, as
+   * `isVisibleType` tries it.
    */
   definitionAfter(
-    typeName: string,
-    scope: string,
+    spellings: readonly string[],
     line: number,
     column: number,
   ): ISourceSpan | null {
@@ -193,7 +236,6 @@ class UndeclaredTypeAnalyzer {
             : [],
         ),
     );
-    const spellings = scope ? [`${scope}.${typeName}`, typeName] : [typeName];
     const name = spellings.find((spelling) => this.typesHere!.has(spelling));
     const span = name === undefined ? undefined : this.typesHere.get(name);
     if (span === undefined) {
