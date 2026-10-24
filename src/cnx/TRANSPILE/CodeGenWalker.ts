@@ -9,6 +9,7 @@ import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
 import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
 import type IRenderedSource from "./3-Render/codegen/types/IRenderedSource";
 import userCType from "../utils/userCType";
+import TYPE_MAP from "./2-Plan/types/TYPE_MAP";
 /**
  * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
  * that drives code generation.
@@ -416,13 +417,109 @@ class CodeGenWalker {
     if (expr.kind !== "ternary") {
       return { kind: "value", code: this.renderBinary(expr) };
     }
-    const { condition, whenTrue, whenFalse } = expr;
-    return {
-      kind: "ternary",
-      renderCondition: () => this.renderBinary(condition),
-      renderTrue: () => this.renderBinary(whenTrue),
-      renderFalse: () => this.renderBinary(whenFalse),
-    };
+    const condition = this.renderBinary(expr.condition);
+    const whenTrue = this.renderQueuing(() => this.renderBinary(expr.whenTrue));
+    const whenFalse = this.renderQueuing(() =>
+      this.renderBinary(expr.whenFalse),
+    );
+    if (whenTrue.queued.length === 0 && whenFalse.queued.length === 0) {
+      return {
+        kind: "ternary",
+        renderCondition: () => condition,
+        renderTrue: () => whenTrue.code,
+        renderFalse: () => whenFalse.code,
+      };
+    }
+    const typeName =
+      this.filePlan.expectedTypes.get(expr)?.type ??
+      OperandTyper.typeOf(expr, this.host.state.typingContext())?.typeName;
+    invariant(
+      typeName !== undefined && typeName !== null,
+      `the ternary on line ${expr.span.line} that builds a temporary in an arm has a type`,
+    );
+    const cType =
+      TYPE_MAP[typeName] ??
+      userCType(
+        typeName,
+        !this.host.state.cppMode &&
+          this.host.state.symbolTable.checkNeedsStructKeyword(typeName),
+      );
+    const temp = this.host.state.getNextTempVarName();
+    const indent = FormatUtils.indent(1);
+    const arm = (rendered: { code: string; queued: string[] }): string[] => [
+      ...rendered.queued.map((line) => indent + line),
+      `${indent}${temp} = ${rendered.code};`,
+    ];
+    this.host.state.pendingTempDeclarations.push(
+      ComplianceAnnotations.render(ComplianceAnnotations.TERNARY_ARM),
+      `${cType} ${temp};`,
+      `if (${condition}) {`,
+      ...arm(whenTrue),
+      "} else {",
+      ...arm(whenFalse),
+      "}",
+    );
+    return { kind: "value", code: temp };
+  }
+
+  /**
+   * #2332: render an operand that runs only sometimes, and hand back the
+   * statements it queued to run before its statement instead of queuing them.
+   */
+  private renderQueuing(render: () => string): {
+    code: string;
+    queued: string[];
+  } {
+    const outer = this.host.state.pendingTempDeclarations;
+    this.host.state.pendingTempDeclarations = [];
+    const code = render();
+    const queued = this.host.state.pendingTempDeclarations;
+    this.host.state.pendingTempDeclarations = outer;
+    return { code, queued };
+  }
+
+  /**
+   * #2332: `&&` and `||`. An operand after the first runs only when the ones
+   * before it leave the value undecided, so a temporary it builds is built
+   * under that same test rather than before the statement.
+   */
+  private renderShortCircuit(
+    operands: readonly TExpression[],
+    separator: " && " | " || ",
+  ): string {
+    const [first, ...rest] = operands.map((operand) =>
+      this.renderQueuing(() => {
+        const result = this.renderBinaryLevel(this.planBinaryExpr(operand));
+        this.host.applyEffects(result.effects);
+        return result.code;
+      }),
+    );
+    invariant(first !== undefined, "a logical chain has operands");
+    const pending = this.host.state.pendingTempDeclarations;
+    pending.push(...first.queued);
+    let value = first.code;
+    for (const operand of rest) {
+      if (operand.queued.length === 0) {
+        value = `${value}${separator}${operand.code}`;
+        continue;
+      }
+      const temp = this.host.state.getNextTempVarName();
+      const indent = FormatUtils.indent(1);
+      pending.push(
+        ComplianceAnnotations.render(
+          separator === " && "
+            ? ComplianceAnnotations.AND_OPERAND
+            : ComplianceAnnotations.OR_OPERAND,
+        ),
+        `bool ${temp} = ${value};`,
+        `if (${separator === " && " ? temp : `!${temp}`}) {`,
+        ...operand.queued.map((line) => indent + line),
+        `${indent}${temp} = ${operand.code};`,
+        "}",
+      );
+      value = temp;
+    }
+    return value;
   }
 
   private plannedType(type: TTypeSyntax): IPlannedType {
@@ -701,9 +798,15 @@ class CodeGenWalker {
     );
     switch (expr.level) {
       case "or":
-        return { kind: "join", separator: " || ", renderOperands };
+        return {
+          kind: "leaf",
+          render: () => this.renderShortCircuit(operands, " || "),
+        };
       case "and":
-        return { kind: "join", separator: " && ", renderOperands };
+        return {
+          kind: "leaf",
+          render: () => this.renderShortCircuit(operands, " && "),
+        };
       case "bitwiseOr":
         return { kind: "join", separator: " | ", renderOperands };
       case "bitwiseXor":
@@ -881,12 +984,8 @@ class CodeGenWalker {
   private renderStatement(statement: TStatement): string {
     const result = this.renderStatementCode(statement);
     // Issue #250: Prepend any pending temp declarations (C++ mode)
-    if (this.host.state.pendingTempDeclarations.length > 0) {
-      const tempDecls = this.host.state.pendingTempDeclarations.join("\n");
-      this.host.state.pendingTempDeclarations = [];
-      return tempDecls + "\n" + result;
-    }
-    return result;
+    const tempDecls = this.host.flushPendingTempDeclarations();
+    return tempDecls === "" ? result : tempDecls + "\n" + result;
   }
 
   /**

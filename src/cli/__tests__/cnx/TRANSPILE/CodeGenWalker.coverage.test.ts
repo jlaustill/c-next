@@ -144,6 +144,83 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
   });
 
+  describe("a temporary built only when its operand runs (#2332)", () => {
+    const generateCpp = (body: string) =>
+      setupGenerator(
+        [
+          "struct Widget { i32 value; }",
+          "i32 v(Widget w) {",
+          "return w.value;",
+          "}",
+          "u32 main() {",
+          "u32 a <- 0;",
+          body,
+          "return 0;",
+          "}",
+        ].join("\n"),
+        { cppMode: true, cppConstructors: ["Widget"] },
+      ).code;
+
+    it("builds the right operand of && under the left one", () => {
+      const code = generateCpp("bool b <- (a = 1) && (v({ value: 2 }) = 2);");
+      expect(code).toMatch(
+        /bool cnx_tmp1 = \(a == 1\);\n\s*if \(cnx_tmp1\) \{\n\s*Widget cnx_tmp0 = \{\};\n(?:.*\n)*?\s*cnx_tmp0\.value = 2;\n\s*cnx_tmp1 = \(v\(cnx_tmp0\) == 2\);\n\s*\}\n\s*const bool b = cnx_tmp1;/,
+      );
+    });
+
+    it("builds the right operand of || when the left one is false", () => {
+      const code = generateCpp("bool b <- (a = 1) || (v({ value: 2 }) = 2);");
+      expect(code).toMatch(
+        /bool cnx_tmp1 = \(a == 1\);\n\s*if \(!cnx_tmp1\) \{/,
+      );
+    });
+
+    it("joins an operand that builds nothing to the value so far", () => {
+      const code = generateCpp(
+        "bool b <- (a = 1) && (v({ value: 2 }) = 2) && (a = 0);",
+      );
+      expect(code).toContain("const bool b = cnx_tmp1 && (a == 0);");
+    });
+
+    it("leaves a chain that builds nothing as one expression", () => {
+      const code = generateCpp("bool b <- (a = 1) && (a = 2);");
+      expect(code).toContain("const bool b = (a == 1) && (a == 2);");
+    });
+
+    it("builds each arm of a ternary in its own branch", () => {
+      const code = generateCpp(
+        "Widget p <- (a = 1) ? { value: 3 } : { value: 4 };",
+      );
+      expect(code).toMatch(
+        /Widget cnx_tmp2;\n\s*if \(a == 1\) \{\n\s*Widget cnx_tmp0 = \{\};\n(?:.*\n)*?\s*cnx_tmp2 = cnx_tmp0;\n\s*\} else \{\n\s*Widget cnx_tmp1 = \{\};\n(?:.*\n)*?\s*cnx_tmp2 = cnx_tmp1;\n\s*\}\n\s*const Widget p = cnx_tmp2;/,
+      );
+    });
+
+    it("leaves a ternary whose arms build nothing as a ternary", () => {
+      const code = generateCpp("u32 x <- (a = 1) ? 2 : 3;");
+      expect(code).toContain("const uint32_t x = (a == 1) ? 2U : 3U;");
+    });
+
+    it("keeps an operand whose typedef evaluates nothing in one expression", () => {
+      const code = setupGenerator(
+        [
+          "u32 sumTwo(u8[2] b) {",
+          "return b[0] + b[1];",
+          "}",
+          "u32 main() {",
+          "u32 i <- 0;",
+          "bool ok <- (i < 2) && (sumTwo([1, 2]) > 0);",
+          "return 0;",
+          "}",
+        ].join("\n"),
+        { cppMode: true },
+      ).code;
+      expect(code).toMatch(
+        /typedef const uint8_t cnx_tmp0_t\[2\];\n\s*const bool ok = \(i < 2\) && \(sumTwo\(/,
+      );
+    });
+  });
+
   // ==========================================================================
   // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
   // ==========================================================================

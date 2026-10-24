@@ -486,8 +486,11 @@ fieldInitializer
    assigned to it after. A declaration fills its own object. Anywhere else
    (an assignment, an argument, a return, an array element, a field) the
    object is built as a temporary before the statement, and that temporary
-   is the value. Building it before the statement also builds it outside a
-   short-circuit operand (#2332).
+   is the value. Issue #2332: a temporary built inside an operand that runs
+   only sometimes -- the right of `&&` or `||`, an arm of `?:` -- is built
+   only when that operand runs (C11 §6.5.13-§6.5.15). The left side becomes a
+   `bool` the operand's `if` tests, and a ternary's value a variable each
+   branch sets; a `string<N>` field's temporary (#2236) is built the same way.
 
 ## References
 
