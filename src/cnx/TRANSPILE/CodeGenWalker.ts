@@ -4,6 +4,7 @@ import type IPlannedStaticValue from "./2-Plan/types/IPlannedStaticValue";
 import LengthProperty from "../utils/LengthProperty";
 import GeneratedBanner from "../utils/GeneratedBanner";
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
+import type TStructInitializerForm from "./2-Plan/types/TStructInitializerForm";
 import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
 import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
 import type IRenderedSource from "./3-Render/codegen/types/IRenderedSource";
@@ -2231,24 +2232,16 @@ class CodeGenWalker {
     expr: TExpressionOf<"structInitializer">,
   ): string {
     const typeName = this._resolveStructInitializerTypeName();
-
-    // Issue #517: Check if this is a C++ class with a user-defined constructor.
-    // C++ classes with user-defined constructors are NOT aggregate types,
-    // so designated initializers { .field = value } don't work with them.
-    // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
-    const form = this.filePlan.structInitializers.get(expr);
-    invariant(
-      form !== undefined,
-      `2.2 planned the struct initializer on line ${expr.span.line} that 2.3 writes`,
-    );
-    this.rendering.structInitializers.add(expr);
-    const isCppClass = form === "cppClass";
+    const form = this.plannedStructInitializerForm(expr);
 
     // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
     const needsStructKeyword =
       !this.host.state.cppMode &&
       this.host.state.symbolTable.checkNeedsStructKeyword(typeName);
     const castType = userCType(typeName, needsStructKeyword);
+    if (form === "cppClass") {
+      return this.builtCppClassObject(expr, castType);
+    }
 
     // #1322: an empty-initializer branch stood here, reachable only through the
     // written form `Point {}` -- the inferred alternative has always required a
@@ -2269,21 +2262,7 @@ class CodeGenWalker {
       return { fieldName, value };
     });
     if (copied.length > 0) {
-      invariant(
-        !isCppClass,
-        "a C++ class with a constructor has no string<N> field",
-      );
       return this.builtStructInitializer(castType, fields, copied);
-    }
-
-    // Issue #517: For C++ classes, store assignments for later and return {}
-    if (isCppClass) {
-      for (const { fieldName, value } of fields) {
-        this.host.state.pendingCppClassAssignments.push(
-          `${fieldName} = ${value};`,
-        );
-      }
-      return "{}";
     }
 
     // For cnx/C structs, generate designated initializer.
@@ -2295,6 +2274,73 @@ class CodeGenWalker {
 
     const initializer = `{ ${fieldInits.join(", ")} }`;
     return form === "compound" ? `(${castType})${initializer}` : initializer;
+  }
+
+  /** 2.2's form for a struct initializer, recorded as written */
+  private plannedStructInitializerForm(
+    expr: TExpressionOf<"structInitializer">,
+  ): TStructInitializerForm {
+    const form = this.filePlan.structInitializers.get(expr);
+    invariant(
+      form !== undefined,
+      `2.2 planned the struct initializer on line ${expr.span.line} that 2.3 writes`,
+    );
+    this.rendering.structInitializers.add(expr);
+    return form;
+  }
+
+  /**
+   * Issue #517 / ADR-014: the statements that fill a C++ class object from its
+   * initializer. A class with a user-defined constructor is not an aggregate,
+   * so `{ .value = 9 }` cannot initialize it: the object is constructed, then
+   * each field is assigned.
+   *
+   * #1534: the one place that writes them, against the object they fill. They
+   * were queued and drained at whatever declaration came next, so
+   * `obj <- { value: 9 }` emitted `obj = {};` and then `later.value = 9;`.
+   */
+  private cppClassFill(
+    expr: TExpressionOf<"structInitializer">,
+    target: string,
+  ): string[] {
+    invariant(
+      this.plannedStructInitializerForm(expr) === "cppClass",
+      "only a C++ class with a constructor is filled after it is constructed",
+    );
+    invariant(
+      this.host.state.inFunctionBody,
+      "E0508 rejects a C++ class initializer outside a function body in pass 2.1",
+    );
+    invariant(
+      !expr.fields.some((field) => this.filePlan.stringFields.has(field.value)),
+      "a C++ class with a constructor has no string<N> field",
+    );
+    return [
+      "/* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */",
+      ...expr.fields.map(
+        (field) =>
+          `${target}.${field.name} = ${this.renderExpression(field.value)};`,
+      ),
+    ];
+  }
+
+  /**
+   * #1534: a C++ class initializer anywhere but as a declaration's whole
+   * initializer -- an assignment, an argument, a return, an element, a field
+   * -- is built before the statement, as #2236 builds a string field, and the
+   * value is the object built.
+   */
+  private builtCppClassObject(
+    expr: TExpressionOf<"structInitializer">,
+    castType: string,
+  ): string {
+    const temp = this.host.state.getNextTempVarName();
+    const fill = this.cppClassFill(expr, temp);
+    this.host.state.pendingTempDeclarations.push(
+      `${castType} ${temp} = {};`,
+      ...fill,
+    );
+    return temp;
   }
 
   /**
@@ -2562,9 +2608,7 @@ class CodeGenWalker {
     }
     // Issue #696: Use shared modifier builder. #517's C++ class initializer
     // assigns the fields after the declaration, so its object is never C `const`.
-    const fillsAfterDeclaring =
-      decl.initializer?.kind === "structInitializer" &&
-      this.filePlan.structInitializers.get(decl.initializer) === "cppClass";
+    const fillsAfterDeclaring = this.cppClassInitializerOf(decl) !== null;
     const modifiers = VariableModifierBuilder.build(
       fillsAfterDeclaring ? { ...decl.modifiers, mut: true } : decl.modifiers,
       this.host.state.inFunctionBody,
@@ -2792,12 +2836,36 @@ class CodeGenWalker {
           this.zeroInitializerOf(decl.type, isArray, decl.dimensions),
       };
     }
+    const cppClass = this.cppClassInitializerOf(decl);
+    if (cppClass) {
+      return {
+        kind: "cppClass",
+        renderFill: (target) =>
+          this.againstPlannedType(cppClass, () =>
+            this.cppClassFill(cppClass, target),
+          ),
+      };
+    }
     return {
       kind: "expression",
       renderTypeName: () => this.typeNameOf(decl.type),
       renderExpression: () => this.renderExpression(initializer),
       resolveExpressionType: () => this.planner.directTypeOf(initializer),
     };
+  }
+
+  /**
+   * Issue #517: a declaration whose whole initializer builds a C++ class with
+   * a constructor, which the declaration then fills after declaring (#1534)
+   */
+  private cppClassInitializerOf(
+    decl: IVariableDeclarationSyntax,
+  ): TExpressionOf<"structInitializer"> | null {
+    const initializer = decl.initializer;
+    return initializer?.kind === "structInitializer" &&
+      this.filePlan.structInitializers.get(initializer) === "cppClass"
+      ? initializer
+      : null;
   }
 
   /**

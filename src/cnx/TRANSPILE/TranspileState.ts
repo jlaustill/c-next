@@ -666,9 +666,6 @@ class TranspileState {
   /** Counter for unique temp variable names */
   private tempVarCounter: number = 0;
 
-  /** Issue #517: Pending field assignments for C++ class struct init */
-  pendingCppClassAssignments: string[] = [];
-
   // ===========================================================================
   // SOURCE PATHS (ADR-010, Issue #349)
   // ===========================================================================
@@ -1136,7 +1133,6 @@ class TranspileState {
     this.cppMode = false;
     this.pendingTempDeclarations = [];
     this.tempVarCounter = 0;
-    this.pendingCppClassAssignments = [];
 
     // Issue #948: Opaque scope variables (reset per-file)
 

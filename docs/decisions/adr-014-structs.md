@@ -480,6 +480,14 @@ fieldInitializer
 2. Generate `= {0}` for uninitialized struct variables
 3. Generate `(Type){ .field = value }` for struct initializers
 4. Handle struct member access with `.`
+5. Issue #517 / #1534: in C++, a struct initializer for a class with a
+   user-declared constructor cannot be an aggregate initializer (C++20 §9.4.2,
+   aggregates). The object is constructed with `= {}` and each field is
+   assigned to it after. A declaration fills its own object. Anywhere else
+   (an assignment, an argument, a return, an array element, a field) the
+   object is built as a temporary before the statement, and that temporary
+   is the value. Building it before the statement also builds it outside a
+   short-circuit operand (#2332).
 
 ## References
 
