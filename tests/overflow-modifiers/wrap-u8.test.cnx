@@ -155,13 +155,6 @@ u32 main() {
         return 22;
     }
 
-    // Test 23: Wrap by exact 256 (full cycle back)
-    val <- 100;
-    val +<- 256; // Should be same as +<- 0
-    if (val != 100) {
-        return 23;
-    }
-
     // All tests passed
     return 0;
 }

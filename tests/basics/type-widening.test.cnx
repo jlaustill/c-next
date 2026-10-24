@@ -2,6 +2,14 @@
 // Tests: Implicit type widening (safe conversions)
 // Demonstrates: smaller types implicitly widen to larger types
 
+// `a + b` is a u8 operation: it saturates at u8 BEFORE any widening, so
+// widening the result cannot recover the lost range. The operands are
+// parameters because a sum known at compile time that overflows is E0910
+// (ADR-044, #1618).
+u16 sumAtU8(u8 a, u8 b) {
+    return a + b;
+}
+
 u32 main() {
     // u8 -> u16 -> u32 -> u64 (unsigned widening)
     u8 byte <- 255;
@@ -55,9 +63,7 @@ u32 main() {
     u8 a <- 200;
     u8 b <- 200;
 
-    // `a + b` is a u8 operation: it saturates at u8 BEFORE any widening, so
-    // widening the result cannot recover the lost range.
-    u16 clamped <- a + b;
+    u16 clamped <- sumAtU8(a, b);
     if (clamped != 255) {
         return 9;
     }

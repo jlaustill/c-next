@@ -81,7 +81,7 @@ class StaticInitializerAnalyzer {
     if (form === "name") return "the value does not fit it (ADR-044)";
     return TypeCheckUtils.isFloat(typeName)
       ? "the arithmetic is past its finite range (ADR-044)"
-      : "the arithmetic would clamp or wrap (ADR-044)";
+      : ConstantDiagnostics.OVERFLOW_CAUSE;
   }
 }
 

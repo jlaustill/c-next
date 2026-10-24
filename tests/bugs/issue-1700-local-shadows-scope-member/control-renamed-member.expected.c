@@ -23,16 +23,18 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-execution
 // #1700 NEGATIVE CONTROL: the same method with the member renamed -- nothing
 // is shadowed, and the helper was always u8's.
+// The local takes a parameter: a sum of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
 /* Scope: S */
 
-uint8_t S__f(void) {
-    const uint8_t x = 200U;
+uint8_t S__f(const uint8_t seed) {
+    const uint8_t x = seed;
     const uint8_t y = cnx_clamp_add_u8(x, x);
     return y;
 }
 
 int main(void) {
-    const uint8_t r = S__f();
+    const uint8_t r = S__f(200U);
     if (r != 255) {
         return 1U;
     }

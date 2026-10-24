@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 044
+// Issue #1735 / ADR-044 "Values fixed at compile time": a static-storage
+// initializer is fixed at compile time, so arithmetic that would clamp or wrap
+// there is rejected rather than saturated. D + 10 adds at u8, where 260 does
+// not fit, at file scope, in a mut, in an array element and in a scope (D + 6
+// at u8 is 256). Since #1618 the integer-conversion stage, the first that can
+// detect it, reports it.
+//
+// NEGATIVE CONTROL: W adds at u16, where 260 fits, and must stay silent.
+
+u8 D <- 250;
+u8 E <- D + 10;
+mut u8 M <- D + 10;
+u8[2] R <- [D, D + 10];
+u16 W <- (u16)D + 10;
+
+scope S {
+    public u8 Q <- D + 6;
+}
+
+void main() {}

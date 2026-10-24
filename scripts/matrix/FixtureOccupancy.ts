@@ -10,8 +10,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 
+import { ProgramContext } from "../../src/cnx/PARSE/2-Parse/grammar/CnxParser";
 import CnxSourceParser from "../../src/cnx/PARSE/2-Parse/CnxSourceParser";
 import FixtureContext from "./FixtureContext";
+import FixturePosition from "./FixturePosition";
 import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";
 import MatrixRule from "./MatrixRule";
@@ -84,18 +86,35 @@ function addPosition(
 
 /** Contexts the given source positions resolve to. Empty when none can be. */
 function contextsAt(
-  source: string,
+  tree: ProgramContext,
   positions: readonly ISourcePosition[],
 ): TMatrixContext[] {
-  if (positions.length === 0) return [];
-
-  const { tree } = CnxSourceParser.parse(source);
   const contexts: TMatrixContext[] = [];
   for (const { line, column } of positions) {
     const context = FixtureContext.at(tree, line, column);
     if (context !== null && !contexts.includes(context)) contexts.push(context);
   }
   return contexts;
+}
+
+/**
+ * #1618: the positions a code's diagnostics land in, recorded for its matrix
+ * beside the contexts `recordFixture` resolves from the same diagnostics.
+ */
+function recordPositions(
+  tree: ProgramContext,
+  diagnostics: readonly ISourcePosition[],
+  fixture: string,
+  matrix: Map<string, string[]>,
+): void {
+  for (const { line, column } of diagnostics) {
+    if (column === undefined) continue;
+    const position = FixturePosition.at(tree, line, column);
+    if (position === null) continue;
+    const occupants = matrix.get(position) ?? [];
+    if (!occupants.includes(fixture)) occupants.push(fixture);
+    matrix.set(position, occupants);
+  }
 }
 
 /**
@@ -108,6 +127,7 @@ function recordFixture(
   cells: Map<string, Map<string, string[]>>,
   withoutContext: Map<string, string[]>,
   provenance: ReadonlyMap<string, number[]>,
+  positionCells: Map<string, Map<string, string[]>>,
 ): void {
   let source: string;
   try {
@@ -129,6 +149,7 @@ function recordFixture(
   // rule fired where, so contexts are resolved per ADR rather than once per file.
   const expectedError = fixturePath.replace(/\.test\.cnx$/, ".expected.error");
   const diagnostics = diagnosticPositions(expectedError);
+  const { tree } = CnxSourceParser.parse(source);
 
   for (const adr of adrs) {
     const positions = [...(diagnostics.get(null) ?? [])];
@@ -141,8 +162,12 @@ function recordFixture(
     // code's matrix -- never the ADR's own, nor another code's.
     const matrices: [string, ISourcePosition[]][] = [[adr, positions]];
     for (const [code, codePositions] of diagnostics) {
-      if (code !== null)
-        matrices.push([MatrixRule.id(adr, code), codePositions]);
+      if (code === null) continue;
+      const codeId = MatrixRule.id(adr, code);
+      matrices.push([codeId, codePositions]);
+      const matrix = positionCells.get(codeId) ?? new Map<string, string[]>();
+      recordPositions(tree, codePositions, shortPath, matrix);
+      if (matrix.size > 0) positionCells.set(codeId, matrix);
     }
     for (const [matrixId, ruleLines] of provenance) {
       if (matrixId !== adr && MatrixRule.adrOf(matrixId) === adr) {
@@ -152,7 +177,7 @@ function recordFixture(
 
     let placed = false;
     for (const [matrixId, matrixPositions] of matrices) {
-      const contexts = contextsAt(source, matrixPositions);
+      const contexts = contextsAt(tree, matrixPositions);
       if (contexts.length === 0) continue;
       placed = true;
       const matrixCells = cells.get(matrixId) ?? new Map<string, string[]>();
@@ -181,6 +206,7 @@ async function build(
 ): Promise<Map<string, IMatrixOccupancy>> {
   const cells = new Map<string, Map<string, string[]>>();
   const withoutContext = new Map<string, string[]>();
+  const positionCells = new Map<string, Map<string, string[]>>();
 
   for (const fixturePath of fixturePaths) {
     // #1241: only tagged fixtures are transpiled -- provenance is the expensive
@@ -202,16 +228,22 @@ async function build(
       cells,
       withoutContext,
       provenance,
+      positionCells,
     );
   }
 
   const result = new Map<string, IMatrixOccupancy>();
-  const adrs = new Set([...cells.keys(), ...withoutContext.keys()]);
+  const adrs = new Set([
+    ...cells.keys(),
+    ...withoutContext.keys(),
+    ...positionCells.keys(),
+  ]);
   for (const adr of [...adrs].sort()) {
     result.set(adr, {
       adr,
       cells: cells.get(adr) ?? new Map<string, string[]>(),
       fixturesWithoutContext: withoutContext.get(adr) ?? [],
+      positions: positionCells.get(adr) ?? new Map<string, string[]>(),
     });
   }
   return result;

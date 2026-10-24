@@ -1,18 +1,20 @@
 // test-execution
 // #1700 NEGATIVE CONTROL: the same method with the member renamed -- nothing
 // is shadowed, and the helper was always u8's.
+// The local takes a parameter: a sum of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
 scope S {
     u32 z <- 0;
 
-    public u8 f() {
-        u8 x <- 200;
+    public u8 f(u8 seed) {
+        u8 x <- seed;
         u8 y <- x + x;
         return y;
     }
 }
 
 u32 main() {
-    u8 r <- S.f();
+    u8 r <- S.f(200);
     if (r != 255) {
         return 1;
     }

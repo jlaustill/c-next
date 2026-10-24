@@ -44,6 +44,6 @@ int32_t large_signed = 2000000000;
 
 void test_signed_ops(void) {
     small_signed = cnx_clamp_add_i8(small_signed, 50);
-    small_signed = cnx_clamp_sub_i8(small_signed, 200);
+    small_signed = cnx_clamp_sub_i8(small_signed, 127);
     large_signed = cnx_clamp_mul_i32(large_signed, 2);
 }

@@ -1,4 +1,4 @@
-// test-execution
+// test-error
 // #1664 review of C11: a const's compile-time value is the value its C
 // computes. `A - 3` on a u8 is `cnx_clamp_sub_u8(A, 3U)` (ADR-044), which
 // is 0, but the fold did unbounded integer arithmetic and said -1. So the
@@ -6,6 +6,8 @@
 // (a shift by -1) and a false E0854 (index -1, and index 148 from a
 // `200 + 200` the C saturates at 255). A result a typed operand cannot
 // hold is not folded.
+// #1618: those results are known at compile time, so they are E0910 now,
+// not a clamp (ADR-044), and none of the false diagnostics above appear.
 u32 main() {
     u8 A <- 2;
     u8 B <- A - 3;

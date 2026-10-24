@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "integer-promotion.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -33,6 +35,12 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 // Tests: Integer promotion in expressions should not trigger warnings
 // Validates: Arithmetic on smaller types promotes correctly without warnings
 // Coverage: u8/u16 arithmetic, mixed-width operations
+// The operands are parameters: a product of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
+uint32_t mulAtU8(const uint8_t c, const uint8_t d) {
+    return cnx_clamp_mul_u8(c, d);
+}
+
 int main(void) {
     const uint8_t a = 100U;
     const uint8_t b = 50U;
@@ -42,7 +50,7 @@ int main(void) {
     }
     const uint8_t c = 200U;
     const uint8_t d = 2U;
-    const uint32_t clampedProduct = cnx_clamp_mul_u8(c, d);
+    const uint32_t clampedProduct = mulAtU8(c, d);
     if (clampedProduct != 255) {
         return 2U;
     }

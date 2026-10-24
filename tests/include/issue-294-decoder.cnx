@@ -6,7 +6,8 @@ scope decoder {
     public u16 getSpn(u8[8] data) {
         // Simple extraction: combine first two bytes
         mut u16 result <- data[0];
-        result <- result + (data[1] * 256);
+        // #1618: data[1] * 256 at u8 clamps 256, so widen the operand
+        result <- result + ((u16)data[1] * 256);
         return result;
     }
 

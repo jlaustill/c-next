@@ -1,5 +1,6 @@
 /**
- * ADR-024 integer conversions: E0868, E0869 and E0891.
+ * ADR-024 integer conversions: E0868, E0869 and E0891, and E0910 where a
+ * value known at compile time overflows outside a static initializer.
  *
  * #1322. Six rules across `TypeResolver` and `CodeGenerator`, reached through
  * three entry points -- a declaration's initializer, an assignment, a cast --
@@ -14,6 +15,11 @@
  * be wider than the target, and must agree with it on signedness. That is the
  * whole of it, whichever of the three spellings reaches it -- which is why it
  * is one analyzer with three listener methods rather than three checks.
+ *
+ * #1618: those three were not the only places a value lands. Every position
+ * `ValuePositions` names reaches `checkAt` -- a return, an argument, an array
+ * element, a field initializer, a ternary's arm -- and a compound assignment
+ * lands its target and value combined, so each is checked as a declaration is.
  *
  * ## What is deliberately NOT typed
  *
@@ -70,8 +76,10 @@ import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import invariant from "../../utils/invariant";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import CompositeType from "../../utils/CompositeType";
+import CompoundOperator from "../../utils/CompoundOperator";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ValuePositions from "./helpers/ValuePositions";
+import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
@@ -80,7 +88,29 @@ import SourceOrder from "../../utils/SourceOrder";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
+/** What a literal operand must fit: the range, the width, or nothing */
+type TLiteralRole = "value" | "bits" | "exempt";
+
+/** The expressions that build a value rather than name one (#1618). */
+const CONSTANT_FORMS: ReadonlySet<TExpression["kind"]> = new Set([
+  "literal",
+  "unary",
+  "parenthesized",
+  "binary",
+]);
+
+type TFold = ReturnType<typeof OperandTyper.constantResultOf>;
+
 class IntegerConversionCheck {
+  /**
+   * A literal's exact value. BigInt, not parseInt: a u64 bound is past 2^53,
+   * where a double stops being exact and `0xFFFFFFFFFFFFFFFF` would round
+   * into range.
+   */
+  static literalValue(text: string): bigint {
+    return text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
+  }
+
   private readonly found: IIntegerConversionError[] = [];
 
   public constructor(
@@ -97,24 +127,24 @@ class IntegerConversionCheck {
     if (this.checkStringsAt(declaration.initializer)) return;
     const target = declaration.type.text;
     if (!TypeCheckUtils.isInteger(target)) return;
-    this.check(target, declaration.initializer, "assign", true);
+    this.check(target, declaration.initializer, true);
   }
 
-  /** The values E0891 types from their position: arguments, fields, elements */
+  /** The values typed by their position: arguments, fields, elements (#1618) */
   public checkExpression(expr: TExpression): void {
     switch (expr.kind) {
       case "postfix":
         for (const op of expr.ops) {
           if (op.kind !== "call") continue;
-          for (const argument of op.arguments) this.checkFloatingAt(argument);
+          for (const argument of op.arguments) this.checkAt(argument);
         }
         return;
       case "structInitializer":
-        for (const field of expr.fields) this.checkFloatingAt(field.value);
+        for (const field of expr.fields) this.checkAt(field.value);
         return;
       case "arrayInitializer":
-        if (expr.fill) this.checkFloatingAt(expr.fill);
-        for (const element of expr.elements) this.checkFloatingAt(element);
+        if (expr.fill) this.checkAt(expr.fill);
+        for (const element of expr.elements) this.checkAt(element);
         return;
       case "cast":
         this.checkCast(expr);
@@ -124,14 +154,17 @@ class IntegerConversionCheck {
     }
   }
 
-  /** E0914, then E0891, for a value at the type its position gives it */
-  public checkFloatingAt(value: TExpression): void {
+  /**
+   * E0914, then every integer rule, for a value at the type its position
+   * gives it: a return value, an argument, a field, an element (#1618)
+   */
+  public checkAt(value: TExpression): void {
     if (this.checkStringsAt(value)) return;
     const target = StructInitializerType.valueTypeAt(
       ValuePositions.at(this.positions, value),
     );
     if (target !== null && TypeCheckUtils.isInteger(target)) {
-      this.checkFloating(target, value);
+      this.check(target, value, true);
     }
   }
 
@@ -141,9 +174,6 @@ class IntegerConversionCheck {
     if (this.writesWholeString(site) && this.checkNonStringAt(site.value)) {
       return;
     }
-    // A compound operator is arithmetic at the operands' width, which ADR-044
-    // governs; only a plain `<-` is a conversion.
-    if (site.operator !== "<-") return;
     const target = site.target;
     if (
       target.kind === "postfix" &&
@@ -156,7 +186,219 @@ class IntegerConversionCheck {
     const targetType =
       OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
-    this.check(targetType, site.value, "assign", true);
+    if (site.operator === "<-") {
+      this.check(targetType, site.value, true);
+      return;
+    }
+    this.checkCompound(targetType, site);
+  }
+
+  /**
+   * ADR-024: `y op<- b` is `y <- y op b`, so what lands in `y` is the
+   * composite of the two, typed as any composite is. A shift's count is no
+   * leaf of it, so `y <<<- n` lands `y`'s own type.
+   */
+  private checkCompound(targetType: string, site: IAssignmentSyntax): void {
+    const binary = CompoundOperator.binaryOf(site.operator);
+    const shift = binary === "<<" || binary === ">>";
+    const source = CompositeType.integerOf([
+      OperandTyper.typeOfTarget(site.target, this.context),
+      ...(shift ? [] : OperandTyper.valueLeaves(site.value, this.context)),
+    ]);
+    if (!shift) {
+      this.checkLiteralLeaves(
+        targetType,
+        site.value,
+        IntegerConversionCheck.roleOf(binary, null),
+      );
+    }
+    if (source !== null) {
+      this.checkConversion(targetType, source, site.value, "assign");
+    }
+  }
+
+  /**
+   * A value known at compile time lands as a lone literal does: one that does
+   * not fit the target is E0868, however it is built. ADR-044's clamp is for
+   * runtime values only, so `u8 a +<- 300`, `a <- a + 300` and
+   * `a +<- (100 + 200)` are errors (#1618). The one evaluator,
+   * `OperandTyper.constantResultOf`, decides what is known, a bound name's
+   * value included: `-(128)` is -128, and `u32 x <- BIG * BIG` overflows.
+   * A ternary is two arms unless its condition folds too.
+   */
+  private checkLiteralLeaves(
+    target: string,
+    value: TExpression,
+    role: TLiteralRole,
+  ): void {
+    const roles = new Map<TExpression, TLiteralRole>([[value, role]]);
+    // The range a `+ - *` literal must fit: the narrower of the target and
+    // the type its level's arithmetic happens at, since the clamp acts there
+    // (ADR-044): `u32 r <- b + 300` clamps 300 at u8
+    const ranges = new Map<TExpression, string>([[value, target]]);
+    const folds = new Map<TExpression, TFold | null>();
+    const fold = (expr: TExpression): TFold | null => {
+      if (!folds.has(expr)) {
+        folds.set(
+          expr,
+          CONSTANT_FORMS.has(expr.kind)
+            ? this.foldAt(target, expr, roles.get(expr) ?? "value")
+            : null,
+        );
+      }
+      return folds.get(expr)!;
+    };
+    const isLeaf = (expr: TExpression): boolean => {
+      const inherited = roles.get(expr) ?? "value";
+      const range = ranges.get(expr) ?? target;
+      for (const child of IntegerConversionCheck.children(expr)) {
+        ranges.set(child, this.levelRange(expr, range));
+      }
+      if (expr.kind === "binary") {
+        IntegerConversionCheck.assignRoles(expr, roles, inherited);
+      } else if (expr.kind === "parenthesized") {
+        roles.set(expr.expression, inherited);
+      } else if (expr.kind === "unary") {
+        roles.set(expr.operand, inherited);
+      }
+      const result = fold(expr);
+      return result?.kind === "value" || result?.kind === "overflow";
+    };
+    for (const leaf of OperandTyper.valueLeafExpressions(value, isLeaf)) {
+      const leafRole = roles.get(leaf) ?? "value";
+      if (leafRole === "exempt") continue;
+      const text = this.knownText(target, leaf, fold(leaf));
+      if (text === null) continue;
+      if (leafRole === "bits") this.checkBits(target, text, leaf);
+      else this.checkLiteral(ranges.get(leaf) ?? target, text, leaf);
+    }
+  }
+
+  /** The expressions a value's leaf walk can descend to */
+  private static children(expr: TExpression): readonly TExpression[] {
+    switch (expr.kind) {
+      case "binary":
+        return expr.operands;
+      case "ternary":
+        return [expr.whenTrue, expr.whenFalse];
+      case "parenthesized":
+        return [expr.expression];
+      case "unary":
+        return [expr.operand];
+      default:
+        return [];
+    }
+  }
+
+  /** A `+ - *` level narrows the range to the type it is computed at */
+  private levelRange(expr: TExpression, range: string): string {
+    if (
+      expr.kind !== "binary" ||
+      (expr.level !== "additive" && expr.level !== "multiplicative")
+    ) {
+      return range;
+    }
+    const level = CompositeType.integerOf(
+      OperandTyper.valueLeaves(expr, this.context),
+    );
+    return level !== null && TYPE_WIDTH[level] < TYPE_WIDTH[range]
+      ? level
+      : range;
+  }
+
+  /**
+   * What a literal operand must fit, by the operators beside it (#1618):
+   * one of `+ - *` its target's range, since clamp or wrap would act on a
+   * known value; one of `| ^` its target's width, since bits past it would be
+   * dropped. A literal of `&`, or a `/` or `%` divisor, does not decide
+   * whether the result overflows (`b & 0x1FF`, `b / 300`): nothing to catch.
+   */
+  private static roleOf(
+    before: string | null,
+    after: string | null,
+  ): TLiteralRole {
+    const beside = [before, after];
+    if (beside.includes("&") || before === "/" || before === "%") {
+      return "exempt";
+    }
+    return beside.includes("|") || beside.includes("^") ? "bits" : "value";
+  }
+
+  private static assignRoles(
+    expr: Extract<TExpression, { kind: "binary" }>,
+    roles: Map<TExpression, TLiteralRole>,
+    inherited: TLiteralRole,
+  ): void {
+    // Inside an exempt operand, only a `+ - *` level hands its literal to a
+    // clamp or a wrap; any other level stays exempt with its parent
+    const arithmetic =
+      expr.level === "additive" || expr.level === "multiplicative";
+    expr.operands.forEach((operand, index) => {
+      roles.set(
+        operand,
+        inherited === "exempt" && !arithmetic
+          ? "exempt"
+          : IntegerConversionCheck.roleOf(
+              expr.operators[index - 1] ?? null,
+              expr.operators[index] ?? null,
+            ),
+      );
+    });
+  }
+
+  /** E0868 for a bit pattern wider than its target: `u8 a <- b | 0x100` */
+  private checkBits(target: string, text: string, at: TExpression): void {
+    const value = IntegerConversionCheck.literalValue(text);
+    const width = TYPE_WIDTH[target];
+    const fits =
+      value >= 0n
+        ? value < 1n << BigInt(width)
+        : value >= -(1n << BigInt(width - 1));
+    if (!fits) {
+      this.report(
+        at,
+        "E0868",
+        `Value ${text} has bits outside ${target}'s ${width} bits`,
+        "Widen the target type, or drop the bits it cannot hold.",
+      );
+    }
+  }
+
+  /**
+   * A leaf's known value as literal text, or null when it is not known. A
+   * value-role fold runs at the target's width, and an overflow there is a
+   * known value that does not fit: `u32 x <- 0x10000 * 0x10000` (#1618).
+   */
+  private knownText(
+    target: string,
+    leaf: TExpression,
+    result: TFold | null,
+  ): string | null {
+    const literal = IntegerConversionCheck.integerLiteralText(leaf);
+    if (literal !== null || result === null) return literal;
+    if (result.kind === "overflow") {
+      this.report(
+        leaf,
+        "E0910",
+        `Value overflows ${result.typeName} at compile time: ${ConstantDiagnostics.OVERFLOW_CAUSE}`,
+        ConstantDiagnostics.OVERFLOW_HELP,
+      );
+      return null;
+    }
+    // A typed value's range is its type's, which E0869 judges
+    const judged =
+      result.kind === "value" &&
+      (result.typeName === null || result.typeName === target);
+    return judged ? String(result.value) : null;
+  }
+
+  /** The one fold: a value-role operand at the target's width (#1618) */
+  private foldAt(target: string, expr: TExpression, role: TLiteralRole): TFold {
+    return OperandTyper.constantResultOf(
+      expr,
+      this.context,
+      role === "value" ? target : null,
+    );
   }
 
   /** E0914, then E0923: a string lands only in a string, and only a string does */
@@ -266,7 +508,6 @@ class IntegerConversionCheck {
   private check(
     target: string,
     value: TExpression,
-    kind: "assign" | "cast",
     typeComposites: boolean,
   ): void {
     const text = IntegerConversionCheck.integerLiteralText(value);
@@ -275,8 +516,25 @@ class IntegerConversionCheck {
       return;
     }
     if (this.checkFloating(target, value)) return;
+    const ternary = IntegerConversionCheck.ternaryOf(value);
+    if (ternary !== null) {
+      this.check(target, ternary.whenTrue, typeComposites);
+      this.check(target, ternary.whenFalse, typeComposites);
+      return;
+    }
+    this.checkLiteralLeaves(target, value, "value");
     const source = this.conversionSource(value, typeComposites);
-    if (source !== null) this.checkConversion(target, source, value, kind);
+    if (source !== null) this.checkConversion(target, source, value, "assign");
+  }
+
+  /** The ternary a value is, past its parentheses: each arm lands (ADR-022) */
+  private static ternaryOf(
+    value: TExpression,
+  ): Extract<TExpression, { kind: "ternary" }> | null {
+    if (value.kind === "parenthesized") {
+      return IntegerConversionCheck.ternaryOf(value.expression);
+    }
+    return value.kind === "ternary" ? value : null;
   }
 
   /** An integer literal, or a minus over one, as one token: `-1`, `0xFF` */
@@ -303,9 +561,7 @@ class IntegerConversionCheck {
   }
 
   private checkLiteral(target: string, text: string, at: TExpression): void {
-    // BigInt, not parseInt: a u64 bound is past 2^53, where a double stops
-    // being exact and `0xFFFFFFFFFFFFFFFF` would round into range.
-    const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
+    const value = IntegerConversionCheck.literalValue(text);
 
     if (TypeCheckUtils.isUnsigned(target) && value < 0n) {
       this.report(
@@ -365,9 +621,8 @@ class IntegerConversionCheck {
    * The integer type a source converts from, as a cnx integer name, or
    * null when the rule does not judge it (#1668, the design's §5 row):
    *
-   * - a top-level ternary: its branches are what matter, and
-   *   `(val > 0) ? 1 : -1` has literal branches with no declared type (a
-   *   `test-no-warnings` execution fixture asserts it is fine);
+   * - a top-level ternary, which only a cast brings here: `check` takes
+   *   each arm where it stands;
    * - a lone bit extraction, `large[0, 8]`: ADR-024's explicit reinterpret,
    *   the form this rule tells the author to use;
    * - a composite, `a + b`: its integer type, as the typer settled it -- the
@@ -376,7 +631,6 @@ class IntegerConversionCheck {
    * - anything else: the typer's type, a C or C++ integer included, at its
    *   width on this target; a suffixed literal is its suffix's type.
    */
-  /** A ternary is ADR-022's, whose arms are each checked where they stand */
   private conversionSource(
     expr: TExpression,
     composites: boolean,
@@ -398,7 +652,6 @@ class IntegerConversionCheck {
     return null;
   }
 
-  /** Whether the expression, past its single-child levels, is a real ternary. */
   private report(
     at: TExpression,
     code: string,
@@ -431,7 +684,7 @@ class IntegerConversionAnalyzer {
       }
       for (const statement of StatementNodes.in(declaration)) {
         if (statement.kind === "return" && statement.value) {
-          check.checkFloatingAt(statement.value);
+          check.checkAt(statement.value);
         }
       }
       for (const site of StatementNodes.assignments(declaration)) {

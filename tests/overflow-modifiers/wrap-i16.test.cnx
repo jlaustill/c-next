@@ -27,8 +27,8 @@ u32 main() {
     }
 
     // Test 4: Overflow from zero
-    val <- 0;
-    val +<- 40000; // 0 + 40000 = 40000, should wrap to -25536
+    val <- 20000;
+    val +<- 20000; // 20000 + 20000 = 40000, should wrap to -25536
     if (val != -25536) {
         return 4;
     }
@@ -39,7 +39,9 @@ u32 main() {
     if (val != -32768) {
         return 5;
     }
-    val +<- 65535; // -32768 + 65535 = 32767 (wraps back to max)
+    val +<- 32767;
+    val +<- 32767;
+    val +<- 1; // -32768 + 65535 = 32767 (wraps back to max)
     if (val != 32767) {
         return 6;
     }
@@ -73,7 +75,9 @@ u32 main() {
     if (val != 32767) {
         return 10;
     }
-    val -<- 65535; // 32767 - 65535 = -32768 (wraps back to min)
+    val -<- 32767;
+    val -<- 32767;
+    val -<- 1; // 32767 - 65535 = -32768 (wraps back to min)
     if (val != -32768) {
         return 11;
     }

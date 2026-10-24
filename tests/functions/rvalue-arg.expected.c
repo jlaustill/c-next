@@ -29,7 +29,7 @@ uint32_t process(const uint32_t crc, const uint8_t byte) {
 int main(void) {
     const uint32_t value = 0x12345678U;
     uint32_t crc = 0U;
-    crc = process(crc, value & 0xFFU);
+    crc = process(crc, (uint8_t)((value) & 0xFFU));
     if (crc != 0x78) {
         return 1U;
     }

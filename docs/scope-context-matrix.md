@@ -714,6 +714,16 @@ cell is declared by the ADR that owns it.
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | ok        | ok     | ok         | n/a         | n/a        |
 
+## ADR-024 E0910
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | -         | ok     | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | -         | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
+
 ## ADR-025
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
@@ -1188,7 +1198,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | -         | -      | -          | n/a         | n/a        |
+| for header         | ok        | ok     | ok         | n/a         | n/a        |
 
 ## ADR-044 E0912
 
@@ -1757,3 +1767,38 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 | for header         | ok        | ok     | ok         | n/a         | n/a        |
+
+## Positions
+
+Which part of its statement each code's diagnostics land in, for a code whose
+ADR declares a position table.
+
+### ADR-024 E0868
+
+| Position                  | Severity | Fixtures |
+| ------------------------- | -------- | -------- |
+| declaration initializer   | error    | ok (11)  |
+| assignment                | error    | ok (3)   |
+| array element assignment  | error    | ok (1)   |
+| struct field assignment   | error    | ok (1)   |
+| compound assignment       | error    | ok (2)   |
+| return statement          | error    | ok (1)   |
+| call argument             | error    | ok (2)   |
+| array element initializer | error    | ok (1)   |
+| struct field initializer  | error    | ok (2)   |
+| ternary branch            | error    | ok (1)   |
+
+### ADR-024 E0869
+
+| Position                  | Severity | Fixtures |
+| ------------------------- | -------- | -------- |
+| declaration initializer   | error    | ok (18)  |
+| assignment                | error    | ok (2)   |
+| array element assignment  | error    | ok (1)   |
+| struct field assignment   | error    | ok (2)   |
+| compound assignment       | error    | ok (4)   |
+| return statement          | error    | ok (6)   |
+| call argument             | error    | ok (6)   |
+| array element initializer | error    | ok (5)   |
+| struct field initializer  | error    | ok (5)   |
+| ternary branch            | error    | ok (5)   |

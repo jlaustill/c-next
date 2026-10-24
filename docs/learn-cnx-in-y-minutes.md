@@ -381,7 +381,8 @@ u8 base <- 250;
 u8 near <- base + 5;            // written as 255
 // u8 over <- base + 10;        // ERROR E0910: overflows u8
 // u32 late <- uptime;          // ERROR E0909: uptime has no value at compile time
-// Inside a function, the same base + 10 is run-time arithmetic and clamps to 255
+// Inside a function it is E0910 too: base is read-only, so base + 10 is known
+// at compile time (#1618). Clamp and wrap act only on values known at run time
 
 // =============================================================================
 // 9. BIT MANIPULATION

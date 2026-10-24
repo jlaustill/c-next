@@ -1,0 +1,38 @@
+21:22 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+22:22 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+23:37 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+24:24 error[E0868]: Value 0x1FFFFFFFF exceeds u32 range (0 to 4294967295)
+       help: Widen the target type, or narrow the value.
+31:20 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+32:20 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+33:34 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+34:22 error[E0868]: Value 0x1FFFFFFFF exceeds u32 range (0 to 4294967295)
+       help: Widen the target type, or narrow the value.
+38:15 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+47:14 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+48:13 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+49:13 error[E0868]: Value 0x1FFFFFFFF exceeds u32 range (0 to 4294967295)
+       help: Widen the target type, or narrow the value.
+50:20 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+51:21 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+52:35 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+64:23 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+65:28 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+66:21 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+67:23 error[E0868]: Value 0x1FFFFFFFF exceeds u32 range (0 to 4294967295)
+       help: Widen the target type, or narrow the value.

@@ -198,21 +198,35 @@ class OperandTyper {
     expr: TExpression,
     ctx: ITypingContext,
   ): Array<IOperandType | null> {
+    return OperandTyper.valueLeafExpressions(expr).map((leaf) =>
+      OperandTyper.typeOf(leaf, ctx),
+    );
+  }
+
+  /**
+   * The expressions `valueLeaves` types, by the same collection rule. An
+   * expression `isLeaf` accepts is one leaf, however it is built.
+   */
+  static valueLeafExpressions(
+    expr: TExpression,
+    isLeaf: (expr: TExpression) => boolean = () => false,
+  ): TExpression[] {
+    if (isLeaf(expr)) return [expr];
     if (OperandTyper.isCompositeLevel(expr)) {
       return expr.operands.flatMap((operand) =>
-        OperandTyper.valueLeaves(operand, ctx),
+        OperandTyper.valueLeafExpressions(operand, isLeaf),
       );
     }
     if (expr.kind === "ternary") {
       return [expr.whenTrue, expr.whenFalse].flatMap((arm) =>
-        OperandTyper.valueLeaves(arm, ctx),
+        OperandTyper.valueLeafExpressions(arm, isLeaf),
       );
     }
     if (expr.kind === "unary" && expr.operator === "&") return [];
     const operand = OperandTyper.wrappedOperand(expr);
     return operand === null
-      ? [OperandTyper.typeOf(expr, ctx)]
-      : OperandTyper.valueLeaves(operand, ctx);
+      ? [expr]
+      : OperandTyper.valueLeafExpressions(operand, isLeaf);
   }
 
   /**
@@ -260,6 +274,22 @@ class OperandTyper {
    * operands' width and declines where C would clamp, so that reason is gone,
    * and a fifth rule for a constant's value with it.
    */
+  /**
+   * The evaluator's whole answer for `expr`, folded in `context` (a type
+   * name) when given: an `overflow` is a known value that does not fit (#1618).
+   */
+  static constantResultOf(
+    expr: TExpression,
+    ctx: ITypingContext,
+    context: string | null = null,
+  ): ReturnType<typeof ConstantEvaluator.evaluate> {
+    return ConstantEvaluator.evaluate(
+      ConstExprLowering.lower(expr),
+      ConstantFold.environment(ctx.program, ctx.sourceFile),
+      context,
+    );
+  }
+
   static constantOf(expr: TExpression, ctx: ITypingContext): number | null {
     const result = ConstantEvaluator.evaluate(
       ConstExprLowering.lower(expr),

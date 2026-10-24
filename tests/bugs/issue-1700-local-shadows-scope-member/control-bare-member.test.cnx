@@ -1,8 +1,14 @@
 // test-execution
 // #1700 NEGATIVE CONTROL: a bare member reference with no shadowing local
 // binds the member (ADR-057), and saturates at the member's u8.
+// The member is set at run time: a sum of values known at compile time
+// that overflows is E0910, not a clamp (ADR-044, #1618).
 scope S {
-    u8 x <- 200;
+    mut u8 x <- 0;
+
+    public void set(u8 v) {
+        this.x <- v;
+    }
 
     public u8 f() {
         u8 y <- x + x;
@@ -11,6 +17,7 @@ scope S {
 }
 
 u32 main() {
+    S.set(200);
     u8 r <- S.f();
     if (r != 255) {
         return 1;

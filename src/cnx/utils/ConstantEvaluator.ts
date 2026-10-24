@@ -111,6 +111,14 @@ class ConstantEvaluator {
           ConstantEvaluator.fold(expr.operand, env, expr.typeName),
         );
       case "unary":
+        // `-2147483648i32` is i32's minimum, not a negated overflow
+        if (expr.op === "-" && expr.operand.kind === "literal") {
+          return ConstantEvaluator.literal(
+            expr.operand.digits,
+            expr.operand.typeName,
+            -1n,
+          );
+        }
         return ConstantEvaluator.unary(
           expr.op,
           ConstantEvaluator.fold(expr.operand, env, context),
@@ -367,8 +375,9 @@ class ConstantEvaluator {
   private static literal(
     digits: string,
     typeName: string | null,
+    sign: bigint = 1n,
   ): TConstResult {
-    const value = BigInt(digits);
+    const value = sign * BigInt(digits);
     const integer = ConstantEvaluator.integerType(typeName);
     return integer === null
       ? { kind: "value", value, typeName }

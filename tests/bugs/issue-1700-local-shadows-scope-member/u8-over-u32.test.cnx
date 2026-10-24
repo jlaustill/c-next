@@ -2,18 +2,20 @@
 // #1700: inside a scope method, a u8 local that shadows a u32 scope member is
 // typed as the local, so `x + x` saturates in u8 at 255. It was typed as the
 // member: `cnx_clamp_add_u32(x, x)` gave 400, truncated to 144.
+// The local takes a parameter: a sum of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
 scope S {
     u32 x <- 0;
 
-    public u8 f() {
-        u8 x <- 200;
+    public u8 f(u8 seed) {
+        u8 x <- seed;
         u8 y <- x + x;
         return y;
     }
 }
 
 u32 main() {
-    u8 r <- S.f();
+    u8 r <- S.f(200);
     if (r != 255) {
         return 1;
     }

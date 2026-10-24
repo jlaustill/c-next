@@ -22,7 +22,7 @@ int32_t sinkI(const int32_t v) {
     return v;
 }
 
-uint64_t wide(const uint64_t v) {
+int64_t wide(const int64_t v) {
     return v;
 }
 
@@ -35,11 +35,11 @@ uint32_t run(const Handlers* h, sinkI_fp cb) {
     const float x = (float)h->f(5U);
     h->w(5U);
     const uint64_t big = h->f(12U);
-    const uint64_t b = wide(cb(6));
+    const int64_t b = wide(cb(6));
     const uint32_t same = h->f(7U);
     const float y = (float)sink32(8U);
     sinkVoid(9U);
-    const uint64_t c = wide(sinkI(6));
+    const int64_t c = wide(sinkI(6));
     if (x < 4.5) {
         return 1U;
     }

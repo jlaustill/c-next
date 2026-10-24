@@ -4,6 +4,12 @@
 // Validates: Arithmetic on smaller types promotes correctly without warnings
 // Coverage: u8/u16 arithmetic, mixed-width operations
 
+// The operands are parameters: a product of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
+u32 mulAtU8(u8 c, u8 d) {
+    return c * d;
+}
+
 u32 main() {
     // Test u8 arithmetic (promotes to int in C)
     u8 a <- 100;
@@ -18,7 +24,7 @@ u32 main() {
     // not widen the operation, so widen the operands to multiply at u32.
     u8 c <- 200;
     u8 d <- 2;
-    u32 clampedProduct <- c * d;
+    u32 clampedProduct <- mulAtU8(c, d);
     if (clampedProduct != 255) {
         return 2;
     }

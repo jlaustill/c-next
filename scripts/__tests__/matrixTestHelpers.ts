@@ -39,6 +39,7 @@ function occupy(adr: string, cells: [string, string][]): IMatrixOccupancy {
       ]),
     ),
     fixturesWithoutContext: [],
+    positions: new Map(),
   };
 }
 

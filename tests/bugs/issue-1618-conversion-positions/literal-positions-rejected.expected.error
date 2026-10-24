@@ -1,0 +1,46 @@
+22:11 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+30:9 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+31:9 error[E0868]: Negative value -1 cannot be assigned to unsigned type u8
+       help: An unsigned type holds no negative values; use a signed type such as i8.
+32:19 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+33:16 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+34:22 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+36:14 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+38:11 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+40:10 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+41:13 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+42:10 error[E0910]: Value overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+43:19 error[E0868]: Negative value -300 cannot be assigned to unsigned type u16
+       help: An unsigned type holds no negative values; use a signed type such as i16.
+44:13 error[E0868]: Value 0x100 has bits outside u8's 8 bits
+       help: Widen the target type, or drop the bits it cannot hold.
+45:10 error[E0868]: Value 0x1FF has bits outside u8's 8 bits
+       help: Widen the target type, or drop the bits it cannot hold.
+46:15 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+47:18 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+48:17 error[E0910]: Value overflows u32 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+49:22 error[E0910]: Value overflows u32 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+50:25 error[E0910]: Value overflows u32 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+51:21 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+52:13 error[E0910]: Value overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
+       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+53:23 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.
+54:27 error[E0868]: Value 300 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.

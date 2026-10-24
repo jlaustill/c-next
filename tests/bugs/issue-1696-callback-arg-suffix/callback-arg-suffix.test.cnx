@@ -13,7 +13,7 @@ i32 sinkI(i32 v) {
     return v;
 }
 
-u64 wide(u64 v) {
+i64 wide(i64 v) {
     return v;
 }
 
@@ -26,11 +26,11 @@ u32 run(Handlers h, sinkI cb) {
     f32 x <- h.f(5);
     h.w(5);
     u64 big <- h.f(12);
-    u64 b <- wide(cb(6));
+    i64 b <- wide(cb(6));
     u32 same <- h.f(7);
     f32 y <- sink32(8);
     sinkVoid(9);
-    u64 c <- wide(sinkI(6));
+    i64 c <- wide(sinkI(6));
     if (x < 4.5) {
         return 1;
     }

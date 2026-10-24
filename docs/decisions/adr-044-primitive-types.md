@@ -180,7 +180,9 @@ wrap u32 counter <- 0;       // Two's complement wrap (opt-in)
 u8 normal <- 0;              // Default: clamp
 ```
 
-Use `--debug` flag to panic on any overflow during development.
+**What can be caught at compile time is an error, never a clamp or a wrap.** `clamp` and `wrap`
+apply only to values not known until runtime, and `--debug` still makes every one of them panic
+on overflow during development. See _Compile time first_ below.
 
 ---
 
@@ -335,6 +337,48 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 | `clamp` | Saturates at min/max of type | Sensor readings, control values, safety-critical |
 | `wrap`  | Two's complement wrap-around | Counters, checksums, timing, hashing             |
 | (none)  | Default to `clamp`           | Most variables                                   |
+
+#### Compile time first: clamp and wrap are for runtime values only
+
+**Owner ruling, 2026-10-23 (#1618):** anything the compiler can catch at compile time is a
+compile error. `clamp` and `wrap` never apply to it. They exist only for values that are not
+known until runtime, where no compiler could have caught the overflow.
+
+How that ruling applies to each operator. The owner sent the scope question to the cnx-way
+skill rather than ruling on it, so this is the principle applied, not a further ruling
+([#1618](https://github.com/smeltworks/cnx/issues/1618#issuecomment-6376354988)):
+
+- A literal operand of `+`, `-` or `*` that does not fit the target is E0868 (ADR-024), with
+  `clamp`, with `wrap` and with neither: clamp or wrap would act on a known value.
+  `u8 a +<- 300` and `a <- a + 300` are rejected; they do not saturate to 255 or wrap to
+  `a + 44`. A literal operand of `|` or `^` must fit the target's width, since bits past it
+  would be dropped: `u8 a <- b | 0x100` is rejected, `i16 m ^<- 0xAAAA` is not.
+- A literal operand of `&`, or a `/` or `%` divisor, that does not fit the target does not make
+  the result overflow: `b & 0x1FF` keeps only `b`'s bits and `b / 300` is 0. Nothing is
+  rejected: `u8 a <- b & 0x1FF` and `a <- b / 300` compile. A `+`, `-` or `*`
+  inside such an operand is still checked: `a &<- (b + 300)` is rejected.
+- A literal operand of `+`, `-` or `*` must also fit the type its arithmetic happens at, when
+  that is narrower than the target, since the clamp acts there
+  ([owner ruling, 2026-10-24](https://github.com/smeltworks/cnx/issues/1618#issuecomment-6379394725)): with `u8 b`, `u32 r <- b + 300` is E0868, where it
+  compiled to `cnx_clamp_add_u8(b, 300U)`. `u32 r <- (u32)b + 300` compiles.
+- A value the compiler folds, bound names included, is checked as one value, at the target's
+  width. A name that is not `mut` is a constant, and so is arithmetic over it
+  ([owner ruling, 2026-10-24](https://github.com/smeltworks/cnx/issues/1618#issuecomment-6379394725)): inside a function too, `u8 a <- 250; u8 c <- a + a;` is
+  E0910. `u32 x <- 0x10000 * 0x10000` is E0910, the code a static initializer's overflow
+  already had, and so is `u32 y <- BIG * BIG` after `u32 BIG <- 0x10000`. The first analyzer
+  stage that can detect the overflow reports it. A value a typed name
+  folds to keeps its type's range, which E0869 judges. `i8 x <- -(128)` compiles.
+- A wider operand is E0869 (ADR-024): `u8 a +<- big` with `u32 big` is rejected, and code that
+  means the low bits says so with `a +<- big[0, 8]`.
+- Clamping or wrapping a runtime value is still allowed, but it can hide a bug. `--debug`
+  (below) is there to catch that: every `clamp` and `wrap` operation panics on overflow instead,
+  so the overflows they would hide in production surface during development.
+
+```cnx
+mut clamp u8 level <- 200;
+level +<- 300;         // ERROR E0868: 300 is known at compile time and does not fit u8
+level +<- reading();   // runtime value: clamps at 255; --debug panics instead
+```
 
 #### Struct fields and array elements
 
@@ -680,7 +724,7 @@ chances for them to disagree.
 | Code  | Reported when                                                                                                                                                                                                                                                                                                                     | Asserted by                                                                                                                                                                                                                 |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | E0909 | A file-scope or scope variable's initializer has no value at compile time, such as a read of a `mut` variable or a function call, or is arithmetic over a header macro cnx cannot read, so it cannot check that the arithmetic does not clamp or wrap. This applies in C++ output as in C (#1735, "Values fixed at compile time") | `tests/bugs/issue-1735-static-initializer-arithmetic/static-not-constant.test.cnx`                                                                                                                                          |
-| E0910 | A value fixed at compile time -- an array's size, an enum member's value, a file-scope or scope variable's initializer (#1735) -- is arithmetic that would clamp or wrap at its operands' width, or a cast of a value its type does not hold ("Values fixed at compile time")                                                     | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`, `tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow.test.cnx` |
+| E0910 | A value known at compile time -- an array's size, an enum member's value, a file-scope or scope variable's initializer (#1735), or a value at any position a value lands (#1618) -- is arithmetic that would clamp or wrap at its operands' width, or a cast of a value its type does not hold ("Values fixed at compile time")   | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`, `tests/bugs/issue-1669-enum-member-values/value-overflow.test.cnx`, `tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow.test.cnx` |
 | E0912 | A decimal integer literal has a leading zero: there is no octal literal ("Integer Literals")                                                                                                                                                                                                                                      | `tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx`                                                                                                                                                                  |
 
 ## Scope-Context Matrix
@@ -732,19 +776,19 @@ off: E0909 fires only on a file-scope or scope variable's initializer; a functio
 | top-level function | same file           | error    |
 | scope member       | same file           | error    |
 | scope method       | same file           | error    |
-| for header         | same file           | off      |
+| for header         | same file           | error    |
 | global variable    | imported direct     | error    |
 | top-level function | imported direct     | error    |
 | scope member       | imported direct     | error    |
 | scope method       | imported direct     | error    |
-| for header         | imported direct     | off      |
+| for header         | imported direct     | error    |
 | global variable    | imported transitive | error    |
 | top-level function | imported transitive | error    |
 | scope member       | imported transitive | error    |
 | scope method       | imported transitive | error    |
-| for header         | imported transitive | off      |
+| for header         | imported transitive | error    |
 
-off: E0910 fires only on a value fixed at compile time, and a `for` header holds none: its variable's initializer is evaluated at run time, and an array declared there is E0917 (ADR-036).
+A `for` header is a value position like any other (#1618): `for (mut u16 i <- BASE + BASE; ...)` overflows at compile time, so it is E0910, not a clamp. An array declared there is still E0917 (ADR-036).
 
 <!-- MATRIX-SEVERITY code: E0912 -->
 

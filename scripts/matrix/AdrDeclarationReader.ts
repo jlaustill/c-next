@@ -46,20 +46,43 @@ function undeclaredCells(table: IMatrixDeclaration): string[] {
     );
 }
 
+/** The one walk: each `adr-NNN-*.md` in `decisionsDir`, in name order */
+function adrFiles(decisionsDir: string): { adr: string; markdown: string }[] {
+  if (!existsSync(decisionsDir)) return [];
+  return readdirSync(decisionsDir)
+    .sort()
+    .flatMap((entry) => {
+      const match = ADR_FILENAME.exec(entry);
+      return match === null
+        ? []
+        : [
+            {
+              adr: match[1],
+              markdown: readFileSync(join(decisionsDir, entry), "utf-8"),
+            },
+          ];
+    });
+}
+
+/** The one message for a table whose code gates nothing */
+function undeclaredTable(
+  adr: string,
+  table: string,
+  code: string,
+  cause: string,
+): string {
+  return `ADR-${adr}: has ${table} for ${code}, ${cause}`;
+}
+
+const UNDECLARED = "which its code table does not declare";
+
 function read(
   decisionsDir: string,
   retired: ReadonlySet<string> = new Set(),
 ): Map<string, IMatrixDeclaration> {
   const declarations = new Map<string, IMatrixDeclaration>();
-  if (!existsSync(decisionsDir)) return declarations;
 
-  for (const entry of readdirSync(decisionsDir).sort()) {
-    const match = ADR_FILENAME.exec(entry);
-    if (match === null) continue;
-
-    const adr = match[1];
-    const markdown = readFileSync(join(decisionsDir, entry), "utf-8");
-
+  for (const { adr, markdown } of adrFiles(decisionsDir)) {
     const tables = AdrMatrixDeclaration.tablesIn(markdown);
     for (const table of tables) {
       const ruleId = MatrixRule.id(adr, table.name);
@@ -121,12 +144,12 @@ function read(
         const existing = declarations.get(codeId)!;
         const cause = retired.has(code)
           ? "which docs/error-codes.md retires"
-          : "which its code table does not declare";
+          : UNDECLARED;
         declarations.set(codeId, {
           ...existing,
           errors: [
             ...existing.errors,
-            `ADR-${adr}: has a table for ${code}, ${cause}`,
+            undeclaredTable(adr, "a table", code, cause),
           ],
         });
       }
@@ -152,8 +175,51 @@ function read(
   return declarations;
 }
 
+/**
+ * #1618: every ADR's position tables, keyed by MatrixRule id ("024 E0869").
+ * A table for a code its ADR does not declare would gate nothing, so it is an
+ * error like a code table's.
+ */
+function readPositions(decisionsDir: string): Map<string, IMatrixDeclaration> {
+  const declarations = new Map<string, IMatrixDeclaration>();
+
+  for (const { adr, markdown } of adrFiles(decisionsDir)) {
+    const declared = AdrMatrixDeclaration.codesIn(markdown);
+    const codes = AdrMatrixDeclaration.positionCodesIn(markdown);
+    for (const code of codes) {
+      const id = MatrixRule.id(adr, code);
+      if (declarations.has(id)) continue;
+      const read = AdrMatrixDeclaration.parsePositions(markdown, id, code);
+      const parsed =
+        codes.filter((c) => c === code).length > 1
+          ? {
+              ...read,
+              errors: [
+                ...read.errors,
+                `ADR-${adr}: declares more than one position table for ${code}`,
+              ],
+            }
+          : read;
+      declarations.set(
+        id,
+        declared.includes(code)
+          ? parsed
+          : {
+              ...parsed,
+              errors: [
+                ...parsed.errors,
+                undeclaredTable(adr, "a position table", code, UNDECLARED),
+              ],
+            },
+      );
+    }
+  }
+  return declarations;
+}
+
 class AdrDeclarationReader {
   static read = read;
+  static readPositions = readPositions;
 }
 
 export default AdrDeclarationReader;

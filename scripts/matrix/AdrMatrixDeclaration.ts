@@ -29,6 +29,12 @@ const SEVERITY_MARKER = "<!-- MATRIX-SEVERITY -->";
 const RULE_MARKER =
   /<!-- MATRIX-SEVERITY (?:rule: ([a-z0-9-]+)|code: (\S+)) -->/g;
 
+/**
+ * #1618: marks a code's position table, occupied by the part of its statement
+ * each diagnostic with that code reports.
+ */
+const POSITION_MARKER = /<!-- MATRIX-POSITION code: (\S+) -->/g;
+
 /** Any severity marker: the ADR's own, a rule's or a code's. */
 const ANY_MARKER = "<!-- MATRIX-SEVERITY";
 
@@ -108,6 +114,45 @@ function isSeparatorRow(line: string): boolean {
 }
 
 /**
+ * The rows of the first table after `marker`, with their source line. Every
+ * table kind's parser reads its rows here, so where a table starts and ends is
+ * decided once (#1618 review).
+ *
+ * Anything at all may sit between the marker and the table -- prose,
+ * headings, a list. The table starts at its header (first cell `header`) or
+ * at the first row at least `width` cells wide, so a narrower stray table
+ * before it is not mistaken for it. Once it has begun, any non-table line ends
+ * it. The header is recognized by its FIRST cell only: a header whose second
+ * column was deleted still marks where the table starts, so its short rows are
+ * reported rather than skipped while the walk runs on into the next table.
+ */
+function tableRows(
+  markdown: string,
+  marker: string,
+  header: string,
+  width: number,
+): { line: string; cells: string[] }[] {
+  const markerIndex = markdown.indexOf(marker);
+  if (markerIndex === -1) return [];
+  const rows: { line: string; cells: string[] }[] = [];
+  let started = false;
+  for (const line of markdown.slice(markerIndex + marker.length).split("\n")) {
+    if (!/^\s*\|/.test(line)) {
+      if (started && line.trim() !== "") break;
+      continue;
+    }
+    if (isSeparatorRow(line)) continue;
+    const cells = splitRow(line);
+    if (!started && slug(cells[0]) !== header && cells.length < width) {
+      continue;
+    }
+    started = true;
+    rows.push({ line, cells });
+  }
+  return rows;
+}
+
+/**
  * Parse the severity table for one ADR, or for one of its rule or code tables.
  *
  * An unrecognized context, relationship or severity is an ERROR rather than a
@@ -122,52 +167,16 @@ function parse(
 ): IMatrixDeclaration {
   const severities = new Map<string, TMatrixSeverity>();
   const errors: string[] = [];
+  const marker = table === undefined ? SEVERITY_MARKER : tableMarker(table);
 
-  const markerIndex = markdown.indexOf(
-    table === undefined ? SEVERITY_MARKER : tableMarker(table),
-  );
-  if (markerIndex === -1) {
-    return { adr, severities, errors };
-  }
-
-  const lines = markdown.slice(markerIndex).split("\n");
-  let started = false;
-
-  for (const line of lines) {
-    const isTableRow = /^\s*\|/.test(line);
-
-    if (!isTableRow) {
-      // Anything at all may sit between the marker and the table -- prose,
-      // headings, a list. The first markdown table after the marker is taken
-      // as the severity table. Once it has begun, any non-table line ends it.
-      if (started && line.trim() !== "") break;
-      continue;
-    }
-    if (isSeparatorRow(line)) continue;
-
-    const cells = splitRow(line);
-
-    // Recognize the header by its FIRST cell only, before checking the width.
-    // A header whose Relationship column was deleted still marks where the
-    // table starts; requiring three cells first meant a malformed table never
-    // started the scan, so every short row was skipped in silence and the walk
-    // continued into whatever unrelated table came next.
-    const isHeaderRow = slug(cells[0]) === "context";
-    if (isHeaderRow) started = true;
-
+  for (const { line, cells } of tableRows(markdown, marker, "context", 3)) {
     if (cells.length < 3) {
-      // Only report once the table has been located, so a stray one- or
-      // two-column table before it is not mistaken for a malformed severity
-      // table.
-      if (started) {
-        errors.push(
-          `ADR-${adr}: malformed row "${line.trim()}" (expected context | relationship | severity)`,
-        );
-      }
+      errors.push(
+        `ADR-${adr}: malformed row "${line.trim()}" (expected context | relationship | severity)`,
+      );
       continue;
     }
-    if (isHeaderRow) continue;
-    started = true;
+    if (slug(cells[0]) === "context") continue;
 
     const [rawContext, rawRelationship, rawSeverity] = cells;
 
@@ -207,6 +216,62 @@ function parse(
   return { adr, severities, errors };
 }
 
+/** The codes an ADR declares a position table for, in order. */
+function positionCodesIn(markdown: string): string[] {
+  return [...markdown.matchAll(POSITION_MARKER)].map((match) => match[1]);
+}
+
+/**
+ * #1618: parse one code's `| Position | Severity |` table. Like a code table,
+ * it declares every position: a row left out is an error, not `off`.
+ */
+function parsePositions(
+  markdown: string,
+  id: string,
+  code: string,
+): IMatrixDeclaration {
+  const severities = new Map<string, TMatrixSeverity>();
+  const errors: string[] = [];
+  const marker = `<!-- MATRIX-POSITION code: ${code} -->`;
+
+  for (const { line, cells } of tableRows(markdown, marker, "position", 2)) {
+    if (cells.length < 2) {
+      errors.push(
+        `ADR-${id}: malformed row "${line.trim()}" (expected position | severity)`,
+      );
+      continue;
+    }
+    const [rawPosition, rawSeverity] = cells;
+    const position = slug(rawPosition);
+    if (position === "position") continue;
+    const severity = slug(rawSeverity);
+    if (!MatrixCell.isPosition(position)) {
+      errors.push(
+        `ADR-${id}: unknown position "${rawPosition}" (expected one of ${MatrixCell.POSITIONS.join(", ")})`,
+      );
+      continue;
+    }
+    if (!isSeverity(severity)) {
+      errors.push(
+        `ADR-${id}: unknown severity "${rawSeverity}" (expected off, warn or error)`,
+      );
+      continue;
+    }
+    if (severities.has(position)) {
+      errors.push(`ADR-${id}: position "${position}" declared more than once`);
+      continue;
+    }
+    severities.set(position, severity);
+  }
+
+  for (const position of MatrixCell.POSITIONS) {
+    if (!severities.has(position)) {
+      errors.push(`ADR-${id}: leaves position "${position}" undeclared`);
+    }
+  }
+  return { adr: id, severities, errors };
+}
+
 /** Severity for a cell; undeclared cells are `off`. */
 function severityOf(
   declaration: IMatrixDeclaration,
@@ -224,6 +289,8 @@ class AdrMatrixDeclaration {
   static tablesIn = tablesIn;
   static codesIn = codesIn;
   static parse = parse;
+  static positionCodesIn = positionCodesIn;
+  static parsePositions = parsePositions;
   static severityOf = severityOf;
 }
 

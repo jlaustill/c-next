@@ -12,6 +12,7 @@ import MatrixRule from "./MatrixRule";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
 import IMatrixViolation from "../types/IMatrixViolation";
+import IPositionViolation from "../types/IPositionViolation";
 import TMatrixContext from "../types/TMatrixContext";
 import TMatrixRelationship from "../types/TMatrixRelationship";
 import TMatrixSeverity from "../types/TMatrixSeverity";
@@ -179,7 +180,50 @@ function ungatedCodes(
     .sort();
 }
 
+/** #1618: how many fixtures land `id`'s diagnostic in `position`. */
+function positionOccupants(
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+  id: string,
+  position: string,
+): number {
+  return occupancy.get(id)?.positions.get(position)?.length ?? 0;
+}
+
+/** #1618: whether any fixture lands `id`'s diagnostic in `position`. */
+function isPositionOccupied(
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+  id: string,
+  position: string,
+): boolean {
+  return positionOccupants(occupancy, id, position) > 0;
+}
+
+/**
+ * #1618: position rows the fixtures contradict -- `warn` or `error` with no
+ * fixture landing a diagnostic there, or `off` with one.
+ */
+function positionViolations(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+): IPositionViolation[] {
+  const found: IPositionViolation[] = [];
+  for (const id of [...declarations.keys()].sort()) {
+    for (const [position, severity] of declarations.get(id)!.severities) {
+      // The parser keeps only position slugs in a position table
+      if (!MatrixCell.isPosition(position)) continue;
+      const occupied = isPositionOccupied(occupancy, id, position);
+      if (severity === "off" ? occupied : !occupied) {
+        found.push({ id, position, severity });
+      }
+    }
+  }
+  return found;
+}
+
 class MatrixReport {
+  static positionViolations = positionViolations;
+  static isPositionOccupied = isPositionOccupied;
+  static positionOccupants = positionOccupants;
   static isOccupied = isOccupied;
   static undeclaredRules = undeclaredRules;
   static ungatedCodes = ungatedCodes;

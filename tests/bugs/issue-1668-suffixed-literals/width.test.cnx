@@ -3,6 +3,12 @@
 // #1668 (R2): a suffixed literal has its suffix's width, so it sizes a
 // composite's ADR-044 clamp helper like any other u32 operand -- in either
 // order. Skipping it would size the helper by `b` alone and saturate at 255.
+// The NEGATIVE CONTROL's operand is a parameter: a sum of values known at
+// compile time that overflows is E0910, not a clamp (ADR-044, #1618).
+u8 addAtU8(u8 b) {
+    return b + 100;
+}
+
 u32 main() {
     u8 b <- 200;
 
@@ -17,7 +23,7 @@ u32 main() {
 
     // NEGATIVE CONTROL: an unsuffixed literal has no width of its own, and
     // the helper is `b`'s.
-    u8 r3 <- b + 100;
+    u8 r3 <- addAtU8(b);
     if (r3 != 255) {
         return 3;
     }

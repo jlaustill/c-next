@@ -35,6 +35,6 @@ scope Counter {
     }
 }
 
-u32 main() {
+i32 main() {
     return Counter.test();
 }

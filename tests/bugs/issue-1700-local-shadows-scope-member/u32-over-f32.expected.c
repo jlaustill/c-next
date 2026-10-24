@@ -24,16 +24,18 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #1700: a u32 local that shadows an f32 scope member is integer arithmetic,
 // so `x + x` saturates at u32's maximum. Typed as the float member, the clamp
 // was dropped and 6000000000 wrapped to 1705032704.
+// The local takes a parameter: a sum of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
 /* Scope: S */
 
-uint32_t S__f(void) {
-    const uint32_t x = 3000000000U;
+uint32_t S__f(const uint32_t seed) {
+    const uint32_t x = seed;
     const uint32_t y = cnx_clamp_add_u32(x, x);
     return y;
 }
 
 int main(void) {
-    const uint32_t r = S__f();
+    const uint32_t r = S__f(3000000000U);
     if (r != 4294967295) {
         return 1U;
     }

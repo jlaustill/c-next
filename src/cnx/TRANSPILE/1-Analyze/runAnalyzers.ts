@@ -426,7 +426,7 @@ function runAnalyzers(
       run: () => new TypeNameValueAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "integer conversions (ADR-024, E0868/E0869)",
+      label: "integer conversions (ADR-024, E0868/E0869/E0910)",
       run: () =>
         new IntegerConversionAnalyzer(context).analyze(
           parsed.program,

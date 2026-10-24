@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-885 fixture(s) assert a diagnostic; 871 carry a code.
+901 fixture(s) assert a diagnostic; 887 carry a code.
 
 | Fixture                                                                                                   | Codes                             |
 | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
@@ -201,6 +201,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-024/conversion-imported-transitive-error.test.cnx                                               | E0869                             |
 | tests/adr-024/conversion-in-scope-error.test.cnx                                                          | E0869                             |
 | tests/adr-024/conversion-other-scope-error.test.cnx                                                       | E0869                             |
+| tests/adr-024/conversion-positions-contexts-error.test.cnx                                                | E0868, E0869                      |
+| tests/adr-024/conversion-positions-imported-direct-error.test.cnx                                         | E0869                             |
+| tests/adr-024/conversion-positions-imported-transitive-error.test.cnx                                     | E0869                             |
 | tests/adr-024/conversion-scope-imported-direct-error.test.cnx                                             | E0869                             |
 | tests/adr-024/conversion-scope-imported-transitive-error.test.cnx                                         | E0869                             |
 | tests/adr-024/float-imported-direct-error.test.cnx                                                        | E0891                             |
@@ -322,11 +325,16 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-044/e0910-dimension-imported-direct.test.cnx                                                    | E0910                             |
 | tests/adr-044/e0910-dimension-imported-transitive.test.cnx                                                | E0910                             |
 | tests/adr-044/e0910-dimension-same-file.test.cnx                                                          | E0910                             |
+| tests/adr-044/e0910-for-header-imported-direct.test.cnx                                                   | E0910                             |
+| tests/adr-044/e0910-for-header-imported-transitive.test.cnx                                               | E0910                             |
+| tests/adr-044/e0910-for-header-same-file.test.cnx                                                         | E0910                             |
+| tests/adr-044/e0910-static-imported-direct.test.cnx                                                       | E0910                             |
+| tests/adr-044/e0910-static-imported-transitive.test.cnx                                                   | E0910                             |
 | tests/adr-044/e0912-imported-direct.test.cnx                                                              | E0912                             |
 | tests/adr-044/e0912-imported-transitive.test.cnx                                                          | E0912                             |
 | tests/adr-044/e0912-same-file.test.cnx                                                                    | E0912                             |
-| tests/adr-044/static-initializer-imported-direct.test.cnx                                                 | E0909, E0910                      |
-| tests/adr-044/static-initializer-imported-transitive.test.cnx                                             | E0909, E0910                      |
+| tests/adr-044/static-initializer-imported-direct.test.cnx                                                 | E0909                             |
+| tests/adr-044/static-initializer-imported-transitive.test.cnx                                             | E0909                             |
 | tests/adr-045/string-array-init-error-mismatch.test.cnx                                                   | E0866                             |
 | tests/adr-045/string-error-concat-global.test.cnx                                                         | E0863                             |
 | tests/adr-045/string-error-concat-overflow.test.cnx                                                       | E0864                             |
@@ -648,6 +656,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx            | E0427                             |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx              | E0427                             |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                            | E0427                             |
+| tests/bugs/issue-1618-conversion-positions/c-source-positions-rejected.test.cnx                           | E0869                             |
+| tests/bugs/issue-1618-conversion-positions/literal-positions-rejected.test.cnx                            | E0868, E0910                      |
+| tests/bugs/issue-1618-conversion-positions/narrowing-positions-rejected.test.cnx                          | E0869                             |
+| tests/bugs/issue-1618-conversion-positions/sign-positions-rejected.test.cnx                               | E0869                             |
+| tests/bugs/issue-1618-conversion-positions/static-ternary-owned.test.cnx                                  | E0910                             |
 | tests/bugs/issue-1624-variable-above-declaration/variable-above-declaration.test.cnx                      | E0427                             |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling.test.cnx                        | E0713                             |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-undeclared.test.cnx                                | E0427                             |
@@ -661,6 +674,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1643-self-referential-initializer/parameter-function.test.cnx                            | E0427                             |
 | tests/bugs/issue-1643-self-referential-initializer/scope-member.test.cnx                                  | E0427                             |
 | tests/bugs/issue-1643-self-referential-initializer/substring-local.test.cnx                               | E0427                             |
+| tests/bugs/issue-1664-const-binding/clamped-const-not-folded.test.cnx                                     | E0910                             |
 | tests/bugs/issue-1664-const-shadow/local-bound-error.test.cnx                                             | E0854                             |
 | tests/bugs/issue-1668-foreign-operands/c-typedef-declaration-error.test.cnx                               | E0810                             |
 | tests/bugs/issue-1668-foreign-operands/c-typedef-narrowing-error.test.cnx                                 | E0869                             |
@@ -732,6 +746,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx               | E0428                             |
 | tests/bugs/issue-1728-leading-zero/leading-zero.test.cnx                                                  | E0912                             |
 | tests/bugs/issue-1735-static-initializer-arithmetic/static-not-constant.test.cnx                          | E0909                             |
+| tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow-arithmetic.test.cnx                   | E0910                             |
 | tests/bugs/issue-1735-static-initializer-arithmetic/static-overflow.test.cnx                              | E0910                             |
 | tests/bugs/issue-1740-reopened-scope-this-call/this-call-undeclared.test.cnx                              | E0422                             |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-header-error.test.cnx                     | E0422                             |
@@ -884,6 +899,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/null-check/null-in-ternary.test.cnx                                                                 | (uncoded)                         |
 | tests/null-check/null-neq-check.test.cnx                                                                  | E0905, E0907                      |
 | tests/null-check/valid-fgetc-check.test.cnx                                                               | E0905                             |
+| tests/overflow-modifiers/clamp-wide-literal-rejected.test.cnx                                             | E0868                             |
 | tests/preprocessor/include-impl-file-error.test.cnx                                                       | E0503                             |
 | tests/register/register-bits-syntax-error.test.cnx                                                        | (uncoded)                         |
 | tests/scope/nested-scope-error.test.cnx                                                                   | E0430                             |

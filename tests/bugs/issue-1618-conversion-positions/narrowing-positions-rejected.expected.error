@@ -1,0 +1,18 @@
+20:11 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+29:10 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+30:9 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+33:14 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+34:20 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+35:22 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+36:16 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+37:23 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]
+38:23 error[E0869]: Cannot assign u64 to u32 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 32]

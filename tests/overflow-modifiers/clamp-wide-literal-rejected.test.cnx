@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 024
+// #94's truncation boundaries are literals past their type's range, so since
+// #1618 each is E0868 rather than a clamp: max+1 and the values that used to
+// truncate to 0 or 1. The controls are each type's own maximum.
+void boundaries() {
+    mut clamp u8 val8 <- 100;
+    val8 -<- 256;
+    val8 -<- 257;
+    val8 -<- 300;
+    val8 -<- 512;
+    val8 +<- 256;
+    mut clamp u16 val16 <- 1000;
+    val16 -<- 65536;
+    val16 -<- 65537;
+    mut clamp u32 val32 <- 1000;
+    val32 +<- 4294967296;
+    mut clamp i8 vali8 <- 0;
+    vali8 +<- 128;
+    vali8 -<- -129;
+
+    val8 -<- 255;
+    val16 -<- 65535;
+    val32 +<- 4294967295;
+    vali8 +<- 127;
+    vali8 -<- -128;
+}

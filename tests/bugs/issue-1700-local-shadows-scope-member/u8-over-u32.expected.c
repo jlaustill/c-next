@@ -24,16 +24,18 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // #1700: inside a scope method, a u8 local that shadows a u32 scope member is
 // typed as the local, so `x + x` saturates in u8 at 255. It was typed as the
 // member: `cnx_clamp_add_u32(x, x)` gave 400, truncated to 144.
+// The local takes a parameter: a sum of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
 /* Scope: S */
 
-uint8_t S__f(void) {
-    const uint8_t x = 200U;
+uint8_t S__f(const uint8_t seed) {
+    const uint8_t x = seed;
     const uint8_t y = cnx_clamp_add_u8(x, x);
     return y;
 }
 
 int main(void) {
-    const uint8_t r = S__f();
+    const uint8_t r = S__f(200U);
     if (r != 255) {
         return 1U;
     }

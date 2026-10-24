@@ -203,7 +203,7 @@ scope Worker {
     }
 }
 
-u32 main() {
+i32 main() {
     mut i32 result <- 0;
 
     result <- Worker.testSubtraction();

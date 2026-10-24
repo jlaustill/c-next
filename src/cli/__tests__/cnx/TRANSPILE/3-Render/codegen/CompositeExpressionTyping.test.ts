@@ -80,7 +80,7 @@ describe("conversion rules on composite expressions", () => {
 
     it("accepts a same-width composite", async () => {
       const result = await transpile(
-        `u32 main() { u8 a <- 250; u8 b <- 250; u8 c <- a + b; return 0; }`,
+        `u8 f(u8 a, u8 b) { u8 c <- a + b; return c; } u32 main() { return 0; }`,
       );
       expect(result.errors).toEqual([]);
     });

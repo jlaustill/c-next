@@ -428,9 +428,12 @@ CNX does not support:
 ### Where a conversion is checked
 
 **Wherever a value meets a typed target**, and the target is the one the value
-actually lands in — not the variable its name starts with. A declaration's
-initializer, an assignment statement, an element of an array, a field reached
-through a chain, and a cast are all conversions and all checked the same way.
+actually lands in — not the variable its name starts with. Every position
+in E0868's and E0869's position tables below -- a declaration's initializer, an
+assignment (to a variable, an element or a field), a compound assignment, a
+return value, a call argument, an array element initializer, a struct field
+initializer and either arm of a ternary -- and a cast are all conversions, all
+checked the same way.
 
 **Every program names a target (ADR-049)**, and every platform-dependent width in this ADR is read from it. A suffixed literal is typed by its suffix, so `u8 x <- 300u16` is a narrowing. A header integer of unknown width never selects saturating arithmetic (ADR-044).
 
@@ -457,6 +460,25 @@ they permitted is the code this decision exists to reject:
 - an assignment was checked against the ROOT name's declared type, so
   `c.col <- wide` — a `u32` into a `u8` field — was never checked at all,
   because `c` is a struct. It emitted `c.col = wide;`.
+
+Until #1618 the integer rules (E0868, E0869) were checked at only four of the
+positions a value lands in -- a declaration's initializer, an assignment, and
+an element or field reached through an assignment's chain -- while E0891 was
+checked at all of them. These all accepted a `u64 wide` into a `u32`:
+
+- a compound assignment, `a +<- wide`, which lands `a + wide`;
+- a return value, `return wide;` in a `u32` function;
+- an argument, `take(wide)`, direct or through a callback field
+  (`h.handler(wide)`);
+- an array element, listed or filled: `[wide, 0]`, `[wide*]`;
+- a struct field's initializer, `{ x: wide }`;
+- either arm of a ternary, `(c = 1) ? wide : 0`.
+
+A C function's result (`global.cWide()`) leaked at the return and the
+argument the same way. Each position is now asked the type its position gives
+the value, the one question E0891 already asked, so the three rules are
+checked at the same places. The bit extraction (`wide[0, 32]`) stays silent at
+every one.
 
 ---
 
@@ -696,6 +718,52 @@ is checked on an assignment statement as it is on a declaration's initializer,
 and an assignment is checked against the declared type of the variable or
 field it writes, not its root's: with `u32 a, b`, `u8 g` and a `u8` field `f`,
 both `g <- a + b` and `p.f <- a` are E0869 (narrowing).
+
+### Positions (#1618)
+
+A context cell says which declaration encloses a diagnostic, not which part of
+the statement it reports. E0869 at `u32 a <- wide;` and silence at
+`return wide;` in the same function both landed in `top-level function | same
+file`, so the declaration's fixture greened the cell while every return leaked.
+E0868 and E0869 therefore also declare a position table: each position a value
+lands in must be reached by a fixture asserting that code, whatever context
+the fixture is in.
+
+A literal operand is checked as a lone literal is (owner ruling on #1618):
+a value known at compile time that does not fit the target is E0868, and
+ADR-044's clamp is for runtime values only. `u8 a +<- 300` and
+`a <- a + 300` are both rejected; `a +<- 255` is not. The operators beside a
+literal decide what it must fit; ADR-044's _Compile time first_ lists them.
+
+<!-- MATRIX-POSITION code: E0868 -->
+
+| Position                  | Severity |
+| ------------------------- | -------- |
+| declaration initializer   | error    |
+| assignment                | error    |
+| array element assignment  | error    |
+| struct field assignment   | error    |
+| compound assignment       | error    |
+| return statement          | error    |
+| call argument             | error    |
+| array element initializer | error    |
+| struct field initializer  | error    |
+| ternary branch            | error    |
+
+<!-- MATRIX-POSITION code: E0869 -->
+
+| Position                  | Severity |
+| ------------------------- | -------- |
+| declaration initializer   | error    |
+| assignment                | error    |
+| array element assignment  | error    |
+| struct field assignment   | error    |
+| compound assignment       | error    |
+| return statement          | error    |
+| call argument             | error    |
+| array element initializer | error    |
+| struct field initializer  | error    |
+| ternary branch            | error    |
 
 ## References
 

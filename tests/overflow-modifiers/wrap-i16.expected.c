@@ -25,8 +25,8 @@ int main(void) {
     if (val != -25536) {
         return 3U;
     }
-    val = 0;
-    val = (int16_t)(val + 40000);
+    val = 20000;
+    val = (int16_t)(val + 20000);
     if (val != -25536) {
         return 4U;
     }
@@ -35,7 +35,9 @@ int main(void) {
     if (val != -32768) {
         return 5U;
     }
-    val = (int16_t)(val + 65535);
+    val = (int16_t)(val + 32767);
+    val = (int16_t)(val + 32767);
+    val = (int16_t)(val + 1);
     if (val != 32767) {
         return 6U;
     }
@@ -59,7 +61,9 @@ int main(void) {
     if (val != 32767) {
         return 10U;
     }
-    val = (int16_t)(val - 65535);
+    val = (int16_t)(val - 32767);
+    val = (int16_t)(val - 32767);
+    val = (int16_t)(val - 1);
     if (val != -32768) {
         return 11U;
     }

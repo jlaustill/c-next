@@ -1,0 +1,54 @@
+// test-error
+// test-adr: 024
+// #1618: ADR-024's narrowing (E0869) holds "wherever a value meets a typed
+// target", as E0891 already does at these positions. A u64 reached a u32
+// through a compound assignment, a return, an argument (direct and through a
+// callback field), an array list or fill, a struct field initializer and a
+// ternary's arms, each at exit 0. The controls stay silent: the bit
+// extraction ADR-024 asks for at each position, and a widening value.
+struct P {
+    u32 x;
+}
+
+void take(u32 v) {}
+
+struct Holder {
+    take handler;
+}
+
+u32 give(u64 wide) {
+    return wide;
+}
+
+u32 giveBits(u64 wide) {
+    return wide[0, 32];
+}
+
+void positions(u64 wide, u16 narrow, u32 c) {
+    mut u32 a <- 0;
+    a +<- wide;
+    take(wide);
+    mut Holder h;
+    h.handler <- take;
+    h.handler(wide);
+    u32[2] list <- [wide, 0];
+    u32[2] filled <- [wide*];
+    P p <- { x: wide };
+    u32 t <- (c = 1) ? wide : 0;
+    a <- (c = 1) ? 0 : wide;
+
+    a +<- wide[0, 32];
+    take(wide[0, 32]);
+    h.handler(narrow);
+    u32[2] bitsList <- [wide[0, 32], narrow];
+    P q <- { x: narrow };
+    u32 u <- (c = 1) ? wide[0, 32] : narrow;
+    (void)a;
+    (void)list;
+    (void)filled;
+    (void)p;
+    (void)t;
+    (void)bitsList;
+    (void)q;
+    (void)u;
+}

@@ -1,0 +1,76 @@
+// test-error
+// test-adr: 024
+// #1618: E0869 at every position a value lands in, across TWO include hops --
+// matrix cells: imported transitive, in the global-variable, scope-member,
+// scope-method, top-level-function and for-header contexts. Each context
+// keeps the bit extraction beside it as a silent control.
+
+#include "conversion-relay.cnx"
+
+struct P8 {
+    u8 x;
+}
+
+u8 pass8(u8 v) {
+    return v;
+}
+
+void sink8(u8 v) {}
+
+u32 counter <- 0;
+
+// NEGATIVE CONTROLS -- the bit extraction at the same positions.
+P8 okField <- { x: wideShared[0, 8] };
+u8[2] okList <- [wideShared[0, 8], 0];
+
+// ASSERTION -- global variable context: field, element, ternary arm.
+P8 fieldGlobal <- { x: wideShared };
+u8[2] listGlobal <- [wideShared, 0];
+u8 ternGlobal <- (counter = 1) ? wideShared : 0;
+
+scope Gauge {
+    // ASSERTION -- scope member context: field, element.
+    P8 field <- { x: wideShared };
+    u8[2] list <- [wideShared, 0];
+
+    // ASSERTION -- scope method context: return, argument, compound.
+    public u8 give() {
+        return wideShared;
+    }
+
+    public void take() {
+        mut u8 a <- 0;
+        sink8(wideShared);
+        a +<- wideShared;
+        sink8(wideShared[0, 8]);
+        (void)a;
+    }
+}
+
+// ASSERTION -- top-level function context: every position.
+u8 give() {
+    return wideShared;
+}
+
+void positions() {
+    mut u8 a <- 0;
+    a +<- wideShared;
+    sink8(wideShared);
+    u8[2] list <- [wideShared, 0];
+    u8[2] filled <- [wideShared*];
+    P8 p <- { x: wideShared };
+    u8 t <- (counter = 1) ? 0 : wideShared;
+    sink8(wideShared[0, 8]);
+    (void)a;
+    (void)list;
+    (void)filled;
+    (void)p;
+    (void)t;
+}
+
+// ASSERTION -- for header context: argument, ternary arm.
+void loops() {
+    for (u8 i <- pass8(wideShared); counter < 1; counter +<- 1) {}
+    for (u8 j <- (counter = 1) ? wideShared : 0; counter < 1; counter +<- 1) {}
+    for (u8 k <- pass8(wideShared[0, 8]); counter < 1; counter +<- 1) {}
+}
