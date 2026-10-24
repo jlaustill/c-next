@@ -14,13 +14,13 @@ extern "C" {
 #endif
 
 /* Struct definitions */
+typedef struct Config {
+    uint32_t x;
+} Config;
 typedef struct S__H {
     Config c;
     S__A a;
 } S__H;
-typedef struct Config {
-    uint32_t x;
-} Config;
 
 #ifdef __cplusplus
 }
