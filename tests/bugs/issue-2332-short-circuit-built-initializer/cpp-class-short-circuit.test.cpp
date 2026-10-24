@@ -40,50 +40,75 @@ int32_t bump(void) {
 
 int main(void) {
     const uint32_t a = 0U;
-    CppTestClass cnx_tmp0 = {};
-    /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-    cnx_tmp0.value = bump();
-    const bool skippedAnd = (a == 1) && (w(cnx_tmp0) == 1);
+    /* C11 6.5.13p4, C++ [expr.log.and]: right operand of `&&` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is false). */
+    bool cnx_tmp1 = (a == 1);
+    if (cnx_tmp1) {
+        CppTestClass cnx_tmp0 = {};
+        /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
+        cnx_tmp0.value = bump();
+        cnx_tmp1 = (w(cnx_tmp0) == 1);
+    }
+    const bool skippedAnd = cnx_tmp1;
     if (skippedAnd != false) {
         return 1U;
     }
     if (calls != 0) {
         return 2U;
     }
-    CppTestClass cnx_tmp1 = {};
-    /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-    cnx_tmp1.value = bump();
-    const bool ranAnd = (a == 0) && (w(cnx_tmp1) == 1);
+    /* C11 6.5.13p4, C++ [expr.log.and]: right operand of `&&` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is false). */
+    bool cnx_tmp3 = (a == 0);
+    if (cnx_tmp3) {
+        CppTestClass cnx_tmp2 = {};
+        /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
+        cnx_tmp2.value = bump();
+        cnx_tmp3 = (w(cnx_tmp2) == 1);
+    }
+    const bool ranAnd = cnx_tmp3;
     if (ranAnd != true) {
         return 3U;
     }
     if (calls != 1) {
         return 4U;
     }
-    CppTestClass cnx_tmp2 = {};
-    /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-    cnx_tmp2.value = bump();
-    const bool skippedOr = (a == 0) || (w(cnx_tmp2) == 1);
+    /* C11 6.5.14p4, C++ [expr.log.or]: right operand of `||` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is true). */
+    bool cnx_tmp5 = (a == 0);
+    if (!cnx_tmp5) {
+        CppTestClass cnx_tmp4 = {};
+        /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
+        cnx_tmp4.value = bump();
+        cnx_tmp5 = (w(cnx_tmp4) == 1);
+    }
+    const bool skippedOr = cnx_tmp5;
     if (skippedOr != true) {
         return 5U;
     }
     if (calls != 1) {
         return 6U;
     }
-    CppTestClass cnx_tmp3 = {};
-    /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-    cnx_tmp3.value = bump();
-    const bool ranOr = (a == 1) || (w(cnx_tmp3) == 1);
+    /* C11 6.5.14p4, C++ [expr.log.or]: right operand of `||` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is true). */
+    bool cnx_tmp7 = (a == 1);
+    if (!cnx_tmp7) {
+        CppTestClass cnx_tmp6 = {};
+        /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
+        cnx_tmp6.value = bump();
+        cnx_tmp7 = (w(cnx_tmp6) == 1);
+    }
+    const bool ranOr = cnx_tmp7;
     if (ranOr != true) {
         return 7U;
     }
     if (calls != 2) {
         return 8U;
     }
-    CppTestClass cnx_tmp4 = {};
-    /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-    cnx_tmp4.value = bump();
-    const bool chain = (a == 0) && (w(cnx_tmp4) == 1) && (a == 1);
+    /* C11 6.5.13p4, C++ [expr.log.and]: right operand of `&&` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is false). */
+    bool cnx_tmp9 = (a == 0);
+    if (cnx_tmp9) {
+        CppTestClass cnx_tmp8 = {};
+        /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
+        cnx_tmp8.value = bump();
+        cnx_tmp9 = (w(cnx_tmp8) == 1);
+    }
+    const bool chain = cnx_tmp9 && (a == 1);
     if (chain != false) {
         return 9U;
     }
@@ -91,16 +116,16 @@ int main(void) {
         return 10U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    int32_t cnx_tmp6;
+    int32_t cnx_tmp11;
     if (a == 1) {
-        CppTestClass cnx_tmp5 = {};
+        CppTestClass cnx_tmp10 = {};
         /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-        cnx_tmp5.value = bump();
-        cnx_tmp6 = w(cnx_tmp5);
+        cnx_tmp10.value = bump();
+        cnx_tmp11 = w(cnx_tmp10);
     } else {
-        cnx_tmp6 = 7;
+        cnx_tmp11 = 7;
     }
-    const int32_t falseArm = cnx_tmp6;
+    const int32_t falseArm = cnx_tmp11;
     if (falseArm != 7) {
         return 11U;
     }
@@ -108,16 +133,16 @@ int main(void) {
         return 12U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    int32_t cnx_tmp8;
+    int32_t cnx_tmp13;
     if (a == 0) {
-        CppTestClass cnx_tmp7 = {};
+        CppTestClass cnx_tmp12 = {};
         /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-        cnx_tmp7.value = bump();
-        cnx_tmp8 = w(cnx_tmp7);
+        cnx_tmp12.value = bump();
+        cnx_tmp13 = w(cnx_tmp12);
     } else {
-        cnx_tmp8 = 7;
+        cnx_tmp13 = 7;
     }
-    const int32_t trueArm = cnx_tmp8;
+    const int32_t trueArm = cnx_tmp13;
     if (trueArm != 1) {
         return 13U;
     }
@@ -125,16 +150,16 @@ int main(void) {
         return 14U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    int32_t cnx_tmp10;
+    int32_t cnx_tmp15;
     if (a == 0) {
-        cnx_tmp10 = 5;
+        cnx_tmp15 = 5;
     } else {
-        CppTestClass cnx_tmp9 = {};
+        CppTestClass cnx_tmp14 = {};
         /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-        cnx_tmp9.value = bump();
-        cnx_tmp10 = w(cnx_tmp9);
+        cnx_tmp14.value = bump();
+        cnx_tmp15 = w(cnx_tmp14);
     }
-    const int32_t elseArm = cnx_tmp10;
+    const int32_t elseArm = cnx_tmp15;
     if (elseArm != 5) {
         return 15U;
     }
@@ -142,19 +167,19 @@ int main(void) {
         return 16U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    CppTestClass cnx_tmp13;
+    CppTestClass cnx_tmp18;
     if (a == 1) {
-        CppTestClass cnx_tmp11 = {};
+        CppTestClass cnx_tmp16 = {};
         /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-        cnx_tmp11.value = bump();
-        cnx_tmp13 = cnx_tmp11;
+        cnx_tmp16.value = bump();
+        cnx_tmp18 = cnx_tmp16;
     } else {
-        CppTestClass cnx_tmp12 = {};
+        CppTestClass cnx_tmp17 = {};
         /* ADR-014 / Issue #517, C++20 §9.4.2 (aggregates): a class with a user-declared constructor is not an aggregate, so no designated initializer can build it; it is constructed, then each field is assigned. */
-        cnx_tmp12.value = 2;
-        cnx_tmp13 = cnx_tmp12;
+        cnx_tmp17.value = 2;
+        cnx_tmp18 = cnx_tmp17;
     }
-    const CppTestClass picked = cnx_tmp13;
+    const CppTestClass picked = cnx_tmp18;
     if (picked.value != 2) {
         return 17U;
     }

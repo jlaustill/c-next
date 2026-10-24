@@ -57,50 +57,75 @@ uint32_t bump(void) {
 int main(void) {
     const uint32_t a = 0U;
     const char t[9] = "hi";
-    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-    Named cnx_tmp0 = { .s = { 0 }, .n = bump() };
-    cnx_string_copy(cnx_tmp0.s, t, 8U);
-    const bool skippedAnd = (a == 1) && (w(cnx_tmp0) == 1);
+    /* C11 6.5.13p4, C++ [expr.log.and]: right operand of `&&` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is false). */
+    bool cnx_tmp1 = (a == 1);
+    if (cnx_tmp1) {
+        /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
+        Named cnx_tmp0 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp0.s, t, 8U);
+        cnx_tmp1 = (w(cnx_tmp0) == 1);
+    }
+    const bool skippedAnd = cnx_tmp1;
     if (skippedAnd != false) {
         return 1U;
     }
     if (calls != 0) {
         return 2U;
     }
-    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-    Named cnx_tmp1 = { .s = { 0 }, .n = bump() };
-    cnx_string_copy(cnx_tmp1.s, t, 8U);
-    const bool ranAnd = (a == 0) && (w(cnx_tmp1) == 1);
+    /* C11 6.5.13p4, C++ [expr.log.and]: right operand of `&&` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is false). */
+    bool cnx_tmp3 = (a == 0);
+    if (cnx_tmp3) {
+        /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
+        Named cnx_tmp2 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp2.s, t, 8U);
+        cnx_tmp3 = (w(cnx_tmp2) == 1);
+    }
+    const bool ranAnd = cnx_tmp3;
     if (ranAnd != true) {
         return 3U;
     }
     if (calls != 1) {
         return 4U;
     }
-    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-    Named cnx_tmp2 = { .s = { 0 }, .n = bump() };
-    cnx_string_copy(cnx_tmp2.s, t, 8U);
-    const bool skippedOr = (a == 0) || (w(cnx_tmp2) == 1);
+    /* C11 6.5.14p4, C++ [expr.log.or]: right operand of `||` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is true). */
+    bool cnx_tmp5 = (a == 0);
+    if (!cnx_tmp5) {
+        /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
+        Named cnx_tmp4 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp4.s, t, 8U);
+        cnx_tmp5 = (w(cnx_tmp4) == 1);
+    }
+    const bool skippedOr = cnx_tmp5;
     if (skippedOr != true) {
         return 5U;
     }
     if (calls != 1) {
         return 6U;
     }
-    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-    Named cnx_tmp3 = { .s = { 0 }, .n = bump() };
-    cnx_string_copy(cnx_tmp3.s, t, 8U);
-    const bool ranOr = (a == 1) || (w(cnx_tmp3) == 1);
+    /* C11 6.5.14p4, C++ [expr.log.or]: right operand of `||` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is true). */
+    bool cnx_tmp7 = (a == 1);
+    if (!cnx_tmp7) {
+        /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
+        Named cnx_tmp6 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp6.s, t, 8U);
+        cnx_tmp7 = (w(cnx_tmp6) == 1);
+    }
+    const bool ranOr = cnx_tmp7;
     if (ranOr != true) {
         return 7U;
     }
     if (calls != 2) {
         return 8U;
     }
-    /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-    Named cnx_tmp4 = { .s = { 0 }, .n = bump() };
-    cnx_string_copy(cnx_tmp4.s, t, 8U);
-    const bool chain = (a == 0) && (w(cnx_tmp4) == 1) && (a == 1);
+    /* C11 6.5.13p4, C++ [expr.log.and]: right operand of `&&` built under a test of the left one (building its temporary before the statement would evaluate the operand's calls even when the left side is false). */
+    bool cnx_tmp9 = (a == 0);
+    if (cnx_tmp9) {
+        /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
+        Named cnx_tmp8 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp8.s, t, 8U);
+        cnx_tmp9 = (w(cnx_tmp8) == 1);
+    }
+    const bool chain = cnx_tmp9 && (a == 1);
     if (chain != false) {
         return 9U;
     }
@@ -108,16 +133,16 @@ int main(void) {
         return 10U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    uint32_t cnx_tmp6;
+    uint32_t cnx_tmp11;
     if (a == 1) {
         /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-        Named cnx_tmp5 = { .s = { 0 }, .n = bump() };
-        cnx_string_copy(cnx_tmp5.s, t, 8U);
-        cnx_tmp6 = w(cnx_tmp5);
+        Named cnx_tmp10 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp10.s, t, 8U);
+        cnx_tmp11 = w(cnx_tmp10);
     } else {
-        cnx_tmp6 = 7U;
+        cnx_tmp11 = 7U;
     }
-    const uint32_t falseArm = cnx_tmp6;
+    const uint32_t falseArm = cnx_tmp11;
     if (falseArm != 7) {
         return 11U;
     }
@@ -125,16 +150,16 @@ int main(void) {
         return 12U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    uint32_t cnx_tmp8;
+    uint32_t cnx_tmp13;
     if (a == 0) {
         /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-        Named cnx_tmp7 = { .s = { 0 }, .n = bump() };
-        cnx_string_copy(cnx_tmp7.s, t, 8U);
-        cnx_tmp8 = w(cnx_tmp7);
+        Named cnx_tmp12 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp12.s, t, 8U);
+        cnx_tmp13 = w(cnx_tmp12);
     } else {
-        cnx_tmp8 = 7U;
+        cnx_tmp13 = 7U;
     }
-    const uint32_t trueArm = cnx_tmp8;
+    const uint32_t trueArm = cnx_tmp13;
     if (trueArm != 1) {
         return 13U;
     }
@@ -142,16 +167,16 @@ int main(void) {
         return 14U;
     }
     /* C11 6.5.15p4, C++ [expr.cond]: each arm of `?:` built in its own branch (building both arms' temporaries before the statement would evaluate the calls of the arm that is not chosen). */
-    uint32_t cnx_tmp10;
+    uint32_t cnx_tmp15;
     if (a == 0) {
-        cnx_tmp10 = 5U;
+        cnx_tmp15 = 5U;
     } else {
         /* ADR-045 / Issue #2236: a string<N> field is copied in like any string; C initializes a char[] only from a literal. */
-        Named cnx_tmp9 = { .s = { 0 }, .n = bump() };
-        cnx_string_copy(cnx_tmp9.s, t, 8U);
-        cnx_tmp10 = w(cnx_tmp9);
+        Named cnx_tmp14 = { .s = { 0 }, .n = bump() };
+        cnx_string_copy(cnx_tmp14.s, t, 8U);
+        cnx_tmp15 = w(cnx_tmp14);
     }
-    const uint32_t elseArm = cnx_tmp10;
+    const uint32_t elseArm = cnx_tmp15;
     if (elseArm != 5) {
         return 15U;
     }
