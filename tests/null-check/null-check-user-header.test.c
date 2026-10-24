@@ -16,9 +16,11 @@
 
 uint8_t witness = 0U;
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 char* gname = NULL;
 
 /* Scope: Board */
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static char* Board__label = NULL;
 
 void Board__load(void) {
@@ -32,6 +34,7 @@ int main(void) {
     }
     gname = user_device_name();
     Board__load();
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     char* c_local = NULL;
     c_local = user_device_name();
     if (c_local != NULL) {

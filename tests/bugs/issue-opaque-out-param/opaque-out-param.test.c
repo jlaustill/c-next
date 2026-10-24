@@ -30,11 +30,13 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 Dev* gdev = NULL;
 
 Dev* gdevs[2] = {0};
 
 /* Scope: Board */
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static Dev* Board__held = NULL;
 
 void Board__make(void) {
@@ -52,6 +54,7 @@ int32_t Board__pokes(void) {
 
 // A local handle, created through the out-parameter.
 int32_t makeLocal(void) {
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     Dev* d = NULL;
     dev_create_into(&d);
     dev_poke(d);

@@ -22,6 +22,7 @@
 #include <stddef.h>
 
 /* Scope: UI */
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static Dev* UI__held = NULL;
 
 void UI__inner(Dev* w) {

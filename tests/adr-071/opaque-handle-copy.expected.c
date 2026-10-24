@@ -26,6 +26,7 @@ uint8_t viaArray(Dev* d) {
 }
 
 int main(void) {
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     Dev* none = NULL;
     const uint8_t one = pickOne(none, none, true);
     const uint8_t two = viaArray(none);

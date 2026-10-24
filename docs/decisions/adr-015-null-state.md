@@ -321,7 +321,10 @@ type, such as `typedef struct X *Handle;`) zeroes to `NULL` in C and `nullptr` i
 C++, at file scope, in a scope and in a body. MISRA C:2012 Rule 11.9 permits
 only `NULL` as a null pointer constant, and MISRA rules win in generated C and
 C++ (owner ruling, #1610). Rule 11.9 allows `{0}` for an aggregate, so an array
-of handles keeps `{0}` (#996).
+of handles keeps `{0}` (#996). Because the rule shaped it, each such C
+declaration carries a `/* MISRA C:2012 Rule 11.9: ... */` annotation directly
+above it (owner ruling, #1610: "if it satisfies MISRA 11.9 it should get the
+comment"). C++'s `nullptr` is not an integer constant, so it carries none.
 
 ## Examples
 

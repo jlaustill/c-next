@@ -75,6 +75,7 @@ import type IRegisterDeclarationSyntax from "../types/syntax/IRegisterDeclaratio
 import type IParameterSyntax from "../types/syntax/IParameterSyntax";
 import type IFunctionDeclarationSyntax from "../types/syntax/IFunctionDeclarationSyntax";
 import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
+import type ISyntaxNode from "../types/syntax/ISyntaxNode";
 import type IProgramSyntax from "../types/syntax/IProgramSyntax";
 import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
 import type TBlockSyntax from "../types/syntax/TBlockSyntax";
@@ -402,6 +403,18 @@ class CodeGenWalker {
     return this.filePlan.staticValueNotes.has(declaration) &&
       !this.host.state.cppMode
       ? ComplianceAnnotations.render(ComplianceAnnotations.STATIC_VALUE) + "\n"
+      : "";
+  }
+
+  /**
+   * #1610: why a pointer declared without a value starts as `NULL`. C's rule
+   * alone: C++ writes `nullptr`, which is not an integer constant at all
+   */
+  private nullPointerNote(declaration: ISyntaxNode): string {
+    const nullInitialized: ReadonlySet<ISyntaxNode> =
+      this.filePlan.nullInitialized;
+    return nullInitialized.has(declaration) && !this.host.state.cppMode
+      ? ComplianceAnnotations.render(ComplianceAnnotations.NULL_POINTER) + "\n"
       : "";
   }
 
@@ -911,6 +924,7 @@ class CodeGenWalker {
       case "constructorDeclaration":
         return (
           this.nameMoveComments(statement) +
+          this.nullPointerNote(statement) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(statement),
             this.host.state,
@@ -1812,6 +1826,7 @@ class CodeGenWalker {
       case "constructorDeclaration":
         return (
           this.staticValueNote(declaration) +
+          this.nullPointerNote(declaration) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(declaration),
             this.host.state,
@@ -2036,7 +2051,7 @@ class CodeGenWalker {
           FilePlanner.stringCapacityOf(decl.type),
         ),
       renderInitializer: () => this.renderScopeInitializer(decl, isArray),
-      note: this.staticValueNote(decl),
+      note: this.staticValueNote(decl) + this.nullPointerNote(decl),
     };
   }
 

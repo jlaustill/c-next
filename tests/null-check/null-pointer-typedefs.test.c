@@ -15,17 +15,24 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 vhandle_t gv = NULL;
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 intp_t gi = NULL;
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 isr_t gcb = NULL;
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 vh2_t gchain = NULL;
 
 /* Scope: Board */
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static vhandle_t Board__sv = NULL;
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static isr_t Board__scb = NULL;
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static vh2_t Board__schain = NULL;
 
 void Board__load(void) {
@@ -39,10 +46,13 @@ int main(void) {
     gi = user_int();
     gcb = user_pick_isr();
     Board__load();
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     vhandle_t lv = NULL;
     lv = user_handle();
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     isr_t lcb = NULL;
     lcb = user_pick_isr();
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     vh2_t lchain = NULL;
     lchain = user_handle();
     gchain = lchain;

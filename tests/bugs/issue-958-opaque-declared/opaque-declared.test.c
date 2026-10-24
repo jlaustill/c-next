@@ -15,9 +15,11 @@
 
 #include <stddef.h>
 
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 widget_t* gw = NULL;
 
 void f(void) {
+    /* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
     widget_t* w = NULL;
     w = widget_create();
     widget_use(w);
