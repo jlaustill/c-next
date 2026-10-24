@@ -102,12 +102,28 @@ describe("IntegerConversionAnalyzer", () => {
         errors(inMain("    u8 x <- 0;\n    x +<- 300;")).map((e) => e.code),
       ).toEqual(["E0868"]);
       expect(
-        errors(inMain("    u8 x <- byte + 300;")).map((e) => e.code),
+        errors(
+          "u8 f(u8 p) {\n    return p + 300;\n}\nu32 main() { return 0; }",
+        ).map((e) => e.code),
       ).toEqual(["E0868"]);
-      expect(errors(inMain("    u8 x <- byte + 255;"))).toEqual([]);
+      // `byte` is known (7), so the sum folds and overflows u8: E0910 (#1618)
+      expect(
+        errors(inMain("    u8 x <- byte + 300;")).map((e) => e.code),
+      ).toEqual(["E0910"]);
+      expect(errors(inMain("    u8 x <- byte + 248;"))).toEqual([]);
+      expect(
+        errors(
+          "u8 f(u8 p) {\n    return p + 255;\n}\nu32 main() { return 0; }",
+        ),
+      ).toEqual([]);
+      expect(
+        errors(
+          "u8 f(u8 p) {\n    return p | 0x100;\n}\nu32 main() { return 0; }",
+        ).map((e) => e.code),
+      ).toEqual(["E0868"]);
       expect(
         errors(inMain("    u8 x <- byte | 0x100;")).map((e) => e.code),
-      ).toEqual(["E0868"]);
+      ).toEqual(["E0910"]);
       expect(errors(inMain("    u8 x <- byte / 300;"))).toEqual([]);
       expect(errors(inMain("    u8 x <- byte & 0x1FF;"))).toEqual([]);
       expect(errors(inMain("    u8 x <- 0;\n    x %<- 300;"))).toEqual([]);

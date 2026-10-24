@@ -120,7 +120,7 @@ class ConstantDimensionCheck {
       this.found.push({
         code: "E0910",
         ...at,
-        message: `Array dimension overflows ${result.typeName} at compile time: the arithmetic would clamp or wrap (ADR-044)`,
+        message: `Array dimension overflows ${result.typeName} at compile time: ${ConstantDiagnostics.OVERFLOW_CAUSE}`,
         helpText: ConstantDiagnostics.OVERFLOW_HELP,
       });
       return;

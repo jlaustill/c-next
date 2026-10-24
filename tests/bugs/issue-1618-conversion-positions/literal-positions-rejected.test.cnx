@@ -6,6 +6,11 @@
 // each at exit 0; an element and a field assignment, a compound and a
 // composite operand are here too. The
 // controls stay silent: an in-range literal at each.
+
+#include "conversion-consts.cnx"
+
+u32 WIDE <- 0x10000;
+
 struct P {
     u8 x;
 }
@@ -40,6 +45,10 @@ void positions(u32 c) {
     a &<- (a + 300);
     a <- a / (a + 300);
     u32 wraps <- 0x10000 * 0x10000;
+    u32 wrapsNamed <- WIDE * WIDE;
+    u32 wrapsImported <- IMPORTED_WIDE * IMPORTED_WIDE;
+    a +<- ((c = 1) ? 300 : 1);
+    a <- a + ((~0x00) * 2);
 
     take(255);
     u8[2] fits <- [255, 0];
@@ -59,6 +68,9 @@ void positions(u32 c) {
     a <- a & (a | 0x1FF);
     u32 fitsU32 <- 0x8000 * 0x10000;
     u64 fitsU64 <- 0x100000000 * 2;
+    u32 fitsNamed <- WIDE * 0x8000;
+    a <- a | ~0x0F;
+    u8 inverted <- ~0x01;
     (void)list;
     (void)p;
     (void)t;

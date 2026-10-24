@@ -167,7 +167,7 @@ function renderPositions(
     parts.push("| Position | Severity | Fixtures |", "| --- | --- | --- |");
     for (const [position, severity] of declarations.get(id)!.severities) {
       const occupied = MatrixReport.isPositionOccupied(occupancy, id, position);
-      const occupants = occupancy.get(id)?.positions.get(position)?.length ?? 0;
+      const occupants = MatrixReport.positionOccupants(occupancy, id, position);
       const cell = positionCell(severity, occupied, occupants);
       parts.push(
         `| ${position.replaceAll("-", " ")} | ${severity} | ${cell} |`,

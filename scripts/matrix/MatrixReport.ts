@@ -180,13 +180,22 @@ function ungatedCodes(
     .sort();
 }
 
+/** #1618: how many fixtures land `id`'s diagnostic in `position`. */
+function positionOccupants(
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+  id: string,
+  position: string,
+): number {
+  return occupancy.get(id)?.positions.get(position)?.length ?? 0;
+}
+
 /** #1618: whether any fixture lands `id`'s diagnostic in `position`. */
 function isPositionOccupied(
   occupancy: ReadonlyMap<string, IMatrixOccupancy>,
   id: string,
   position: string,
 ): boolean {
-  return (occupancy.get(id)?.positions.get(position)?.length ?? 0) > 0;
+  return positionOccupants(occupancy, id, position) > 0;
 }
 
 /**
@@ -212,6 +221,7 @@ function positionViolations(
 class MatrixReport {
   static positionViolations = positionViolations;
   static isPositionOccupied = isPositionOccupied;
+  static positionOccupants = positionOccupants;
   static isOccupied = isOccupied;
   static undeclaredRules = undeclaredRules;
   static ungatedCodes = ungatedCodes;

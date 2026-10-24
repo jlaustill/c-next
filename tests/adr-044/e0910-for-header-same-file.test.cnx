@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 044
+// ADR-044 "Compile time first" (#1618): a `for` header's initializer is a
+// value position, so arithmetic there over read-only values that overflows its
+// operands' width is E0910 rather than a clamp of a value known at compile
+// time. Exercised with the operand declared in the same file.
+//
+// NEGATIVE CONTROL: the second loop adds at u16, where 400 fits, and must stay
+// silent.
+
+u8 BASE <- 200;
+
+void run() {
+    for (mut u16 i <- BASE + BASE; i < 500; i +<- 1) {}
+    for (mut u16 j <- (u16)BASE + (u16)BASE; j < 500; j +<- 1) {}
+}
+
+void main() {}

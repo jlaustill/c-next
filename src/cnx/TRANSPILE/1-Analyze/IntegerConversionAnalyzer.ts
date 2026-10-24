@@ -1,5 +1,6 @@
 /**
- * ADR-024 integer conversions: E0868, E0869 and E0891.
+ * ADR-024 integer conversions: E0868, E0869 and E0891, and E0910 where a
+ * value known at compile time overflows outside a static initializer.
  *
  * #1322. Six rules across `TypeResolver` and `CodeGenerator`, reached through
  * three entry points -- a declaration's initializer, an assignment, a cast --
@@ -78,6 +79,8 @@ import CompositeType from "../../utils/CompositeType";
 import CompoundOperator from "../../utils/CompoundOperator";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ValuePositions from "./helpers/ValuePositions";
+import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
+import StaticInitializers from "./helpers/StaticInitializers";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
@@ -112,6 +115,7 @@ class IntegerConversionCheck {
   public constructor(
     private readonly context: IAnalysisContext,
     private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
+    private readonly staticValues: ReadonlySet<TExpression> = new Set(),
   ) {}
 
   public errors(): IIntegerConversionError[] {
@@ -218,8 +222,9 @@ class IntegerConversionCheck {
    * not fit the target is E0868, however it is built. ADR-044's clamp is for
    * runtime values only, so `u8 a +<- 300`, `a <- a + 300` and
    * `a +<- (100 + 200)` are errors (#1618). The one evaluator,
-   * `OperandTyper.constantOf`, decides what is known, so `-(128)` is -128. A
-   * value built from a name is typed, and E0869 judges it by its type.
+   * `OperandTyper.constantResultOf`, decides what is known, a bound name's
+   * value included: `-(128)` is -128, and `u32 x <- BIG * BIG` overflows.
+   * A ternary is two arms unless its condition folds too.
    */
   private checkLiteralLeaves(
     target: string,
@@ -227,16 +232,11 @@ class IntegerConversionCheck {
     role: TLiteralRole = "value",
   ): void {
     const roles = new Map<TExpression, TLiteralRole>([[value, role]]);
-    // `~` folds at C's int width, not the target's: `u8 m <- ~1` is 0xFE
-    const complement = (expr: TExpression): boolean =>
-      expr.kind === "unary" && expr.operator === "~";
-    const constant = (expr: TExpression): boolean =>
-      CONSTANT_FORMS.has(expr.kind) &&
-      OperandTyper.valueLeafExpressions(expr, complement).every(
-        (leaf) =>
-          !complement(leaf) &&
-          IntegerConversionCheck.integerLiteralText(leaf) !== null,
-      );
+    const constant = (expr: TExpression): boolean => {
+      if (!CONSTANT_FORMS.has(expr.kind)) return false;
+      const result = this.foldAt(target, expr, roles.get(expr) ?? "value");
+      return result.kind === "value" || result.kind === "overflow";
+    };
     const isLeaf = (expr: TExpression): boolean => {
       const inherited = roles.get(expr) ?? "value";
       if (expr.kind === "binary") {
@@ -251,7 +251,9 @@ class IntegerConversionCheck {
     for (const leaf of OperandTyper.valueLeafExpressions(value, isLeaf)) {
       const leafRole = roles.get(leaf) ?? "value";
       if (leafRole === "exempt") continue;
-      const text = this.knownText(target, leaf, leafRole, constant(leaf));
+      const text = this.knownText(target, leaf, leafRole, constant(leaf), {
+        overflowOwned: this.staticValues.has(value),
+      });
       if (text === null) continue;
       if (leafRole === "bits") this.checkBits(target, text, leaf);
       else this.checkLiteral(target, text, leaf);
@@ -262,8 +264,8 @@ class IntegerConversionCheck {
    * What a literal operand must fit, by the operators beside it (#1618):
    * one of `+ - *` its target's range, since clamp or wrap would act on a
    * known value; one of `| ^` its target's width, since bits past it would be
-   * dropped. `&` only clears bits, and a `/` or `%` divisor only shrinks the
-   * result, so neither can push it out of range: nothing to catch.
+   * dropped. A literal of `&`, or a `/` or `%` divisor, does not decide
+   * whether the result overflows (`b & 0x1FF`, `b / 300`): nothing to catch.
    */
   private static roleOf(
     before: string | null,
@@ -326,24 +328,40 @@ class IntegerConversionCheck {
     leaf: TExpression,
     role: TLiteralRole,
     folds: boolean,
+    { overflowOwned }: { overflowOwned: boolean },
   ): string | null {
     const literal = IntegerConversionCheck.integerLiteralText(leaf);
     if (literal !== null || !folds) return literal;
-    const result = OperandTyper.constantResultOf(
-      leaf,
+    const result = this.foldAt(target, leaf, role);
+    if (result.kind === "overflow") {
+      if (!overflowOwned) {
+        this.report(
+          leaf,
+          "E0910",
+          `Value overflows ${result.typeName} at compile time: ${ConstantDiagnostics.OVERFLOW_CAUSE}`,
+          ConstantDiagnostics.OVERFLOW_HELP,
+        );
+      }
+      return null;
+    }
+    // A typed value's range is its type's, which E0869 judges
+    const judged =
+      result.kind === "value" &&
+      (result.typeName === null || result.typeName === target);
+    return judged ? String(result.value) : null;
+  }
+
+  /** The one fold: a value-role operand at the target's width (#1618) */
+  private foldAt(
+    target: string,
+    expr: TExpression,
+    role: TLiteralRole,
+  ): ReturnType<typeof OperandTyper.constantResultOf> {
+    return OperandTyper.constantResultOf(
+      expr,
       this.context,
       role === "value" ? target : null,
     );
-    if (result.kind === "overflow") {
-      this.report(
-        leaf,
-        "E0868",
-        `Value overflows ${target} at compile time`,
-        "Widen the target type, or narrow the value.",
-      );
-      return null;
-    }
-    return result.kind === "value" ? String(result.value) : null;
   }
 
   /** E0914, then E0923: a string lands only in a string, and only a string does */
@@ -621,7 +639,13 @@ class IntegerConversionAnalyzer {
     program: IProgramSyntax,
     positions: ReadonlyMap<TExpression, IValuePosition>,
   ): IIntegerConversionError[] {
-    const check = new IntegerConversionCheck(this.context, positions);
+    const check = new IntegerConversionCheck(
+      this.context,
+      positions,
+      new Set(
+        StaticInitializers.values(program, positions).map(({ value }) => value),
+      ),
+    );
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);

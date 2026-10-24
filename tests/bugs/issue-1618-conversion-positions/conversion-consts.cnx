@@ -1,0 +1,2 @@
+// #1618: a bound value the literal fixture reads across a file boundary.
+u32 IMPORTED_WIDE <- 0x10000;

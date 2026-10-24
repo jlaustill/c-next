@@ -109,7 +109,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A literal operand that does not fit its target is rejected** (ADR-024, Issue #1618).
   `u8 a +<- 300` and `a <- a + 300` compiled to a saturating clamp; a value known at compile
   time that does not fit is now E0868, and ADR-044's clamp applies to runtime values only. A `|`/`^`
-  operand must fit the target's width; `&` and a `/`/`%` divisor are exempt.
+  operand must fit the target's width; `&` and a `/`/`%` divisor are exempt. A value the
+  compiler folds, bound names included, is checked at the target's width: with
+  `u32 BIG <- 0x10000`, `u32 y <- BIG * BIG` is E0910, the static-initializer overflow code,
+  at every position.
 
 - **An atomic read-modify-write compiles on host and esp32** (ADR-049, Issue #1789).
   It is a GNU `__atomic` compare-exchange loop, which esp32's GCC builds as inline

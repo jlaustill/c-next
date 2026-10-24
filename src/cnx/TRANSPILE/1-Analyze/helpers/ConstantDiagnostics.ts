@@ -90,6 +90,10 @@ class ConstantDiagnostics {
   }
 
   /** E0910's help: the fix ADR-044 offers */
+  /** E0910's cause for integer arithmetic, wherever the value lands */
+  static readonly OVERFLOW_CAUSE =
+    "the arithmetic would clamp or wrap (ADR-044)";
+
   static readonly OVERFLOW_HELP =
     "Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type";
 }

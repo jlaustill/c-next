@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "type-widening.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -21,6 +23,14 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-execution
 // Tests: Implicit type widening (safe conversions)
 // Demonstrates: smaller types implicitly widen to larger types
+// `a + b` is a u8 operation: it saturates at u8 BEFORE any widening, so
+// widening the result cannot recover the lost range. The operands are
+// parameters because a sum known at compile time that overflows is E0910
+// (ADR-044, #1618).
+uint16_t sumAtU8(const uint8_t a, const uint8_t b) {
+    return cnx_clamp_add_u8(a, b);
+}
+
 int main(void) {
     const uint8_t byte = 255U;
     const uint16_t word = byte;
@@ -60,7 +70,7 @@ int main(void) {
     }
     const uint8_t a = 200U;
     const uint8_t b = 200U;
-    const uint16_t clamped = cnx_clamp_add_u8(a, b);
+    const uint16_t clamped = sumAtU8(a, b);
     if (clamped != 255) {
         return 9U;
     }
