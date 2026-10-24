@@ -355,6 +355,29 @@ class SymbolTable implements IResolvedSymbols {
   }
 
   /**
+   * #1610: whether a C typedef names a pointer type -- `T *` or a function
+   * pointer `R (*)(...)` -- read from the typedef's declared type, as
+   * `isCFunctionPointerTypedef` reads `(*)`. Unlike `isPointerTypedef`
+   * (#957's include predicate, struct pointers only), this is every pointer,
+   * including a typedef of one (`typedef vhandle_t vh2_t;`): the chain is
+   * followed, qualifiers stripped, until a declared type spells the pointer.
+   */
+  isCPointerTypedef(typeName: string): boolean {
+    const seen = new Set<string>();
+    let name = typeName;
+    while (!seen.has(name)) {
+      seen.add(name);
+      const sym = this.getCSymbol(name);
+      if (sym?.kind !== "type") return false;
+      if (!("type" in sym) || typeof sym.type !== "string") return false;
+      const type = sym.type.trimEnd();
+      if (type.endsWith("*") || type.includes("(*)")) return true;
+      name = type.replaceAll(/\b(?:const|volatile)\b/g, "").trim();
+    }
+    return false;
+  }
+
+  /**
    * Get all C symbols with a given name
    */
   getCOverloads(name: string): TCSymbol[] {

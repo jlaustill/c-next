@@ -35,6 +35,8 @@ type TPlannedScopeVariable =
       readonly isPrivate: boolean;
       readonly isConst: boolean;
       readonly isArray: boolean;
+      /** #1668: the declaration's `DeclaredPointer` answer, which writes its `*` */
+      readonly isPointer: boolean;
       /** ADR-030 provenance is recorded at the DECLARATION's position. */
       readonly declarationLine: number | undefined;
       /** Rendered `atomic`/`volatile` prefixes; at most one is non-empty. */

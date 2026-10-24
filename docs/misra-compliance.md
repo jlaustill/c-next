@@ -44,7 +44,7 @@ assessment claimed N/A.
 | Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
 | Directives (1-4) | 1        | 8         | 1       | 0       | 1   | 1            | 1         |
-| Rules 1-5        | 4        | 3         | 5       | 0       | 0   | 10           | 1         |
+| Rules 1-5        | 3        | 3         | 6       | 0       | 0   | 10           | 1         |
 | Rules 6-10       | 4        | 13        | 9       | 0       | 0   | 7            | 0         |
 | Rules 11-15      | 2        | 12        | 7       | 0       | 1   | 8            | 1         |
 | Rules 16-22      | 6        | 26        | 6       | 0       | 1   | 17           | 1         |
@@ -72,6 +72,98 @@ The failure decision lives in `scripts/misra-baseline.ts`:
   not fail the build, so the check is green today but fails
   on any **new** rule class. When a rule's issue is fixed, remove its entry from
   `BASELINE` to start enforcing it.
+
+<!-- BEGIN GENERATED: misra-guards -->
+
+### Regression guards
+
+What fails if an **Enforced** or **By Design** row regresses, from
+`scripts/misra-guards/MISRA_GUARDS.ts`. `npm run docs:misra-guards:check`
+fails when such a row has no guard or names one that does not exist
+(#1610). A row whose only guard is an issue has none yet.
+
+| guideline | guards                                                                                               |
+| --------- | ---------------------------------------------------------------------------------------------------- |
+| Dir 2.1   | `npm run test`                                                                                       |
+| Dir 3.1   | none yet: #2312                                                                                      |
+| Dir 4.1   | none yet: #2313                                                                                      |
+| Dir 4.3   | none yet: #2314                                                                                      |
+| Dir 4.6   | none yet: #2315                                                                                      |
+| Dir 4.7   | E0901 fixture                                                                                        |
+| Dir 4.8   | none yet: #2316                                                                                      |
+| Dir 4.10  | none yet: #2317                                                                                      |
+| Dir 4.12  | `validate:c` (cppcheck 21.3)                                                                         |
+| 1.1       | none yet: #2318                                                                                      |
+| 3.1       | `validate:c` (cppcheck 3.1)                                                                          |
+| 3.2       | `validate:c` (cppcheck 3.2)                                                                          |
+| 4.1       | `validate:c` (cppcheck 4.1)                                                                          |
+| 4.2       | `validate:c` (cppcheck 4.2)                                                                          |
+| 5.1       | `validate:c` (cppcheck 5.1); E0204 fixture                                                           |
+| 6.1       | `validate:c` (cppcheck 6.1)                                                                          |
+| 6.2       | `validate:c` (cppcheck 6.2)                                                                          |
+| 7.1       | `validate:c` (cppcheck 7.1); E0912 fixture                                                           |
+| 7.3       | `validate:c` (cppcheck 7.3)                                                                          |
+| 8.1       | `validate:c` (cppcheck 8.1)                                                                          |
+| 8.2       | `validate:c` (cppcheck 8.2)                                                                          |
+| 8.3       | none yet: #2319                                                                                      |
+| 8.4       | `validate:c` (cppcheck 8.4)                                                                          |
+| 8.5       | `validate:c` (cppcheck 8.5)                                                                          |
+| 8.6       | `validate:c` (cppcheck 8.6)                                                                          |
+| 8.10      | `validate:c` (cppcheck 8.10)                                                                         |
+| 8.13      | E0899 fixture                                                                                        |
+| 8.14      | `validate:c` (cppcheck 8.14)                                                                         |
+| 9.2       | `validate:c` (cppcheck 9.2)                                                                          |
+| 9.3       | `validate:c` (cppcheck 9.3)                                                                          |
+| 9.4       | `validate:c` (cppcheck 9.4)                                                                          |
+| 9.5       | `validate:c` (cppcheck 9.5)                                                                          |
+| 11.1      | `validate:c` (cppcheck 11.1)                                                                         |
+| 11.2      | `validate:c` (cppcheck 11.2)                                                                         |
+| 11.5      | `validate:c` (cppcheck 11.5)                                                                         |
+| 11.6      | `validate:c` (cppcheck 11.6)                                                                         |
+| 11.7      | `validate:c` (cppcheck 11.7)                                                                         |
+| 11.8      | `validate:c` (cppcheck 11.8)                                                                         |
+| 11.9      | `validate:c` (cppcheck 11.9); `validate:c` dump check; C++ compile `-Wzero-as-null-pointer-constant` |
+| 12.3      | `validate:c` (cppcheck 12.3)                                                                         |
+| 13.4      | `validate:c` (cppcheck 13.4)                                                                         |
+| 13.5      | `validate:c` (cppcheck 13.5); E0702 fixture                                                          |
+| 13.6      | `validate:c` (cppcheck 13.6); E0603 fixture                                                          |
+| 15.1      | `validate:c` (cppcheck 15.1)                                                                         |
+| 15.2      | `validate:c` (cppcheck 15.2)                                                                         |
+| 15.3      | `validate:c` (cppcheck 15.3)                                                                         |
+| 16.1      | `validate:c` (cppcheck 16.1)                                                                         |
+| 16.2      | `validate:c` (cppcheck 16.2)                                                                         |
+| 16.3      | `validate:c` (cppcheck 16.3)                                                                         |
+| 16.4      | `validate:c` (cppcheck 16.4)                                                                         |
+| 16.6      | `validate:c` (cppcheck 16.6); E0712 fixture                                                          |
+| 16.7      | `validate:c` (cppcheck 16.7); E0711 fixture                                                          |
+| 17.1      | `validate:c` (cppcheck 17.1)                                                                         |
+| 17.3      | `validate:c` (cppcheck 17.3)                                                                         |
+| 17.5      | none yet: #2320                                                                                      |
+| 17.6      | `validate:c` (cppcheck 17.6)                                                                         |
+| 17.7      | `validate:c` (cppcheck 17.7); E0708 fixture                                                          |
+| 17.8      | `validate:c` (cppcheck 17.8)                                                                         |
+| 18.1      | none yet: #2321                                                                                      |
+| 18.2      | none yet: #2322                                                                                      |
+| 18.3      | none yet: #2323                                                                                      |
+| 18.5      | `validate:c` (cppcheck 18.5)                                                                         |
+| 18.7      | `validate:c` (cppcheck 18.7)                                                                         |
+| 18.8      | `validate:c` (cppcheck 18.8)                                                                         |
+| 20.3      | `validate:c` (cppcheck 20.3)                                                                         |
+| 20.5      | `validate:c` (cppcheck 20.5)                                                                         |
+| 20.6      | E0501 fixture                                                                                        |
+| 20.7      | `validate:c` (cppcheck 20.7); E0501 fixture                                                          |
+| 20.8      | `validate:c` (cppcheck 20.8)                                                                         |
+| 20.9      | `validate:c` (cppcheck 20.9)                                                                         |
+| 20.10     | `validate:c` (cppcheck 20.10); E0502 fixture; E0501 fixture                                          |
+| 20.11     | `validate:c` (cppcheck 20.11); E0501 fixture                                                         |
+| 20.12     | `validate:c` (cppcheck 20.12); E0501 fixture                                                         |
+| 20.13     | `validate:c` (cppcheck 20.13)                                                                        |
+| 20.14     | `validate:c` (cppcheck 20.14)                                                                        |
+| 21.3      | `validate:c` (cppcheck 21.3)                                                                         |
+| 22.2      | `validate:c` (cppcheck 21.3)                                                                         |
+| 22.5      | `validate:c` (cppcheck 22.5)                                                                         |
+
+<!-- END GENERATED: misra-guards -->
 
 ---
 
@@ -165,7 +257,7 @@ The failure decision lives in `scripts/misra-baseline.ts`:
 | 5.5  | Identifiers distinct from macros         | Not Enforced | A flag define may share a declaration's name, which then does not compile: #2127                                            |
 | 5.6  | Unique typedef names                     | Partial      | #1341 — see below                                                                                                           |
 | 5.7  | Unique tag names                         | Partial      | #1341 — see below                                                                                                           |
-| 5.8  | Unique external identifiers              | **Enforced** | E0204 — see below                                                                                                           |
+| 5.8  | Unique external identifiers              | Partial      | E0204 — see below; the clamp helpers' `a`/`b` parameters reuse a global's name: #2325                                       |
 | 5.9  | Unique internal identifiers              | Not Enforced | #1338                                                                                                                       |
 
 ### Rule 5.1 and the cost of `Scope__member` (issue #1307)
@@ -300,7 +392,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | 11.6 | No pointer to void to arithmetic       | **By Design** | No void pointers                                                                                                                                                                                                                                                                                                                    |
 | 11.7 | No cast between pointer and arithmetic | **By Design** | No raw pointers                                                                                                                                                                                                                                                                                                                     |
 | 11.8 | No cast removing const/volatile        | **Enforced**  | Const-discard fixed with ADR-070 (#1259): the explicit `(void)` discard no longer hides a callee from modification tracking                                                                                                                                                                                                         |
-| 11.9 | NULL for null pointer constant         | **By Design** | NULL handling in transpiler                                                                                                                                                                                                                                                                                                         |
+| 11.9 | NULL for null pointer constant         | **By Design** | A scalar pointer zeroes to `NULL` in C and `nullptr` in C++; an array of pointers keeps `{0}` (ADR-015, #1610)                                                                                                                                                                                                                      |
 
 ---
 

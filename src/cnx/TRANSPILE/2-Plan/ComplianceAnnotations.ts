@@ -71,6 +71,16 @@ class ComplianceAnnotations {
   };
 
   /**
+   * #1610: a scalar pointer declared without a value starts as `NULL`, not
+   * ADR-015's `{0}` (owner ruling: MISRA rules always win in generated C).
+   */
+  static readonly NULL_POINTER: IComplianceAnnotation = {
+    citation: `${ComplianceAnnotations.MISRA} 11.9`,
+    what: "pointer declared without a value initialized to `NULL`",
+    why: "ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`",
+  };
+
+  /**
    * #2332: a temporary the right of `&&` builds is built under a test of the
    * left side, because building it before the statement would run it always.
    */
@@ -220,6 +230,7 @@ class ComplianceAnnotations {
       ComplianceAnnotations.OR_OPERAND,
       ComplianceAnnotations.TERNARY_ARM,
       ComplianceAnnotations.STATIC_VALUE,
+      ComplianceAnnotations.NULL_POINTER,
       ComplianceAnnotations.sliceUnroll("uint8_t", "uint32_t"),
       ComplianceAnnotations.floatBitsUnion("float", "uint32_t"),
       ComplianceAnnotations.movedName("hidesFileScope", "g", "f__g"),

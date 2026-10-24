@@ -10,6 +10,7 @@
  * - irq_wrappers: IRQ wrapper functions for critical sections (avoids macro collisions)
  * - float_static_assert: Static assert for float bit indexing size verification
  * - limits: limits.h for float-to-int clamp casts
+ * - stddef: stddef.h for the `NULL` a C file writes (#1610)
  * - isr: ISR function pointer typedef (ADR-040)
  */
 type TIncludeHeader =
@@ -18,6 +19,7 @@ type TIncludeHeader =
   | "irq_wrappers"
   | "float_static_assert"
   | "limits"
+  | "stddef"
   | "isr";
 
 export default TIncludeHeader;

@@ -61,6 +61,7 @@ describe("ComplianceAnnotations", () => {
       "C11 6.5.14p4, C++ [expr.log.or]",
       "C11 6.5.15p4, C++ [expr.cond]",
       "C11 6.7.9p4",
+      "MISRA C:2012 Rule 11.9",
       "MISRA C:2012 Rule 14.3",
       "MISRA C:2012 Rule 19.1",
       "MISRA C:2012 Rule 19.1",

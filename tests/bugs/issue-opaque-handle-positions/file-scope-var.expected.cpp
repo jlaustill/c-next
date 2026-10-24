@@ -26,12 +26,12 @@
 
 #include <stdint.h>
 
-Dev* gdev = {};
+Dev* gdev = nullptr;
 
 Dev* gdevs[2] = {};
 
 /* Scope: Board */
-Dev* Board__primary = NULL;
+Dev* Board__primary = nullptr;
 Dev* Board__spares[2] = {};
 
 void Board__attach(void) {

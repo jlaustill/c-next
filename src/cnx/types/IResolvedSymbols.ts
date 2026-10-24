@@ -52,6 +52,8 @@ interface IResolvedSymbols {
   checkNeedsStructKeyword(structName: string): boolean;
   getAllNeedsStructKeyword(): string[];
   isPointerTypedef(typeName: string): boolean;
+  /** #1610: whether a C typedef names a pointer type, any pointer */
+  isCPointerTypedef(typeName: string): boolean;
   isOpaqueType(typeName: string): boolean;
   /** #1975: why a header struct has no length, or null when its fields sum */
   getStructLayout(structName: string): TStructLayout | null;

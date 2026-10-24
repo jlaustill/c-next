@@ -53,6 +53,7 @@ import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionFacts from "../../types/IEmissionFacts";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
 import type TStatement from "../../types/syntax/TStatement";
 import type IStructDeclarationSyntax from "../../types/syntax/IStructDeclarationSyntax";
@@ -70,6 +71,7 @@ import MutArgument from "../1-Analyze/helpers/MutArgument";
 import StringWriteSites from "../1-Analyze/helpers/StringWriteSites";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
+import CppModeHelper from "./CppModeHelper";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
 import StatementChildren from "../../utils/StatementChildren";
@@ -1086,6 +1088,11 @@ class FilePlanner {
       ),
     };
     const types = this.planTypeSites(program, unwritten);
+    const nullInitialized = this.planNullInitialized(program, unwritten);
+    // #1610: the NULL a C file writes is declared by <stddef.h>
+    if (this.writesNull(program, unwritten, nullInitialized)) {
+      requirements.require("stddef");
+    }
     // Each planned type is written once 2.3 is done, so its include is decided here
     for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -1214,6 +1221,7 @@ class FilePlanner {
       selfInclude,
       includeDirectives,
       inlinedConsts,
+      nullInitialized,
       staticValues: statics.values,
       staticValueNotes: statics.notes,
       types,
@@ -1728,6 +1736,90 @@ class FilePlanner {
       }
     }
     return foreign;
+  }
+
+  /**
+   * ADR-015 / #1610: each declaration whose zero is the null pointer -- a
+   * scalar with no initializer whose C value is a pointer, at file scope, in
+   * a scope or in a body. That is the declaration's own `DeclaredPointer`
+   * answer, the one its `*` is written from, or a pointer typedef (#957),
+   * which needs no `*`. An array of handles keeps ADR-015's brace zero (#996).
+   */
+  private planNullInitialized(
+    program: IProgramSyntax,
+    unwritten: IUnwrittenSyntax,
+  ): ReadonlySet<IVariableDeclarationSyntax> {
+    // A scope member or local is typed without its `kind`, so it is looked up by node
+    const unwrittenNodes: ReadonlySet<ISyntaxNode> = unwritten.declarations;
+    return new Set(
+      FilePlanner.variableDeclarations(program).filter(
+        (decl) =>
+          !decl.initializer &&
+          !unwrittenNodes.has(decl) &&
+          !FilePlanner.isArrayDeclaration(decl) &&
+          this.state.holdsPointer(decl),
+      ),
+    );
+  }
+
+  /**
+   * Every variable the file declares with ADR-015's zero: at file scope, in a
+   * scope, in a body. A `for` header's declaration is not one: the header is
+   * written without ADR-015's zero today (#2334 decides whether it gets one),
+   * so planning it a null would raise `<stddef.h>` for a `NULL` nothing writes.
+   */
+  private static variableDeclarations(
+    program: IProgramSyntax,
+  ): IVariableDeclarationSyntax[] {
+    return program.declarations.flatMap((entry) => {
+      const statements = StatementNodes.in(entry.declaration);
+      const forHeaders = new Set<TStatement>(
+        statements.flatMap((statement) =>
+          statement.kind === "for" && statement.init !== null
+            ? [statement.init]
+            : [],
+        ),
+      );
+      return [
+        ...(entry.declaration.kind === "variableDeclaration"
+          ? [entry.declaration]
+          : []),
+        ...FilePlanner.scopeVariables([entry]),
+        ...statements.flatMap((statement) =>
+          statement.kind === "variableDeclaration" && !forHeaders.has(statement)
+            ? [statement]
+            : [],
+        ),
+      ];
+    });
+  }
+
+  /**
+   * #1610: whether the file writes `NULL` -- a written `NULL` literal, or a
+   * null-initialized declaration -- which `<stddef.h>` declares. The answer
+   * follows the spelling `CppModeHelper.nullLiteral` writes, so C++'s
+   * `nullptr` needs no header.
+   */
+  private writesNull(
+    program: IProgramSyntax,
+    unwritten: IUnwrittenSyntax,
+    nullInitialized: ReadonlySet<IVariableDeclarationSyntax>,
+  ): boolean {
+    if (CppModeHelper.nullLiteral(this.state) !== "NULL") return false;
+    if (nullInitialized.size > 0) return true;
+    return FilePlanner.writtenExpressions(program, unwritten).some(
+      (expression) =>
+        expression.kind === "literal" && expression.literalKind === "null",
+    );
+  }
+
+  /**
+   * Issue #500: both spellings make an array -- C-style trailing dimensions
+   * and the cnx array type. The one predicate for a local, a scope member
+   * and a file-scope variable.
+   */
+  static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
+    return decl.dimensions.length > 0 || decl.type.kind === "array";
   }
 
   /** Every variable a scope declares, at any depth */
@@ -2714,6 +2806,7 @@ class FilePlanner {
       needsString: requirements.requires("string"),
       needsCMSIS: requirements.requires("cmsis"),
       needsLimits: requirements.requires("limits"),
+      needsStddef: requirements.requires("stddef"),
       needsFloatStaticAssert: requirements.requires("float_static_assert"),
       needsIrqWrappers: requirements.requires("irq_wrappers"),
       needsISR: requirements.requires("isr"),

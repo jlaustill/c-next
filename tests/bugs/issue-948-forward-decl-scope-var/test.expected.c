@@ -5,10 +5,13 @@
 
 #include "test.test.h"
 
-// test-transpile-only
+// test-no-warnings
 #include "fake_lib.h"
 
+#include <stddef.h>
+
 /* Scope: MyScope */
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 static widget_t* MyScope__w = NULL;
 
 void MyScope__init(void) {

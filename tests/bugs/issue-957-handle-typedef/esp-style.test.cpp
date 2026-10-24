@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 /* Scope: SPI */
-static spi_device_handle_t SPI__device = {};
+static spi_device_handle_t SPI__device = nullptr;
 
 void SPI__init(void) {
     static_cast<void>(spi_device_init(&SPI__device));

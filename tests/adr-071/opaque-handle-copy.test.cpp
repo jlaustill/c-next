@@ -25,7 +25,7 @@ uint8_t viaArray(Dev* d) {
 }
 
 int main(void) {
-    Dev* none = {};
+    Dev* none = nullptr;
     const uint8_t one = pickOne(none, none, true);
     const uint8_t two = viaArray(none);
     if (one != 1) {

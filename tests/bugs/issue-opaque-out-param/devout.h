@@ -4,14 +4,10 @@
  * an incomplete type that C holds only through a pointer: a handle is a
  * `Dev*`, and `dev_create_into` takes a `Dev**` -- the address of the place
  * the caller keeps its handle.
- *
- * `<stddef.h>` is included because an opaque scope variable is emitted with a
- * `NULL` initializer, and generated C does not include it itself (#1610).
  */
 #ifndef OPAQUE_OUT_PARAM_DEVOUT_H
 #define OPAQUE_OUT_PARAM_DEVOUT_H
 
-#include <stddef.h>
 #include <stdint.h>
 
 typedef struct Dev Dev;

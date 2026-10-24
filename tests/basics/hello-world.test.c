@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 
 char userName[51] = "";
 
