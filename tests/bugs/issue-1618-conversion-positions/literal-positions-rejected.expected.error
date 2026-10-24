@@ -20,8 +20,8 @@
        help: Widen the target type, or narrow the value.
 41:10 error[E0910]: Value overflows u8 at compile time: the arithmetic would clamp or wrap (ADR-044)
        help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
-42:19 error[E0910]: Value overflows u16 at compile time: the arithmetic would clamp or wrap (ADR-044)
-       help: Do the arithmetic at a width that holds the result, for example by casting the operands to a wider type
+42:19 error[E0868]: Negative value -300 cannot be assigned to unsigned type u16
+       help: An unsigned type holds no negative values; use a signed type such as i16.
 43:13 error[E0868]: Value 0x100 has bits outside u8's 8 bits
        help: Widen the target type, or drop the bits it cannot hold.
 44:10 error[E0868]: Value 0x1FF has bits outside u8's 8 bits
