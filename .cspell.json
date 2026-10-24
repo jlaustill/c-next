@@ -630,6 +630,7 @@
     "valloc",
     "vasprintf",
     "Verilog",
+    "vhandle",
     "VHDL",
     "vitest",
     "VREF",
