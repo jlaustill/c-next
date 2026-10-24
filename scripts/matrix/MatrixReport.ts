@@ -209,6 +209,8 @@ function positionViolations(
   const found: IPositionViolation[] = [];
   for (const id of [...declarations.keys()].sort()) {
     for (const [position, severity] of declarations.get(id)!.severities) {
+      // The parser keeps only position slugs in a position table
+      if (!MatrixCell.isPosition(position)) continue;
       const occupied = isPositionOccupied(occupancy, id, position);
       if (severity === "off" ? occupied : !occupied) {
         found.push({ id, position, severity });
