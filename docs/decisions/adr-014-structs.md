@@ -480,6 +480,17 @@ fieldInitializer
 2. Generate `= {0}` for uninitialized struct variables
 3. Generate `(Type){ .field = value }` for struct initializers
 4. Handle struct member access with `.`
+5. Issue #517 / #1534: in C++, a struct initializer for a class with a
+   user-declared constructor cannot be an aggregate initializer (C++20 §9.4.2,
+   aggregates). The object is constructed with `= {}` and each field is
+   assigned to it after. A declaration fills its own object. Anywhere else
+   (an assignment, an argument, a return, an array element, a field) the
+   object is built as a temporary before the statement, and that temporary
+   is the value. Issue #2332: a temporary built inside an operand that runs
+   only sometimes -- the right of `&&` or `||`, an arm of `?:` -- is built
+   only when that operand runs (C11 §6.5.13-§6.5.15). The left side becomes a
+   `bool` the operand's `if` tests, and a ternary's value a variable each
+   branch sets; a `string<N>` field's temporary (#2236) is built the same way.
 
 ## References
 

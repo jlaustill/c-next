@@ -320,12 +320,13 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   flushPendingTempDeclarations(): string {
-    if (this.state.pendingTempDeclarations.length === 0) {
-      return "";
-    }
-    const decls = this.state.pendingTempDeclarations.join("\n");
+    const decls = [
+      ...this.state.pendingInertDeclarations,
+      ...this.state.pendingTempDeclarations,
+    ];
+    this.state.pendingInertDeclarations = [];
     this.state.pendingTempDeclarations = [];
-    return decls;
+    return decls.join("\n");
   }
 
   /**

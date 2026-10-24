@@ -693,11 +693,15 @@ class TranspileState {
   /** Pending temp variable declarations for C++ mode */
   pendingTempDeclarations: string[] = [];
 
+  /**
+   * #2332: lines written before a statement that evaluate nothing -- #2157's
+   * note and typedef. They stay before the statement even when the operand
+   * that asked for them runs only sometimes.
+   */
+  pendingInertDeclarations: string[] = [];
+
   /** Counter for unique temp variable names */
   private tempVarCounter: number = 0;
-
-  /** Issue #517: Pending field assignments for C++ class struct init */
-  pendingCppClassAssignments: string[] = [];
 
   // ===========================================================================
   // SOURCE PATHS (ADR-010, Issue #349)
@@ -1165,8 +1169,8 @@ class TranspileState {
     // C++ mode state
     this.cppMode = false;
     this.pendingTempDeclarations = [];
+    this.pendingInertDeclarations = [];
     this.tempVarCounter = 0;
-    this.pendingCppClassAssignments = [];
 
     // Issue #948: Opaque scope variables (reset per-file)
 

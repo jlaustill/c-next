@@ -57,9 +57,13 @@ describe("ComplianceAnnotations", () => {
     expect(rules.sort()).toEqual([
       "C11 6.2.1p4, C++ [basic.scope.hiding]",
       "C11 6.2.1p7, C++ [basic.scope.pdecl]",
+      "C11 6.5.13p4, C++ [expr.log.and]",
+      "C11 6.5.14p4, C++ [expr.log.or]",
+      "C11 6.5.15p4, C++ [expr.cond]",
       "C11 6.7.9p4",
       "MISRA C:2012 Rule 11.9",
       "MISRA C:2012 Rule 14.3",
+      "MISRA C:2012 Rule 19.1",
       "MISRA C:2012 Rule 19.1",
       "MISRA C:2012 Rule 21.15",
       "MISRA C:2012 Rule 21.15",
