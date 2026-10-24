@@ -13,9 +13,11 @@
 #include "esp_style.h"
 
 #include <stdint.h>
+#include <stddef.h>
 
 /* Scope: SPI */
-static spi_device_handle_t SPI__device = {0};
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
+static spi_device_handle_t SPI__device = NULL;
 
 void SPI__init(void) {
     (void)spi_device_init(&SPI__device);

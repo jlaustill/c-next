@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-handle_t my_handle = {};
+handle_t my_handle = nullptr;
 
 int main(void) {
     create_handle(&my_handle);

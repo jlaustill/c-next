@@ -16,6 +16,7 @@ const NOTHING: IEmissionFacts = {
   needsString: false,
   needsCMSIS: false,
   needsLimits: false,
+  needsStddef: false,
   needsFloatStaticAssert: false,
   needsIrqWrappers: false,
   needsISR: false,
@@ -50,6 +51,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
       ["needsString", "<string.h>"],
       ["needsCMSIS", "<cmsis_gcc.h>"],
       ["needsLimits", "<limits.h>"],
+      ["needsStddef", "<stddef.h>"],
     ] as const)("%s decides %s", (flag, target) => {
       const plan = EmissionPlan.build(facts({ [flag]: true }));
 
@@ -75,7 +77,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
 
     // Order is data (SYSTEM_INCLUDES), not the order somebody wrote branches.
     //
-    // Asks for ALL FIVE deliberately. An earlier version of this test set three
+    // Asks for ALL SIX deliberately. An earlier version of this test set three
     // of them and asserted their order, which reads as an order assertion and
     // is not one: transposing two headers it did not ask for changed nothing,
     // and the mutation that swapped `<stdint.h>` with `<stdbool.h>` passed it.
@@ -87,6 +89,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
           needsString: true,
           needsCMSIS: true,
           needsLimits: true,
+          needsStddef: true,
         }),
       );
 
@@ -96,6 +99,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
         "<string.h>",
         "<cmsis_gcc.h>",
         "<limits.h>",
+        "<stddef.h>",
       ]);
     });
 

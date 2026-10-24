@@ -17,12 +17,24 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExecFailure from "../src/cnx/utils/ExecFailure";
 import InterruptMask from "../src/cnx/TRANSPILE/3-Render/codegen/helpers/InterruptMask";
 import MisraBaseline from "./misra-baseline";
+import MisraDump from "./misra-dump";
+import MISRA_GUARDS from "./misra-guards/MISRA_GUARDS";
+import MisraGuards from "./misra-guards/MisraGuards";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -380,6 +392,14 @@ function runClangTidy() {
 }
 
 // --- MISRA (per-file, C only) ---
+/** Where a distribution's cppcheck package installs its addons */
+const DISTRO_ADDON_DIRS = [
+  "/usr/lib/x86_64-linux-gnu/cppcheck/addons",
+  "/usr/lib/aarch64-linux-gnu/cppcheck/addons",
+  "/usr/share/cppcheck/addons",
+  "/usr/lib/cppcheck/addons",
+];
+
 // Files excluded from MISRA validation (contain valid exceptions or intentional violations)
 const MISRA_EXCLUDED_FILES = [
   // uri-exception.test.c tests MISRA Amendment 4 URI exception (://);
@@ -404,6 +424,8 @@ function runMisra() {
       !MISRA_EXCLUDED_FILES.some((exc) => f.endsWith(exc)),
   );
   console.log(`Running MISRA on ${misraFiles.length} C files...`);
+  checkAddonHasGuardedRules();
+  checkDumpParserReadsThisCppcheck();
 
   // MisraBaseline owns the cppcheck invocation and the failure decision:
   //   - buildArgs() enables `--enable=style` so the addon actually reports (#1057)
@@ -411,37 +433,13 @@ function runMisra() {
   // cppcheck exits 1 on ANY enabled finding (including non-MISRA style noise),
   // so every match throws; we parse the captured output and decide ourselves.
   for (const file of misraFiles) {
-    let output: string;
-    try {
-      execFileSync(
-        "cppcheck",
-        MisraBaseline.buildArgs(file, INCLUDE_DIR, [
-          ...HOST_DATA_MODEL_ARGS,
-          ...cortexArgs(file),
-          ...interruptMaskArgs(file),
-          ...atomicBuiltinArgs(file),
-        ]),
-        {
-          encoding: "utf-8",
-          timeout: 60000,
-          stdio: "pipe",
-        },
-      );
-      continue; // exit 0 → no findings at all
-    } catch (error: unknown) {
-      const failure = ExecFailure.of(error);
-      // Exit 1 is the expected "findings present" signal; any other status
-      // means cppcheck itself failed to run, which must not pass silently.
-      if (failure.status !== 1) {
-        reportFailure(
-          "MISRA",
-          file,
-          failure.stderr || failure.stdout || failure.message,
-        );
-        continue;
-      }
-      output = `${failure.stdout || ""}\n${failure.stderr || ""}`;
-    }
+    const output = runMisraOn(file);
+    // `--dump` keeps the dump the addon read; it is read once and removed,
+    // so the tree stays clean (#1285)
+    const dumpFile = `${file}.dump`;
+    const dump = existsSync(dumpFile) ? readFileSync(dumpFile, "utf-8") : "";
+    rmSync(dumpFile, { force: true });
+    if (output === null) continue;
 
     // An `#error` arm stops cppcheck before the addon reads the file, and its
     // exit status is the same 1, so a file it never analyzed passed (#1147).
@@ -449,10 +447,21 @@ function runMisra() {
       reportFailure("MISRA", file, output);
       continue;
     }
+    // The dump check is a named Rule 11.9 guard (MISRA_GUARDS): a file cppcheck
+    // analyzed with no dump is a check that did not run, never a clean one
+    if (dump === "") {
+      reportFailure(
+        "MISRA",
+        file,
+        `cppcheck wrote no ${dumpFile}, so MisraDump checked nothing`,
+      );
+      continue;
+    }
 
-    const misraFailures = MisraBaseline.findFailures(
-      MisraBaseline.parseViolations(output),
-    );
+    const misraFailures = MisraBaseline.findFailures([
+      ...MisraBaseline.parseViolations(output),
+      ...MisraDump.findings(dump),
+    ]);
     if (misraFailures.length > 0) {
       reportFailure(
         "MISRA",
@@ -463,6 +472,126 @@ function runMisra() {
           .join("\n"),
       );
     }
+  }
+}
+
+/**
+ * Where the `cppcheck` on PATH keeps its addons: beside its own install
+ * prefix first, so a source build ahead of a distribution package is the one
+ * inspected -- the same one `--addon=misra` loads -- then the distributions'
+ */
+function misraAddonDirs(): string[] {
+  const dirs: string[] = [];
+  try {
+    const binary = realpathSync(
+      execFileSync("which", ["cppcheck"], { encoding: "utf-8" }).trim(),
+    );
+    const prefix = dirname(dirname(binary));
+    dirs.push(
+      join(prefix, "share", "cppcheck", "addons"),
+      join(prefix, "share", "Cppcheck", "addons"),
+      join(prefix, "lib", "cppcheck", "addons"),
+    );
+  } catch {
+    // No cppcheck on PATH: the addon is then found nowhere, which is reported
+  }
+  return [...dirs, ...DISTRO_ADDON_DIRS];
+}
+
+/**
+ * #1610: a `cppcheck` guard in MISRA_GUARDS is only a guard if this cppcheck's
+ * addon checks that rule. Which rules it implements varies by version, and
+ * the guard registry check runs where cppcheck is not installed, so it is
+ * checked here, against the addon this run uses.
+ */
+function checkAddonHasGuardedRules() {
+  const dirs = misraAddonDirs();
+  const addon = dirs
+    .map((dir) => join(dir, "misra.py"))
+    .find((path) => existsSync(path));
+  if (addon === undefined) {
+    reportFailure(
+      "MISRA",
+      "misra.py",
+      `cppcheck's MISRA addon is in none of ${dirs.join(", ")}, so the rules MISRA_GUARDS relies on cannot be checked`,
+    );
+    return;
+  }
+  const source = readFileSync(addon, "utf-8");
+  for (const rule of MisraGuards.addonRules(MISRA_GUARDS)) {
+    if (!source.includes(`def misra_${rule.replace(".", "_")}(`)) {
+      reportFailure(
+        "MISRA",
+        addon,
+        `MISRA_GUARDS names cppcheck as the guard for Rule ${rule}, and this addon has no check for it`,
+      );
+    }
+  }
+}
+
+/**
+ * #1610: the Rule 11.9 dump guard reads attributes of cppcheck's `--dump`
+ * (`isPointer`, `isArray`, the `{ 0 }` tokens). A cppcheck that names or
+ * splits them differently would make `MisraDump.findings` silently find
+ * nothing, so this cppcheck's dump of a known violation must yield exactly it.
+ */
+function checkDumpParserReadsThisCppcheck() {
+  const dir = mkdtempSync(join(tmpdir(), "cnx-misra-dump-"));
+  try {
+    const probe = join(dir, "probe.c");
+    writeFileSync(probe, "static int *p = {0};\n", "utf-8");
+    if (runMisraOn(probe) === null) return;
+    const dumpFile = `${probe}.dump`;
+    const dump = existsSync(dumpFile) ? readFileSync(dumpFile, "utf-8") : "";
+    const found = MisraDump.findings(dump).filter((violation) =>
+      MisraDump.RULES.includes(violation.ruleId),
+    );
+    if (found.length !== 1) {
+      reportFailure(
+        "MISRA",
+        "dump probe",
+        `MisraDump found ${found.length} Rule 11.9 violations in this cppcheck's dump of \`static int *p = {0};\`, not 1, so it cannot be relied on to find any`,
+      );
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Run the MISRA addon on one file and return what it printed, or null when
+ * cppcheck itself failed (already reported). Exit 0 is no findings at all.
+ */
+function runMisraOn(file: string): string | null {
+  try {
+    execFileSync(
+      "cppcheck",
+      MisraBaseline.buildArgs(file, INCLUDE_DIR, [
+        ...HOST_DATA_MODEL_ARGS,
+        ...cortexArgs(file),
+        ...interruptMaskArgs(file),
+        ...atomicBuiltinArgs(file),
+      ]),
+      {
+        encoding: "utf-8",
+        timeout: 60000,
+        stdio: "pipe",
+      },
+    );
+    return "";
+  } catch (error: unknown) {
+    const failure = ExecFailure.of(error);
+    // Exit 1 is the expected "findings present" signal; any other status
+    // means cppcheck itself failed to run, which must not pass silently.
+    if (failure.status !== 1) {
+      reportFailure(
+        "MISRA",
+        file,
+        failure.stderr || failure.stdout || failure.message,
+      );
+      return null;
+    }
+    return `${failure.stdout || ""}\n${failure.stderr || ""}`;
   }
 }
 

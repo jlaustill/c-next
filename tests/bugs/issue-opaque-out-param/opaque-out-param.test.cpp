@@ -29,12 +29,12 @@
 
 #include <stdint.h>
 
-Dev* gdev = {};
+Dev* gdev = nullptr;
 
 Dev* gdevs[2] = {};
 
 /* Scope: Board */
-static Dev* Board__held = NULL;
+static Dev* Board__held = nullptr;
 
 void Board__make(void) {
     dev_create_into(&Board__held);
@@ -51,7 +51,7 @@ int32_t Board__pokes(void) {
 
 // A local handle, created through the out-parameter.
 int32_t makeLocal(void) {
-    Dev* d = {};
+    Dev* d = nullptr;
     dev_create_into(&d);
     dev_poke(d);
     dev_poke(d);

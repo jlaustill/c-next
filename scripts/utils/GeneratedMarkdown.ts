@@ -38,6 +38,30 @@ class GeneratedMarkdown {
   }
 
   /**
+   * Splice one generated block into a document, replacing everything from
+   * its begin marker through its end marker. Every generator that writes a
+   * block into a shared document (docs/misra-compliance.md has three) calls
+   * this one, so the rule for where a block goes is stated once.
+   */
+  static splice(
+    existing: string,
+    beginMarker: string,
+    endMarker: string,
+    block: string,
+  ): string {
+    const begin = existing.indexOf(beginMarker);
+    const end = existing.indexOf(endMarker);
+    if (begin === -1 || end === -1) {
+      throw new Error(
+        `the document is missing the ${beginMarker} / ${endMarker} markers`,
+      );
+    }
+    return (
+      existing.slice(0, begin) + block + existing.slice(end + endMarker.length)
+    );
+  }
+
+  /**
    * The mode named by a CLI argument, or null when it names neither.
    *
    * Returns rather than exiting so the decision is reachable from a test: a

@@ -10,7 +10,11 @@
 // a handle -- a `Dev*` -- whose address an out-parameter takes.
 #include "devout.h"
 
-Dev* shared = {0};
+#include <stddef.h>
+
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
+Dev* shared = NULL;
 
 /* Scope: Rack */
+/* MISRA C:2012 Rule 11.9: pointer declared without a value initialized to `NULL` (ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`). */
 Dev* Rack__unit = NULL;

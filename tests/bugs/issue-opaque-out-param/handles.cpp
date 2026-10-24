@@ -10,7 +10,7 @@
 // a handle -- a `Dev*` -- whose address an out-parameter takes.
 #include "devout.h"
 
-Dev* shared = {};
+Dev* shared = nullptr;
 
 /* Scope: Rack */
-Dev* Rack__unit = NULL;
+Dev* Rack__unit = nullptr;

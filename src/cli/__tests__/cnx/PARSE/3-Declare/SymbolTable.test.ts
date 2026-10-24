@@ -806,4 +806,56 @@ describe("SymbolTable", () => {
       expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(1);
     });
   });
+
+  // #1610: a C typedef's null-pointer fact, followed through typedef chains
+  describe("isCPointerTypedef", () => {
+    const typedefs = (
+      entries: ReadonlyArray<[string, string]>,
+    ): SymbolTable => {
+      const table = new SymbolTable();
+      for (const [name, type] of entries) {
+        table.addCSymbol({
+          name,
+          kind: "type",
+          sourceLanguage: ESourceLanguage.C,
+          sourceFile: "types.h",
+          span: TestSourceSpan.at(1),
+          visibility: "public",
+          type,
+        });
+      }
+      return table;
+    };
+
+    it("is true for a typedef spelling `*` or `(*)`", () => {
+      const table = typedefs([
+        ["vhandle_t", "void *"],
+        ["isr_t", "void (*)(void)"],
+      ]);
+      expect(table.isCPointerTypedef("vhandle_t")).toBe(true);
+      expect(table.isCPointerTypedef("isr_t")).toBe(true);
+    });
+
+    it("follows a typedef of a pointer typedef, through qualifiers", () => {
+      const table = typedefs([
+        ["vhandle_t", "void *"],
+        ["vh2_t", "vhandle_t"],
+        ["vh3_t", "const vh2_t"],
+      ]);
+      expect(table.isCPointerTypedef("vh2_t")).toBe(true);
+      expect(table.isCPointerTypedef("vh3_t")).toBe(true);
+    });
+
+    it("is false for a non-pointer chain, an unknown name and a cycle", () => {
+      const table = typedefs([
+        ["u32_t", "unsigned int"],
+        ["count_t", "u32_t"],
+        ["loop_a", "loop_b"],
+        ["loop_b", "loop_a"],
+      ]);
+      expect(table.isCPointerTypedef("count_t")).toBe(false);
+      expect(table.isCPointerTypedef("nope_t")).toBe(false);
+      expect(table.isCPointerTypedef("loop_a")).toBe(false);
+    });
+  });
 });

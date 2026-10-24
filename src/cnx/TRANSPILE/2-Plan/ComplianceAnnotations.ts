@@ -71,6 +71,16 @@ class ComplianceAnnotations {
   };
 
   /**
+   * #1610: a scalar pointer declared without a value starts as `NULL`, not
+   * ADR-015's `{0}` (owner ruling: MISRA rules always win in generated C).
+   */
+  static readonly NULL_POINTER: IComplianceAnnotation = {
+    citation: `${ComplianceAnnotations.MISRA} 11.9`,
+    what: "pointer declared without a value initialized to `NULL`",
+    why: "ADR-015's `{0}` would use the integer constant `0` as a null pointer constant, and the rule permits only `NULL`",
+  };
+
+  /**
    * #1735, #1765: a value in a file-scope or scope variable's initializer
    * that reads a name, written as the value cnx folded it to.
    */
@@ -192,6 +202,7 @@ class ComplianceAnnotations {
       ComplianceAnnotations.INIT_PROTOTYPE,
       ComplianceAnnotations.STRING_SELF_COPY,
       ComplianceAnnotations.STATIC_VALUE,
+      ComplianceAnnotations.NULL_POINTER,
       ComplianceAnnotations.sliceUnroll("uint8_t", "uint32_t"),
       ComplianceAnnotations.floatBitsUnion("float", "uint32_t"),
       ComplianceAnnotations.movedName("hidesFileScope", "g", "f__g"),

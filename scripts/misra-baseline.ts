@@ -57,12 +57,16 @@ const BASELINE = new Map<string, string>([
   // lowering calls to (void) at their single emit site and makes author-written
   // discards a compile error (E0708), so the rule is enforced, not baselined.
   // --- rules surfaced by #1057, newly tracked (#1059–#1072) ---
-  ["misra-c2012-8.6", "#1059"],
+  // 8.6 (#1059) and 8.5 (#1064) are deliberately absent: each measured 0
+  // generated violations and closed (#2091), so they are enforced, and
+  // docs/misra-compliance.md names cppcheck as their guard (#1610).
+  // 5.8 closed at 0 too (#1063), but the clamp helpers' `a`/`b` parameters
+  // now reuse a global's name, so it is baselined again on #2325.
+  // 9.2 (#1072) measured 0 too and is enforced (#1610 review).
+  ["misra-c2012-5.8", "#2325"],
   ["misra-c2012-5.9", "#1060"],
   ["misra-c2012-5.6", "#1061"],
   ["misra-c2012-7.2", "#1062"],
-  ["misra-c2012-5.8", "#1063"],
-  ["misra-c2012-8.5", "#1064"],
   ["misra-c2012-12.2", "#1065"],
   ["misra-c2012-20.1", "#1066"],
   ["misra-c2012-19.2", "#1067"],
@@ -70,7 +74,6 @@ const BASELINE = new Map<string, string>([
   ["misra-c2012-21.7", "#1069"],
   ["misra-c2012-10.1", "#1070"],
   ["misra-c2012-14.1", "#1071"],
-  ["misra-c2012-9.2", "#1072"],
 ]);
 
 // Matches a cppcheck finding line and captures the file path and MISRA rule id:
@@ -102,6 +105,9 @@ class MisraBaseline {
       // Without this the MISRA addon is a silent no-op (#1057).
       "--enable=style",
       "--inline-suppr",
+      // Keep the dump the addon reads: `MisraDump` checks what the addon
+      // cannot see in it (#1610, Rule 11.9's `{0}` pointer initializer).
+      "--dump",
       "--error-exitcode=1",
       "--suppress=missingIncludeSystem",
       "--suppress=unusedFunction",

@@ -10,12 +10,12 @@
 // `extern` there must say what the definition here says.
 #include "dev.h"
 
-Dev* shared = {};
+Dev* shared = nullptr;
 
 Dev* sharedPair[2] = {};
 
 /* Scope: Rack */
-Dev* Rack__unit = NULL;
+Dev* Rack__unit = nullptr;
 
 void Rack__attach(void) {
     Rack__unit = dev_create();

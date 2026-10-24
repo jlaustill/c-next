@@ -4,6 +4,8 @@
  * Each handle counts the pokes that reach it, so a fixture can tell a handle
  * that was written through its out-parameter from one that was not.
  */
+#include <stddef.h>
+
 #include "devout.h"
 
 struct Dev {

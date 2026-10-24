@@ -12,6 +12,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <stddef.h>
 
 const char line[257] = "";
 

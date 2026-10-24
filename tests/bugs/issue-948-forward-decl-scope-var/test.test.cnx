@@ -1,4 +1,4 @@
-// test-transpile-only
+// test-no-warnings
 #include "fake_lib.h"
 
 scope MyScope {

@@ -12,6 +12,8 @@
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
+#include <stddef.h>
+
 char haystack[65] = "hello hello hello";
 
 void testWhileLoop(void) {

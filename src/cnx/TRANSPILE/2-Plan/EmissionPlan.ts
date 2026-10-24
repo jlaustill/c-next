@@ -83,6 +83,7 @@ const SYSTEM_INCLUDES: readonly {
   { target: SYSTEM_INCLUDE_TARGETS.string, needed: (f) => f.needsString },
   { target: SYSTEM_INCLUDE_TARGETS.cmsis, needed: (f) => f.needsCMSIS },
   { target: SYSTEM_INCLUDE_TARGETS.limits, needed: (f) => f.needsLimits },
+  { target: SYSTEM_INCLUDE_TARGETS.stddef, needed: (f) => f.needsStddef },
 ];
 
 class EmissionPlan {

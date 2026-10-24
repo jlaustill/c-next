@@ -1,0 +1,40 @@
+// test-no-warnings
+// Tests: a C typedef that names a pointer type zeroes to the null pointer (#1610)
+// `void *`, `int *` and a function pointer are pointers spelled with no `*`, so
+// their zero is NULL / nullptr (MISRA C:2012 Rule 11.9) at every declaration site,
+// as is a typedef of one (`vh2_t`), whose own declared type has no `*` either.
+#include "user-pointer-typedefs.h"
+
+mut vhandle_t gv;
+mut intp_t gi;
+mut isr_t gcb;
+mut vh2_t gchain;
+
+scope Board {
+    mut vhandle_t sv;
+    mut isr_t scb;
+    mut vh2_t schain;
+
+    public void load() {
+        this.sv <- global.user_handle();
+        this.scb <- global.user_pick_isr();
+        this.schain <- global.user_handle();
+    }
+}
+
+u32 main() {
+    gv <- user_handle();
+    gi <- user_int();
+    gcb <- user_pick_isr();
+    Board.load();
+    mut vhandle_t lv;
+    lv <- user_handle();
+    mut isr_t lcb;
+    lcb <- user_pick_isr();
+    mut vh2_t lchain;
+    lchain <- user_handle();
+    gchain <- lchain;
+    gv <- lv;
+    gcb <- lcb;
+    return 0;
+}

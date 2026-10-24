@@ -19,6 +19,7 @@ const SYSTEM_INCLUDE_TARGETS: Readonly<Record<TSystemHeader, string>> = {
   string: "<string.h>",
   cmsis: "<cmsis_gcc.h>",
   limits: "<limits.h>",
+  stddef: "<stddef.h>",
 };
 
 export default SYSTEM_INCLUDE_TARGETS;
