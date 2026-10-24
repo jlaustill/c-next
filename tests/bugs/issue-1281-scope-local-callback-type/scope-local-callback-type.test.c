@@ -91,13 +91,20 @@ uint32_t Shadow__run(void) {
     return w.c();
 }
 
-// The control's field names the global STRUCT `Config` above, the same type
-// `Shadow` captures: the scope variable shares its name but is not type-forming,
-// so the field stays the global struct.
+// Two controls, one per type-forming kind ADR-057 lets a scope variable share a
+// name with: a global ENUM (`NoCapture`) and the global STRUCT `Config` above
+// (`NoCaptureStruct`). Each field type stays the global type.
 /* Scope: NoCapture */
 
 uint32_t NoCapture__run(void) {
-    const NoCapture__Holder h = { .c = { .x = 2U } };
+    const NoCapture__Holder h = { .m = Mode__BETA };
+    return cnx_clamp_add_u32((uint32_t)h.m, 5U);
+}
+
+/* Scope: NoCaptureStruct */
+
+uint32_t NoCaptureStruct__run(void) {
+    const NoCaptureStruct__Holder h = { .c = { .x = 2U } };
     return cnx_clamp_add_u32(h.c.x, 5U);
 }
 
@@ -117,6 +124,10 @@ int main(void) {
     const uint32_t uncaptured = NoCapture__run();
     if (uncaptured != 7) {
         return 4U;
+    }
+    const uint32_t uncapturedStruct = NoCaptureStruct__run();
+    if (uncapturedStruct != 7) {
+        return 5U;
     }
     return 0U;
 }

@@ -13,18 +13,9 @@ extern "C" {
 #endif
 
 /* Struct definitions */
-typedef struct Config {
-    uint32_t x;
-} Config;
 typedef struct S__Holder {
     Config c;
 } S__Holder;
-typedef struct Top {
-    S__Holder h;
-} Top;
-typedef struct Limits {
-    uint32_t max;
-} Limits;
 typedef struct S__Bounded {
     Limits l;
     S__Holder h;
@@ -35,6 +26,15 @@ typedef struct A__Inner {
 typedef struct B__Outer {
     A__Inner i;
 } B__Outer;
+typedef struct Config {
+    uint32_t x;
+} Config;
+typedef struct Top {
+    S__Holder h;
+} Top;
+typedef struct Limits {
+    uint32_t max;
+} Limits;
 
 /* Function prototypes */
 uint32_t S__read(const S__Holder* h);

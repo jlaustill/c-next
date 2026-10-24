@@ -334,8 +334,8 @@ describe("CnxResolver Integration", () => {
 
       const structNames = symbols
         .filter((s) => SymbolGuards.isStruct(s))
-        .map((s) => s.name);
-      expect(structNames).toEqual(["Config", "Holder", "Top"]);
+        .map((s) => s.cnxScopedName);
+      expect(structNames).toEqual(["Config", "S.Holder", "Top"]);
     });
   });
 

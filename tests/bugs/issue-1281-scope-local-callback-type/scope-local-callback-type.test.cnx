@@ -88,10 +88,32 @@ scope Shadow {
     }
 }
 
-// The control's field names the global STRUCT `Config` above, the same type
-// `Shadow` captures: the scope variable shares its name but is not type-forming,
-// so the field stays the global struct.
+// Two controls, one per type-forming kind ADR-057 lets a scope variable share a
+// name with: a global ENUM (`NoCapture`) and the global STRUCT `Config` above
+// (`NoCaptureStruct`). Each field type stays the global type.
+enum Mode {
+    ALPHA <- 1,
+    BETA <- 2
+}
+
 scope NoCapture {
+    u32 Mode <- 5;
+
+    public struct Holder {
+        Mode m;
+    }
+
+    public u32 run() {
+        // `global.` is required in VALUE position because the scope variable
+        // shadows the enum -- ADR-057 diagnoses that. The FIELD TYPE above is
+        // the half under test: it stays the global `Mode`, because a scope
+        // variable is not type-forming.
+        Holder h <- { m: global.Mode.BETA };
+        return (u32)h.m + Mode;
+    }
+}
+
+scope NoCaptureStruct {
     u32 Config <- 5;
 
     public struct Holder {
@@ -99,9 +121,8 @@ scope NoCapture {
     }
 
     public u32 run() {
-        // The FIELD TYPE above is the half under test: it stays the global
-        // `Config`, because a scope variable is not type-forming. In VALUE
-        // position the bare name is the scope variable.
+        // As above, for a struct: the field stays the global `Config`, and in
+        // VALUE position the bare name is the scope variable.
         Holder h <- { c: { x: 2 } };
         return h.c.x + Config;
     }
@@ -125,10 +146,16 @@ u32 main() {
     }
 
     // Scope variable sharing a global type's name: the global TYPE survives.
-    // The field's x (2) + the scope variable Config (5) = 7.
+    // BETA (2) + the scope variable Mode (5) = 7.
     u32 uncaptured <- NoCapture.run();
     if (uncaptured != 7) {
         return 4;
+    }
+
+    // The same for a global struct: the field's x (2) + the scope variable (5).
+    u32 uncapturedStruct <- NoCaptureStruct.run();
+    if (uncapturedStruct != 7) {
+        return 5;
     }
 
     return 0;

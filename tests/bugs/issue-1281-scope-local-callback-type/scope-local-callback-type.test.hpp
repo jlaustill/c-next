@@ -12,6 +12,12 @@
 extern "C" {
 #endif
 
+/* Enumerations */
+typedef enum {
+    Mode__ALPHA = 1,
+    Mode__BETA = 2
+} Mode;
+
 /* Callback typedefs */
 typedef uint32_t (*Timing__tickSource_fp)(void);
 typedef uint32_t (*Later__producer_fp)(void);
@@ -32,8 +38,11 @@ typedef struct Shadow__Wrapper {
     Shadow__Config_fp c;
 } Shadow__Wrapper;
 typedef struct NoCapture__Holder {
-    Config c;
+    Mode m;
 } NoCapture__Holder;
+typedef struct NoCaptureStruct__Holder {
+    Config c;
+} NoCaptureStruct__Holder;
 
 /* Function prototypes */
 uint32_t Timing__tickSource(void);
@@ -43,6 +52,7 @@ uint32_t Later__run(void);
 uint32_t Shadow__Config(void);
 uint32_t Shadow__run(void);
 uint32_t NoCapture__run(void);
+uint32_t NoCaptureStruct__run(void);
 
 #ifdef __cplusplus
 }
