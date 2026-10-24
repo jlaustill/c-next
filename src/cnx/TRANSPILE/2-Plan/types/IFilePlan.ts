@@ -10,6 +10,7 @@ import type IBitmapFieldTarget from "../../../types/IBitmapFieldTarget";
 import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
+import type IVariableDeclarationSyntax from "../../../types/syntax/IVariableDeclarationSyntax";
 import type TExpression from "../../../types/syntax/TExpression";
 import type TExpressionOf from "../../../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
@@ -43,6 +44,8 @@ interface IFilePlan {
 
   /** Which private scope consts are inlined, not declared (#282) */
   readonly inlinedConsts: ReadonlySet<TDeclarationSyntax>;
+  /** ADR-015 / #1610: each uninitialized scalar whose C type is a pointer, at any site: its zero is the null pointer */
+  readonly nullInitialized: ReadonlySet<IVariableDeclarationSyntax>;
   /** #1735: each static-storage value written as its folded value, as it is spelled */
   readonly staticValues: ReadonlyMap<TExpression, IPlannedStaticValue>;
   /** #1735: the declarations a name was folded in, annotated where they are written */

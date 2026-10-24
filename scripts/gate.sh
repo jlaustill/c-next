@@ -62,6 +62,7 @@ run_check "Static Analysis" "depcruise"                  npm run depcruise
 run_check "Static Analysis" "lint:test-location"         npm run lint:test-location
 run_check "Static Analysis" "analyze:duplication"        npm run analyze:duplication
 run_check "Static Analysis" "docs:toolchain:check"       npm run docs:toolchain:check
+run_check "Static Analysis" "docs:misra-guards:check"    npm run docs:misra-guards:check
 run_check "Static Analysis" "coverage:matrix:check"      npm run coverage:matrix:check
 run_check "Static Analysis" "diagnostics:manifest:check" npm run diagnostics:manifest:check
 run_check "Static Analysis" "error-codes:check"          npm run error-codes:check

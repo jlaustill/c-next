@@ -65,14 +65,11 @@ function createMockInput(withSymbols = false): IGeneratorInput {
 
 function createMockOrchestrator(options?: {
   callbackTypedef?: string | null;
-  isOpaque?: boolean;
 }): IOrchestrator {
   return strictStub<IOrchestrator>({
     state,
     setCurrentScope: vi.fn(),
     getCallbackTypedefName: vi.fn(() => options?.callbackTypedef ?? null),
-    // The one ADR-030 decision: one handle mark, one rule (#1668)
-    isHeldThroughPointer: vi.fn(() => options?.isOpaque ?? false),
     enterFunctionContext: vi.fn(),
     movedParameterComments: vi.fn(() => ""),
     exitFunctionContext: vi.fn(),
@@ -90,6 +87,7 @@ function regular(
     isPrivate: false,
     isConst: false,
     isArray: false,
+    isPointer: false,
     declarationLine: 3,
     atomic: "",
     volatile: "",
@@ -371,16 +369,21 @@ describe("ScopeGenerator", () => {
       );
     });
 
-    // Issues #948 and #958 named one state twice: a typedef of a
-    // forward-declared struct, now one handle mark (#1668)
-    it("emits a handle as a NULL-initialized pointer", () => {
-      const orchestrator = createMockOrchestrator({ isOpaque: true });
+    // Issues #948 and #958: a handle is declared as a pointer. #1610: the `*`
+    // follows the plan's `isPointer`, the declaration's `DeclaredPointer`
+    // answer, which 2.2's null initializer is planned from too
+    it("writes the `*` of a member the plan declares as a pointer", () => {
+      const orchestrator = createMockOrchestrator();
 
       const result = generateScope(
         scope({
           members: [
             member({
-              variable: regular({ renderType: () => "Handle" }),
+              variable: regular({
+                renderType: () => "Handle",
+                isPointer: true,
+                renderInitializer: () => " = NULL",
+              }),
             }),
           ],
         }),
@@ -394,15 +397,43 @@ describe("ScopeGenerator", () => {
       );
     });
 
-    // Issue #996: an ARRAY of opaque handles needs a brace initializer, not a
-    // scalar NULL, so the pointer is applied but the initializer is not.
-    it("keeps the brace initializer for an array of opaque handles", () => {
+    // The control: a type C already spells as a pointer (ADR-046's `cstring`)
+    // gains no second `*`
+    it("writes no second `*` for a type that is already a pointer", () => {
+      const result = generateScope(
+        scope({
+          members: [
+            member({
+              variable: regular({
+                renderType: () => "char*",
+                isPointer: true,
+              }),
+            }),
+          ],
+        }),
+        createMockInput(),
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(declarationsOf(result.code)).toContain(
+        "char* Driver__counter = 0;",
+      );
+      expect(
+        AdrProvenance.collect().filter((site) => site.adr === "030"),
+      ).toEqual([]);
+    });
+
+    // Issue #996: an array of handles is an array of pointers; which zero it
+    // takes is 2.2's (`nullInitialized` holds no array)
+    it("writes the `*` of each element of an array of handles", () => {
       const result = generateScope(
         scope({
           members: [
             member({
               variable: regular({
                 isArray: true,
+                isPointer: true,
                 renderType: () => "Handle",
                 renderArrayTypeDimensions: () => "[4]",
                 renderInitializer: () => " = {0}",
@@ -413,7 +444,7 @@ describe("ScopeGenerator", () => {
         }),
         createMockInput(),
         STATE,
-        createMockOrchestrator({ isOpaque: true }),
+        createMockOrchestrator(),
       );
 
       expect(declarationsOf(result.code)).toContain(
@@ -429,13 +460,14 @@ describe("ScopeGenerator", () => {
               variable: regular({
                 declarationLine: 42,
                 renderType: () => "Handle",
+                isPointer: true,
               }),
             }),
           ],
         }),
         createMockInput(),
         STATE,
-        createMockOrchestrator({ isOpaque: true }),
+        createMockOrchestrator(),
       );
 
       expect(
@@ -456,7 +488,7 @@ describe("ScopeGenerator", () => {
         }),
         createMockInput(),
         STATE,
-        createMockOrchestrator({ isOpaque: false }),
+        createMockOrchestrator(),
       );
 
       expect(

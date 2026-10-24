@@ -75,6 +75,7 @@ import type IRegisterDeclarationSyntax from "../types/syntax/IRegisterDeclaratio
 import type IParameterSyntax from "../types/syntax/IParameterSyntax";
 import type IFunctionDeclarationSyntax from "../types/syntax/IFunctionDeclarationSyntax";
 import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
+import type ISyntaxNode from "../types/syntax/ISyntaxNode";
 import type IProgramSyntax from "../types/syntax/IProgramSyntax";
 import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
 import type TBlockSyntax from "../types/syntax/TBlockSyntax";
@@ -402,6 +403,20 @@ class CodeGenWalker {
     return this.filePlan.staticValueNotes.has(declaration) &&
       !this.host.state.cppMode
       ? ComplianceAnnotations.render(ComplianceAnnotations.STATIC_VALUE) + "\n"
+      : "";
+  }
+
+  /**
+   * #1610: why a pointer declared without a value starts as `NULL`. Asked of
+   * the spelling `zeroOf` writes, so the note follows it: `nullptr` is not an
+   * integer constant, and the rule has nothing to say about it
+   */
+  private nullPointerNote(declaration: ISyntaxNode): string {
+    const nullInitialized: ReadonlySet<ISyntaxNode> =
+      this.filePlan.nullInitialized;
+    return nullInitialized.has(declaration) &&
+      CppModeHelper.nullLiteral(this.host.state) === "NULL"
+      ? ComplianceAnnotations.render(ComplianceAnnotations.NULL_POINTER) + "\n"
       : "";
   }
 
@@ -911,6 +926,7 @@ class CodeGenWalker {
       case "constructorDeclaration":
         return (
           this.nameMoveComments(statement) +
+          this.nullPointerNote(statement) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(statement),
             this.host.state,
@@ -1812,6 +1828,7 @@ class CodeGenWalker {
       case "constructorDeclaration":
         return (
           this.staticValueNote(declaration) +
+          this.nullPointerNote(declaration) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(declaration),
             this.host.state,
@@ -1996,7 +2013,7 @@ class CodeGenWalker {
     const isConst = !decl.modifiers.mut;
     const arrayDims = decl.dimensions;
     const arrayType = decl.type.kind === "array" ? decl.type : null;
-    const isArray = CodeGenWalker.isArrayDeclaration(decl);
+    const isArray = FilePlanner.isArrayDeclaration(decl);
 
     // Issue #282: 2.2 decided which private consts are inlined at their uses
     if (this.filePlan.inlinedConsts.has(decl)) {
@@ -2016,6 +2033,7 @@ class CodeGenWalker {
       isPrivate,
       isConst,
       isArray,
+      isPointer: this.host.state.isDeclaredPointer(decl),
       declarationLine: decl.span.line,
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
@@ -2035,7 +2053,7 @@ class CodeGenWalker {
           FilePlanner.stringCapacityOf(decl.type),
         ),
       renderInitializer: () => this.renderScopeInitializer(decl, isArray),
-      note: this.staticValueNote(decl),
+      note: this.staticValueNote(decl) + this.nullPointerNote(decl),
     };
   }
 
@@ -2075,7 +2093,21 @@ class CodeGenWalker {
       return rendered;
     }
     // ADR-015: Zero initialization for uninitialized scope variables
-    return ` = ${this.zeroInitializerOf(decl.type, isArray, decl.dimensions)}`;
+    return ` = ${this.zeroOf(decl, isArray)}`;
+  }
+
+  /**
+   * ADR-015's zero for a declaration written without an initializer, at every
+   * declaration site. #1610: a scalar whose C type is a pointer is the null
+   * pointer, spelled by mode -- MISRA C:2012 Rule 11.9 makes `NULL`, not the
+   * integer `0` in `{0}`, a C pointer's null constant. 2.2 decided which
+   * declarations those are (`nullInitialized`).
+   */
+  private zeroOf(decl: IVariableDeclarationSyntax, isArray: boolean): string {
+    if (this.filePlan.nullInitialized.has(decl)) {
+      return CppModeHelper.nullLiteral(this.host.state);
+    }
+    return this.zeroInitializerOf(decl.type, isArray, decl.dimensions);
   }
 
   private generateRegister(register: IRegisterDeclarationSyntax): string {
@@ -2569,7 +2601,7 @@ class CodeGenWalker {
       fillsAfterDeclaring ? { ...decl.modifiers, mut: true } : decl.modifiers,
       this.host.state.inFunctionBody,
       this.host.state,
-      this.host.state.ownTypeInfo(decl)?.isPointer ?? false,
+      this.host.state.isDeclaredPointer(decl),
     );
     const name = decl.name;
     const type = this._inferVariableType(decl);
@@ -2668,7 +2700,7 @@ class CodeGenWalker {
   ): IPlannedArrayDeclaration {
     const arrayDims = decl.dimensions;
     const typeDims = decl.type.kind === "array" ? decl.type.dimensions : null;
-    if (!CodeGenWalker.isArrayDeclaration(decl)) {
+    if (!FilePlanner.isArrayDeclaration(decl)) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -2711,15 +2743,6 @@ class CodeGenWalker {
           }
         : null,
     };
-  }
-
-  /**
-   * Issue #500: both spellings make an array -- C-style trailing dimensions
-   * and the cnx array type. The one predicate for a local, a scope member
-   * and a file-scope variable.
-   */
-  private static isArrayDeclaration(decl: IVariableDeclarationSyntax): boolean {
-    return decl.dimensions.length > 0 || decl.type.kind === "array";
   }
 
   /** How many dimensions a declaration states, in both spellings together */
@@ -2788,8 +2811,7 @@ class CodeGenWalker {
     if (!initializer) {
       return {
         kind: "zero",
-        render: (isArray) =>
-          this.zeroInitializerOf(decl.type, isArray, decl.dimensions),
+        render: (isArray) => this.zeroOf(decl, isArray),
       };
     }
     return {
@@ -2949,8 +2971,7 @@ class CodeGenWalker {
    */
   private _inferVariableType(decl: IVariableDeclarationSyntax): string {
     const type = this.renderDeclaredType(decl.type);
-    const info = this.host.state.ownTypeInfo(decl);
-    return DeclaredPointer.spell(type, info?.isPointer ?? false);
+    return DeclaredPointer.spell(type, this.host.state.isDeclaredPointer(decl));
   }
 
   /**

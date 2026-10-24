@@ -76,6 +76,8 @@
     "backlog:order:check": "tsx scripts/order-backlog.ts check",
     "docs:toolchain": "tsx scripts/toolchain-requirements.ts write",
     "docs:toolchain:check": "tsx scripts/toolchain-requirements.ts check",
+    "docs:misra-guards": "tsx scripts/misra-guards.ts write",
+    "docs:misra-guards:check": "tsx scripts/misra-guards.ts check",
     "unit": "vitest run",
     "unit:watch": "vitest",
     "unit:coverage": "vitest run --coverage",

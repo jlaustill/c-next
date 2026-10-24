@@ -21,7 +21,7 @@
 #include <stdint.h>
 
 /* Scope: UI */
-static Dev* UI__held = NULL;
+static Dev* UI__held = nullptr;
 
 void UI__inner(Dev* w) {
     dev_poke(w);
