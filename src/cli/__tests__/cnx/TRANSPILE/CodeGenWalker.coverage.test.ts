@@ -34,7 +34,7 @@ import TestSourceSpan from "../../../../cnx/types/__testUtils__/testSourceSpan";
  */
 function setupGenerator(
   source: string,
-  options: { cppMode: boolean },
+  options: { cppMode: boolean; cppConstructors?: readonly string[] },
 ): {
   tree: Parser.ProgramContext;
   generator: CodeGenWalker;
@@ -67,6 +67,19 @@ function setupGenerator(
   // Issue #831: Register TSymbols in SymbolTable (single source of truth)
   symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
+  // Issue #517: a class's constructor is the function symbol `Class::Class`,
+  // which is what a C++ header gives the table in a run
+  for (const className of options.cppConstructors ?? []) {
+    symbolTable.addCppSymbol({
+      name: `${className}::${className}`,
+      kind: "function",
+      type: "void",
+      visibility: "public",
+      sourceFile: "Class.hpp",
+      span: TestSourceSpan.at(1),
+      sourceLanguage: ESourceLanguage.Cpp,
+    });
+  }
 
   // #1445 box 3: the walk and the render-side services are two objects now.
   // The host is constructed here and injected, so assertions about the host.state
@@ -99,6 +112,38 @@ beforeEach(() => {
 });
 
 describe("CodeGenWalker Coverage Tests", () => {
+  // ==========================================================================
+  // #1534: a C++ class initializer fills the object it builds
+  // ==========================================================================
+  describe("C++ class initializer fill (#1534)", () => {
+    const generateCpp = (body: string) =>
+      setupGenerator(
+        [
+          "struct Widget { i32 value; }",
+          "u32 main() {",
+          body,
+          "return 0;",
+          "}",
+        ].join("\n"),
+        { cppMode: true, cppConstructors: ["Widget"] },
+      ).code;
+
+    it("fills a declaration's own object after declaring it", () => {
+      const code = generateCpp("Widget d <- { value: 12 };");
+      expect(code).toMatch(/Widget d = \{\};\n(?:.*\n)*?\s*d\.value = 12;/);
+    });
+
+    it("builds an assigned object before the statement, not on the next declaration", () => {
+      const code = generateCpp(
+        "mut Widget o;\no <- { value: 9 };\nu32 later <- 1;",
+      );
+      expect(code).toMatch(
+        /Widget cnx_tmp0 = \{\};\n(?:.*\n)*?\s*cnx_tmp0\.value = 9;\n\s*o = cnx_tmp0;/,
+      );
+      expect(code).not.toContain("later.value");
+    });
+  });
+
   // ==========================================================================
   // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
   // ==========================================================================
