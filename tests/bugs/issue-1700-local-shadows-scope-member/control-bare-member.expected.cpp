@@ -23,14 +23,22 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-execution
 // #1700 NEGATIVE CONTROL: a bare member reference with no shadowing local
 // binds the member (ADR-057), and saturates at the member's u8.
+// The member is set at run time: a sum of values known at compile time
+// that overflows is E0910, not a clamp (ADR-044, #1618).
 /* Scope: S */
+static uint8_t S__x = 0U;
+
+void S__set(const uint8_t v) {
+    S__x = v;
+}
 
 uint8_t S__f(void) {
-    const uint8_t y = cnx_clamp_add_u8(200U, 200U);
+    const uint8_t y = cnx_clamp_add_u8(S__x, S__x);
     return y;
 }
 
 int main(void) {
+    S__set(200U);
     const uint8_t r = S__f();
     if (r != 255) {
         return 1U;

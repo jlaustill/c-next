@@ -9,10 +9,10 @@
 
 u8 W <- 16;
 
-void main() {
+// `w` is a parameter: `-w` of a known 3 would fold, and overflow (E0910).
+void run(u32 w) {
     u8 a8 <- 1;
     u8 b8 <- 2;
-    u32 w <- 3;
 
     // NEGATIVE CONTROLS -- widening, a same-width suffix, an in-range bit
     // range, and the sanctioned reinterpret.
@@ -32,4 +32,8 @@ void main() {
     for (u32 i <- 0; i < 3; a8 <- w) {
         i +<- 1;
     }
+}
+
+void main() {
+    run(3);
 }

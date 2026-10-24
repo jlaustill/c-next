@@ -2,18 +2,20 @@
 // #1700: a u32 local that shadows an f32 scope member is integer arithmetic,
 // so `x + x` saturates at u32's maximum. Typed as the float member, the clamp
 // was dropped and 6000000000 wrapped to 1705032704.
+// The local takes a parameter: a sum of values known at compile time that
+// overflows is E0910, not a clamp (ADR-044, #1618).
 scope S {
     f32 x <- 0.0;
 
-    public u32 f() {
-        u32 x <- 3000000000;
+    public u32 f(u32 seed) {
+        u32 x <- seed;
         u32 y <- x + x;
         return y;
     }
 }
 
 u32 main() {
-    u32 r <- S.f();
+    u32 r <- S.f(3000000000);
     if (r != 4294967295) {
         return 1;
     }

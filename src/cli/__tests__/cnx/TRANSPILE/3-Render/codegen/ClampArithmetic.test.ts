@@ -24,7 +24,7 @@ async function generate(source: string): Promise<string> {
 describe("clamp arithmetic in expressions", () => {
   it("saturates addition", async () => {
     const code = await generate(
-      `u32 main() { u8 a <- 250; u8 b <- 250; u8 c <- a + b; return 0; }`,
+      `u8 f(u8 a, u8 b) { u8 c <- a + b; return c; } u32 main() { return 0; }`,
     );
     expect(code).toContain("uint8_t c = cnx_clamp_add_u8(a, b);");
   });
@@ -39,14 +39,14 @@ describe("clamp arithmetic in expressions", () => {
   it("saturates multiplication", async () => {
     // 250 * 250 = 62500, which wraps to 36 -- smaller than either operand.
     const code = await generate(
-      `u32 main() { u8 a <- 250; u8 b <- 250; u8 c <- a * b; return 0; }`,
+      `u8 f(u8 a, u8 b) { u8 c <- a * b; return c; } u32 main() { return 0; }`,
     );
     expect(code).toContain("cnx_clamp_mul_u8(a, b)");
   });
 
   it("saturates a chain left to right", async () => {
     const code = await generate(
-      `u32 main() { u8 a <- 250; u8 b <- 250; u8 c <- a + b + b; return 0; }`,
+      `u8 f(u8 a, u8 b) { u8 c <- a + b + b; return c; } u32 main() { return 0; }`,
     );
     expect(code).toContain("cnx_clamp_add_u8(cnx_clamp_add_u8(a, b), b)");
   });
@@ -69,7 +69,7 @@ describe("clamp arithmetic in expressions", () => {
 
   it("saturates a signed type", async () => {
     const code = await generate(
-      `u32 main() { i8 a <- 100; i8 b <- 100; i8 c <- a + b; return 0; }`,
+      `i8 f(i8 a, i8 b) { i8 c <- a + b; return c; } u32 main() { return 0; }`,
     );
     expect(code).toContain("cnx_clamp_add_i8(a, b)");
   });
@@ -79,7 +79,7 @@ describe("clamp arithmetic in expressions", () => {
       // `wrap` is the documented opt-out for hot paths; if it generated the
       // same code as clamp it would buy nothing.
       const code = await generate(
-        `u32 main() { wrap u8 w <- 250; u8 c <- w + w; return 0; }`,
+        `u8 f(u8 p) { wrap u8 w <- p; u8 c <- w + w; return c; } u32 main() { return 0; }`,
       );
       expect(code).toContain("uint8_t c = w + w;");
       expect(code).not.toContain("cnx_clamp");

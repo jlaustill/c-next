@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "width.test.hpp"
+
 #include <stdint.h>
 
 // ADR-044: Overflow helper functions
@@ -28,6 +30,12 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // #1668 (R2): a suffixed literal has its suffix's width, so it sizes a
 // composite's ADR-044 clamp helper like any other u32 operand -- in either
 // order. Skipping it would size the helper by `b` alone and saturate at 255.
+// The NEGATIVE CONTROL's operand is a parameter: a sum of values known at
+// compile time that overflows is E0910, not a clamp (ADR-044, #1618).
+uint8_t addAtU8(const uint8_t b) {
+    return cnx_clamp_add_u8(b, 100U);
+}
+
 int main(void) {
     const uint8_t b = 200U;
     const uint32_t r1 = cnx_clamp_add_u32(b, 100U);
@@ -38,7 +46,7 @@ int main(void) {
     if (r2 != 300) {
         return 2U;
     }
-    const uint8_t r3 = cnx_clamp_add_u8(b, 100U);
+    const uint8_t r3 = addAtU8(b);
     if (r3 != 255) {
         return 3U;
     }

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t S__f(void);
+uint32_t S__f(const uint32_t seed);
 
 #ifdef __cplusplus
 }
