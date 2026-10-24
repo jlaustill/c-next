@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 044
+// #1618 review 3: a static initializer's overflow through a ternary's arm is
+// E0910, reported by the first analyzer stage that can detect it: the
+// integer-conversion stage, which runs before the static-storage one.
+
+bool C <- true;
+u8 BASE <- 200;
+u8 X <- (C = true) ? BASE + BASE : 0;
+
+void main() {}

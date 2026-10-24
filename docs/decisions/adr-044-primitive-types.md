@@ -357,9 +357,16 @@ skill rather than ruling on it, so this is the principle applied, not a further 
   the result overflow: `b & 0x1FF` keeps only `b`'s bits and `b / 300` is 0. Nothing is
   rejected: `u8 a <- b & 0x1FF` and `a <- b / 300` compile. A `+`, `-` or `*`
   inside such an operand is still checked: `a &<- (b + 300)` is rejected.
+- A literal operand of `+`, `-` or `*` must also fit the type its arithmetic happens at, when
+  that is narrower than the target, since the clamp acts there
+  ([owner ruling, 2026-10-24](https://github.com/smeltworks/cnx/issues/1618#issuecomment-6379394725)): with `u8 b`, `u32 r <- b + 300` is E0868, where it
+  compiled to `cnx_clamp_add_u8(b, 300U)`. `u32 r <- (u32)b + 300` compiles.
 - A value the compiler folds, bound names included, is checked as one value, at the target's
-  width: `u32 x <- 0x10000 * 0x10000` is E0910, the code a static initializer's overflow
-  already had, and so is `u32 y <- BIG * BIG` after `u32 BIG <- 0x10000`. A value a typed name
+  width. A name that is not `mut` is a constant, and so is arithmetic over it
+  ([owner ruling, 2026-10-24](https://github.com/smeltworks/cnx/issues/1618#issuecomment-6379394725)): inside a function too, `u8 a <- 250; u8 c <- a + a;` is
+  E0910. `u32 x <- 0x10000 * 0x10000` is E0910, the code a static initializer's overflow
+  already had, and so is `u32 y <- BIG * BIG` after `u32 BIG <- 0x10000`. The first analyzer
+  stage that can detect the overflow reports it. A value a typed name
   folds to keeps its type's range, which E0869 judges. `i8 x <- -(128)` compiles.
 - A wider operand is E0869 (ADR-024): `u8 a +<- big` with `u32 big` is rejected, and code that
   means the low bits says so with `a +<- big[0, 8]`.

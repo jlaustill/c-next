@@ -1,3 +1,4 @@
+import TMatrixPosition from "./TMatrixPosition";
 import TMatrixSeverity from "./TMatrixSeverity";
 
 /**
@@ -7,8 +8,7 @@ import TMatrixSeverity from "./TMatrixSeverity";
 interface IPositionViolation {
   /** MatrixRule id of the code's table ("024 E0869"). */
   readonly id: string;
-  /** A TMatrixPosition slug. */
-  readonly position: string;
+  readonly position: TMatrixPosition;
   readonly severity: TMatrixSeverity;
 }
 

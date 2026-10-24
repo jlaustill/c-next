@@ -4,7 +4,8 @@
 // lands in a typed target. 300 and -1 reached a u8 through a return, an
 // argument, an array element, a struct field initializer and a ternary's arm,
 // each at exit 0; an element and a field assignment, a compound and a
-// composite operand are here too. The
+// composite operand are here too. A `+ - *` literal fits the type its
+// arithmetic happens at as well: `u32 widened <- a + 300` clamps at u8. The
 // controls stay silent: an in-range literal at each.
 
 #include "conversion-consts.cnx"
@@ -49,6 +50,8 @@ void positions(u32 c) {
     u32 wrapsImported <- IMPORTED_WIDE * IMPORTED_WIDE;
     a +<- ((c = 1) ? 300 : 1);
     a <- a + ((~0x00) * 2);
+    u32 widened <- a + 300;
+    u32 nested <- c * (a + 300);
 
     take(255);
     u8[2] fits <- [255, 0];
@@ -71,6 +74,8 @@ void positions(u32 c) {
     u32 fitsNamed <- WIDE * 0x8000;
     a <- a | ~0x0F;
     u8 inverted <- ~0x01;
+    u32 widenedCast <- (u32)a + 300;
+    u32 nestedCast <- c * ((u32)a + 300);
     (void)list;
     (void)p;
     (void)t;

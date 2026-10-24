@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 044
+// ADR-044 "Values fixed at compile time" (#1735): a file-scope or scope
+// variable's initializer is fixed at compile time, so arithmetic over an
+// imported read-only value that overflows its width is E0910. Exercised at
+// file scope and as a scope member, with the names read across two .cnx includes.
+// Since #1618 the integer-conversion stage, the first that can detect it,
+// reports it.
+//
+// NEGATIVE CONTROL: Wide adds at u16 and fits adds 5, and must stay silent.
+#include "adr-044-relay.cnx"
+
+u8 Sum <- BASE + BASE;
+u16 Wide <- (u16)BASE + (u16)BASE;
+
+scope Holder {
+    u8 doubled <- BASE + BASE;
+    u8 fits <- BASE + 5;
+
+    public u32 total() {
+        return doubled + fits;
+    }
+}
+
+void main() {}

@@ -80,7 +80,6 @@ import CompoundOperator from "../../utils/CompoundOperator";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ValuePositions from "./helpers/ValuePositions";
 import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
-import StaticInitializers from "./helpers/StaticInitializers";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
@@ -100,6 +99,8 @@ const CONSTANT_FORMS: ReadonlySet<TExpression["kind"]> = new Set([
   "binary",
 ]);
 
+type TFold = ReturnType<typeof OperandTyper.constantResultOf>;
+
 class IntegerConversionCheck {
   /**
    * A literal's exact value. BigInt, not parseInt: a u64 bound is past 2^53,
@@ -115,7 +116,6 @@ class IntegerConversionCheck {
   public constructor(
     private readonly context: IAnalysisContext,
     private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
-    private readonly staticValues: ReadonlySet<TExpression> = new Set(),
   ) {}
 
   public errors(): IIntegerConversionError[] {
@@ -229,16 +229,31 @@ class IntegerConversionCheck {
   private checkLiteralLeaves(
     target: string,
     value: TExpression,
-    role: TLiteralRole = "value",
+    role: TLiteralRole,
   ): void {
     const roles = new Map<TExpression, TLiteralRole>([[value, role]]);
-    const constant = (expr: TExpression): boolean => {
-      if (!CONSTANT_FORMS.has(expr.kind)) return false;
-      const result = this.foldAt(target, expr, roles.get(expr) ?? "value");
-      return result.kind === "value" || result.kind === "overflow";
+    // The range a `+ - *` literal must fit: the narrower of the target and
+    // the type its level's arithmetic happens at, since the clamp acts there
+    // (ADR-044): `u32 r <- b + 300` clamps 300 at u8
+    const ranges = new Map<TExpression, string>([[value, target]]);
+    const folds = new Map<TExpression, TFold | null>();
+    const fold = (expr: TExpression): TFold | null => {
+      if (!folds.has(expr)) {
+        folds.set(
+          expr,
+          CONSTANT_FORMS.has(expr.kind)
+            ? this.foldAt(target, expr, roles.get(expr) ?? "value")
+            : null,
+        );
+      }
+      return folds.get(expr)!;
     };
     const isLeaf = (expr: TExpression): boolean => {
       const inherited = roles.get(expr) ?? "value";
+      const range = ranges.get(expr) ?? target;
+      for (const child of IntegerConversionCheck.children(expr)) {
+        ranges.set(child, this.levelRange(expr, range));
+      }
       if (expr.kind === "binary") {
         IntegerConversionCheck.assignRoles(expr, roles, inherited);
       } else if (expr.kind === "parenthesized") {
@@ -246,18 +261,49 @@ class IntegerConversionCheck {
       } else if (expr.kind === "unary") {
         roles.set(expr.operand, inherited);
       }
-      return constant(expr);
+      const result = fold(expr);
+      return result?.kind === "value" || result?.kind === "overflow";
     };
     for (const leaf of OperandTyper.valueLeafExpressions(value, isLeaf)) {
       const leafRole = roles.get(leaf) ?? "value";
       if (leafRole === "exempt") continue;
-      const text = this.knownText(target, leaf, leafRole, constant(leaf), {
-        overflowOwned: this.staticValues.has(value),
-      });
+      const text = this.knownText(target, leaf, fold(leaf));
       if (text === null) continue;
       if (leafRole === "bits") this.checkBits(target, text, leaf);
-      else this.checkLiteral(target, text, leaf);
+      else this.checkLiteral(ranges.get(leaf) ?? target, text, leaf);
     }
+  }
+
+  /** The expressions a value's leaf walk can descend to */
+  private static children(expr: TExpression): readonly TExpression[] {
+    switch (expr.kind) {
+      case "binary":
+        return expr.operands;
+      case "ternary":
+        return [expr.whenTrue, expr.whenFalse];
+      case "parenthesized":
+        return [expr.expression];
+      case "unary":
+        return [expr.operand];
+      default:
+        return [];
+    }
+  }
+
+  /** A `+ - *` level narrows the range to the type it is computed at */
+  private levelRange(expr: TExpression, range: string): string {
+    if (
+      expr.kind !== "binary" ||
+      (expr.level !== "additive" && expr.level !== "multiplicative")
+    ) {
+      return range;
+    }
+    const level = CompositeType.integerOf(
+      OperandTyper.valueLeaves(expr, this.context),
+    );
+    return level !== null && TYPE_WIDTH[level] < TYPE_WIDTH[range]
+      ? level
+      : range;
   }
 
   /**
@@ -326,22 +372,17 @@ class IntegerConversionCheck {
   private knownText(
     target: string,
     leaf: TExpression,
-    role: TLiteralRole,
-    folds: boolean,
-    { overflowOwned }: { overflowOwned: boolean },
+    result: TFold | null,
   ): string | null {
     const literal = IntegerConversionCheck.integerLiteralText(leaf);
-    if (literal !== null || !folds) return literal;
-    const result = this.foldAt(target, leaf, role);
+    if (literal !== null || result === null) return literal;
     if (result.kind === "overflow") {
-      if (!overflowOwned) {
-        this.report(
-          leaf,
-          "E0910",
-          `Value overflows ${result.typeName} at compile time: ${ConstantDiagnostics.OVERFLOW_CAUSE}`,
-          ConstantDiagnostics.OVERFLOW_HELP,
-        );
-      }
+      this.report(
+        leaf,
+        "E0910",
+        `Value overflows ${result.typeName} at compile time: ${ConstantDiagnostics.OVERFLOW_CAUSE}`,
+        ConstantDiagnostics.OVERFLOW_HELP,
+      );
       return null;
     }
     // A typed value's range is its type's, which E0869 judges
@@ -352,11 +393,7 @@ class IntegerConversionCheck {
   }
 
   /** The one fold: a value-role operand at the target's width (#1618) */
-  private foldAt(
-    target: string,
-    expr: TExpression,
-    role: TLiteralRole,
-  ): ReturnType<typeof OperandTyper.constantResultOf> {
+  private foldAt(target: string, expr: TExpression, role: TLiteralRole): TFold {
     return OperandTyper.constantResultOf(
       expr,
       this.context,
@@ -485,7 +522,7 @@ class IntegerConversionCheck {
       this.check(target, ternary.whenFalse, typeComposites);
       return;
     }
-    this.checkLiteralLeaves(target, value);
+    this.checkLiteralLeaves(target, value, "value");
     const source = this.conversionSource(value, typeComposites);
     if (source !== null) this.checkConversion(target, source, value, "assign");
   }
@@ -639,13 +676,7 @@ class IntegerConversionAnalyzer {
     program: IProgramSyntax,
     positions: ReadonlyMap<TExpression, IValuePosition>,
   ): IIntegerConversionError[] {
-    const check = new IntegerConversionCheck(
-      this.context,
-      positions,
-      new Set(
-        StaticInitializers.values(program, positions).map(({ value }) => value),
-      ),
-    );
+    const check = new IntegerConversionCheck(this.context, positions);
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);
